@@ -1,0 +1,6 @@
+{
+  "name": "DTH Tamizhan",
+  "description": "Secure DTH recharge, Tamil pack explorer, smart card verification, and dealer queue manager for Sun Direct, Tata Play, Airtel DTH, Dish TV, and D2H.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,146 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Registered user profile with phone, google email, and role authorization",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Unique Firebase Authentication UID", "maxLength": 128 },
+        "phoneNumber": { "type": "string", "description": "Normalized phone number with country code", "maxLength": 20 },
+        "email": { "type": "string", "description": "User email address", "maxLength": 120 },
+        "displayName": { "type": "string", "description": "Full name or display name", "maxLength": 100 },
+        "is_worker": { "type": "boolean", "description": "Flag determining DTH dealer or worker processing rights" },
+        "is_plan_admin": { "type": "boolean", "description": "Flag determining admin privileges" },
+        "role": { "type": "string", "description": "Role classification: customer or admin", "enum": ["customer", "admin", "worker"] },
+        "createdAt": { "type": "string", "description": "ISO timestamp of account creation" },
+        "lastLoginAt": { "type": "string", "description": "ISO timestamp of last sign in" }
+      },
+      "required": ["uid"]
+    },
+    "AdminAccount": {
+      "title": "Approved Admin Account",
+      "description": "Admin privileges granted exclusively by professorpradeeps@gmail.com",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Admin user unique UID", "maxLength": 128 },
+        "email": { "type": "string", "description": "Admin email address", "maxLength": 120 },
+        "displayName": { "type": "string", "description": "Admin name", "maxLength": 100 },
+        "role": { "type": "string", "description": "Role tier", "enum": ["super_admin", "admin"] },
+        "status": { "type": "string", "description": "Authorization state", "enum": ["approved", "revoked", "pending"] },
+        "approvedBy": { "type": "string", "description": "Super admin email who authorized this admin (professorpradeeps@gmail.com)", "maxLength": 120 },
+        "approvedAt": { "type": "string", "description": "Timestamp of approval" },
+        "notes": { "type": "string", "description": "Administrative notes", "maxLength": 250 }
+      },
+      "required": ["uid", "email", "status", "approvedBy"]
+    },
+    "AdminAccessRequest": {
+      "title": "Admin Access Request",
+      "description": "User request for administrator privileges awaiting professorpradeeps@gmail.com approval",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique request ID", "maxLength": 64 },
+        "userId": { "type": "string", "description": "Applicant UID", "maxLength": 128 },
+        "userEmail": { "type": "string", "description": "Applicant email", "maxLength": 120 },
+        "userName": { "type": "string", "description": "Applicant display name", "maxLength": 100 },
+        "userPhone": { "type": "string", "description": "Applicant phone number", "maxLength": 20 },
+        "reason": { "type": "string", "description": "Reason for requesting admin access", "maxLength": 500 },
+        "status": { "type": "string", "description": "Approval status", "enum": ["pending", "approved", "rejected"] },
+        "requestedAt": { "type": "string", "description": "Timestamp when request was filed" },
+        "reviewedBy": { "type": "string", "description": "Super admin reviewer (professorpradeeps@gmail.com)", "maxLength": 120 },
+        "reviewedAt": { "type": "string", "description": "Timestamp of review" },
+        "reviewNotes": { "type": "string", "description": "Super admin review feedback", "maxLength": 250 }
+      },
+      "required": ["id", "userId", "userEmail", "reason", "status", "requestedAt"]
+    },
+    "DthConnection": {
+      "title": "DTH Connection",
+      "description": "Saved customer set-top box or viewing card connection",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique connection ID", "maxLength": 64 },
+        "user_id": { "type": "string", "description": "Owner user UID", "maxLength": 128 },
+        "operator": { "type": "string", "description": "DTH operator key", "enum": ["sun_direct", "tata_play", "airtel_dth", "dish_tv", "d2h"] },
+        "operatorName": { "type": "string", "description": "Human readable operator name", "maxLength": 64 },
+        "smartCardNumber": { "type": "string", "description": "Subscriber ID / Smart Card / VC number", "maxLength": 24 },
+        "nickname": { "type": "string", "description": "Label such as Home, Hall, Shop, Parents", "maxLength": 50 },
+        "registeredMobile": { "type": "string", "description": "Mobile number registered with operator", "maxLength": 20 },
+        "customerName": { "type": "string", "description": "Subscriber account holder name", "maxLength": 80 },
+        "balance": { "type": "number", "description": "Last known account balance in INR" },
+        "expiryDate": { "type": "string", "description": "Current pack validity expiry date" },
+        "monthlyPackPrice": { "type": "number", "description": "Current active base pack monthly price" },
+        "packName": { "type": "string", "description": "Active base pack name", "maxLength": 100 },
+        "createdAt": { "type": "string", "description": "Connection addition timestamp" }
+      },
+      "required": ["id", "user_id", "operator", "smartCardNumber"]
+    },
+    "PendingRecharge": {
+      "title": "Pending Recharge Order",
+      "description": "DTH recharge order awaiting operator completion or admin processing",
+      "type": "object",
+      "properties": {
+        "orderId": { "type": "string", "description": "Unique recharge transaction order ID", "maxLength": 64 },
+        "user_id": { "type": "string", "description": "UID of customer placing recharge", "maxLength": 128 },
+        "operator": { "type": "string", "description": "Operator code", "enum": ["sun_direct", "tata_play", "airtel_dth", "dish_tv", "d2h"] },
+        "operatorName": { "type": "string", "description": "Display name of DTH provider", "maxLength": 64 },
+        "smartCardNumber": { "type": "string", "description": "Target smart card or subscriber ID", "maxLength": 24 },
+        "registeredMobile": { "type": "string", "description": "Notification mobile number", "maxLength": 20 },
+        "amount": { "type": "number", "description": "Recharge amount in INR" },
+        "packId": { "type": "string", "description": "Identifier of the selected recharge pack", "maxLength": 64 },
+        "packName": { "type": "string", "description": "Name of package or top-up", "maxLength": 100 },
+        "packValidity": { "type": "string", "description": "Validity period (e.g., 30 Days, 1 Year)", "maxLength": 40 },
+        "paymentMethod": { "type": "string", "description": "Payment instrument used", "enum": ["upi", "qr_code", "card", "netbanking", "wallet"] },
+        "paymentStatus": { "type": "string", "description": "Gateway status", "enum": ["initiated", "paid", "failed"] },
+        "rechargeStatus": { "type": "string", "description": "Order processing state", "enum": ["pending", "processing", "completed", "failed"] },
+        "operatorRefId": { "type": "string", "description": "Operator confirmation reference or bank transaction ID", "maxLength": 80 },
+        "workerNotes": { "type": "string", "description": "Notes added by processing dealer", "maxLength": 250 },
+        "signalRefreshRequested": { "type": "boolean", "description": "Whether an E16/heavy refresh command was triggered" },
+        "createdAt": { "type": "string", "description": "Order creation timestamp" },
+        "updatedAt": { "type": "string", "description": "Order status update timestamp" }
+      },
+      "required": ["orderId", "user_id", "operator", "smartCardNumber", "amount", "paymentStatus", "rechargeStatus"]
+    },
+    "PlanItem": {
+      "title": "DTH Plan Item",
+      "description": "Operator recharge package details managed by admin",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Plan unique identifier", "maxLength": 64 },
+        "operator": { "type": "string", "description": "Operator code", "enum": ["sun_direct", "tata_play", "airtel_dth", "dish_tv", "d2h"] },
+        "pack_type": { "type": "string", "description": "HD or SD channel definition", "enum": ["HD", "SD"] },
+        "duration_months": { "type": "number", "description": "Duration in months" },
+        "plan_name": { "type": "string", "description": "Name of the package", "maxLength": 100 },
+        "amount": { "type": "number", "description": "Price in INR" },
+        "is_recommended": { "type": "boolean", "description": "Whether highlighted as recommended" },
+        "updated_at": { "type": "string", "description": "Last updated timestamp" },
+        "updated_by": { "type": "string", "description": "Email or ID of updating admin", "maxLength": 120 }
+      },
+      "required": ["id", "operator", "pack_type", "plan_name", "amount"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Stores user profiles with owner-bound access"
+    },
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/entities/AdminAccount" },
+      "description": "Approved admin records managed strictly and solely by professorpradeeps@gmail.com"
+    },
+    "/admin_requests/{requestId}": {
+      "schema": { "$ref": "#/entities/AdminAccessRequest" },
+      "description": "Customer requests for admin access reviewable only by professorpradeeps@gmail.com"
+    },
+    "/dth_connections/{connId}": {
+      "schema": { "$ref": "#/entities/DthConnection" },
+      "description": "Stores saved subscriber viewing cards owned by individual customers"
+    },
+    "/pending_recharges/{orderId}": {
+      "schema": { "$ref": "#/entities/PendingRecharge" },
+      "description": "Manages customer recharge orders that can be viewed and updated by approved administrators"
+    },
+    "/plan_catalog/{planId}": {
+      "schema": { "$ref": "#/entities/PlanItem" },
+      "description": "DTH plans catalog accessible publicly for browsing, updated only by administrators"
+    }
+  }
+}

@@ -1,0 +1,109 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Hardened Global Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Super Admin: Strictly and exclusively professorpradeeps@gmail.com
+    function isSuperAdmin() {
+      return isSignedIn() && 
+        request.auth.token.email == 'professorpradeeps@gmail.com' &&
+        request.auth.token.email_verified == true;
+    }
+
+    // Admin: Super Admin OR an explicitly approved Admin record in /admins/
+    function isAdmin() {
+      return isSuperAdmin() || (
+        isSignedIn() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.status == 'approved'
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Connection test document
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // User profiles collection
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && 
+        request.resource.data.uid == userId &&
+        (request.resource.data.role == 'customer' || isSuperAdmin());
+      allow update: if (isOwner(userId) && request.resource.data.uid == userId && (request.resource.data.role == resource.data.role || isSuperAdmin())) || isSuperAdmin();
+      allow delete: if isOwner(userId) || isSuperAdmin();
+    }
+
+    // Approved Admins collection (Managed ONLY by professorpradeeps@gmail.com)
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isSuperAdmin();
+    }
+
+    // Admin Access Requests (Customer submits, reviewable only by professorpradeeps@gmail.com)
+    match /admin_requests/{requestId} {
+      allow create: if isSignedIn() && 
+        isValidId(requestId) &&
+        request.resource.data.userId == request.auth.uid;
+      allow read: if isSignedIn() && 
+        (resource.data.userId == request.auth.uid || isSuperAdmin());
+      allow update, delete: if isSuperAdmin();
+    }
+
+    // Saved DTH Connections collection
+    match /dth_connections/{connId} {
+      allow create: if isSignedIn() && 
+        isValidId(connId) &&
+        request.resource.data.user_id == request.auth.uid;
+      allow read: if isSignedIn() && 
+        (resource.data.user_id == request.auth.uid || isAdmin());
+      allow update: if isSignedIn() && 
+        resource.data.user_id == request.auth.uid &&
+        request.resource.data.user_id == request.auth.uid;
+      allow delete: if isSignedIn() && 
+        resource.data.user_id == request.auth.uid;
+    }
+
+    // Pending Recharges collection (Customer places order, admin processes fulfillment)
+    match /pending_recharges/{orderId} {
+      allow create: if isSignedIn() && 
+        isValidId(orderId) &&
+        request.resource.data.user_id == request.auth.uid;
+      allow read: if isSignedIn() && 
+        (resource.data.user_id == request.auth.uid || isAdmin());
+      allow update: if isSignedIn() && isAdmin();
+      allow delete: if false; // Audit trail: recharges must not be deleted
+    }
+
+    // Plan Catalog collection (Public read for recharge customer flow, write restricted to admin)
+    match /plan_catalog/{planId} {
+      allow read: if true;
+      allow create: if isAdmin() && isValidId(planId);
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Plan Audit Logs collection (Restricted to admin)
+    match /plan_audit_logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if false; // Immutable audit trail
+    }
+  }
+}

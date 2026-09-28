@@ -1,0 +1,2 @@
+Place static assets such as logos, icons, and hero images here.
+Files placed in this folder are served directly at the root URL (e.g. /sun_direct_hero.png).

@@ -1,11 +1,240 @@
-<div align="center">
+# DTH Tamizhan (தமிழ்நாடு DTH ரீசார்ஜ் & சர்வீஸ்)
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+> **Tamil Nadu DTH Recharge, Plan Catalog & Dealer Terminal**
+> Supporting Sun Direct, Tata Play, Airtel Digital TV, Dish TV, and D2H Videocon with live catalog pricing and phone OTP authentication.
 
-  <h1>Built with AI Studio</h2>
+---
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+## 1. Threat Model & Security Posture
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+According to **Directive 1 (Agentic Threat Modeling)**, DTH Tamizhan enforces security across 5 distinct threat zones:
 
-</div>
+| Threat Zone | Identified Attack Vector | Countermeasure Implemented | Security Standard |
+| :--- | :--- | :--- | :--- |
+| **1. Input Surfaces** | Malformed Smart Card, SQLi/NoSQLi, Prototype Pollution | Regex-based card validation per operator, top-level JSON body parsing, null-safe destructuring | OWASP A03 / LLM02 |
+| **2. Planning & Reasoning** | System instruction bypass, indirect prompt injection | Plain data ingestion, isolated state machines, fixed allowed actions | OWASP LLM01 |
+| **3. Tool Execution** | Privilege escalation via admin operations | Server-verified role checks (`is_plan_admin`, `is_worker`), rate-limited signal pulses | OWASP A01 |
+| **4. Memory & State** | Cross-tenant Viewing Card data leakage, order tampering | Strict owner-bound Firestore security rules (`auth.uid == userId`), undefined-stripping | Firestore ABAC |
+| **5. Inter-System Comm** | Hardcoded secrets, client-side token exposure | GCP Secret Manager dynamic access, server-side `/api/*` proxies | GCP Secret Manager |
+
+---
+
+## 2. Prerequisites & Cloud Setup
+
+Ensure you have Google Cloud SDK installed and authenticated:
+
+```bash
+# Authenticate gcloud CLI
+gcloud auth login
+gcloud config set project YOUR_PROJECT_ID
+
+# Enable required Google Cloud APIs
+gcloud services enable \
+  run.googleapis.com \
+  secretmanager.googleapis.com \
+  firestore.googleapis.com \
+  identitytoolkit.googleapis.com
+```
+
+---
+
+## 3. Secret Manager Configuration (Zero-Hardcoding Hygiene)
+
+Do not commit keys or tokens into code or `.env` files. Provision operational credentials via Secret Manager:
+
+```bash
+# 1. Create Payment Gateway Key secret
+gcloud secrets create PAYMENT_GATEWAY_KEY --replication-policy="automatic"
+echo -n "YOUR_PAYMENT_GATEWAY_KEY" | gcloud secrets versions add PAYMENT_GATEWAY_KEY --data-file=-
+
+# 2. Create WhatsApp / SMS Notification API Token
+gcloud secrets create WHATSAPP_API_TOKEN --replication-policy="automatic"
+echo -n "YOUR_WHATSAPP_TOKEN" | gcloud secrets versions add WHATSAPP_API_TOKEN --data-file=-
+
+# 3. Grant Cloud Run Service Account permissions to access secrets
+export PROJECT_NUMBER=$(gcloud projects describe YOUR_PROJECT_ID --format="value(projectNumber)")
+gcloud secrets add-iam-policy-binding PAYMENT_GATEWAY_KEY \
+  --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+  --role="roles/secretmanager.secretAccessor"
+
+gcloud secrets add-iam-policy-binding WHATSAPP_API_TOKEN \
+  --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+  --role="roles/secretmanager.secretAccessor"
+```
+
+---
+
+## 4. Firestore Security Rules
+
+Deploy the hardened, owner-isolated `firestore.rules`:
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isWorker() {
+      return isSignedIn() && (
+        request.auth.token.is_worker == true ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_worker == true
+      );
+    }
+
+    function isPlanAdmin() {
+      return isSignedIn() && (
+        request.auth.token.is_plan_admin == true ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_plan_admin == true ||
+        request.auth.token.email == 'professorpradeeps@gmail.com'
+      );
+    }
+
+    // User profile documents: owner-only read/write
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Saved DTH viewing cards: strictly owner-isolated
+    match /dth_connections/{connId} {
+      allow read, write: if isSignedIn() && (
+        resource == null || resource.data.user_id == request.auth.uid
+      );
+    }
+
+    // Pending recharges: customer can create & read their own; workers can read & update status
+    match /pending_recharges/{orderId} {
+      allow create: if isSignedIn() && request.resource.data.user_id == request.auth.uid;
+      allow read: if isSignedIn() && (
+        resource.data.user_id == request.auth.uid || isWorker()
+      );
+      allow update: if isSignedIn() && isWorker();
+    }
+
+    // DTH Plan Catalog: public read for recharge flow; isPlanAdmin for write
+    match /plan_catalog/{planId} {
+      allow read: if true;
+      allow write: if isPlanAdmin();
+    }
+  }
+}
+```
+
+To deploy rules:
+```bash
+firebase deploy --only firestore:rules
+```
+
+---
+
+## 5. Local Development & Testing
+
+```bash
+# Install dependencies
+npm install
+
+# Run unified full-stack dev server (Express backend + Vite on port 3000)
+npm run dev
+```
+
+Visit `http://localhost:3000`.
+
+---
+
+## 6. Cost-Safe Cloud Run Deployment
+
+Deploy with `--min-instances=0` to ensure zero costs during idle periods:
+
+```bash
+# Build the production bundle
+npm run build
+
+# Deploy to Cloud Run
+gcloud run deploy dth-tamizhan \
+  --source . \
+  --platform managed \
+  --region asia-south1 \
+  --allow-unauthenticated \
+  --min-instances=0 \
+  --max-instances=10 \
+  --port=3000
+```
+
+---
+
+## 7. Functional Walkthrough & Step-by-Step Test Scenarios
+
+### Test Case 1: DTH Operator Selection & Validation
+1. Open the application homepage.
+2. Click on **Sun Direct**. Notice the input placeholder adapts to `Enter 11-digit Smart Card Number`.
+3. Switch to **Tata Play**. Notice the placeholder updates to `Enter 10-digit Subscriber ID`.
+4. Enter an invalid number (e.g. `12345`) and click **Verify & Fetch Account**.
+5. Observe validation feedback prompting for the correct number of digits.
+6. Enter `41289456123` (Sun Direct) and click **Verify & Fetch Account**.
+7. Observe subscriber details displayed: `Murugan K`, Balance `₹42.50`, Status `Active`.
+
+### Test Case 2: Simplified 2-Card Plan Selection & Live Catalog Savings
+1. In the verified account view, observe the 2 cards: **Recommended HD Pack** and **Recommended SD Pack**.
+2. Notice the duration toggles (1 Month / 6 Months / 12 Months) with **6 Months** selected by default.
+3. Observe live catalog pricing and dynamic savings badge (e.g., `Save ₹55/month` or `Save ₹90/month`) calculated from the 1-month rate.
+4. Click **View channel breakdown** to expand channels with quick search and category tags.
+5. Toggle to **Other Packs** to browse additional regional bouquets, or **Custom Amount** for flexible balance recharge.
+
+### Test Case 3: Guaranteed Transaction Verification (Payment & Receipt)
+1. Click **Proceed to Recharge**.
+2. The Payment Modal appears showing UPI / QR code, Cards, and NetBanking options in the royal navy/gold layout.
+3. Keep default UPI / QR and click **Pay Now**.
+4. The system sends a sanitized, undefined-free payload to `/api/recharge/create`.
+5. Confetti animation triggers and the official **Printable Tax Invoice Receipt** displays Order ID, Operator Ref ID, CGST/SGST tax breakdown, and smart card number.
+6. Click **Print Receipt** to verify browser print formatting.
+7. Click **Done** to close.
+
+### Test Case 4: Signal Refresh
+1. Click **Signal Refresh** in the navigation header.
+2. Select **Sun Direct** and enter Smart Card `41289456123`.
+3. Click **Send Signal Refresh**.
+4. Observe the transmission confirmation, reference ID, and 5:00-minute interactive countdown.
+5. Review the on-screen instructions (Tune TV to Channel 100, keep Set-Top Box ON).
+
+### Test Case 5: Phone Number OTP Login & Profile Management
+1. Click **Login with OTP** in the top navigation.
+2. Enter mobile number `98401 23456` and click **Send OTP**.
+3. Verification code step appears with automatic test code fill.
+4. Submit code. User is logged in as `+91 98401 23456`, displaying welcome message and account avatar.
+
+### Test Case 6: Saved Set-Top Boxes Management
+1. Click **My Boxes** in the navigation.
+2. View existing saved connections (Living Room, Bedroom).
+3. Click **+ Add Connection**.
+4. Fill in operator, smart card number, and nickname `Kitchen TV`.
+5. Click **Save Connection**. The new card is persisted in local state/Firestore.
+6. Click **Recharge Again** on any card to pre-fill the recharge form instantly.
+
+### Test Case 7: Admin Console — Customer Details, Reports & Pending Queue
+1. Click **Admin Portal** in the navigation header or go to `/admin`.
+2. Notice the clean, high-precision layout with only two roles: **Administrator** and **Customer**.
+3. In **Customer Details** (`/admin/customers`), view registered subscribers, smart card numbers, live balances, and expiry dates. Use the search bar to find `Ramesh` or `Priya` and trigger quick signal refreshes.
+4. In **Reports** (`/admin/reports`), inspect real-time executive KPIs: Total Revenue, Today's Collection, Success Rate %, Average Ticket Size, and Operator Revenue distribution bar charts (Sun Direct, Tata Play, Airtel DTH, Dish TV).
+5. In **Recharge Pendings** (`/admin/pending`), inspect recharges awaiting fulfillment. Click **Complete** to instantly confirm an order and push transponder confirmation.
+
+### Test Case 8: Admin Console — Recharge Updation, Packs Updation & Payment Reports
+1. In **Recharge Updation** (`/admin/recharges`), search any recharge order by Order ID or smart card.
+2. Select an order to view metadata, modify status (`completed`, `processing`, `failed`), and update Operator Reference / RRN numbers.
+3. In **Packs Updation** (`/admin/packs`), filter plans by operator and HD/SD type. Click **Add New Pack** or **Edit** to modify prices, durations (1, 6, 12 months), and channel counts with instant save to both the catalog service and backend.
+4. In **Payment Reports** (`/admin/payments`), inspect the comprehensive payment ledger. Search by transaction ID or customer phone number, filter by payment status (`paid`, `failed`), and click **Export CSV** to download a reconciliation report.
+
+### Test Case 9: Super Admin Role Authorization & Admin Approvals (professorpradeeps@gmail.com)
+1. Sign in with Google as `professorpradeeps@gmail.com`.
+2. Notice the top header automatically displays **Super Administrator** with a gold Crown badge.
+3. Navigate to **Admin Portal** -> **Admin Approvals** (`/admin/approvals`).
+4. In **Pending Admin Access Requests**, view applicants seeking administrator permissions. Click **Approve Admin Role** to approve or **Reject** to decline.
+5. In **Approved Administrators Directory**, verify authorized administrators with timestamps and the option to **Revoke** privileges.
+6. In **Direct Administrator Authorization**, enter an email address (e.g. `dealer.chennai@gmail.com`) to grant instant Admin privileges.
+7. Sign in as a regular customer user and open `/admin/approvals`: observe the locked notice with a **Request Administrator Privileges** form to submit an application directly to Professor Pradeep.
+
