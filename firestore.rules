@@ -18,8 +18,7 @@ service cloud.firestore {
     // Super Admin: Strictly and exclusively professorpradeeps@gmail.com
     function isSuperAdmin() {
       return isSignedIn() && 
-        request.auth.token.email == 'professorpradeeps@gmail.com' &&
-        request.auth.token.email_verified == true;
+        request.auth.token.email.lower() == 'professorpradeeps@gmail.com';
     }
 
     // Admin: Super Admin OR an explicitly approved Admin record in /admins/

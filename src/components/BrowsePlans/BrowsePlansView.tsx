@@ -120,8 +120,8 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
         }
 
         // 2. Fallback to /api/plans endpoint
-        const resp = await fetch('/api/plans');
-        if (resp.ok) {
+        const resp = await fetch('/api/plans', { headers: { 'Accept': 'application/json' } });
+        if (resp.ok && resp.headers.get('content-type')?.includes('application/json')) {
           const json = await resp.json();
           if (json.success && Array.isArray(json.plans) && json.plans.length > 0) {
             if (isMounted) {

@@ -302,7 +302,7 @@ export const AdminPlansView: React.FC<AdminPlansViewProps> = ({
                 style={{ backgroundColor: currentTheme.primaryColor }}
               >
                 <UserCheck className="w-4 h-4 text-white" />
-                <span>Sign In with Phone OTP</span>
+                <span>Sign In with Google</span>
               </button>
             ) : (
               <button

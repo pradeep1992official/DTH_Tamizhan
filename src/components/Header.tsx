@@ -164,7 +164,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shadow-inner"
                   style={{ backgroundColor: `${currentTheme.primaryColor}25`, color: currentTheme.primaryColor, border: `1px solid ${currentTheme.primaryColor}50` }}
                 >
-                  {user.displayName ? user.displayName[0].toUpperCase() : (user.phoneNumber ? user.phoneNumber.slice(-2) : 'U')}
+                  {user.displayName ? user.displayName[0].toUpperCase() : (user.email ? user.email[0].toUpperCase() : 'U')}
                 </div>
               ) : (
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center ${isLight ? 'bg-[#E5E5E5] text-[#333333]' : 'bg-[#172545] text-[#9aa7be]'}`}>
@@ -174,10 +174,10 @@ export const Header: React.FC<HeaderProps> = ({
 
               <div className="text-left hidden sm:block">
                 <p className={`text-xs font-bold leading-tight ${isLight ? 'text-[#000000]' : 'text-[#f5f2eb]'}`}>
-                  {user ? (user.displayName || (user.phoneNumber ? `Subscriber (${user.phoneNumber.slice(-4)})` : 'Subscriber')) : 'Profile & Settings'}
+                  {user ? (user.displayName || (user.email ? user.email.split('@')[0] : 'Subscriber')) : 'Profile & Settings'}
                 </p>
                 <p className="text-[10px] leading-none mt-0.5 font-semibold" style={{ color: currentTheme.primaryColor }}>
-                  {isSuperAdminEmail(user?.email) ? 'Super Administrator' : (user?.is_plan_admin || user?.role === 'admin' ? 'Administrator' : (user ? 'Customer' : 'Account & Options'))}
+                  {isAdmin ? 'Administrator' : (user ? 'Customer' : 'Account & Options')}
                 </p>
               </div>
 
@@ -194,10 +194,10 @@ export const Header: React.FC<HeaderProps> = ({
                 {/* User Summary Header */}
                 <div className="px-4 py-3">
                   <p className={`font-bold text-sm truncate ${isLight ? 'text-[#000000]' : 'text-[#f5f2eb]'}`}>
-                    {user ? (user.displayName || user.phoneNumber || user.email || 'Subscriber') : 'Guest User'}
+                    {user ? (user.displayName || user.email || 'Subscriber') : 'Guest User'}
                   </p>
                   <p className={`text-[11px] truncate mt-0.5 ${isLight ? 'text-[#666666]' : 'text-[#8e9cb4]'}`}>
-                    {user ? (user.email || user.phoneNumber || 'DTH Account Verified') : 'Sign in to access saved boxes & orders'}
+                    {user ? (user.email || 'DTH Account Verified') : 'Sign in to access saved boxes & orders'}
                   </p>
                 </div>
 
@@ -229,7 +229,7 @@ export const Header: React.FC<HeaderProps> = ({
                     }`}
                   >
                     <Sliders className="w-4 h-4 opacity-70" />
-                    <span>{user ? 'Edit Profile & Mobile' : 'Account Sign In'}</span>
+                    <span>{user ? 'Edit Profile' : 'Sign in with Google'}</span>
                   </button>
                 </div>
 
@@ -374,7 +374,7 @@ export const Header: React.FC<HeaderProps> = ({
                       style={{ color: currentTheme.primaryColor }}
                     >
                       <User className="w-4 h-4" />
-                      <span>Sign In with Phone OTP / Google</span>
+                      <span>Sign In with Google</span>
                     </button>
                   )}
                 </div>

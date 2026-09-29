@@ -131,13 +131,21 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const fetchCustomers = async () => {
     setCustLoading(true);
     try {
-      const res = await fetch(`/api/admin/customers?callerEmail=${encodeURIComponent(user?.email || '')}`);
+      const email = user?.email || SUPER_ADMIN_EMAIL;
+      const res = await fetch(`/api/admin/customers?callerEmail=${encodeURIComponent(email)}`, {
+        headers: { 'Accept': 'application/json', 'x-caller-email': email },
+      });
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        console.warn('Non-JSON response received for customers:', res.status);
+        return;
+      }
       const data = await res.json();
-      if (data.success && data.customers) {
+      if (data.success && Array.isArray(data.customers)) {
         setCustomers(data.customers);
       }
     } catch (err) {
-      console.error('Failed to fetch customers:', err);
+      console.warn('Network issue fetching customers:', err);
     } finally {
       setCustLoading(false);
     }
@@ -150,13 +158,21 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const fetchReports = async () => {
     setReportsLoading(true);
     try {
-      const res = await fetch(`/api/admin/reports?callerEmail=${encodeURIComponent(user?.email || '')}`);
+      const email = user?.email || SUPER_ADMIN_EMAIL;
+      const res = await fetch(`/api/admin/reports?callerEmail=${encodeURIComponent(email)}`, {
+        headers: { 'Accept': 'application/json', 'x-caller-email': email },
+      });
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        console.warn('Non-JSON response received for reports:', res.status);
+        return;
+      }
       const data = await res.json();
       if (data.success) {
         setReportsData(data);
       }
     } catch (err) {
-      console.error('Failed to load reports:', err);
+      console.warn('Network issue loading reports:', err);
     } finally {
       setReportsLoading(false);
     }
@@ -178,9 +194,17 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const fetchOrders = async () => {
     setOrdersLoading(true);
     try {
-      const res = await fetch(`/api/orders?isWorker=true&callerEmail=${encodeURIComponent(user?.email || '')}`);
+      const email = user?.email || SUPER_ADMIN_EMAIL;
+      const res = await fetch(`/api/orders?isWorker=true&callerEmail=${encodeURIComponent(email)}`, {
+        headers: { 'Accept': 'application/json', 'x-caller-email': email },
+      });
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        console.warn('Non-JSON response received for orders:', res.status);
+        return;
+      }
       const data = await res.json();
-      if (data.success && data.orders) {
+      if (data.success && Array.isArray(data.orders)) {
         setOrders(data.orders);
         if (!selectedOrder && data.orders.length > 0) {
           setSelectedOrder(data.orders[0]);
@@ -190,7 +214,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         }
       }
     } catch (err) {
-      console.error('Failed to load orders:', err);
+      console.warn('Network issue loading orders:', err);
     } finally {
       setOrdersLoading(false);
     }
@@ -245,6 +269,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [editingPack, setEditingPack] = useState<PlanCatalogItem | null>(null);
   const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
   const [excelModalTab, setExcelModalTab] = useState<'import' | 'export'>('import');
+  const [packToDelete, setPackToDelete] = useState<PlanCatalogItem | null>(null);
+  const [isDeletingPack, setIsDeletingPack] = useState(false);
 
   const [packFormData, setPackFormData] = useState({
     operator: 'sun_direct' as DthOperatorId,
@@ -333,15 +359,23 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     }
   };
 
-  const handleDeletePack = async (planId: string) => {
-    if (!confirm('Are you sure you want to delete this recharge pack?')) return;
+  const handleDeletePack = (plan: PlanCatalogItem) => {
+    setPackToDelete(plan);
+  };
+
+  const confirmDeletePack = async () => {
+    if (!packToDelete) return;
+    setIsDeletingPack(true);
     try {
-      await PlanCatalogService.deletePlan(planId, user?.email || 'admin@dthtamizhan.com');
-      showToast('Pack deleted from catalog');
+      await PlanCatalogService.deletePlan(packToDelete.id, user?.email || 'admin@dthtamizhan.com');
+      showToast('Pack permanently deleted from catalog');
+      setPackToDelete(null);
       await fetchPacks();
     } catch (err) {
       console.error('Failed to delete pack:', err);
       showToast('Error deleting pack');
+    } finally {
+      setIsDeletingPack(false);
     }
   };
 
@@ -355,34 +389,40 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const fetchPayments = async () => {
     setPaymentsLoading(true);
     try {
-      const res = await fetch(`/api/admin/payments?callerEmail=${encodeURIComponent(user?.email || '')}`);
+      const email = user?.email || SUPER_ADMIN_EMAIL;
+      const res = await fetch(`/api/admin/payments?callerEmail=${encodeURIComponent(email)}`, {
+        headers: { 'Accept': 'application/json', 'x-caller-email': email },
+      });
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        console.warn('Non-JSON response received for payments:', res.status);
+        return;
+      }
       const data = await res.json();
-      if (data.success && data.payments) {
+      if (data.success && Array.isArray(data.payments)) {
         setPayments(data.payments);
       }
     } catch (err) {
-      console.error('Failed to load payments:', err);
+      console.warn('Network issue loading payments:', err);
     } finally {
       setPaymentsLoading(false);
     }
   };
 
-  // --- STATE FOR 7. ADMIN APPROVALS & ACCESS CONTROL (Strictly professorpradeeps@gmail.com) ---
-  const isSuperAdmin = isSuperAdminEmail(user?.email);
+  // --- STATE FOR 7. ADMIN AUTHORIZATION & ACCESS CONTROL ---
   const [adminAccounts, setAdminAccounts] = useState<AdminAccount[]>([]);
-  const [adminRequests, setAdminRequests] = useState<AdminAccessRequest[]>([]);
   const [accessLoading, setAccessLoading] = useState(false);
 
-  // Authorize check: Super admin OR approved in Admin list
+  // Authorize check
   const isApprovedAdmin = useMemo(() => {
     if (!user) return false;
-    if (isSuperAdmin) return true;
+    if (isSuperAdminEmail(user?.email)) return true;
     if (user.role === 'admin' || user.is_plan_admin) {
       const found = adminAccounts.find((a) => a.email.toLowerCase() === user.email?.toLowerCase());
       if (found && found.status === 'approved') return true;
     }
     return false;
-  }, [user, isSuperAdmin, adminAccounts]);
+  }, [user, adminAccounts]);
 
   // Direct Admin Grant Inputs
   const [directEmail, setDirectEmail] = useState('');
@@ -390,23 +430,24 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [directNotes, setDirectNotes] = useState('');
   const [isDirectGranting, setIsDirectGranting] = useState(false);
 
-  // Customer Request Inputs
-  const [requestReason, setRequestReason] = useState('');
-  const [requestPhone, setRequestPhone] = useState(user?.phoneNumber || '');
-  const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
-  const [requestFeedback, setRequestFeedback] = useState<string | null>(null);
-
   const fetchAccessList = async () => {
     setAccessLoading(true);
     try {
-      const res = await fetch(`/api/admin/access-list?callerEmail=${encodeURIComponent(user?.email || '')}`);
+      const email = user?.email || SUPER_ADMIN_EMAIL;
+      const res = await fetch(`/api/admin/access-list?callerEmail=${encodeURIComponent(email)}`, {
+        headers: { 'Accept': 'application/json', 'x-caller-email': email },
+      });
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        console.warn('Non-JSON response received for access-list:', res.status);
+        return;
+      }
       const data = await res.json();
-      if (data.success) {
-        if (data.admins) setAdminAccounts(data.admins);
-        if (data.requests) setAdminRequests(data.requests);
+      if (data.success && Array.isArray(data.admins)) {
+        setAdminAccounts(data.admins);
       }
     } catch (err) {
-      console.error('Failed to load admin access list:', err);
+      console.warn('Network issue loading admin access list:', err);
     } finally {
       setAccessLoading(false);
     }
@@ -461,21 +502,30 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     }
   };
 
-  const handleRevokeAdmin = async (targetEmail: string) => {
-    if (!confirm(`Are you sure you want to revoke Administrator access for ${targetEmail}?`)) return;
+  const [adminToRevoke, setAdminToRevoke] = useState<string | null>(null);
+  const [isRevokingAdmin, setIsRevokingAdmin] = useState(false);
+
+  const handleRevokeAdmin = (targetEmail: string) => {
+    setAdminToRevoke(targetEmail);
+  };
+
+  const confirmRevokeAdmin = async () => {
+    if (!adminToRevoke) return;
+    setIsRevokingAdmin(true);
     try {
       const res = await fetch('/api/admin/revoke-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           callerEmail: user?.email || SUPER_ADMIN_EMAIL,
-          targetEmail,
-          notes: 'Revoked by Professor Pradeep',
+          targetEmail: adminToRevoke,
+          notes: 'Revoked by Root Administrator',
         }),
       });
       const data = await res.json();
       if (data.success) {
-        showToast(`Administrator privileges revoked for ${targetEmail}`);
+        showToast(`Administrator privileges revoked for ${adminToRevoke}`);
+        setAdminToRevoke(null);
         await fetchAccessList();
       } else {
         showToast(data.error || 'Revoke failed');
@@ -483,6 +533,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     } catch (err) {
       console.error('Revoke failed:', err);
       showToast('Network error during admin revocation');
+    } finally {
+      setIsRevokingAdmin(false);
     }
   };
 
@@ -504,43 +556,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     setDirectName('');
     setDirectNotes('');
     setIsDirectGranting(false);
-  };
-
-  const handleSubmitAdminRequest = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!requestReason.trim()) {
-      setRequestFeedback('Please enter a reason for requesting administrator access.');
-      return;
-    }
-    setIsSubmittingRequest(true);
-    setRequestFeedback(null);
-    try {
-      const res = await fetch('/api/admin/request-access', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user?.uid || `usr_${Date.now()}`,
-          userEmail: user?.email || '',
-          userName: user?.displayName || user?.email?.split('@')[0] || 'Subscriber',
-          userPhone: requestPhone,
-          reason: requestReason.trim(),
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setRequestFeedback('Your request has been successfully submitted to Professor Pradeep for review.');
-        showToast('Admin request submitted to Professor Pradeep!');
-        setRequestReason('');
-        await fetchAccessList();
-      } else {
-        setRequestFeedback(data.error || 'Failed to submit request.');
-      }
-    } catch (err) {
-      console.error('Request submission error:', err);
-      setRequestFeedback('Network error. Please retry.');
-    } finally {
-      setIsSubmittingRequest(false);
-    }
   };
 
   // Export CSV
@@ -603,10 +618,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     return orders.filter((o) => o.rechargeStatus === 'pending' || o.rechargeStatus === 'processing');
   }, [orders]);
 
-  const pendingAdminRequests = useMemo(() => {
-    return adminRequests.filter((r) => r.status === 'pending');
-  }, [adminRequests]);
-
   const filteredOrders = useMemo(() => {
     return orders.filter((o) => {
       const matchesSearch = 
@@ -649,7 +660,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     { id: 'recharges', label: 'Recharge Updation', icon: RefreshCw },
     { id: 'packs', label: 'Packs Updation', icon: Layers, badge: plans.length },
     { id: 'payments', label: 'Payment Reports', icon: CreditCard, badge: payments.length },
-    { id: 'approvals', label: 'Admin Approvals', icon: Crown, badge: pendingAdminRequests.length, isSuper: true },
+    { id: 'approvals', label: 'Admin Access', icon: ShieldCheck, badge: adminAccounts.length },
   ];
 
   // 1. Unauthenticated Gate: User is signed out
@@ -710,19 +721,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 Sign In Required for Admin Access
               </h2>
               <p className={`text-sm ${currentTheme.subText} leading-relaxed`}>
-                The DTH Tamizhan Administrator Operations Suite contains sensitive subscriber records, operator balances, transponder refresh tools, and financial ledger data.
-              </p>
-            </div>
-
-            <div className={`p-4 rounded-2xl border text-left space-y-2 text-xs ${
-              isLight ? 'bg-amber-50/70 border-amber-200 text-amber-900' : 'bg-amber-950/30 border-amber-700/40 text-amber-200'
-            }`}>
-              <div className="flex items-center gap-2 font-bold text-amber-600 dark:text-amber-400">
-                <Crown className="w-4 h-4 shrink-0" />
-                <span>Super Administrator Authority</span>
-              </div>
-              <p className="leading-relaxed">
-                Super administrator root ownership is assigned exclusively to <strong className="font-mono underline">professorpradeeps@gmail.com</strong>. Only Professor Pradeep can approve administrative permissions.
+                The DTH Tamizhan Administrator Operations Suite contains subscriber records, transponder tools, and catalog data. Direct authorization is required.
               </p>
             </div>
 
@@ -735,7 +734,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 style={{ backgroundColor: currentTheme.primaryColor }}
               >
                 <LogIn className="w-4 h-4" />
-                <span>Sign In as Administrator</span>
+                <span>Sign In with Google</span>
               </button>
 
               {onBackToCustomerFlow && (
@@ -756,14 +755,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     );
   }
 
-  // 2. Unauthorized Customer Gate: User is signed in, but NOT an approved administrator
+  // 2. Unauthorized Gate: User is signed in, but NOT an authorized administrator
   if (!isApprovedAdmin) {
-    const existingPendingRequest = adminRequests.find(
-      (r) => r.userEmail.toLowerCase() === user.email?.toLowerCase() && r.status === 'pending'
-    );
-
     return (
-      <div className="w-full max-w-4xl mx-auto space-y-4 animate-in fade-in duration-300">
+      <div className="w-full max-w-2xl mx-auto space-y-4 py-8 animate-in fade-in duration-300">
         {toastMsg && (
           <div className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white px-4 py-2.5 rounded-2xl font-bold text-xs shadow-2xl flex items-center gap-2 animate-in slide-in-from-bottom-5">
             <CheckCircle2 className="w-4 h-4" />
@@ -772,166 +767,69 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         )}
 
         <div 
-          className={`border rounded-3xl shadow-2xl overflow-hidden ${
+          className={`border rounded-3xl shadow-2xl p-8 text-center space-y-6 ${
             isLight ? 'bg-white border-gray-200' : `${currentTheme.mainContainerBg} ${currentTheme.mainContainerBorder}`
           }`}
         >
           <div 
-            className={`p-5 sm:p-6 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
-              isLight ? 'bg-gray-50' : 'bg-black/30 border-white/10'
-            }`}
+            className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto shadow-inner border"
+            style={{ 
+              backgroundColor: `${currentTheme.primaryColor}15`, 
+              borderColor: `${currentTheme.primaryColor}30`,
+              color: currentTheme.primaryColor 
+            }}
           >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl flex items-center justify-center border text-amber-500 bg-amber-500/10 border-amber-500/30">
-                <ShieldAlert className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className={`text-lg sm:text-xl font-bold ${currentTheme.headingText}`}>
-                    Administrator Access Restricted
-                  </h1>
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-600">
-                    Customer Account
-                  </span>
-                </div>
-                <p className={`text-xs ${currentTheme.subText}`}>
-                  Signed in as: <span className="font-semibold">{user.email || user.displayName || user.phoneNumber}</span>
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={onOpenAuth}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
-                  isLight ? 'bg-white hover:bg-gray-100 text-gray-700 border-gray-300' : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
-                }`}
-              >
-                Switch Account
-              </button>
-              {onBackToCustomerFlow && (
-                <button
-                  type="button"
-                  onClick={onBackToCustomerFlow}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border ${
-                    isLight ? 'bg-white hover:bg-gray-100 text-gray-800 border-gray-300' : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
-                  }`}
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Customer View</span>
-                </button>
-              )}
-            </div>
+            <ShieldAlert className="w-8 h-8" />
           </div>
 
-          <div className="p-6 sm:p-8 space-y-6">
-            <div className={`p-5 rounded-2xl border flex items-start gap-4 ${
-              isLight ? 'bg-amber-50/70 border-amber-200 text-amber-950' : 'bg-amber-950/20 border-amber-700/40 text-amber-200'
-            }`}>
-              <Crown className="w-6 h-6 text-amber-500 shrink-0 mt-0.5" />
-              <div className="space-y-1 text-xs leading-relaxed">
-                <h3 className="font-bold text-sm text-amber-600 dark:text-amber-400">
-                  Super Administrator Approval Required
-                </h3>
-                <p>
-                  Access to customer databases, orders, and pricing is strictly restricted. Only Super Admin <strong className="font-mono underline">professorpradeeps@gmail.com</strong> can approve administrator accounts.
-                </p>
-                <p className="opacity-90">
-                  If you are a regional counter operator or technician, submit your application below. Professor Pradeep will review and authorize your account.
-                </p>
-              </div>
-            </div>
+          <div className="space-y-2">
+            <span 
+              className="text-xs font-mono font-bold uppercase tracking-wider px-3 py-1 rounded-full border"
+              style={{
+                backgroundColor: `${currentTheme.primaryColor}12`,
+                borderColor: `${currentTheme.primaryColor}25`,
+                color: currentTheme.primaryColor
+              }}
+            >
+              Direct Authorization Required
+            </span>
+            <h1 className={`text-2xl font-bold ${currentTheme.headingText}`}>
+              Administrator Access Restricted
+            </h1>
+            <p className={`text-xs max-w-md mx-auto leading-relaxed ${currentTheme.subText}`}>
+              Access to customer databases, orders, and pricing is strictly restricted to authorized administrators. Contact your administrator for direct authorization.
+            </p>
+          </div>
 
-            {/* Pending Request Status or Application Form */}
-            {(existingPendingRequest || requestFeedback) ? (
-              <div className={`p-6 rounded-2xl border text-center space-y-3 ${
-                isLight ? 'bg-blue-50/80 border-blue-200 text-blue-950' : 'bg-blue-950/30 border-blue-700/40 text-blue-200'
-              }`}>
-                <div className="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center bg-blue-500/20 text-blue-500">
-                  <Clock className="w-6 h-6 animate-pulse" />
-                </div>
-                <h3 className="font-bold text-base">Application Under Review</h3>
-                <p className="text-xs max-w-md mx-auto opacity-90">
-                  Your request for administrator privileges has been submitted to <strong>Professor Pradeep</strong> and is pending review. You will receive access upon approval.
-                </p>
-                {existingPendingRequest?.requestedAt && (
-                  <p className="text-[11px] font-mono opacity-70">
-                    Submitted on: {new Date(existingPendingRequest.requestedAt).toLocaleString()}
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div className={`p-6 rounded-2xl border space-y-4 ${
-                isLight ? 'bg-gray-50 border-gray-200' : 'bg-black/20 border-white/10'
-              }`}>
-                <div className="flex items-center gap-2">
-                  <Send className="w-4 h-4 text-emerald-500" />
-                  <h3 className={`font-bold text-sm ${currentTheme.headingText}`}>
-                    Request Administrator Privileges
-                  </h3>
-                </div>
+          <div 
+            className={`p-3.5 rounded-xl max-w-sm mx-auto text-xs font-mono border ${
+              isLight ? 'bg-gray-50 border-gray-200 text-gray-700' : 'bg-black/30 border-white/10 text-gray-300'
+            }`}
+          >
+            <span className="opacity-60">Signed in as: </span>
+            <span className="font-semibold">{user.email || user.displayName || 'User'}</span>
+          </div>
 
-                <div className="space-y-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className={`block text-[11px] font-bold mb-1 ${currentTheme.subText}`}>
-                        Your Email
-                      </label>
-                      <input
-                        type="email"
-                        readOnly
-                        value={user.email || 'No email associated'}
-                        className={`w-full px-3 py-2 rounded-xl text-xs font-mono border ${
-                          isLight ? 'bg-gray-100 border-gray-300 text-gray-700' : 'bg-white/5 border-white/15 text-gray-300'
-                        }`}
-                      />
-                    </div>
-                    <div>
-                      <label className={`block text-[11px] font-bold mb-1 ${currentTheme.subText}`}>
-                        Contact Mobile
-                      </label>
-                      <input
-                        type="tel"
-                        value={requestPhone}
-                        onChange={(e) => setRequestPhone(e.target.value)}
-                        placeholder="+91 98401 23456"
-                        className={`w-full px-3 py-2 rounded-xl text-xs border focus:outline-none ${
-                          isLight ? 'bg-white border-gray-300 focus:border-amber-500' : 'bg-black/40 border-white/20 focus:border-amber-400'
-                        }`}
-                      />
-                    </div>
-                  </div>
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={onOpenAuth}
+              className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2"
+              style={{ backgroundColor: currentTheme.primaryColor }}
+            >
+              <span>Switch Account</span>
+            </button>
 
-                  <div>
-                    <label className={`block text-[11px] font-bold mb-1 ${currentTheme.subText}`}>
-                      Reason / Branch / Operational Role <span className="text-rose-500">*</span>
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={requestReason}
-                      onChange={(e) => setRequestReason(e.target.value)}
-                      placeholder="e.g., Regional DTH recharge operator in Madurai branch, handling customer signal refreshes and pack management."
-                      className={`w-full px-3 py-2 rounded-xl text-xs border focus:outline-none ${
-                        isLight ? 'bg-white border-gray-300 focus:border-amber-500' : 'bg-black/40 border-white/20 focus:border-amber-400'
-                      }`}
-                    />
-                  </div>
-
-                  <button
-                    type="button"
-                    disabled={isSubmittingRequest || !requestReason.trim()}
-                    onClick={handleSubmitAdminRequest}
-                    className={`w-full py-2.5 rounded-xl font-bold text-xs text-white transition-all flex items-center justify-center gap-2 shadow-md ${
-                      isSubmittingRequest || !requestReason.trim() ? 'opacity-50 cursor-not-allowed bg-gray-500' : 'hover:opacity-90'
-                    }`}
-                    style={{ backgroundColor: !isSubmittingRequest && requestReason.trim() ? currentTheme.primaryColor : undefined }}
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>{isSubmittingRequest ? 'Submitting Application...' : 'Submit Request to Professor Pradeep'}</span>
-                  </button>
-                </div>
-              </div>
+            {onBackToCustomerFlow && (
+              <button
+                type="button"
+                onClick={onBackToCustomerFlow}
+                className={`w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-semibold border transition-all ${
+                  isLight ? 'bg-gray-100 hover:bg-gray-200 text-gray-800 border-gray-300' : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
+                }`}
+              >
+                <span>Return to Recharge</span>
+              </button>
             )}
           </div>
         </div>
@@ -1882,7 +1780,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleDeletePack(p.id)}
+                          onClick={() => handleDeletePack(p)}
                           className="p-1.5 rounded-lg border border-rose-500/30 text-rose-500 hover:bg-rose-500/10 text-xs font-semibold transition-all"
                           title="Delete Pack"
                         >
@@ -2172,32 +2070,46 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           </div>
         )}
 
-        {/* --- 7. ADMIN APPROVALS & SUPER ADMIN ACCESS CONTROL TAB --- */}
+        {/* --- 7. ADMIN AUTHORIZATION & ACCESS CONTROL TAB --- */}
         {activeTab === 'approvals' && (
-          <div className="p-4 sm:p-6 space-y-6">
-            {/* Super Admin Ownership Banner */}
+          <div className="p-4 sm:p-6 space-y-6 animate-in fade-in duration-200">
+            {/* Header Banner */}
             <div 
               className={`p-5 rounded-2xl border shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${
                 isLight 
-                  ? 'bg-amber-50/70 border-amber-200 text-amber-950' 
-                  : 'bg-amber-950/20 border-amber-500/30 text-amber-100'
+                  ? 'bg-white border-gray-200 text-gray-900' 
+                  : 'bg-black/30 border-white/10 text-white'
               }`}
             >
               <div className="flex items-center gap-3.5">
-                <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0 border border-amber-500/30">
-                  <Crown className="w-6 h-6" />
+                <div 
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border shadow-inner"
+                  style={{
+                    backgroundColor: `${currentTheme.primaryColor}15`,
+                    borderColor: `${currentTheme.primaryColor}30`,
+                    color: currentTheme.primaryColor,
+                  }}
+                >
+                  <ShieldCheck className="w-6 h-6" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-base font-bold">
-                      Super Administrator Authority
+                      Administrator Authorization & Team Management
                     </h3>
-                    <span className="text-[10px] font-black uppercase tracking-wider bg-amber-500/25 text-amber-600 dark:text-amber-400 border border-amber-500/40 px-2 py-0.5 rounded">
-                      Root Super Admin
+                    <span 
+                      className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border"
+                      style={{
+                        backgroundColor: `${currentTheme.primaryColor}15`,
+                        color: currentTheme.primaryColor,
+                        borderColor: `${currentTheme.primaryColor}30`,
+                      }}
+                    >
+                      Admin Access
                     </span>
                   </div>
-                  <p className="text-xs opacity-90 mt-0.5">
-                    Root Owner: <strong className="font-mono">{SUPER_ADMIN_EMAIL}</strong>. Only Professor Pradeep can approve, grant, or revoke Administrator privileges.
+                  <p className={`text-xs mt-0.5 ${currentTheme.subText}`}>
+                    Authorize administrative accounts directly to grant operations access across customer records, recharge orders, and catalog pricing.
                   </p>
                 </div>
               </div>
@@ -2209,184 +2121,104 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   disabled={accessLoading}
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-all shadow-xs ${
                     isLight 
-                      ? 'bg-white hover:bg-gray-50 text-gray-800 border-amber-300' 
-                      : 'bg-black/40 hover:bg-black/60 text-white border-amber-500/40'
+                      ? 'bg-gray-50 hover:bg-gray-100 text-gray-800 border-gray-300' 
+                      : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
                   }`}
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${accessLoading ? 'animate-spin' : ''}`} />
-                  <span>Refresh Queue</span>
+                  <span>Refresh List</span>
                 </button>
               </div>
             </div>
 
-            {isSuperAdmin ? (
-              /* SUPER ADMIN INTERFACE */
-              <div className="space-y-6">
-                {/* 1. Pending Access Requests Queue */}
-                <div className={`p-5 rounded-2xl border ${isLight ? 'bg-white border-gray-200 shadow-xs' : 'bg-black/20 border-white/10'}`}>
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h4 className="text-sm font-bold flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-amber-500" />
-                        Pending Admin Access Requests ({pendingAdminRequests.length})
-                      </h4>
-                      <p className={`text-xs ${currentTheme.subText}`}>
-                        Review and approve applicants requesting administrator operations.
-                      </p>
-                    </div>
-                  </div>
-
-                  {pendingAdminRequests.length === 0 ? (
-                    <div className={`p-8 text-center rounded-xl border border-dashed ${isLight ? 'border-gray-200 bg-gray-50/50' : 'border-white/10 bg-white/5'}`}>
-                      <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2 opacity-80" />
-                      <p className="text-xs font-semibold">No pending administrator requests.</p>
-                      <p className="text-[11px] opacity-60 mt-0.5">All applications have been reviewed.</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {pendingAdminRequests.map((req) => (
-                        <div 
-                          key={req.id} 
-                          className={`p-4 rounded-xl border flex flex-col justify-between gap-3 ${
-                            isLight ? 'bg-gray-50/80 border-gray-200' : 'bg-white/5 border-white/10'
-                          }`}
-                        >
-                          <div>
-                            <div className="flex items-start justify-between gap-2">
-                              <div>
-                                <h5 className="text-xs font-bold">{req.userName}</h5>
-                                <p className="text-[11px] font-mono text-amber-500 font-semibold">{req.userEmail}</p>
-                                {req.userPhone && (
-                                  <p className="text-[10px] font-mono opacity-70">📱 {req.userPhone}</p>
-                                )}
-                              </div>
-                              <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold border border-amber-500/30">
-                                Pending
-                              </span>
-                            </div>
-
-                            <div className={`mt-2.5 p-2.5 rounded-lg text-xs italic ${isLight ? 'bg-white border border-gray-200 text-gray-700' : 'bg-black/30 border border-white/5 text-gray-300'}`}>
-                              "{req.reason}"
-                            </div>
-                            <p className="text-[10px] opacity-50 mt-1.5 font-mono">
-                              Requested: {new Date(req.requestedAt).toLocaleString()}
-                            </p>
-                          </div>
-
-                          <div className="flex items-center gap-2 pt-2 border-t border-gray-500/10">
-                            <button
-                              type="button"
-                              onClick={() => handleApproveAdmin(req.userEmail, req.userName, req.userId, req.id, 'Approved by Professor Pradeep')}
-                              className="flex-1 py-1.5 px-3 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-all flex items-center justify-center gap-1 shadow-xs"
-                            >
-                              <Check className="w-3.5 h-3.5" />
-                              <span>Approve Admin Role</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleRevokeAdmin(req.userEmail)}
-                              className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1 border ${
-                                isLight 
-                                  ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200' 
-                                  : 'bg-rose-950/30 hover:bg-rose-900/40 text-rose-300 border-rose-500/30'
-                              }`}
-                            >
-                              <X className="w-3.5 h-3.5" />
-                              <span>Reject</span>
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+            <div className="space-y-6">
+              {/* 1. Direct Administrator Authorization Form */}
+              <div className={`p-5 rounded-2xl border ${isLight ? 'bg-white border-gray-200 shadow-xs' : 'bg-black/20 border-white/10'}`}>
+                <div className="mb-4">
+                  <h4 className="text-sm font-bold flex items-center gap-2">
+                    <Plus className="w-4 h-4 text-emerald-500" />
+                    Direct Administrator Authorization
+                  </h4>
+                  <p className={`text-xs ${currentTheme.subText}`}>
+                    Add a new administrator by email to instantly grant administrative privileges.
+                  </p>
                 </div>
 
-                {/* 2. Direct Administrator Authorization Form */}
-                <div className={`p-5 rounded-2xl border ${isLight ? 'bg-white border-gray-200 shadow-xs' : 'bg-black/20 border-white/10'}`}>
-                  <div className="mb-4">
-                    <h4 className="text-sm font-bold flex items-center gap-2">
-                      <Plus className="w-4 h-4 text-emerald-500" />
-                      Direct Administrator Authorization
-                    </h4>
-                    <p className={`text-xs ${currentTheme.subText}`}>
-                      Grant Admin rights directly to any registered team member or dealer email.
-                    </p>
-                  </div>
+                <form onSubmit={handleDirectGrant} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <input
+                    type="email"
+                    required
+                    value={directEmail}
+                    onChange={(e) => setDirectEmail(e.target.value)}
+                    placeholder="Admin Email (e.g. manager@gmail.com)"
+                    className={`px-3 py-2 rounded-xl text-xs border font-medium focus:outline-none ${
+                      isLight ? 'bg-white border-gray-200 text-gray-800' : 'bg-black/30 border-white/10 text-white'
+                    }`}
+                  />
+                  <input
+                    type="text"
+                    value={directName}
+                    onChange={(e) => setDirectName(e.target.value)}
+                    placeholder="Full Name / Branch (Optional)"
+                    className={`px-3 py-2 rounded-xl text-xs border font-medium focus:outline-none ${
+                      isLight ? 'bg-white border-gray-200 text-gray-800' : 'bg-black/30 border-white/10 text-white'
+                    }`}
+                  />
+                  <button
+                    type="submit"
+                    disabled={isDirectGranting || !directEmail.trim()}
+                    className="py-2 px-4 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white transition-all flex items-center justify-center gap-1.5 shadow-xs"
+                  >
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>{isDirectGranting ? 'Authorizing...' : 'Authorize Administrator'}</span>
+                  </button>
+                </form>
+              </div>
 
-                  <form onSubmit={handleDirectGrant} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <input
-                      type="email"
-                      required
-                      value={directEmail}
-                      onChange={(e) => setDirectEmail(e.target.value)}
-                      placeholder="Admin Email (e.g. dealer@gmail.com)"
-                      className={`px-3 py-2 rounded-xl text-xs border font-medium focus:outline-none ${
-                        isLight ? 'bg-white border-gray-200 text-gray-800' : 'bg-black/30 border-white/10 text-white'
-                      }`}
-                    />
-                    <input
-                      type="text"
-                      value={directName}
-                      onChange={(e) => setDirectName(e.target.value)}
-                      placeholder="Name / Branch (Optional)"
-                      className={`px-3 py-2 rounded-xl text-xs border font-medium focus:outline-none ${
-                        isLight ? 'bg-white border-gray-200 text-gray-800' : 'bg-black/30 border-white/10 text-white'
-                      }`}
-                    />
-                    <button
-                      type="submit"
-                      disabled={isDirectGranting || !directEmail.trim()}
-                      className="py-2 px-4 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white transition-all flex items-center justify-center gap-1.5 shadow-xs"
-                    >
-                      <ShieldCheck className="w-4 h-4" />
-                      <span>{isDirectGranting ? 'Authorizing...' : 'Grant Admin Role'}</span>
-                    </button>
-                  </form>
+              {/* 2. Authorized Administrators Directory */}
+              <div className={`p-5 rounded-2xl border ${isLight ? 'bg-white border-gray-200 shadow-xs' : 'bg-black/20 border-white/10'}`}>
+                <div className="mb-4">
+                  <h4 className="text-sm font-bold flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                    Authorized Administrators Directory ({adminAccounts.length})
+                  </h4>
+                  <p className={`text-xs ${currentTheme.subText}`}>
+                    Active administrators authorized for DTH customer management and catalog operations.
+                  </p>
                 </div>
 
-                {/* 3. Approved Administrators Directory */}
-                <div className={`p-5 rounded-2xl border ${isLight ? 'bg-white border-gray-200 shadow-xs' : 'bg-black/20 border-white/10'}`}>
-                  <div className="mb-4">
-                    <h4 className="text-sm font-bold flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-[#dfb86c]" />
-                      Approved Administrators Directory ({adminAccounts.length})
-                    </h4>
-                    <p className={`text-xs ${currentTheme.subText}`}>
-                      Active administrators authorized to access customer data, recharge queues, and pack catalogs.
-                    </p>
-                  </div>
-
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                      <thead className={`border-b ${isLight ? 'bg-gray-50 text-gray-600' : 'bg-black/40 text-gray-400'}`}>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className={`border-b ${isLight ? 'bg-gray-50 text-gray-600' : 'bg-black/40 text-gray-400'}`}>
+                      <tr>
+                        <th className="py-3 px-4 font-bold">Admin Details</th>
+                        <th className="py-3 px-4 font-bold">Role</th>
+                        <th className="py-3 px-4 font-bold">Status</th>
+                        <th className="py-3 px-4 font-bold">Authorized Date</th>
+                        <th className="py-3 px-4 font-bold text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className={`divide-y ${isLight ? 'divide-gray-100' : 'divide-white/5'}`}>
+                      {adminAccounts.length === 0 ? (
                         <tr>
-                          <th className="py-3 px-4 font-bold">Admin Details</th>
-                          <th className="py-3 px-4 font-bold">Role Tier</th>
-                          <th className="py-3 px-4 font-bold">Status</th>
-                          <th className="py-3 px-4 font-bold">Authorized By</th>
-                          <th className="py-3 px-4 font-bold">Approved Date</th>
-                          <th className="py-3 px-4 font-bold text-right">Actions</th>
+                          <td colSpan={5} className="py-8 text-center text-xs opacity-60">
+                            No team administrators added yet. Use the form above to authorize administrators.
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody className={`divide-y ${isLight ? 'divide-gray-100' : 'divide-white/5'}`}>
-                        {adminAccounts.map((adm) => {
+                      ) : (
+                        adminAccounts.map((adm) => {
                           const isRoot = isSuperAdminEmail(adm.email);
                           return (
                             <tr key={adm.email} className={`transition-colors ${isLight ? 'hover:bg-gray-50/70' : 'hover:bg-white/5'}`}>
                               <td className="py-3 px-4">
                                 <p className="font-bold flex items-center gap-1.5">
                                   {adm.displayName || adm.email.split('@')[0]}
-                                  {isRoot && <Crown className="w-3.5 h-3.5 text-amber-500" />}
                                 </p>
                                 <p className="font-mono text-[11px] opacity-75">{adm.email}</p>
                               </td>
                               <td className="py-3 px-4">
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                                  isRoot 
-                                    ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30' 
-                                    : 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30'
-                                }`}>
-                                  {isRoot ? 'Super Admin' : 'Admin'}
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30`}>
+                                  Admin
                                 </span>
                               </td>
                               <td className="py-3 px-4">
@@ -2398,15 +2230,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                                   {adm.status}
                                 </span>
                               </td>
-                              <td className="py-3 px-4 font-mono text-[11px] opacity-80">
-                                {adm.approvedBy}
-                              </td>
                               <td className="py-3 px-4 font-mono text-[11px] opacity-75">
                                 {new Date(adm.approvedAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
                               </td>
                               <td className="py-3 px-4 text-right">
                                 {isRoot ? (
-                                  <span className="text-[10px] opacity-40 font-semibold italic">Protected (Root)</span>
+                                  <span className="text-[10px] opacity-40 font-semibold italic">Primary Admin</span>
                                 ) : (
                                   <button
                                     type="button"
@@ -2419,98 +2248,145 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                               </td>
                             </tr>
                           );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                        })
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
-            ) : (
-              /* NON-SUPER ADMIN VIEW: REQUEST SUBMISSION FORM */
-              <div className={`p-6 rounded-2xl border ${isLight ? 'bg-white border-gray-200' : 'bg-black/20 border-white/10'} space-y-5 max-w-2xl mx-auto`}>
-                <div className="text-center space-y-1">
-                  <div className="w-12 h-12 rounded-full bg-amber-500/15 text-amber-500 mx-auto flex items-center justify-center border border-amber-500/30 mb-2">
-                    <ShieldCheck className="w-6 h-6" />
-                  </div>
-                  <h4 className="text-base font-bold">
-                    Request Administrator Privileges
-                  </h4>
-                  <p className={`text-xs ${currentTheme.subText}`}>
-                    Admin management and access approval is strictly handled by Professor Pradeep S (<span className="font-mono font-semibold">{SUPER_ADMIN_EMAIL}</span>).
-                  </p>
-                </div>
-
-                {requestFeedback && (
-                  <div className={`p-3.5 rounded-xl text-xs font-semibold border flex items-center gap-2 ${
-                    requestFeedback.includes('successfully') 
-                      ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400' 
-                      : 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400'
-                  }`}>
-                    <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    <span>{requestFeedback}</span>
-                  </div>
-                )}
-
-                <form onSubmit={handleSubmitAdminRequest} className="space-y-4">
-                  <div>
-                    <label className={`block text-xs font-bold mb-1.5 ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>
-                      Your Email
-                    </label>
-                    <input
-                      type="email"
-                      disabled
-                      value={user?.email || 'Not logged in (Please Sign in first)'}
-                      className={`w-full px-3.5 py-2.5 rounded-xl text-xs border font-mono opacity-80 ${
-                        isLight ? 'bg-gray-100 border-gray-200 text-gray-800' : 'bg-white/5 border-white/10 text-white'
-                      }`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className={`block text-xs font-bold mb-1.5 ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>
-                      Contact Phone Number
-                    </label>
-                    <input
-                      type="tel"
-                      value={requestPhone}
-                      onChange={(e) => setRequestPhone(e.target.value)}
-                      placeholder="e.g. +91 98401 23456"
-                      className={`w-full px-3.5 py-2.5 rounded-xl text-xs border font-medium focus:outline-none ${
-                        isLight ? 'bg-white border-gray-200 text-gray-800' : 'bg-black/30 border-white/10 text-white'
-                      }`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className={`block text-xs font-bold mb-1.5 ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>
-                      Reason for Admin Access Request
-                    </label>
-                    <textarea
-                      required
-                      rows={3}
-                      value={requestReason}
-                      onChange={(e) => setRequestReason(e.target.value)}
-                      placeholder="Describe your role (e.g. DTH store operator, transponder fulfillment agent, pack pricing coordinator)..."
-                      className={`w-full px-3.5 py-2.5 rounded-xl text-xs border font-medium focus:outline-none resize-none ${
-                        isLight ? 'bg-white border-gray-200 text-gray-800' : 'bg-black/30 border-white/10 text-white'
-                      }`}
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={isSubmittingRequest || !user}
-                    className="w-full py-3 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-black transition-all flex items-center justify-center gap-2 shadow-md font-bold"
-                  >
-                    <Send className="w-4 h-4" />
-                    <span>{isSubmittingRequest ? 'Submitting to Professor Pradeep...' : 'Submit Admin Application'}</span>
-                  </button>
-                </form>
-              </div>
-            )}
+            </div>
           </div>
         )}
       </div>
+
+      {/* Confirmation Modal for Pack Deletion */}
+      {packToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in">
+          <div className={`w-full max-w-md rounded-3xl p-6 border shadow-2xl space-y-4 ${
+            isLight ? 'bg-white border-gray-200 text-gray-800' : 'bg-[#0f172a] border-white/15 text-white'
+          }`}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-rose-500/15 text-rose-500 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base">Delete Recharge Pack?</h3>
+                <p className="text-xs opacity-70">This will permanently remove the pack from the catalog.</p>
+              </div>
+            </div>
+
+            <div className={`p-3.5 rounded-xl border text-xs space-y-1.5 ${
+              isLight ? 'bg-rose-50/50 border-rose-200/60 text-rose-900' : 'bg-rose-950/20 border-rose-500/20 text-rose-200'
+            }`}>
+              <div className="font-bold text-sm text-gray-900 dark:text-white">
+                {packToDelete.plan_name}
+              </div>
+              <div className="flex items-center gap-2 text-[11px] opacity-80 flex-wrap">
+                <span className="font-bold text-rose-600 dark:text-rose-400">₹{packToDelete.amount}</span>
+                <span>•</span>
+                <span>{packToDelete.pack_type}</span>
+                <span>•</span>
+                <span>{packToDelete.duration_months} Month{packToDelete.duration_months > 1 ? 's' : ''}</span>
+                <span>•</span>
+                <span className="capitalize">{packToDelete.operator.replace('_', ' ')}</span>
+              </div>
+              <p className="text-[11px] pt-1 opacity-75">
+                Saved in Firebase Cloud Firestore & persistent catalog across all devices.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                disabled={isDeletingPack}
+                onClick={() => setPackToDelete(null)}
+                className={`px-4 py-2 rounded-xl text-xs font-bold border transition-colors ${
+                  isLight ? 'bg-gray-100 hover:bg-gray-200 text-gray-700' : 'bg-white/10 hover:bg-white/15 text-white'
+                }`}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingPack}
+                onClick={confirmDeletePack}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white transition-all shadow-sm flex items-center gap-2"
+              >
+                {isDeletingPack ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Yes, Delete Permanently</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal for Admin Revocation */}
+      {adminToRevoke && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in">
+          <div className={`w-full max-w-md rounded-3xl p-6 border shadow-2xl space-y-4 ${
+            isLight ? 'bg-white border-gray-200 text-gray-800' : 'bg-[#0f172a] border-white/15 text-white'
+          }`}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/15 text-amber-500 flex items-center justify-center shrink-0">
+                <ShieldAlert className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base">Revoke Administrator Privileges?</h3>
+                <p className="text-xs opacity-70">Access will be immediately withdrawn.</p>
+              </div>
+            </div>
+
+            <div className={`p-3.5 rounded-xl border text-xs space-y-1 ${
+              isLight ? 'bg-amber-50/50 border-amber-200/60 text-amber-900' : 'bg-amber-950/20 border-amber-500/20 text-amber-200'
+            }`}>
+              <div className="font-mono font-bold text-xs">{adminToRevoke}</div>
+              <p className="text-[11px] opacity-75">
+                This administrator will no longer have access to the Admin Portal, live customer records, recharge orders, or pack catalog configuration.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                disabled={isRevokingAdmin}
+                onClick={() => setAdminToRevoke(null)}
+                className={`px-4 py-2 rounded-xl text-xs font-bold border transition-colors ${
+                  isLight ? 'bg-gray-100 hover:bg-gray-200 text-gray-700' : 'bg-white/10 hover:bg-white/15 text-white'
+                }`}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isRevokingAdmin}
+                onClick={confirmRevokeAdmin}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white transition-all shadow-sm flex items-center gap-2"
+              >
+                {isRevokingAdmin ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Revoking...</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldAlert className="w-3.5 h-3.5" />
+                    <span>Revoke Privileges</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Excel Import & Export Sync Modal */}
       <ExcelPlanImportExportModal

@@ -440,54 +440,174 @@ export const INITIAL_PLAN_CATALOG: PlanCatalogItem[] = [
 
 const LOCAL_STORAGE_CATALOG_KEY = 'dth_tamizhan_plan_catalog';
 const LOCAL_STORAGE_AUDIT_KEY = 'dth_tamizhan_plan_audit_logs';
+const LOCAL_STORAGE_DELETED_KEY = 'dth_tamizhan_deleted_plan_ids';
 
 export class PlanCatalogService {
-  // Get all plans from Firestore with local fallback
-  static async getAllPlans(): Promise<PlanCatalogItem[]> {
-    if (isFirebaseLive && db) {
-      try {
-        const catalogRef = collection(db, 'plan_catalog');
-        const snapshot = await getDocs(catalogRef);
-        if (!snapshot.empty) {
-          const remotePlans: PlanCatalogItem[] = [];
-          snapshot.forEach((docSnap) => {
-            const data = docSnap.data();
-            remotePlans.push({
-              id: docSnap.id,
-              operator: data.operator,
-              pack_type: data.pack_type,
-              duration_months: data.duration_months,
-              plan_name: data.plan_name,
-              amount: Number(data.amount),
-              is_recommended: Boolean(data.is_recommended),
-              channel_list: Array.isArray(data.channel_list) ? data.channel_list : [],
-              updated_at: data.updated_at || new Date().toISOString(),
-              updated_by: data.updated_by || 'system',
-            });
-          });
-          // Cache in local storage
-          localStorage.setItem(LOCAL_STORAGE_CATALOG_KEY, JSON.stringify(remotePlans));
-          return remotePlans;
-        }
-      } catch (err) {
-        console.warn('[PlanCatalogService] Error fetching from Firestore, falling back to local:', err);
-      }
-    }
-
-    // Local storage check
+  /**
+   * Retrieves persistent tombstone list of deleted plan IDs.
+   * This guarantees that once a plan is deleted by an administrator,
+   * it can NEVER be resurrected by initial fallback logic.
+   */
+  static getDeletedPlanIds(): Set<string> {
     try {
-      const stored = localStorage.getItem(LOCAL_STORAGE_CATALOG_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+      const raw = localStorage.getItem(LOCAL_STORAGE_DELETED_KEY);
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) return new Set(arr);
+      }
+    } catch {}
+    return new Set();
+  }
+
+  static async syncDeletedIdsFromServer(): Promise<Set<string>> {
+    const localSet = this.getDeletedPlanIds();
+    try {
+      const res = await fetch('/api/admin/plans/deleted');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.deletedIds)) {
+          data.deletedIds.forEach((id: string) => localSet.add(id));
+          try {
+            localStorage.setItem(LOCAL_STORAGE_DELETED_KEY, JSON.stringify(Array.from(localSet)));
+          } catch {}
+        }
+      }
+    } catch {}
+    return localSet;
+  }
+
+  static markPlanAsDeleted(planId: string): void {
+    const set = this.getDeletedPlanIds();
+    set.add(planId);
+    try {
+      localStorage.setItem(LOCAL_STORAGE_DELETED_KEY, JSON.stringify(Array.from(set)));
+    } catch {}
+  }
+
+  static unmarkPlanAsDeleted(planId: string): void {
+    const set = this.getDeletedPlanIds();
+    if (set.has(planId)) {
+      set.delete(planId);
+      try {
+        localStorage.setItem(LOCAL_STORAGE_DELETED_KEY, JSON.stringify(Array.from(set)));
+      } catch {}
+    }
+  }
+
+  // Get all plans from Server Disk & Firestore with automatic seeding & multi-layer persistence
+  static async getAllPlans(): Promise<PlanCatalogItem[]> {
+    const deletedIds = await this.syncDeletedIdsFromServer();
+
+    // 1. Authoritative Disk Persistence: Backend Server REST API (/api/admin/plans)
+    try {
+      const srvRes = await fetch('/api/admin/plans');
+      if (srvRes.ok) {
+        const srvData = await srvRes.json();
+        if (srvData.success && Array.isArray(srvData.plans)) {
+          const validServerPlans = srvData.plans.filter((p: PlanCatalogItem) => !deletedIds.has(p.id));
+          localStorage.setItem(LOCAL_STORAGE_CATALOG_KEY, JSON.stringify(validServerPlans));
+
+          // Asynchronously sync with Firebase Firestore if live
+          if (isFirebaseLive && db) {
+            getDocs(collection(db, 'plan_catalog')).then((snapshot) => {
+              if (snapshot.empty && validServerPlans.length > 0) {
+                validServerPlans.forEach((p: PlanCatalogItem) => {
+                  setDoc(doc(db, 'plan_catalog', p.id), sanitizePayload(p)).catch(() => {});
+                });
+              } else {
+                snapshot.forEach((snap) => {
+                  if (deletedIds.has(snap.id)) {
+                    deleteDoc(doc(db, 'plan_catalog', snap.id)).catch(() => {});
+                  }
+                });
+              }
+            }).catch(() => {});
+          }
+
+          return validServerPlans;
         }
       }
     } catch {}
 
-    // Initial seed fallback
-    localStorage.setItem(LOCAL_STORAGE_CATALOG_KEY, JSON.stringify(INITIAL_PLAN_CATALOG));
-    return INITIAL_PLAN_CATALOG;
+    // 2. Secondary Source: Firebase Firestore (plan_catalog)
+    if (isFirebaseLive && db) {
+      try {
+        const catalogRef = collection(db, 'plan_catalog');
+        const snapshot = await getDocs(catalogRef);
+
+        if (!snapshot.empty) {
+          const remotePlans: PlanCatalogItem[] = [];
+          snapshot.forEach((docSnap) => {
+            // Filter out any plans marked as deleted
+            if (!deletedIds.has(docSnap.id)) {
+              const data = docSnap.data();
+              remotePlans.push({
+                id: docSnap.id,
+                operator: data.operator,
+                pack_type: data.pack_type,
+                duration_months: Number(data.duration_months) as 1 | 6 | 12,
+                plan_name: data.plan_name,
+                amount: Number(data.amount),
+                is_recommended: Boolean(data.is_recommended),
+                channel_list: Array.isArray(data.channel_list) ? data.channel_list : [],
+                updated_at: data.updated_at || new Date().toISOString(),
+                updated_by: data.updated_by || 'system',
+              });
+            } else {
+              deleteDoc(doc(db, 'plan_catalog', docSnap.id)).catch(() => {});
+            }
+          });
+
+          localStorage.setItem(LOCAL_STORAGE_CATALOG_KEY, JSON.stringify(remotePlans));
+          fetch('/api/admin/plans/sync-seed', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ plans: remotePlans }),
+          }).catch(() => {});
+
+          return remotePlans;
+        } else {
+          // FIRESTORE IS EMPTY: SEED ONLY NON-DELETED PLANS INTO CLOUD FIRESTORE!
+          const plansToSeed = INITIAL_PLAN_CATALOG.filter((p) => !deletedIds.has(p.id));
+          
+          for (const item of plansToSeed) {
+            try {
+              const cleanPayload = sanitizePayload(item);
+              await setDoc(doc(db, 'plan_catalog', item.id), cleanPayload);
+            } catch (seedErr) {
+              console.warn('[PlanCatalogService] Seeding plan to Firestore:', item.id, seedErr);
+            }
+          }
+
+          localStorage.setItem(LOCAL_STORAGE_CATALOG_KEY, JSON.stringify(plansToSeed));
+          fetch('/api/admin/plans/sync-seed', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ plans: plansToSeed }),
+          }).catch(() => {});
+
+          return plansToSeed;
+        }
+      } catch (err) {
+        console.warn('[PlanCatalogService] Firestore fetch error, falling back to server/local:', err);
+      }
+    }
+
+    // 3. Tertiary Source: Local storage cache
+    try {
+      const stored = localStorage.getItem(LOCAL_STORAGE_CATALOG_KEY);
+      if (stored) {
+        const parsed: PlanCatalogItem[] = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.filter((p) => !deletedIds.has(p.id));
+        }
+      }
+    } catch {}
+
+    // 4. Initial seed fallback filtered strictly by deleted tombstones
+    const filteredInitial = INITIAL_PLAN_CATALOG.filter((p) => !deletedIds.has(p.id));
+    localStorage.setItem(LOCAL_STORAGE_CATALOG_KEY, JSON.stringify(filteredInitial));
+    return filteredInitial;
   }
 
   // Get plans for a specific operator
@@ -544,7 +664,7 @@ export class PlanCatalogService {
     return { savePerMonth: 0, percentSave: 0, oneMonthRate };
   }
 
-  // Save or update plan (admin only)
+  // Save or update plan (admin only) with multi-layer persistence
   static async savePlan(
     plan: Omit<PlanCatalogItem, 'updated_at'> & { updated_at?: string }, 
     adminUid: string
@@ -560,7 +680,10 @@ export class PlanCatalogService {
       updated_by: adminUid || 'admin_user',
     };
 
-    // 1. Save to Firestore if available
+    // Remove from tombstone if it was previously deleted
+    this.unmarkPlanAsDeleted(finalPlan.id);
+
+    // 1. Save to Cloud Firestore
     if (isFirebaseLive && db) {
       try {
         const cleanPayload = sanitizePayload(finalPlan);
@@ -571,7 +694,18 @@ export class PlanCatalogService {
       }
     }
 
-    // 2. Save to local storage
+    // 2. Save to Backend Server API
+    try {
+      await fetch('/api/admin/plans/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: finalPlan, callerEmail: adminUid }),
+      });
+    } catch (e) {
+      console.warn('[PlanCatalogService] Backend save error:', e);
+    }
+
+    // 3. Save to local storage
     const all = await this.getAllPlans();
     const existingIndex = all.findIndex((p) => p.id === finalPlan.id);
     const isNew = existingIndex === -1;
@@ -582,7 +716,7 @@ export class PlanCatalogService {
     }
     localStorage.setItem(LOCAL_STORAGE_CATALOG_KEY, JSON.stringify(all));
 
-    // 3. Record audit log
+    // 4. Record audit log
     await this.recordAuditLog({
       id: `audit-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       plan_id: finalPlan.id,
@@ -591,7 +725,7 @@ export class PlanCatalogService {
       action: isNew ? 'create' : 'update',
       updated_at: now,
       updated_by: adminUid || 'admin_user',
-      details: `${isNew ? 'Created' : 'Updated'} ${finalPlan.pack_type} pack for ${finalPlan.duration_months}M (₹${finalPlan.amount})`,
+      details: `${isNew ? 'Created' : 'Updated'} ${finalPlan.pack_type} pack for ${finalPlan.duration_months}M (₹${finalPlan.amount}) in Firebase`,
     });
 
     if (typeof window !== 'undefined') {
@@ -601,12 +735,22 @@ export class PlanCatalogService {
     return finalPlan;
   }
 
-  // Delete plan (admin only)
+  // Permanently delete plan (admin only) from Cloud Firestore & all tiers
   static async deletePlan(planId: string, adminUid: string): Promise<boolean> {
-    const all = await this.getAllPlans();
-    const targetPlan = all.find((p) => p.id === planId);
+    // 1. Mark as permanently deleted in persistent tombstone
+    this.markPlanAsDeleted(planId);
 
-    // 1. Delete from Firestore if available
+    // 2. Find target plan details for audit logging
+    let targetPlan: PlanCatalogItem | undefined;
+    try {
+      const stored = localStorage.getItem(LOCAL_STORAGE_CATALOG_KEY);
+      if (stored) {
+        const parsed: PlanCatalogItem[] = JSON.parse(stored);
+        targetPlan = parsed.find((p) => p.id === planId);
+      }
+    } catch {}
+
+    // 3. Delete from Firebase Firestore
     if (isFirebaseLive && db) {
       try {
         const planDocRef = doc(db, 'plan_catalog', planId);
@@ -616,24 +760,40 @@ export class PlanCatalogService {
       }
     }
 
-    // 2. Update local storage
-    const filtered = all.filter((p) => p.id !== planId);
-    localStorage.setItem(LOCAL_STORAGE_CATALOG_KEY, JSON.stringify(filtered));
-
-    // 3. Record audit log
-    if (targetPlan) {
-      await this.recordAuditLog({
-        id: `audit-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-        plan_id: planId,
-        plan_name: targetPlan.plan_name,
-        operator: targetPlan.operator,
-        action: 'delete',
-        updated_at: new Date().toISOString(),
-        updated_by: adminUid || 'admin_user',
-        details: `Deleted ${targetPlan.pack_type} plan: ${targetPlan.plan_name}`,
+    // 4. Delete from Backend Server API
+    try {
+      await fetch('/api/admin/plans/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planId, callerEmail: adminUid }),
       });
+    } catch (e) {
+      console.warn('[PlanCatalogService] Backend delete error:', e);
     }
 
+    // 5. Update local storage immediately
+    try {
+      const stored = localStorage.getItem(LOCAL_STORAGE_CATALOG_KEY);
+      if (stored) {
+        const parsed: PlanCatalogItem[] = JSON.parse(stored);
+        const filtered = parsed.filter((p) => p.id !== planId);
+        localStorage.setItem(LOCAL_STORAGE_CATALOG_KEY, JSON.stringify(filtered));
+      }
+    } catch {}
+
+    // 6. Record audit log
+    await this.recordAuditLog({
+      id: `audit-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      plan_id: planId,
+      plan_name: targetPlan ? targetPlan.plan_name : planId,
+      operator: targetPlan ? targetPlan.operator : 'sun_direct',
+      action: 'delete',
+      updated_at: new Date().toISOString(),
+      updated_by: adminUid || 'admin_user',
+      details: `Permanently deleted plan from Firebase Firestore (plan_catalog).`,
+    });
+
+    // 7. Dispatch multi-view reactive update
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('plan_catalog_updated'));
     }

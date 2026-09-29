@@ -49,7 +49,12 @@ export const WorkerDashboard: React.FC<WorkerDashboardProps> = ({
   const fetchOrders = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/orders?isWorker=true');
+      const response = await fetch('/api/orders?isWorker=true', { headers: { 'Accept': 'application/json' } });
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        console.warn('Non-JSON response received for dealer orders:', response.status);
+        return;
+      }
       const data = await response.json();
       if (data.success && data.orders) {
         setOrders(data.orders);

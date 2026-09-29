@@ -254,7 +254,7 @@ export const ApplyPlanModal: React.FC<ApplyPlanModalProps> = ({
                   {currentLang === 'ta' ? 'உள்நுழையவும்' : 'Sign In to Continue'}
                 </h4>
                 <p className="text-xs opacity-70 max-w-sm mx-auto">
-                  Sign in with your phone number to select your saved box or link a new one.
+                  {currentLang === 'ta' ? 'சேமிக்கப்பட்ட இணைப்புகளைத் தேர்ந்தெடுக்க கூகிள் மூலம் உள்நுழையவும்' : 'Sign in with Google to select your saved box or link a new one.'}
                 </p>
               </div>
 
@@ -266,8 +266,7 @@ export const ApplyPlanModal: React.FC<ApplyPlanModalProps> = ({
                 className="w-full sm:w-auto px-6 py-3 rounded-xl text-xs font-bold text-white shadow-lg flex items-center justify-center gap-2 mx-auto transition-transform hover:scale-105 active:scale-95"
                 style={{ backgroundColor: currentTheme.primaryColor }}
               >
-                <Phone className="w-4 h-4" />
-                <span>Sign In with Phone</span>
+                <span>{currentLang === 'ta' ? 'கூகிள் மூலம் உள்நுழைக' : 'Sign In with Google'}</span>
               </button>
             </div>
           ) : (

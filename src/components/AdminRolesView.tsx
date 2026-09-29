@@ -112,7 +112,7 @@ export const AdminRolesView: React.FC<AdminRolesViewProps> = ({
       is_worker: targetRole === 'admin' || targetRole === 'dealer',
       createdAt: user?.createdAt || new Date().toISOString(),
       lastLoginAt: user?.lastLoginAt || new Date().toISOString(),
-      authProviders: user?.authProviders || ['phone', 'google.com'],
+      authProviders: user?.authProviders || ['google.com'],
     };
 
     if (onUpdateUserRole) {
