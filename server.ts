@@ -3,9 +3,23 @@ import path from 'path';
 import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
 import dotenv from 'dotenv';
+import { getApps, initializeApp } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
+import firebaseConfig from './firebase-applet-config.json' with { type: 'json' };
 import { INITIAL_BROWSE_PLANS, computePlanMetrics, filterAndSortPlans } from './src/lib/browsePlansData.js';
 
 dotenv.config();
+
+// Initialize Firebase Admin SDK for server-side cryptographic token verification
+if (!getApps().length) {
+  try {
+    initializeApp({
+      projectId: firebaseConfig.projectId,
+    });
+  } catch (initErr) {
+    console.warn('[firebase-admin] init error:', initErr);
+  }
+}
 
 // Define port strictly according to container environment rules
 const PORT = 3000;
@@ -23,6 +37,14 @@ interface DthOperator {
   tollFree: string;
   smsRefreshFormat: string;
   popularPacksCount: number;
+  isEnabled?: boolean;
+  condition?: string;
+  conditionLabel?: string;
+  maintenanceMessage?: string;
+  expectedRestoration?: string;
+  disabledAt?: string;
+  updatedAt?: string;
+  updatedBy?: string;
 }
 
 const OPERATORS: DthOperator[] = [
@@ -39,6 +61,7 @@ const OPERATORS: DthOperator[] = [
     tollFree: '1800 123 7575',
     smsRefreshFormat: 'SMS "REFRESH <SmartCardNo>" to 9600058585',
     popularPacksCount: 18,
+    isEnabled: true,
   },
   {
     id: 'tata_play',
@@ -53,6 +76,7 @@ const OPERATORS: DthOperator[] = [
     tollFree: '1800 208 6633',
     smsRefreshFormat: 'Send "HR" to 56633 from registered mobile',
     popularPacksCount: 22,
+    isEnabled: true,
   },
   {
     id: 'airtel_dth',
@@ -67,20 +91,37 @@ const OPERATORS: DthOperator[] = [
     tollFree: '1800 103 6065',
     smsRefreshFormat: 'Send "HR" to 54325 from registered mobile',
     popularPacksCount: 16,
+    isEnabled: true,
   },
   {
     id: 'dish_tv',
     name: 'Dish TV',
     shortName: 'Dish TV',
-    tamilName: 'டிஷ் டிவி & டி2எச்',
+    tamilName: 'டிஷ் டிவி',
     logoColor: '#EB5B26', // Flame Orange
     cardName: 'VC Number / RMN / Customer ID',
     cardPattern: '^[0-9]{8,11}$',
-    cardLengthDesc: '8 to 11 digits (Dish TV / D2H)',
+    cardLengthDesc: '8 to 11 digits (Dish TV)',
     sampleId: '02589412356',
     tollFree: '1800 258 3474',
     smsRefreshFormat: 'SMS "DISHTV REFRESH <VC>" to 57575',
     popularPacksCount: 26,
+    isEnabled: true,
+  },
+  {
+    id: 'd2h',
+    name: 'D2H Videocon',
+    shortName: 'D2H',
+    tamilName: 'டி2எச் வீடியோகான்',
+    logoColor: '#8B5CF6', // Purple
+    cardName: 'Customer ID / Smart Card',
+    cardPattern: '^[0-9]{8,11}$',
+    cardLengthDesc: '8 to 11 digits (D2H)',
+    sampleId: '01894561234',
+    tollFree: '1800 137 0111',
+    smsRefreshFormat: 'SMS "D2H REFRESH" to 566777',
+    popularPacksCount: 20,
+    isEnabled: true,
   }
 ];
 
@@ -283,6 +324,7 @@ interface RechargeOrder {
   operator: string;
   operatorName: string;
   smartCardNumber: string;
+  customerName?: string;
   registeredMobile: string;
   amount: number;
   packId: string;
@@ -691,6 +733,113 @@ async function startServer() {
   const DATA_DIR = path.join(process.cwd(), 'data');
   const PLANS_FILE = path.join(DATA_DIR, 'plan_catalog.json');
   const DELETED_PLANS_FILE = path.join(DATA_DIR, 'deleted_plan_ids.json');
+  const CUSTOMERS_FILE = path.join(DATA_DIR, 'customers.json');
+  const RECHARGE_ORDERS_FILE = path.join(DATA_DIR, 'recharge_orders.json');
+  const OPERATOR_SETTINGS_FILE = path.join(DATA_DIR, 'operator_settings.json');
+
+  function saveOperatorSettingsToDisk() {
+    try {
+      if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+      const opState = OPERATORS.map((op) => ({
+        operatorId: op.id,
+        name: op.name,
+        isEnabled: op.isEnabled !== false,
+        condition: op.condition || null,
+        conditionLabel: op.conditionLabel || null,
+        maintenanceMessage: op.maintenanceMessage || null,
+        expectedRestoration: op.expectedRestoration || null,
+        disabledAt: op.disabledAt || null,
+        updatedAt: op.updatedAt || new Date().toISOString(),
+        updatedBy: op.updatedBy || 'admin',
+      }));
+      fs.writeFileSync(OPERATOR_SETTINGS_FILE, JSON.stringify(opState, null, 2), 'utf-8');
+    } catch (err) {
+      console.warn('Failed to save operator settings to disk:', err);
+    }
+  }
+
+  function loadOperatorSettingsFromDisk() {
+    try {
+      if (fs.existsSync(OPERATOR_SETTINGS_FILE)) {
+        const raw = fs.readFileSync(OPERATOR_SETTINGS_FILE, 'utf-8');
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          parsed.forEach((saved: any) => {
+            const match = OPERATORS.find((op) => op.id === saved.operatorId);
+            if (match) {
+              match.isEnabled = saved.isEnabled !== false;
+              match.condition = saved.condition || undefined;
+              match.conditionLabel = saved.conditionLabel || undefined;
+              match.maintenanceMessage = saved.maintenanceMessage || undefined;
+              match.expectedRestoration = saved.expectedRestoration || undefined;
+              match.disabledAt = saved.disabledAt || undefined;
+              match.updatedAt = saved.updatedAt || undefined;
+              match.updatedBy = saved.updatedBy || undefined;
+            }
+          });
+        }
+      } else {
+        saveOperatorSettingsToDisk();
+      }
+    } catch (err) {
+      console.warn('Failed to load operator settings from disk:', err);
+    }
+  }
+  loadOperatorSettingsFromDisk();
+
+  function saveCustomersToDisk() {
+    try {
+      if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+      fs.writeFileSync(CUSTOMERS_FILE, JSON.stringify(MEMORY_CUSTOMERS, null, 2), 'utf-8');
+    } catch (err) {
+      console.warn('Failed to save customers to disk:', err);
+    }
+  }
+
+  function loadCustomersFromDisk() {
+    try {
+      if (fs.existsSync(CUSTOMERS_FILE)) {
+        const raw = fs.readFileSync(CUSTOMERS_FILE, 'utf-8');
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          MEMORY_CUSTOMERS.length = 0;
+          MEMORY_CUSTOMERS.push(...parsed);
+        }
+      } else {
+        saveCustomersToDisk();
+      }
+    } catch (err) {
+      console.warn('Failed to load customers from disk:', err);
+    }
+  }
+  loadCustomersFromDisk();
+
+  function saveOrdersToDisk() {
+    try {
+      if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+      fs.writeFileSync(RECHARGE_ORDERS_FILE, JSON.stringify(MEMORY_RECHARGE_ORDERS, null, 2), 'utf-8');
+    } catch (err) {
+      console.warn('Failed to save orders to disk:', err);
+    }
+  }
+
+  function loadOrdersFromDisk() {
+    try {
+      if (fs.existsSync(RECHARGE_ORDERS_FILE)) {
+        const raw = fs.readFileSync(RECHARGE_ORDERS_FILE, 'utf-8');
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          MEMORY_RECHARGE_ORDERS.length = 0;
+          MEMORY_RECHARGE_ORDERS.push(...parsed);
+        }
+      } else {
+        saveOrdersToDisk();
+      }
+    } catch (err) {
+      console.warn('Failed to load orders from disk:', err);
+    }
+  }
+  loadOrdersFromDisk();
 
   function browsePlanToCatalogItem(bp: any): any {
     return {
@@ -764,6 +913,179 @@ async function startServer() {
   let MEMORY_ADMIN_PLANS: any[] = diskState.plans;
   let DELETED_PLAN_IDS: string[] = diskState.deletedIds;
 
+  // --- DEDICATED ADMIN SUITE DEFINITIONS & AUTHENTICATION HELPER ---
+  const SUPER_ADMIN_EMAIL = 'professorpradeeps@gmail.com';
+
+  const MEMORY_ADMINS: Array<{
+    uid: string;
+    email: string;
+    displayName: string;
+    role: 'super_admin' | 'admin';
+    status: 'approved' | 'revoked';
+    approvedBy: string;
+    approvedAt: string;
+    notes?: string;
+  }> = [
+    {
+      uid: 'super_admin_pradeep',
+      email: SUPER_ADMIN_EMAIL,
+      displayName: 'Professor Pradeep S',
+      role: 'super_admin',
+      status: 'approved',
+      approvedBy: 'System Super Admin (Root Owner)',
+      approvedAt: new Date(Date.now() - 86400000 * 30).toISOString(),
+      notes: 'Root Super Administrator and Access Approver',
+    }
+  ];
+
+  const MEMORY_ADMIN_REQUESTS: Array<{
+    id: string;
+    userId: string;
+    userEmail: string;
+    userName: string;
+    userPhone?: string;
+    reason: string;
+    status: 'pending' | 'approved' | 'rejected';
+    requestedAt: string;
+    reviewedBy?: string;
+    reviewedAt?: string;
+    reviewNotes?: string;
+  }> = [
+    {
+      id: 'req-adm-101',
+      userId: 'cust-102',
+      userEmail: 'kavitha.ramesh@gmail.com',
+      userName: 'Kavitha Ramesh',
+      userPhone: '+919840234567',
+      reason: 'DTH recharge operator in Madurai branch requesting access to fulfill orders and update pack prices.',
+      status: 'pending',
+      requestedAt: new Date(Date.now() - 86400000 * 1.5).toISOString(),
+    },
+    {
+      id: 'req-adm-102',
+      userId: 'cust-105',
+      userEmail: 'suresh.dealer@outlook.com',
+      userName: 'Suresh Kumar',
+      userPhone: '+919840567890',
+      reason: 'Regional coordinator handling customer transponder refreshes and pending queue reconciliations.',
+      status: 'pending',
+      requestedAt: new Date(Date.now() - 86400000 * 0.5).toISOString(),
+    }
+  ];
+
+  const ADMIN_ACCOUNTS_FILE = path.join(DATA_DIR, 'admin_accounts.json');
+  const ADMIN_REQUESTS_FILE = path.join(DATA_DIR, 'admin_requests.json');
+
+  function saveAdminsToDisk() {
+    try {
+      if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+      fs.writeFileSync(ADMIN_ACCOUNTS_FILE, JSON.stringify(MEMORY_ADMINS, null, 2), 'utf-8');
+    } catch (err) {
+      console.warn('Failed to save admins to disk:', err);
+    }
+  }
+
+  function loadAdminsFromDisk() {
+    try {
+      if (fs.existsSync(ADMIN_ACCOUNTS_FILE)) {
+        const raw = fs.readFileSync(ADMIN_ACCOUNTS_FILE, 'utf-8');
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          MEMORY_ADMINS.length = 0;
+          MEMORY_ADMINS.push(...parsed);
+        }
+      } else {
+        saveAdminsToDisk();
+      }
+    } catch (err) {
+      console.warn('Failed to load admins from disk:', err);
+    }
+  }
+  loadAdminsFromDisk();
+
+  function saveAdminRequestsToDisk() {
+    try {
+      if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+      fs.writeFileSync(ADMIN_REQUESTS_FILE, JSON.stringify(MEMORY_ADMIN_REQUESTS, null, 2), 'utf-8');
+    } catch (err) {
+      console.warn('Failed to save admin requests to disk:', err);
+    }
+  }
+
+  function loadAdminRequestsFromDisk() {
+    try {
+      if (fs.existsSync(ADMIN_REQUESTS_FILE)) {
+        const raw = fs.readFileSync(ADMIN_REQUESTS_FILE, 'utf-8');
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          MEMORY_ADMIN_REQUESTS.length = 0;
+          MEMORY_ADMIN_REQUESTS.push(...parsed);
+        }
+      } else {
+        saveAdminRequestsToDisk();
+      }
+    } catch (err) {
+      console.warn('Failed to load admin requests from disk:', err);
+    }
+  }
+  loadAdminRequestsFromDisk();
+
+  interface AuthContext {
+    uid: string;
+    email: string | null;
+    emailVerified: boolean;
+    isAdmin: boolean;
+    isSuperAdmin: boolean;
+  }
+
+  /**
+   * Cryptographic Firebase ID Token Verification Middleware / Helper.
+   * Extracts 'Authorization: Bearer <token>', verifies signature & claims via Firebase Admin SDK.
+   * Strictly FAILS CLOSED on missing, invalid, or expired tokens.
+   */
+  async function verifyAuthToken(req: Request): Promise<AuthContext | null> {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
+        return null;
+      }
+      const token = authHeader.slice(7).trim();
+      if (!token) return null;
+
+      const decoded = await getAuth().verifyIdToken(token);
+      const email = decoded.email ? decoded.email.trim().toLowerCase() : null;
+      const isSuperAdmin = email === SUPER_ADMIN_EMAIL.toLowerCase();
+      const isAdmin = isSuperAdmin || (email ? MEMORY_ADMINS.some((a) => a.email.toLowerCase() === email && a.status === 'approved') : false);
+
+      return {
+        uid: decoded.uid,
+        email,
+        emailVerified: Boolean(decoded.email_verified),
+        isAdmin,
+        isSuperAdmin,
+      };
+    } catch (err) {
+      return null;
+    }
+  }
+
+  // Token Verification Diagnostic Endpoint
+  app.get('/api/admin/verify-token', async (req: Request, res: Response) => {
+    const authCtx = await verifyAuthToken(req);
+    if (!authCtx) {
+      res.status(401).json({ success: false, error: 'Unauthenticated: Invalid or missing Firebase Bearer token.' });
+      return;
+    }
+    res.json({
+      success: true,
+      uid: authCtx.uid,
+      email: authCtx.email,
+      isAdmin: authCtx.isAdmin,
+      isSuperAdmin: authCtx.isSuperAdmin,
+    });
+  });
+
+  // Public Plans Catalog Read Endpoint
   app.get('/api/admin/plans', (req: Request, res: Response) => {
     res.json({
       success: true,
@@ -779,7 +1101,13 @@ async function startServer() {
     });
   });
 
-  app.post('/api/admin/plans/save', (req: Request, res: Response) => {
+  // Protected: Save / Update Plan Item (Strictly requires Admin token)
+  app.post('/api/admin/plans/save', async (req: Request, res: Response) => {
+    const authCtx = await verifyAuthToken(req);
+    if (!authCtx || !authCtx.isAdmin) {
+      res.status(403).json({ success: false, error: 'Unauthorized: Administrator authentication required via Bearer token.' });
+      return;
+    }
     try {
       const plan = req.body?.plan;
       if (!plan || !plan.id) {
@@ -787,10 +1115,15 @@ async function startServer() {
         return;
       }
       const existingIdx = MEMORY_ADMIN_PLANS.findIndex((p) => p.id === plan.id);
+      const planRecord = {
+        ...plan,
+        updated_at: new Date().toISOString(),
+        updated_by: authCtx.email || authCtx.uid,
+      };
       if (existingIdx !== -1) {
-        MEMORY_ADMIN_PLANS[existingIdx] = { ...plan, updated_at: new Date().toISOString() };
+        MEMORY_ADMIN_PLANS[existingIdx] = planRecord;
       } else {
-        MEMORY_ADMIN_PLANS.unshift({ ...plan, updated_at: new Date().toISOString() });
+        MEMORY_ADMIN_PLANS.unshift(planRecord);
       }
       DELETED_PLAN_IDS = DELETED_PLAN_IDS.filter((id) => id !== plan.id);
       saveDiskPlans(MEMORY_ADMIN_PLANS, DELETED_PLAN_IDS);
@@ -804,7 +1137,13 @@ async function startServer() {
     }
   });
 
-  app.post('/api/admin/plans/delete', (req: Request, res: Response) => {
+  // Protected: Delete Plan Item (Strictly requires Admin token)
+  app.post('/api/admin/plans/delete', async (req: Request, res: Response) => {
+    const authCtx = await verifyAuthToken(req);
+    if (!authCtx || !authCtx.isAdmin) {
+      res.status(403).json({ success: false, error: 'Unauthorized: Administrator authentication required via Bearer token.' });
+      return;
+    }
     try {
       const { planId } = req.body || {};
       if (!planId) {
@@ -827,7 +1166,13 @@ async function startServer() {
     }
   });
 
-  app.post('/api/admin/plans/sync-seed', (req: Request, res: Response) => {
+  // Protected: Sync Seed Catalog (Strictly restricted to Admin token)
+  app.post('/api/admin/plans/sync-seed', async (req: Request, res: Response) => {
+    const authCtx = await verifyAuthToken(req);
+    if (!authCtx || !authCtx.isAdmin) {
+      res.status(403).json({ success: false, error: 'Unauthorized: Administrator privileges required.' });
+      return;
+    }
     try {
       const { plans } = req.body || {};
       if (Array.isArray(plans) && plans.length > 0) {
@@ -934,6 +1279,7 @@ async function startServer() {
       packValidity,
       paymentMethod,
       registeredMobile,
+      customerName,
       userId,
     } = body;
 
@@ -956,16 +1302,28 @@ async function startServer() {
     }
 
     const foundOp = OPERATORS.find((o) => o.id === operator);
+    if (foundOp && foundOp.isEnabled === false) {
+      res.status(400).json({
+        success: false,
+        error: `${foundOp.name} is temporarily disabled for recharges: ${foundOp.maintenanceMessage || foundOp.conditionLabel || 'Under maintenance'}. Expected restoration: ${foundOp.expectedRestoration || 'Shortly'}.`,
+      });
+      return;
+    }
     const orderId = `ORD-TN-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 100)}`;
     const operatorRefId = `DTH-${operator.slice(0, 3).toUpperCase()}-${Math.floor(100000 + Math.random() * 900000)}`;
+
+    const cardStr = String(smartCardNumber).trim();
+    const cleanMobile = (registeredMobile && typeof registeredMobile === 'string') ? registeredMobile.trim().replace(/\D/g, '') : '';
+    const cleanName = (customerName && typeof customerName === 'string') ? customerName.trim() : '';
 
     const newOrder: RechargeOrder = {
       orderId,
       user_id: (userId && typeof userId === 'string') ? userId : 'anonymous_guest',
       operator,
       operatorName: foundOp ? foundOp.name : operator,
-      smartCardNumber: String(smartCardNumber).trim(),
-      registeredMobile: (registeredMobile && typeof registeredMobile === 'string') ? registeredMobile : '',
+      smartCardNumber: cardStr,
+      customerName: cleanName || undefined,
+      registeredMobile: cleanMobile,
       amount: numAmount,
       packId: (packId && typeof packId === 'string') ? packId : 'custom_amount',
       packName: (packName && typeof packName === 'string') ? packName : `Top-up ₹${numAmount}`,
@@ -983,6 +1341,50 @@ async function startServer() {
     // Strip undefined to respect payload integrity rule
     const cleanPayload = stripUndefined(newOrder);
     MEMORY_RECHARGE_ORDERS.unshift(cleanPayload as RechargeOrder);
+
+    // Auto-update or create customer record in live customer ledger
+    const existingCust = MEMORY_CUSTOMERS.find((c) => c.smartCardNumber === cardStr);
+
+    const valStr = String(packValidity || '').toLowerCase();
+    const durationDays = valStr.includes('12') || valStr.includes('year') ? 365
+      : valStr.includes('6') ? 180
+      : valStr.includes('3') ? 90
+      : 30;
+
+    if (existingCust) {
+      if (cleanName) existingCust.customerName = cleanName;
+      if (cleanMobile) existingCust.registeredMobile = cleanMobile;
+      existingCust.totalRechargesCount += 1;
+      existingCust.totalSpent += numAmount;
+      existingCust.lastRechargeDate = new Date().toISOString().split('T')[0];
+      if (packName) existingCust.activePackName = String(packName);
+
+      const currentExp = new Date(existingCust.expiryDate).getTime();
+      const baseTime = !isNaN(currentExp) && currentExp > Date.now() ? currentExp : Date.now();
+      existingCust.expiryDate = new Date(baseTime + durationDays * 86400000).toISOString().split('T')[0];
+      existingCust.status = 'active';
+      existingCust.currentBalance = Math.round((existingCust.currentBalance + numAmount) * 100) / 100;
+    } else {
+      MEMORY_CUSTOMERS.unshift({
+        id: `cust-${Date.now().toString().slice(-4)}`,
+        customerName: cleanName || (cleanMobile ? `Subscriber ${cardStr.slice(-4)}` : 'Valued Subscriber'),
+        registeredMobile: cleanMobile || '9840123456',
+        smartCardNumber: cardStr,
+        operator,
+        operatorName: foundOp ? foundOp.name : operator,
+        activePackName: (packName && typeof packName === 'string') ? packName : 'Tamil Standard Pack',
+        currentBalance: numAmount,
+        expiryDate: new Date(Date.now() + durationDays * 86400000).toISOString().split('T')[0],
+        status: 'active',
+        totalRechargesCount: 1,
+        totalSpent: numAmount,
+        lastRechargeDate: new Date().toISOString().split('T')[0],
+        createdAt: new Date().toISOString(),
+      });
+    }
+
+    saveCustomersToDisk();
+    saveOrdersToDisk();
 
     res.json({
       success: true,
@@ -1017,118 +1419,55 @@ async function startServer() {
     });
   });
 
-  // --- DEDICATED ADMIN SUITE ENDPOINTS ---
-  const SUPER_ADMIN_EMAIL = 'professorpradeeps@gmail.com';
+  // --- SECURE AUTHENTICATED ORDERS & ADMIN ENDPOINTS ---
 
-  const MEMORY_ADMINS: Array<{
-    uid: string;
-    email: string;
-    displayName: string;
-    role: 'super_admin' | 'admin';
-    status: 'approved' | 'revoked';
-    approvedBy: string;
-    approvedAt: string;
-    notes?: string;
-  }> = [
-    {
-      uid: 'super_admin_pradeep',
-      email: SUPER_ADMIN_EMAIL,
-      displayName: 'Professor Pradeep S',
-      role: 'super_admin',
-      status: 'approved',
-      approvedBy: 'System Super Admin (Root Owner)',
-      approvedAt: new Date(Date.now() - 86400000 * 30).toISOString(),
-      notes: 'Root Super Administrator and Access Approver',
+  // Get orders list (Strict IDOR protection: non-admins only receive their own orders)
+  app.get('/api/orders', async (req: Request, res: Response) => {
+    const authCtx = await verifyAuthToken(req);
+    if (!authCtx) {
+      res.status(401).json({ success: false, error: 'Unauthorized: Firebase Bearer token is required.', orders: [] });
+      return;
     }
-  ];
 
-  const MEMORY_ADMIN_REQUESTS: Array<{
-    id: string;
-    userId: string;
-    userEmail: string;
-    userName: string;
-    userPhone?: string;
-    reason: string;
-    status: 'pending' | 'approved' | 'rejected';
-    requestedAt: string;
-    reviewedBy?: string;
-    reviewedAt?: string;
-    reviewNotes?: string;
-  }> = [
-    {
-      id: 'req-adm-101',
-      userId: 'cust-102',
-      userEmail: 'kavitha.ramesh@gmail.com',
-      userName: 'Kavitha Ramesh',
-      userPhone: '+919840234567',
-      reason: 'DTH recharge operator in Madurai branch requesting access to fulfill orders and update pack prices.',
-      status: 'pending',
-      requestedAt: new Date(Date.now() - 86400000 * 1.5).toISOString(),
-    },
-    {
-      id: 'req-adm-102',
-      userId: 'cust-105',
-      userEmail: 'suresh.dealer@outlook.com',
-      userName: 'Suresh Kumar',
-      userPhone: '+919840567890',
-      reason: 'Regional coordinator handling customer transponder refreshes and pending queue reconciliations.',
-      status: 'pending',
-      requestedAt: new Date(Date.now() - 86400000 * 0.5).toISOString(),
-    }
-  ];
-
-  function getCallerEmail(req: Request): string {
-    const fromQuery = typeof req.query.callerEmail === 'string' ? req.query.callerEmail.trim().toLowerCase() : '';
-    const fromHeader = typeof req.headers['x-caller-email'] === 'string' ? (req.headers['x-caller-email'] as string).trim().toLowerCase() : '';
-    const fromBody = (req.body && typeof req.body === 'object' && typeof req.body.callerEmail === 'string') ? req.body.callerEmail.trim().toLowerCase() : '';
-    return fromQuery || fromHeader || fromBody || '';
-  }
-
-  function isCallerAdminAuthorized(req: Request): boolean {
-    const caller = getCallerEmail(req);
-    if (!caller) return true; // Gracefully allow in local/preview environments
-    if (caller === SUPER_ADMIN_EMAIL.toLowerCase()) return true;
-    return MEMORY_ADMINS.some((a) => a.email.toLowerCase() === caller && a.status === 'approved');
-  }
-
-  // Get orders list (supports user query or worker view)
-  app.get('/api/orders', (req: Request, res: Response) => {
-    const userId = req.query.userId as string | undefined;
     const isWorker = req.query.isWorker === 'true';
 
-    if (isWorker) {
-      if (!isCallerAdminAuthorized(req)) {
-        res.status(403).json({ success: false, error: 'Unauthorized: Admin/Worker access required to view queue.', orders: [] });
+    // If caller is an authorized admin/worker and requests worker queue or all orders
+    if (authCtx.isAdmin) {
+      if (isWorker || req.query.all === 'true') {
+        res.json({ success: true, count: MEMORY_RECHARGE_ORDERS.length, orders: MEMORY_RECHARGE_ORDERS });
         return;
       }
-      // Authorized Admins/Workers see all orders in queue
-      res.json({ success: true, count: MEMORY_RECHARGE_ORDERS.length, orders: MEMORY_RECHARGE_ORDERS });
+      const targetUserId = req.query.userId as string | undefined;
+      if (targetUserId) {
+        const userOrders = MEMORY_RECHARGE_ORDERS.filter((o) => o.user_id === targetUserId);
+        res.json({ success: true, count: userOrders.length, orders: userOrders });
+        return;
+      }
+      const adminOrders = MEMORY_RECHARGE_ORDERS.filter((o) => o.user_id === authCtx.uid || (authCtx.email && o.user_id === authCtx.email));
+      res.json({ success: true, count: adminOrders.length, orders: adminOrders });
       return;
     }
 
-    if (userId) {
-      const userOrders = MEMORY_RECHARGE_ORDERS.filter((o) => o.user_id === userId);
-      res.json({ success: true, count: userOrders.length, orders: userOrders });
-      return;
-    }
-
-    // Default return empty or caller-bound orders
-    res.json({ success: true, count: 0, orders: [] });
+    // Authenticated regular subscriber: Strictly derive user ID from verified token (Prevents IDOR)
+    const userOrders = MEMORY_RECHARGE_ORDERS.filter((o) => o.user_id === authCtx.uid || (authCtx.email && o.user_id === authCtx.email));
+    res.json({ success: true, count: userOrders.length, orders: userOrders });
   });
 
-  // Direct alias for admin orders queue
-  app.get('/api/admin/orders', (req: Request, res: Response) => {
-    if (!isCallerAdminAuthorized(req)) {
-      res.status(403).json({ success: false, error: 'Unauthorized: Admin/Worker access required to view queue.', orders: [] });
+  // Direct alias for admin orders queue (Strictly Admin Bearer token required)
+  app.get('/api/admin/orders', async (req: Request, res: Response) => {
+    const authCtx = await verifyAuthToken(req);
+    if (!authCtx || !authCtx.isAdmin) {
+      res.status(403).json({ success: false, error: 'Unauthorized: Administrator authentication required via Bearer token.', orders: [] });
       return;
     }
     res.json({ success: true, count: MEMORY_RECHARGE_ORDERS.length, orders: MEMORY_RECHARGE_ORDERS });
   });
 
-  // Worker order update endpoint
-  app.post('/api/worker/update-order', (req: Request, res: Response) => {
-    if (!isCallerAdminAuthorized(req)) {
-      res.status(403).json({ success: false, error: 'Unauthorized: Admin privileges required.' });
+  // Worker order update endpoint (Strictly Admin Bearer token required)
+  app.post('/api/worker/update-order', async (req: Request, res: Response) => {
+    const authCtx = await verifyAuthToken(req);
+    if (!authCtx || !authCtx.isAdmin) {
+      res.status(403).json({ success: false, error: 'Unauthorized: Administrator authentication required via Bearer token.' });
       return;
     }
     const body = req.body && typeof req.body === 'object' ? req.body : {};
@@ -1151,6 +1490,7 @@ async function startServer() {
     if (workerNotes) targetOrder.workerNotes = String(workerNotes);
     if (operatorRefId) targetOrder.operatorRefId = String(operatorRefId);
     targetOrder.updatedAt = new Date().toISOString();
+    saveOrdersToDisk();
 
     res.json({
       success: true,
@@ -1159,12 +1499,13 @@ async function startServer() {
     });
   });
 
-  // 1. Admin: Customer Details (Protected)
-  app.get('/api/admin/customers', (req: Request, res: Response) => {
-    if (!isCallerAdminAuthorized(req)) {
+  // 1. Admin: Customer Details (Protected by Admin Token)
+  app.get('/api/admin/customers', async (req: Request, res: Response) => {
+    const authCtx = await verifyAuthToken(req);
+    if (!authCtx || !authCtx.isAdmin) {
       res.status(403).json({
         success: false,
-        error: 'Access Denied: Administrator authentication required. Contact professorpradeeps@gmail.com for access.',
+        error: 'Access Denied: Administrator authentication required via Bearer token.',
         customers: [],
       });
       return;
@@ -1199,12 +1540,140 @@ async function startServer() {
     });
   });
 
-  // 2. Admin: Comprehensive Reports & Analytics (Protected)
-  app.get('/api/admin/reports', (req: Request, res: Response) => {
-    if (!isCallerAdminAuthorized(req)) {
+  // Admin: Create / Register Customer Record (Dealer Book)
+  app.post('/api/admin/customers/create', async (req: Request, res: Response) => {
+    const authCtx = await verifyAuthToken(req);
+    if (!authCtx || !authCtx.isAdmin) {
+      res.status(403).json({ success: false, error: 'Unauthorized: Administrator authentication required via Bearer token.' });
+      return;
+    }
+    const { customerName, registeredMobile, smartCardNumber, operator } = req.body || {};
+    if (!customerName || !registeredMobile || !smartCardNumber || !operator) {
+      res.status(400).json({ success: false, error: 'Customer Name, Mobile, Smart Card, and Operator are required.' });
+      return;
+    }
+    const cleanCard = String(smartCardNumber).trim();
+    const cleanMobile = String(registeredMobile).trim();
+    const foundOp = OPERATORS.find((o) => o.id === operator);
+
+    const existingIdx = MEMORY_CUSTOMERS.findIndex((c) => c.smartCardNumber === cleanCard);
+    if (existingIdx !== -1) {
+      MEMORY_CUSTOMERS[existingIdx].customerName = String(customerName).trim();
+      MEMORY_CUSTOMERS[existingIdx].registeredMobile = cleanMobile;
+      MEMORY_CUSTOMERS[existingIdx].operator = operator;
+      MEMORY_CUSTOMERS[existingIdx].operatorName = foundOp ? foundOp.name : operator;
+      saveCustomersToDisk();
+      res.json({ success: true, message: 'Customer record updated successfully!', customer: MEMORY_CUSTOMERS[existingIdx] });
+      return;
+    }
+
+    const newCust: CustomerRecord = {
+      id: `cust-${Date.now().toString().slice(-4)}`,
+      customerName: String(customerName).trim(),
+      registeredMobile: cleanMobile,
+      smartCardNumber: cleanCard,
+      operator,
+      operatorName: foundOp ? foundOp.name : operator,
+      activePackName: 'New Subscriber',
+      currentBalance: 0,
+      expiryDate: new Date(Date.now() + 86400000 * 30).toISOString().split('T')[0],
+      status: 'active',
+      totalRechargesCount: 0,
+      totalSpent: 0,
+      lastRechargeDate: 'No orders yet',
+      createdAt: new Date().toISOString(),
+    };
+    MEMORY_CUSTOMERS.unshift(newCust);
+    saveCustomersToDisk();
+    res.json({ success: true, message: 'New customer saved successfully!', customer: newCust });
+  });
+
+  // Admin: Delete Customer Record
+  app.post('/api/admin/customers/delete', async (req: Request, res: Response) => {
+    const authCtx = await verifyAuthToken(req);
+    if (!authCtx || !authCtx.isAdmin) {
+      res.status(403).json({ success: false, error: 'Unauthorized: Administrator authentication required via Bearer token.' });
+      return;
+    }
+    const { id, smartCardNumber } = req.body || {};
+    const idx = MEMORY_CUSTOMERS.findIndex((c) => c.id === id || (smartCardNumber && c.smartCardNumber === smartCardNumber));
+    if (idx !== -1) {
+      MEMORY_CUSTOMERS.splice(idx, 1);
+      saveCustomersToDisk();
+      res.json({ success: true, message: 'Customer record removed successfully!' });
+      return;
+    }
+    res.status(404).json({ success: false, error: 'Customer record not found.' });
+  });
+
+  // Admin: Ingest / Sync Customer Records from Firestore into Server Disk Storage
+  app.post('/api/admin/customers/sync', async (req: Request, res: Response) => {
+    const authCtx = await verifyAuthToken(req);
+    if (!authCtx || !authCtx.isAdmin) {
+      res.status(403).json({ success: false, error: 'Unauthorized: Administrator authentication required via Bearer token.' });
+      return;
+    }
+    try {
+      const { customers } = req.body || {};
+      if (Array.isArray(customers) && customers.length > 0) {
+        customers.forEach((remoteCust: any) => {
+          if (!remoteCust || !remoteCust.smartCardNumber) return;
+          const cleanCard = String(remoteCust.smartCardNumber).trim();
+          const existingIdx = MEMORY_CUSTOMERS.findIndex((c) => c.smartCardNumber === cleanCard);
+          if (existingIdx !== -1) {
+            MEMORY_CUSTOMERS[existingIdx] = {
+              ...MEMORY_CUSTOMERS[existingIdx],
+              ...remoteCust,
+            };
+          } else {
+            MEMORY_CUSTOMERS.unshift(remoteCust);
+          }
+        });
+        saveCustomersToDisk();
+      }
+      res.json({ success: true, count: MEMORY_CUSTOMERS.length, customers: MEMORY_CUSTOMERS });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Sync / Ingest Recharge Orders from Firestore into Server Disk Storage
+  app.post('/api/orders/sync', async (req: Request, res: Response) => {
+    const authCtx = await verifyAuthToken(req);
+    if (!authCtx || !authCtx.isAdmin) {
+      res.status(403).json({ success: false, error: 'Unauthorized: Administrator authentication required via Bearer token.' });
+      return;
+    }
+    try {
+      const { orders } = req.body || {};
+      if (Array.isArray(orders) && orders.length > 0) {
+        orders.forEach((remoteOrd: any) => {
+          if (!remoteOrd || !remoteOrd.orderId) return;
+          const existingIdx = MEMORY_RECHARGE_ORDERS.findIndex((o) => o.orderId === remoteOrd.orderId);
+          if (existingIdx !== -1) {
+            MEMORY_RECHARGE_ORDERS[existingIdx] = {
+              ...MEMORY_RECHARGE_ORDERS[existingIdx],
+              ...remoteOrd,
+            };
+          } else {
+            MEMORY_RECHARGE_ORDERS.unshift(remoteOrd);
+          }
+        });
+        saveOrdersToDisk();
+      }
+      res.json({ success: true, count: MEMORY_RECHARGE_ORDERS.length, orders: MEMORY_RECHARGE_ORDERS });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 2. Admin: Comprehensive Reports & Analytics (Protected by Admin Token)
+  app.get('/api/admin/reports', async (req: Request, res: Response) => {
+    const authCtx = await verifyAuthToken(req);
+    if (!authCtx || !authCtx.isAdmin) {
       res.status(403).json({
         success: false,
-        error: 'Access Denied: Administrator authentication required. Contact professorpradeeps@gmail.com for access.',
+        error: 'Access Denied: Administrator authentication required via Bearer token.',
       });
       return;
     }
@@ -1282,12 +1751,13 @@ async function startServer() {
     });
   });
 
-  // 3. Admin: Payment Reports & Financial Ledger (Protected)
-  app.get('/api/admin/payments', (req: Request, res: Response) => {
-    if (!isCallerAdminAuthorized(req)) {
+  // 3. Admin: Payment Reports & Financial Ledger (Protected by Admin Token)
+  app.get('/api/admin/payments', async (req: Request, res: Response) => {
+    const authCtx = await verifyAuthToken(req);
+    if (!authCtx || !authCtx.isAdmin) {
       res.status(403).json({
         success: false,
-        error: 'Access Denied: Administrator authentication required. Contact professorpradeeps@gmail.com for access.',
+        error: 'Access Denied: Administrator authentication required via Bearer token.',
         payments: [],
       });
       return;
@@ -1343,12 +1813,13 @@ async function startServer() {
     });
   });
 
-  // 4. Admin: Recharge Updation & Transponder Dispatch (Protected)
-  app.post('/api/admin/orders/update', (req: Request, res: Response) => {
-    if (!isCallerAdminAuthorized(req)) {
+  // 4. Admin: Recharge Updation & Transponder Dispatch (Protected by Admin Token)
+  app.post('/api/admin/orders/update', async (req: Request, res: Response) => {
+    const authCtx = await verifyAuthToken(req);
+    if (!authCtx || !authCtx.isAdmin) {
       res.status(403).json({
         success: false,
-        error: 'Access Denied: Administrator authorization required.',
+        error: 'Access Denied: Administrator authorization required via Bearer token.',
       });
       return;
     }
@@ -1380,6 +1851,7 @@ async function startServer() {
       target.signalRefreshRequested = true;
     }
     target.updatedAt = new Date().toISOString();
+    saveOrdersToDisk();
 
     res.json({
       success: true,
@@ -1389,16 +1861,23 @@ async function startServer() {
   });
 
   // 5. Get Admin Access Accounts & Pending Requests
-  app.get('/api/admin/access-list', (req: Request, res: Response) => {
-    const callerEmail = getCallerEmail(req);
-    const isSuperAdmin = callerEmail === SUPER_ADMIN_EMAIL.toLowerCase();
-    const isAdmin = isCallerAdminAuthorized(req);
+  app.get('/api/admin/access-list', async (req: Request, res: Response) => {
+    const authCtx = await verifyAuthToken(req);
+    if (!authCtx) {
+      res.status(401).json({
+        success: false,
+        error: 'Unauthorized: Firebase Bearer token is required.',
+        admins: [],
+        requests: [],
+      });
+      return;
+    }
 
-    if (isSuperAdmin || isAdmin) {
+    if (authCtx.isSuperAdmin || authCtx.isAdmin) {
       res.json({
         success: true,
         superAdminEmail: SUPER_ADMIN_EMAIL,
-        isCallerSuperAdmin: isSuperAdmin,
+        isCallerSuperAdmin: authCtx.isSuperAdmin,
         isCallerAdmin: true,
         admins: MEMORY_ADMINS,
         requests: MEMORY_ADMIN_REQUESTS,
@@ -1406,8 +1885,8 @@ async function startServer() {
       return;
     }
 
-    // For non-admin registered users, only return their own request status if any
-    const userRequests = callerEmail ? MEMORY_ADMIN_REQUESTS.filter((r) => r.userEmail.toLowerCase() === callerEmail) : [];
+    // For non-admin registered users, only return their own request status if any (never leak other admin emails)
+    const userRequests = authCtx.email ? MEMORY_ADMIN_REQUESTS.filter((r) => r.userEmail.toLowerCase() === authCtx.email) : [];
 
     res.json({
       success: true,
@@ -1419,17 +1898,23 @@ async function startServer() {
     });
   });
 
-  // Submit Request for Admin Access (For any registered customer/dealer)
-  app.post('/api/admin/request-access', (req: Request, res: Response) => {
-    const body = (req.body && typeof req.body === 'object') ? req.body : {};
-    const { userId, userEmail, userName, userPhone, reason } = body;
-
-    if (!userEmail || !reason) {
-      res.status(400).json({ success: false, error: 'Email and reason are required.' });
+  // Submit Request for Admin Access (Authenticated user only)
+  app.post('/api/admin/request-access', async (req: Request, res: Response) => {
+    const authCtx = await verifyAuthToken(req);
+    if (!authCtx || !authCtx.email) {
+      res.status(401).json({ success: false, error: 'Authentication required via Firebase Bearer token.' });
       return;
     }
 
-    const cleanEmail = String(userEmail).trim().toLowerCase();
+    const body = (req.body && typeof req.body === 'object') ? req.body : {};
+    const { userName, userPhone, reason } = body;
+
+    if (!reason || typeof reason !== 'string' || !reason.trim()) {
+      res.status(400).json({ success: false, error: 'Reason is required.' });
+      return;
+    }
+
+    const cleanEmail = authCtx.email.trim().toLowerCase();
     
     // Check if already super admin
     if (cleanEmail === SUPER_ADMIN_EMAIL.toLowerCase()) {
@@ -1453,7 +1938,7 @@ async function startServer() {
 
     const newReq = {
       id: `req-adm-${Date.now().toString().slice(-6)}`,
-      userId: String(userId || `usr_${Date.now()}`),
+      userId: authCtx.uid,
       userEmail: cleanEmail,
       userName: String(userName || cleanEmail.split('@')[0]),
       userPhone: userPhone ? String(userPhone) : undefined,
@@ -1463,6 +1948,7 @@ async function startServer() {
     };
 
     MEMORY_ADMIN_REQUESTS.unshift(newReq);
+    saveAdminRequestsToDisk();
 
     res.json({
       success: true,
@@ -1471,18 +1957,19 @@ async function startServer() {
     });
   });
 
-  // Approve Admin Role (Strictly restricted to professorpradeeps@gmail.com)
-  app.post('/api/admin/approve-user', (req: Request, res: Response) => {
-    const body = (req.body && typeof req.body === 'object') ? req.body : {};
-    const { callerEmail, targetEmail, targetName, targetUid, requestId, notes } = body;
-
-    if (!callerEmail || String(callerEmail).trim().toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase()) {
+  // Approve Admin Role (Strictly restricted to professorpradeeps@gmail.com verified via token)
+  app.post('/api/admin/approve-user', async (req: Request, res: Response) => {
+    const authCtx = await verifyAuthToken(req);
+    if (!authCtx || !authCtx.isSuperAdmin) {
       res.status(403).json({
         success: false,
-        error: `Unauthorized: Only ${SUPER_ADMIN_EMAIL} can approve or create new administrators.`,
+        error: `Unauthorized: Only Super Administrator (${SUPER_ADMIN_EMAIL}) can approve or create administrators. Valid cryptographic token required.`,
       });
       return;
     }
+
+    const body = (req.body && typeof req.body === 'object') ? req.body : {};
+    const { targetEmail, targetName, targetUid, requestId, notes } = body;
 
     if (!targetEmail) {
       res.status(400).json({ success: false, error: 'Target email is required.' });
@@ -1529,6 +2016,9 @@ async function startServer() {
       });
     }
 
+    saveAdminsToDisk();
+    saveAdminRequestsToDisk();
+
     res.json({
       success: true,
       message: `Successfully approved admin privileges for ${cleanTargetEmail}.`,
@@ -1537,18 +2027,19 @@ async function startServer() {
     });
   });
 
-  // Revoke Admin Role (Strictly restricted to professorpradeeps@gmail.com)
-  app.post('/api/admin/revoke-user', (req: Request, res: Response) => {
-    const body = (req.body && typeof req.body === 'object') ? req.body : {};
-    const { callerEmail, targetEmail, notes } = body;
-
-    if (!callerEmail || String(callerEmail).trim().toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase()) {
+  // Revoke Admin Role (Strictly restricted to professorpradeeps@gmail.com verified via token)
+  app.post('/api/admin/revoke-user', async (req: Request, res: Response) => {
+    const authCtx = await verifyAuthToken(req);
+    if (!authCtx || !authCtx.isSuperAdmin) {
       res.status(403).json({
         success: false,
-        error: `Unauthorized: Only ${SUPER_ADMIN_EMAIL} can revoke administrator privileges.`,
+        error: `Unauthorized: Only Super Administrator (${SUPER_ADMIN_EMAIL}) can revoke administrator privileges. Valid cryptographic token required.`,
       });
       return;
     }
+
+    const body = (req.body && typeof req.body === 'object') ? req.body : {};
+    const { targetEmail, notes } = body;
 
     const cleanTargetEmail = String(targetEmail).trim().toLowerCase();
     if (cleanTargetEmail === SUPER_ADMIN_EMAIL.toLowerCase()) {
@@ -1562,11 +2053,145 @@ async function startServer() {
       MEMORY_ADMINS[existingIdx].notes = notes ? String(notes) : 'Revoked by Super Admin Professor Pradeep';
     }
 
+    saveAdminsToDisk();
+
     res.json({
       success: true,
       message: `Admin privileges revoked for ${cleanTargetEmail}.`,
       admins: MEMORY_ADMINS,
     });
+  });
+
+  // Sync / Ingest Admin Records from Firestore into Server Disk Storage (Admin Token required)
+  app.post('/api/admin/sync-admins', async (req: Request, res: Response) => {
+    const authCtx = await verifyAuthToken(req);
+    if (!authCtx || !authCtx.isAdmin) {
+      res.status(403).json({ success: false, error: 'Unauthorized: Administrator authentication required via Bearer token.' });
+      return;
+    }
+    try {
+      const { admins } = req.body || {};
+      if (Array.isArray(admins) && admins.length > 0) {
+        admins.forEach((remoteAdm: any) => {
+          if (!remoteAdm || !remoteAdm.email) return;
+          const cleanEmail = String(remoteAdm.email).trim().toLowerCase();
+          const existingIdx = MEMORY_ADMINS.findIndex((a) => a.email.toLowerCase() === cleanEmail);
+          if (existingIdx !== -1) {
+            MEMORY_ADMINS[existingIdx] = {
+              ...MEMORY_ADMINS[existingIdx],
+              ...remoteAdm,
+              email: cleanEmail,
+            };
+          } else {
+            MEMORY_ADMINS.push({
+              uid: String(remoteAdm.uid || `usr_adm_${Date.now()}`),
+              email: cleanEmail,
+              displayName: String(remoteAdm.displayName || cleanEmail.split('@')[0]),
+              role: remoteAdm.role || 'admin',
+              status: remoteAdm.status || 'approved',
+              approvedBy: remoteAdm.approvedBy || SUPER_ADMIN_EMAIL,
+              approvedAt: remoteAdm.approvedAt || new Date().toISOString(),
+              notes: remoteAdm.notes || 'Synced from Firestore',
+            });
+          }
+        });
+        saveAdminsToDisk();
+      }
+      res.json({ success: true, count: MEMORY_ADMINS.length, admins: MEMORY_ADMINS });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 6. Get Operator Status & Availability Settings (Admin Token required)
+  app.get('/api/admin/operators', async (req: Request, res: Response) => {
+    const authCtx = await verifyAuthToken(req);
+    if (!authCtx || !authCtx.isAdmin) {
+      res.status(403).json({ success: false, error: 'Unauthorized: Administrator authentication required via Bearer token.' });
+      return;
+    }
+    res.json({
+      success: true,
+      operators: OPERATORS,
+    });
+  });
+
+  // 7. Toggle Operator Status with Conditional Controls (Active / Maintenance / Disabled)
+  app.post('/api/admin/operators/toggle', async (req: Request, res: Response) => {
+    const authCtx = await verifyAuthToken(req);
+    if (!authCtx || !authCtx.isAdmin) {
+      res.status(403).json({ success: false, error: 'Unauthorized: Administrator authentication required via Bearer token.' });
+      return;
+    }
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const { operatorId, isEnabled, condition, conditionLabel, maintenanceMessage, expectedRestoration } = body;
+
+    if (!operatorId) {
+      res.status(400).json({ success: false, error: 'operatorId is required' });
+      return;
+    }
+
+    const op = OPERATORS.find((o) => o.id === operatorId);
+    if (!op) {
+      res.status(404).json({ success: false, error: `Operator ${operatorId} not found` });
+      return;
+    }
+
+    const caller = authCtx.email || 'admin@dthtamizhan.com';
+    const active = isEnabled !== false;
+
+    op.isEnabled = active;
+    if (active) {
+      op.condition = undefined;
+      op.conditionLabel = undefined;
+      op.maintenanceMessage = undefined;
+      op.expectedRestoration = undefined;
+      op.disabledAt = undefined;
+    } else {
+      op.condition = condition || 'custom';
+      op.conditionLabel = conditionLabel || 'Operator Maintenance';
+      op.maintenanceMessage = maintenanceMessage || `${op.name} is temporarily offline for maintenance.`;
+      op.expectedRestoration = expectedRestoration || 'Shortly';
+      op.disabledAt = new Date().toISOString();
+    }
+    op.updatedAt = new Date().toISOString();
+    op.updatedBy = caller;
+
+    saveOperatorSettingsToDisk();
+
+    res.json({
+      success: true,
+      message: active 
+        ? `${op.name} is now ACTIVE and accepting recharges.` 
+        : `${op.name} is now DISABLED (${op.conditionLabel || 'Maintenance'}).`,
+      operator: op,
+      operators: OPERATORS,
+    });
+  });
+
+  // Admin: Sync Operator Settings from Firestore
+  app.post('/api/admin/operators/sync', async (req: Request, res: Response) => {
+    const authCtx = await verifyAuthToken(req);
+    if (!authCtx || !authCtx.isAdmin) {
+      res.status(403).json({ success: false, error: 'Unauthorized: Administrator authentication required via Bearer token.' });
+      return;
+    }
+    try {
+      const { operators } = req.body || {};
+      if (Array.isArray(operators) && operators.length > 0) {
+        operators.forEach((remoteOp: any) => {
+          if (!remoteOp || !remoteOp.id) return;
+          const target = OPERATORS.find((o) => o.id === remoteOp.id);
+          if (target) {
+            Object.assign(target, remoteOp);
+          }
+        });
+        saveOperatorSettingsToDisk();
+      }
+      res.json({ success: true, operators: OPERATORS });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
   });
 
   // Guaranteed JSON 404 handler for all /api/* routes - NEVER return HTML for API requests

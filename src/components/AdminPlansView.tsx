@@ -23,7 +23,7 @@ import {
   Download,
   Upload
 } from 'lucide-react';
-import { PlanCatalogItem, PlanAuditLog, UserProfile, DthOperatorId, Language } from '../types';
+import { PlanCatalogItem, PlanAuditLog, UserProfile, DthOperatorId, Language, isSuperAdminEmail } from '../types';
 import { PlanCatalogService } from '../lib/planCatalogService';
 import { OperatorTheme } from '../lib/theme';
 import { ExcelPlanImportExportModal } from './ExcelPlanImportExportModal';
@@ -105,7 +105,7 @@ export const AdminPlansView: React.FC<AdminPlansViewProps> = ({
   const [formError, setFormError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
-  const isPlanAdmin = user?.is_plan_admin === true || user?.role === 'admin' || user?.email === 'professorpradeeps@gmail.com';
+  const isPlanAdmin = isSuperAdminEmail(user?.email);
 
   const loadData = async () => {
     setLoading(true);
@@ -294,7 +294,7 @@ export const AdminPlansView: React.FC<AdminPlansViewProps> = ({
           </div>
 
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
-            {!user ? (
+            {!user && onOpenAuth && (
               <button
                 id="admin-login-required-btn"
                 onClick={onOpenAuth}
@@ -303,22 +303,6 @@ export const AdminPlansView: React.FC<AdminPlansViewProps> = ({
               >
                 <UserCheck className="w-4 h-4 text-white" />
                 <span>Sign In with Google</span>
-              </button>
-            ) : (
-              <button
-                id="simulate-plan-admin-btn"
-                onClick={() => {
-                  if (onUpdateUserRole && user) {
-                    onUpdateUserRole({ ...user, is_plan_admin: true });
-                  } else if (onGrantPlanAdmin) {
-                    onGrantPlanAdmin();
-                  }
-                }}
-                className="px-6 py-3 rounded-xl text-white font-bold text-sm shadow-xl transition-all flex items-center justify-center gap-2"
-                style={{ backgroundColor: currentTheme.primaryColor }}
-              >
-                <UserCheck className="w-4 h-4 text-white" />
-                <span>Simulate / Enable Plan Admin Role</span>
               </button>
             )}
 
@@ -335,7 +319,7 @@ export const AdminPlansView: React.FC<AdminPlansViewProps> = ({
             )}
           </div>
           <p className={`text-[11px] mt-2 ${currentTheme.mutedText}`}>
-            For testing and demonstration, grants <code className="font-mono font-bold" style={{ color: currentTheme.primaryColor }}>is_plan_admin: true</code> on the user profile to unlock plan CRUD and audit trails.
+            To modify the DTH plan catalog, please sign in with an authorized administrator Google account (such as <code className="font-mono font-bold" style={{ color: currentTheme.primaryColor }}>professorpradeeps@gmail.com</code>).
           </p>
         </div>
       </div>

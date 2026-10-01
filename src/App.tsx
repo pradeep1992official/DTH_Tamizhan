@@ -24,6 +24,8 @@ import {
 } from './types';
 import { translations } from './lib/translations';
 import { getOperatorTheme, OPERATOR_THEMES } from './lib/theme';
+import { db, isFirebaseLive, sanitizePayload } from './lib/firebase';
+import { collection, doc, getDocs, setDoc, deleteDoc, query, where, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import { 
   Tv, 
   ShieldCheck, 
@@ -181,6 +183,44 @@ export default function App() {
   useEffect(() => {
     if (user) {
       localStorage.setItem('dth_tamizhan_user', JSON.stringify(user));
+      // Two-way sync with Cloud Firestore (/dth_connections)
+      if (isFirebaseLive && db && user.uid) {
+        const q = query(collection(db, 'dth_connections'), where('user_id', '==', user.uid));
+        getDocs(q).then((snap) => {
+          if (!snap.empty) {
+            const remoteConns: DthConnection[] = [];
+            snap.forEach((docSnap: QueryDocumentSnapshot<DocumentData>) => {
+              const d = docSnap.data();
+              if (d && d.smartCardNumber) {
+                remoteConns.push({
+                  id: d.id || docSnap.id,
+                  user_id: d.user_id || user.uid,
+                  operator: d.operator || 'sun_direct',
+                  operatorName: d.operatorName || d.operator || 'DTH',
+                  smartCardNumber: d.smartCardNumber,
+                  nickname: d.nickname || `${d.operatorName || 'DTH'} Box`,
+                  customerName: d.customerName || 'Subscriber',
+                  balance: typeof d.balance === 'number' ? d.balance : 0,
+                  expiryDate: d.expiryDate || new Date().toISOString().split('T')[0],
+                  monthlyPackPrice: typeof d.monthlyPackPrice === 'number' ? d.monthlyPackPrice : 299,
+                  packName: d.packName || 'Active Pack',
+                  createdAt: d.createdAt || new Date().toISOString(),
+                });
+              }
+            });
+            if (remoteConns.length > 0) {
+              setConnections((prev) => {
+                const map = new Map<string, DthConnection>();
+                prev.forEach((c) => map.set(`${c.operator}_${c.smartCardNumber}`, c));
+                remoteConns.forEach((c) => map.set(`${c.operator}_${c.smartCardNumber}`, c));
+                return Array.from(map.values());
+              });
+            }
+          }
+        }).catch((err) => {
+          console.warn('[Firestore] Connections query note:', err);
+        });
+      }
     } else {
       localStorage.removeItem('dth_tamizhan_user');
     }
@@ -346,11 +386,17 @@ export default function App() {
       createdAt: new Date().toISOString(),
     };
     setConnections((prev) => [newConn, ...prev]);
+    if (isFirebaseLive && db && user?.uid) {
+      setDoc(doc(db, 'dth_connections', newConn.id), sanitizePayload({ ...newConn, user_id: user.uid })).catch(() => {});
+    }
     showToast(currentLang === 'ta' ? 'புதிய பாக்ஸ் சேர்க்கப்பட்டது!' : 'Set-Top Box saved!');
   };
 
   const handleDeleteConnection = (id: string) => {
     setConnections((prev) => prev.filter((c) => c.id !== id));
+    if (isFirebaseLive && db) {
+      deleteDoc(doc(db, 'dth_connections', id)).catch(() => {});
+    }
     showToast(currentLang === 'ta' ? 'இணைப்பு நீக்கப்பட்டது' : 'Connection removed');
   };
 

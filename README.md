@@ -72,7 +72,12 @@ Deploy the hardened, owner-isolated `firestore.rules`:
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
 
+    // Hardened Global Helpers
     function isSignedIn() {
       return request.auth != null;
     }
@@ -81,46 +86,118 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    function isWorker() {
-      return isSignedIn() && (
-        request.auth.token.is_worker == true ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_worker == true
+    // Super Admin: Strictly and exclusively professorpradeeps@gmail.com
+    function isSuperAdmin() {
+      return isSignedIn() && 
+        request.auth.token.email.lower() == 'professorpradeeps@gmail.com';
+    }
+
+    // Admin: Super Admin OR an explicitly approved Admin record in /admins/
+    function isAdmin() {
+      return isSuperAdmin() || (
+        isSignedIn() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.status == 'approved'
       );
     }
 
-    function isPlanAdmin() {
-      return isSignedIn() && (
-        request.auth.token.is_plan_admin == true ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_plan_admin == true ||
-        request.auth.token.email == 'professorpradeeps@gmail.com'
-      );
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
-    // User profile documents: owner-only read/write
+    // Connection test document
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // User profiles collection - strictly prevents role/privilege escalation
     match /users/{userId} {
-      allow read, write: if isOwner(userId);
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && 
+        request.resource.data.uid == userId &&
+        (isSuperAdmin() || (
+          !request.resource.data.keys().hasAny(['is_plan_admin', 'is_worker']) &&
+          (!('role' in request.resource.data) || request.resource.data.role == 'customer')
+        ));
+      allow update: if isSuperAdmin() || (
+        isOwner(userId) && 
+        request.resource.data.uid == userId &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'is_plan_admin', 'is_worker', 'uid', 'email'])
+      );
+      allow delete: if isOwner(userId) || isSuperAdmin();
     }
 
-    // Saved DTH viewing cards: strictly owner-isolated
+    // Approved Admins collection (Managed ONLY by professorpradeeps@gmail.com, readable ONLY by authorized admins)
+    match /admins/{adminId} {
+      allow read: if isAdmin();
+      allow create, update, delete: if isSuperAdmin();
+    }
+
+    // Admin Access Requests (Customer submits, reviewable only by professorpradeeps@gmail.com)
+    match /admin_requests/{requestId} {
+      allow create: if isSignedIn() && 
+        isValidId(requestId) &&
+        request.resource.data.userId == request.auth.uid;
+      allow read: if isSignedIn() && 
+        (resource.data.userId == request.auth.uid || isSuperAdmin());
+      allow update, delete: if isSuperAdmin();
+    }
+
+    // Saved DTH Connections collection
     match /dth_connections/{connId} {
-      allow read, write: if isSignedIn() && (
-        resource == null || resource.data.user_id == request.auth.uid
-      );
+      allow create: if isSignedIn() && 
+        isValidId(connId) &&
+        request.resource.data.user_id == request.auth.uid;
+      allow read: if isSignedIn() && 
+        (resource.data.user_id == request.auth.uid || isAdmin());
+      allow update: if isSignedIn() && 
+        resource.data.user_id == request.auth.uid &&
+        request.resource.data.user_id == request.auth.uid;
+      allow delete: if isSignedIn() && 
+        resource.data.user_id == request.auth.uid;
     }
 
-    // Pending recharges: customer can create & read their own; workers can read & update status
+    // Pending Recharges collection (Customer places order, admin processes fulfillment)
     match /pending_recharges/{orderId} {
-      allow create: if isSignedIn() && request.resource.data.user_id == request.auth.uid;
-      allow read: if isSignedIn() && (
-        resource.data.user_id == request.auth.uid || isWorker()
-      );
-      allow update: if isSignedIn() && isWorker();
+      allow create: if isValidId(orderId);
+      allow read: if (isSignedIn() && (resource.data.user_id == request.auth.uid || isAdmin())) || isAdmin();
+      allow update, delete: if isAdmin();
     }
 
-    // DTH Plan Catalog: public read for recharge flow; isPlanAdmin for write
+    // Recharge Orders collection (Completed & historical orders for receipts and payment reports)
+    match /recharge_orders/{orderId} {
+      allow create: if isValidId(orderId);
+      allow read: if (isSignedIn() && (resource.data.user_id == request.auth.uid || isAdmin())) || isAdmin();
+      allow update: if isAdmin();
+      allow delete: if false; // Audit trail: recharges must not be deleted
+    }
+
+    // Plan Catalog collection (Public read for recharge customer flow, write restricted to admin)
     match /plan_catalog/{planId} {
       allow read: if true;
-      allow write: if isPlanAdmin();
+      allow create: if isAdmin() && isValidId(planId);
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Plan Audit Logs collection (Restricted to admin)
+    match /plan_audit_logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if false; // Immutable audit trail
+    }
+
+    // Customer Directory collection (Dealership Ledger)
+    match /customers/{customerId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && isValidId(customerId);
+      allow update, delete: if isAdmin();
+    }
+
+    // Operator Control & Availability Settings
+    match /operator_settings/{operatorId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin() && isValidId(operatorId);
     }
   }
 }

@@ -101,63 +101,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         onSuccess(profile);
         onClose();
       } else {
-        // Fallback for sandboxed environment without live popup
-        setTimeout(async () => {
-          const userEmail = 'professorpradeeps@gmail.com';
-          const isSuperAdmin = isSuperAdminEmail(userEmail);
-          const finalDisplayName = 'Professor Pradeep S';
-
-          const profile: UserProfile = {
-            uid: currentUser ? currentUser.uid : `usr_google_${Date.now().toString().slice(-6)}`,
-            email: userEmail,
-            displayName: finalDisplayName,
-            phoneNumber: currentUser?.phoneNumber,
-            is_worker: isSuperAdmin,
-            is_plan_admin: isSuperAdmin,
-            role: 'admin',
-            createdAt: currentUser?.createdAt || new Date().toISOString(),
-            lastLoginAt: new Date().toISOString(),
-            authProviders: ['google.com'],
-          };
-
-          if (isFirebaseLive && db) {
-            try {
-              await setDoc(doc(db, 'users', profile.uid), sanitizePayload(profile), { merge: true });
-            } catch (e) {
-              console.warn('Firestore user profile save error:', e);
-            }
-          }
-
-          setIsLoading(false);
-          onSuccess(profile);
-          onClose();
-        }, 500);
+        setIsLoading(false);
+        setErrorMsg('Firebase Authentication is currently not available. Please try again later.');
       }
     } catch (err: any) {
-      console.warn('Google Auth popup closed or sandboxed:', err);
-      // If user closed popup, handle cleanly
-      if (err?.code === 'auth/popup-closed-by-user') {
-        setIsLoading(false);
+      console.warn('Google Auth popup result:', err);
+      setIsLoading(false);
+      // If user closed popup, handle cleanly without error message
+      if (err?.code === 'auth/popup-closed-by-user' || err?.code === 'auth/cancelled-popup-request') {
         return;
       }
       
-      // Default fallback for preview sandbox
-      const userEmail = 'professorpradeeps@gmail.com';
-      const isSuperAdmin = isSuperAdminEmail(userEmail);
-      const profile: UserProfile = {
-        uid: currentUser ? currentUser.uid : `usr_google_${Date.now().toString().slice(-6)}`,
-        email: userEmail,
-        displayName: 'Professor Pradeep S',
-        is_worker: isSuperAdmin,
-        is_plan_admin: isSuperAdmin,
-        role: 'admin',
-        createdAt: currentUser?.createdAt || new Date().toISOString(),
-        lastLoginAt: new Date().toISOString(),
-        authProviders: ['google.com'],
-      };
-      setIsLoading(false);
-      onSuccess(profile);
-      onClose();
+      setErrorMsg(err?.message || 'Google Sign-In was not completed. Please try again.');
     }
   };
 

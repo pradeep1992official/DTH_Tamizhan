@@ -1,5 +1,26 @@
 export type DthOperatorId = 'sun_direct' | 'tata_play' | 'airtel_dth' | 'dish_tv' | 'd2h';
 
+export type OperatorDisableCondition = 
+  | 'scheduled_maintenance' 
+  | 'gateway_down' 
+  | 'transponder_outage' 
+  | 'high_failure_rate' 
+  | 'commercial_hold' 
+  | 'custom';
+
+export interface OperatorStatusConfig {
+  operatorId: DthOperatorId;
+  name: string;
+  isEnabled: boolean;
+  condition?: OperatorDisableCondition;
+  conditionLabel?: string;
+  maintenanceMessage?: string;
+  expectedRestoration?: string;
+  disabledAt?: string;
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
 export interface DthOperator {
   id: DthOperatorId;
   name: string;
@@ -13,6 +34,14 @@ export interface DthOperator {
   tollFree: string;
   smsRefreshFormat: string;
   popularPacksCount: number;
+  isEnabled?: boolean;
+  condition?: OperatorDisableCondition;
+  conditionLabel?: string;
+  maintenanceMessage?: string;
+  expectedRestoration?: string;
+  disabledAt?: string;
+  updatedAt?: string;
+  updatedBy?: string;
 }
 
 export type PlanCategory = 'all' | 'tamil_base' | 'cinema' | 'sports_kids' | 'annual' | 'addon';
@@ -68,6 +97,7 @@ export interface RechargeOrder {
   operator: DthOperatorId;
   operatorName: string;
   smartCardNumber: string;
+  customerName?: string;
   registeredMobile?: string;
   amount: number;
   packId: string;
@@ -161,13 +191,17 @@ export function isSuperAdminEmail(email?: string | null): boolean {
   return email.trim().toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
 }
 
-export function isUserAdmin(user: UserProfile | null): boolean {
-  if (!user) return false;
+export function isUserAdmin(user: UserProfile | null, approvedAdminEmails?: string[]): boolean {
+  if (!user || !user.email) return false;
   if (isSuperAdminEmail(user.email)) return true;
-  return user.role === 'admin' || !!user.is_plan_admin;
+  if (approvedAdminEmails && Array.isArray(approvedAdminEmails)) {
+    const cleanEmail = user.email.trim().toLowerCase();
+    return approvedAdminEmails.some((e) => e.toLowerCase() === cleanEmail);
+  }
+  return false;
 }
 
-export type AdminTabId = 'customers' | 'reports' | 'pending' | 'recharges' | 'packs' | 'payments' | 'approvals';
+export type AdminTabId = 'customers' | 'reports' | 'pending' | 'recharges' | 'packs' | 'payments' | 'operators' | 'approvals';
 
 export interface AdminAccount {
   uid: string;

@@ -39,19 +39,26 @@ service cloud.firestore {
       allow read: if true;
     }
 
-    // User profiles collection
+    // User profiles collection - strictly prevents role/privilege escalation
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId) && 
         request.resource.data.uid == userId &&
-        (request.resource.data.role == 'customer' || isSuperAdmin());
-      allow update: if (isOwner(userId) && request.resource.data.uid == userId && (request.resource.data.role == resource.data.role || isSuperAdmin())) || isSuperAdmin();
+        (isSuperAdmin() || (
+          !request.resource.data.keys().hasAny(['is_plan_admin', 'is_worker']) &&
+          (!('role' in request.resource.data) || request.resource.data.role == 'customer')
+        ));
+      allow update: if isSuperAdmin() || (
+        isOwner(userId) && 
+        request.resource.data.uid == userId &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'is_plan_admin', 'is_worker', 'uid', 'email'])
+      );
       allow delete: if isOwner(userId) || isSuperAdmin();
     }
 
-    // Approved Admins collection (Managed ONLY by professorpradeeps@gmail.com)
+    // Approved Admins collection (Managed ONLY by professorpradeeps@gmail.com, readable ONLY by authorized admins)
     match /admins/{adminId} {
-      allow read: if isSignedIn();
+      allow read: if isAdmin();
       allow create, update, delete: if isSuperAdmin();
     }
 
@@ -81,12 +88,16 @@ service cloud.firestore {
 
     // Pending Recharges collection (Customer places order, admin processes fulfillment)
     match /pending_recharges/{orderId} {
-      allow create: if isSignedIn() && 
-        isValidId(orderId) &&
-        request.resource.data.user_id == request.auth.uid;
-      allow read: if isSignedIn() && 
-        (resource.data.user_id == request.auth.uid || isAdmin());
-      allow update: if isSignedIn() && isAdmin();
+      allow create: if isValidId(orderId);
+      allow read: if (isSignedIn() && (resource.data.user_id == request.auth.uid || isAdmin())) || isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    // Recharge Orders collection (Completed & historical orders for receipts and payment reports)
+    match /recharge_orders/{orderId} {
+      allow create: if isValidId(orderId);
+      allow read: if (isSignedIn() && (resource.data.user_id == request.auth.uid || isAdmin())) || isAdmin();
+      allow update: if isAdmin();
       allow delete: if false; // Audit trail: recharges must not be deleted
     }
 
@@ -103,6 +114,19 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow create: if isAdmin();
       allow update, delete: if false; // Immutable audit trail
+    }
+
+    // Customer Directory collection (Dealership Ledger)
+    match /customers/{customerId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && isValidId(customerId);
+      allow update, delete: if isAdmin();
+    }
+
+    // Operator Control & Availability Settings
+    match /operator_settings/{operatorId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin() && isValidId(operatorId);
     }
   }
 }

@@ -74,16 +74,22 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
   const [customAmount, setCustomAmount] = useState('');
   const [saveConnection, setSaveConnection] = useState(true);
 
-  // Fetch operators from backend API
+  // Fetch operators from backend API & listen for admin status toggles
   useEffect(() => {
-    fetch('/api/operators')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && data.operators) {
-          setOperators(data.operators);
-        }
-      })
-      .catch((err) => console.error('Failed to load operators:', err));
+    const loadOps = () => {
+      fetch('/api/operators')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.operators) {
+            setOperators(data.operators);
+          }
+        })
+        .catch((err) => console.error('Failed to load operators:', err));
+    };
+
+    loadOps();
+    window.addEventListener('operators_updated', loadOps);
+    return () => window.removeEventListener('operators_updated', loadOps);
   }, []);
 
   // Fetch live plan catalog from PlanCatalogService & listen for real-time Excel updates
@@ -141,6 +147,13 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
 
   const handlePayClick = () => {
     if (!currentOp) return;
+    if (currentOp.isEnabled === false) {
+      setValidationError(
+        currentOp.maintenanceMessage || 
+        `${currentOp.name} is temporarily offline for maintenance (${currentOp.conditionLabel || 'Maintenance'}). Expected restoration: ${currentOp.expectedRestoration || 'Shortly'}.`
+      );
+      return;
+    }
     const cleanCard = smartCardNumber.trim().replace(/\s+/g, '');
     if (!cleanCard) {
       setValidationError(currentLang === 'ta' ? 'ஸ்மார்ட் கார்டு எண்ணை உள்ளிடவும்' : 'Please enter your Smart Card or Subscriber ID');
@@ -282,6 +295,14 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                     </div>
                   )}
 
+                  {op.isEnabled === false && (
+                    <div className="absolute top-2 left-2 z-10">
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-rose-500 text-white shadow-xs flex items-center gap-0.5">
+                        <AlertCircle className="w-2.5 h-2.5" /> Maintenance
+                      </span>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-center w-full">
                     <OperatorCardLogo operatorId={op.id} />
                   </div>
@@ -296,6 +317,29 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
             })}
           </div>
         </div>
+
+        {/* Operator Offline Maintenance Notice Banner */}
+        {currentOp && currentOp.isEnabled === false && (
+          <div className="p-4 rounded-2xl border bg-rose-500/10 border-rose-500/30 text-rose-800 dark:text-rose-200 flex items-start gap-3.5 animate-in fade-in duration-200">
+            <AlertCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+            <div className="text-xs space-y-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-bold text-sm">{currentOp.name} is Temporarily Unavailable</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-rose-500/20 text-rose-600 dark:text-rose-300 border border-rose-500/30">
+                  {currentOp.conditionLabel || 'Under Maintenance'}
+                </span>
+              </div>
+              <p className="opacity-90 leading-relaxed">
+                {currentOp.maintenanceMessage || `${currentOp.name} services are temporarily offline for maintenance. Recharges will resume shortly.`}
+              </p>
+              {currentOp.expectedRestoration && (
+                <p className="text-[11px] font-semibold text-rose-700 dark:text-rose-300">
+                  Expected Resumption: {currentOp.expectedRestoration}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Step 2: Enter Smart Card / Customer ID */}
         {currentOp && (
@@ -901,11 +945,25 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
           <button
             id="proceed-to-pay-btn"
             onClick={handlePayClick}
-            className={`w-full sm:w-auto px-10 py-3.5 font-bold text-sm transition-all flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] ${currentTheme.ctaButtonClass}`}
+            disabled={currentOp?.isEnabled === false}
+            className={`w-full sm:w-auto px-10 py-3.5 font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+              currentOp?.isEnabled === false
+                ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 cursor-not-allowed'
+                : `hover:scale-[1.01] active:scale-[0.99] ${currentTheme.ctaButtonClass}`
+            }`}
           >
-            <CreditCard className="w-4 h-4" />
-            <span>{t.proceedToPay}</span>
-            <ChevronRight className="w-4 h-4" />
+            {currentOp?.isEnabled === false ? (
+              <>
+                <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                <span>{currentOp.name} is Offline for Maintenance</span>
+              </>
+            ) : (
+              <>
+                <CreditCard className="w-4 h-4" />
+                <span>{t.proceedToPay}</span>
+                <ChevronRight className="w-4 h-4" />
+              </>
+            )}
           </button>
         </div>
       </div>

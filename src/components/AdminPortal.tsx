@@ -12,6 +12,7 @@ import {
   AlertCircle, 
   ArrowLeft, 
   Crown, 
+  Info,
   Download, 
   Upload,
   Printer, 
@@ -33,12 +34,18 @@ import {
   Lock,
   ShieldAlert,
   LogIn,
-  KeyRound
+  KeyRound,
+  AlertTriangle,
+  Power,
+  ToggleLeft,
+  ToggleRight
 } from 'lucide-react';
 import { 
   Language, 
   UserProfile, 
   DthOperatorId, 
+  DthOperator,
+  OperatorDisableCondition,
   RechargeOrder, 
   CustomerRecord, 
   PaymentReportItem,
@@ -52,8 +59,8 @@ import {
 import { OperatorTheme } from '../lib/theme';
 import { PlanCatalogService } from '../lib/planCatalogService';
 import { ExcelPlanImportExportModal } from './ExcelPlanImportExportModal';
-import { db, isFirebaseLive, sanitizePayload } from '../lib/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { db, auth, isFirebaseLive, sanitizePayload } from '../lib/firebase';
+import { doc, setDoc, deleteDoc, collection, getDocs, DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
 
 interface AdminPortalProps {
   currentLang: Language;
@@ -98,6 +105,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       if (path.includes('recharge')) return 'recharges';
       if (path.includes('pack') || path.includes('plan')) return 'packs';
       if (path.includes('payment')) return 'payments';
+      if (path.includes('operator')) return 'operators';
       if (path.includes('approval') || path.includes('admin-access')) return 'approvals';
     }
     return initialTab;
@@ -121,6 +129,25 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     setTimeout(() => setToastMsg(null), 3500);
   };
 
+  // Helper to attach verified Firebase ID token (fail closed)
+  const getAuthHeaders = async (): Promise<Record<string, string>> => {
+    const headers: Record<string, string> = {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    };
+    if (auth && auth.currentUser) {
+      try {
+        const token = await auth.currentUser.getIdToken();
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      } catch (err) {
+        console.warn('Error fetching ID token:', err);
+      }
+    }
+    return headers;
+  };
+
   // --- STATE FOR 1. CUSTOMER DETAILS ---
   const [customers, setCustomers] = useState<CustomerRecord[]>([]);
   const [custLoading, setCustLoading] = useState(false);
@@ -131,23 +158,185 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const fetchCustomers = async () => {
     setCustLoading(true);
     try {
-      const email = user?.email || SUPER_ADMIN_EMAIL;
-      const res = await fetch(`/api/admin/customers?callerEmail=${encodeURIComponent(email)}`, {
-        headers: { 'Accept': 'application/json', 'x-caller-email': email },
-      });
-      const contentType = res.headers.get('content-type') || '';
-      if (!contentType.includes('application/json')) {
-        console.warn('Non-JSON response received for customers:', res.status);
-        return;
+      let combinedCusts: CustomerRecord[] = [];
+
+      // 1. Fetch from backend API with verified Bearer token
+      try {
+        const headers = await getAuthHeaders();
+        const res = await fetch(`/api/admin/customers`, {
+          headers,
+        });
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          const data = await res.json();
+          if (data.success && Array.isArray(data.customers)) {
+            combinedCusts = [...data.customers];
+          }
+        }
+      } catch (srvErr) {
+        console.warn('Backend customers fetch note:', srvErr);
       }
-      const data = await res.json();
-      if (data.success && Array.isArray(data.customers)) {
-        setCustomers(data.customers);
+
+      // 2. Fetch from Cloud Firestore (/customers)
+      if (isFirebaseLive && db) {
+        try {
+          const custSnap = await getDocs(collection(db, 'customers'));
+          if (!custSnap.empty) {
+            const firestoreCusts: CustomerRecord[] = [];
+            custSnap.forEach((docSnap: QueryDocumentSnapshot<DocumentData>) => {
+              const d = docSnap.data();
+              if (d && d.smartCardNumber) {
+                firestoreCusts.push({
+                  id: d.id || docSnap.id,
+                  customerName: d.customerName || 'Subscriber',
+                  registeredMobile: d.registeredMobile || '',
+                  smartCardNumber: d.smartCardNumber,
+                  operator: d.operator || 'sun_direct',
+                  operatorName: d.operatorName || d.operator || 'DTH',
+                  activePackName: d.activePackName || 'Active Pack',
+                  currentBalance: typeof d.currentBalance === 'number' ? d.currentBalance : 0,
+                  expiryDate: d.expiryDate || new Date().toISOString().split('T')[0],
+                  status: d.status || 'active',
+                  totalRechargesCount: typeof d.totalRechargesCount === 'number' ? d.totalRechargesCount : 0,
+                  totalSpent: typeof d.totalSpent === 'number' ? d.totalSpent : 0,
+                  lastRechargeDate: d.lastRechargeDate || 'Recent',
+                  createdAt: d.createdAt || new Date().toISOString(),
+                });
+              }
+            });
+
+            // Merge by smartCardNumber
+            const map = new Map<string, CustomerRecord>();
+            combinedCusts.forEach((c) => map.set(c.smartCardNumber, c));
+            firestoreCusts.forEach((c) => {
+              const existing = map.get(c.smartCardNumber);
+              if (!existing) {
+                map.set(c.smartCardNumber, c);
+              } else {
+                map.set(c.smartCardNumber, { ...existing, ...c });
+              }
+            });
+
+            combinedCusts = Array.from(map.values());
+
+            // Sync to backend disk
+            if (firestoreCusts.length > 0) {
+              getAuthHeaders().then((headers) => {
+                fetch('/api/admin/customers/sync', {
+                  method: 'POST',
+                  headers,
+                  body: JSON.stringify({ customers: combinedCusts }),
+                }).catch(() => {});
+              });
+            }
+          }
+        } catch (fbErr) {
+          console.warn('Firestore customers read note:', fbErr);
+        }
+      }
+
+      if (combinedCusts.length > 0) {
+        setCustomers(combinedCusts);
       }
     } catch (err) {
       console.warn('Network issue fetching customers:', err);
     } finally {
       setCustLoading(false);
+    }
+  };
+
+  // Customer Directory Management State
+  const [showAddCustModal, setShowAddCustModal] = useState(false);
+  const [newCustName, setNewCustName] = useState('');
+  const [newCustMobile, setNewCustMobile] = useState('');
+  const [newCustOperator, setNewCustOperator] = useState<DthOperatorId>('sun_direct');
+  const [newCustCard, setNewCustCard] = useState('');
+  const [isSavingCust, setIsSavingCust] = useState(false);
+
+  // Customer Deletion State
+  const [custToDelete, setCustToDelete] = useState<CustomerRecord | null>(null);
+  const [isDeletingCust, setIsDeletingCust] = useState(false);
+
+  const handleCreateCustomer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCustName.trim() || !newCustMobile.trim() || !newCustCard.trim()) {
+      showToast('Please enter Customer Name, Mobile Number, and Smart Card number');
+      return;
+    }
+    setIsSavingCust(true);
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch('/api/admin/customers/create', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          customerName: newCustName.trim(),
+          registeredMobile: newCustMobile.trim(),
+          smartCardNumber: newCustCard.trim(),
+          operator: newCustOperator,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Sync to Cloud Firestore (/customers/{customerId})
+        if (db && data.customer) {
+          try {
+            const custDocRef = doc(db, 'customers', data.customer.id);
+            await setDoc(custDocRef, sanitizePayload(data.customer), { merge: true });
+          } catch (fbErr) {
+            console.warn('[Firestore] Customer sync note:', fbErr);
+          }
+        }
+        showToast(data.message || 'Customer saved to directory!');
+        setShowAddCustModal(false);
+        setNewCustName('');
+        setNewCustMobile('');
+        setNewCustCard('');
+        await fetchCustomers();
+      } else {
+        showToast(data.error || 'Failed to save customer');
+      }
+    } catch {
+      showToast('Network error saving customer');
+    } finally {
+      setIsSavingCust(false);
+    }
+  };
+
+  const handleDeleteCustomer = async () => {
+    if (!custToDelete) return;
+    setIsDeletingCust(true);
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch('/api/admin/customers/delete', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          id: custToDelete.id,
+          smartCardNumber: custToDelete.smartCardNumber,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Delete from Cloud Firestore (/customers/{customerId})
+        if (db && custToDelete.id) {
+          try {
+            const custDocRef = doc(db, 'customers', custToDelete.id);
+            await deleteDoc(custDocRef);
+          } catch (fbErr) {
+            console.warn('[Firestore] Customer delete note:', fbErr);
+          }
+        }
+        showToast('Customer record removed from directory');
+        setCustToDelete(null);
+        await fetchCustomers();
+      } else {
+        showToast(data.error || 'Failed to delete customer');
+      }
+    } catch {
+      showToast('Network error deleting customer');
+    } finally {
+      setIsDeletingCust(false);
     }
   };
 
@@ -158,9 +347,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const fetchReports = async () => {
     setReportsLoading(true);
     try {
-      const email = user?.email || SUPER_ADMIN_EMAIL;
-      const res = await fetch(`/api/admin/reports?callerEmail=${encodeURIComponent(email)}`, {
-        headers: { 'Accept': 'application/json', 'x-caller-email': email },
+      const headers = await getAuthHeaders();
+      const res = await fetch(`/api/admin/reports`, {
+        headers,
       });
       const contentType = res.headers.get('content-type') || '';
       if (!contentType.includes('application/json')) {
@@ -194,23 +383,94 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const fetchOrders = async () => {
     setOrdersLoading(true);
     try {
-      const email = user?.email || SUPER_ADMIN_EMAIL;
-      const res = await fetch(`/api/orders?isWorker=true&callerEmail=${encodeURIComponent(email)}`, {
-        headers: { 'Accept': 'application/json', 'x-caller-email': email },
-      });
-      const contentType = res.headers.get('content-type') || '';
-      if (!contentType.includes('application/json')) {
-        console.warn('Non-JSON response received for orders:', res.status);
-        return;
+      let combinedOrders: RechargeOrder[] = [];
+
+      // 1. Fetch from backend server API
+      try {
+        const headers = await getAuthHeaders();
+        const res = await fetch(`/api/orders?isWorker=true`, {
+          headers,
+        });
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          const data = await res.json();
+          if (data.success && Array.isArray(data.orders)) {
+            combinedOrders = [...data.orders];
+          }
+        }
+      } catch (srvErr) {
+        console.warn('Backend orders fetch note:', srvErr);
       }
-      const data = await res.json();
-      if (data.success && Array.isArray(data.orders)) {
-        setOrders(data.orders);
-        if (!selectedOrder && data.orders.length > 0) {
-          setSelectedOrder(data.orders[0]);
-          setOperatorRefVal(data.orders[0].operatorRefId || '');
-          setWorkerNotesVal(data.orders[0].workerNotes || '');
-          setStatusUpdateVal(data.orders[0].rechargeStatus);
+
+      // 2. Fetch from Cloud Firestore (/recharge_orders & /pending_recharges)
+      if (isFirebaseLive && db) {
+        try {
+          const snap1 = await getDocs(collection(db, 'recharge_orders'));
+          const firestoreOrders: RechargeOrder[] = [];
+          if (!snap1.empty) {
+            snap1.forEach((docSnap: QueryDocumentSnapshot<DocumentData>) => {
+              const d = docSnap.data();
+              if (d && (d.orderId || docSnap.id)) {
+                firestoreOrders.push({
+                  orderId: d.orderId || docSnap.id,
+                  user_id: d.user_id || 'guest_user',
+                  operator: d.operator || 'sun_direct',
+                  operatorName: d.operatorName || d.operator || 'DTH',
+                  smartCardNumber: d.smartCardNumber || '',
+                  registeredMobile: d.registeredMobile || '',
+                  amount: typeof d.amount === 'number' ? d.amount : 0,
+                  packId: d.packId || 'pack',
+                  packName: d.packName || 'Recharge Pack',
+                  packValidity: d.packValidity || '30 Days',
+                  paymentMethod: d.paymentMethod || 'upi',
+                  paymentStatus: d.paymentStatus || 'paid',
+                  rechargeStatus: d.rechargeStatus || 'pending',
+                  operatorRefId: d.operatorRefId || '',
+                  workerNotes: d.workerNotes || '',
+                  signalRefreshRequested: Boolean(d.signalRefreshRequested),
+                  createdAt: d.createdAt || new Date().toISOString(),
+                  updatedAt: d.updatedAt || new Date().toISOString(),
+                });
+              }
+            });
+          }
+
+          // Merge by orderId
+          const map = new Map<string, RechargeOrder>();
+          combinedOrders.forEach((o) => map.set(o.orderId, o));
+          firestoreOrders.forEach((o) => {
+            const existing = map.get(o.orderId);
+            if (!existing) {
+              map.set(o.orderId, o);
+            } else {
+              map.set(o.orderId, { ...existing, ...o });
+            }
+          });
+
+          combinedOrders = Array.from(map.values());
+
+          // Sync to backend disk
+          if (firestoreOrders.length > 0) {
+            getAuthHeaders().then((headers) => {
+              fetch('/api/orders/sync', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ orders: combinedOrders }),
+              }).catch(() => {});
+            });
+          }
+        } catch (fbErr) {
+          console.warn('Firestore orders read note:', fbErr);
+        }
+      }
+
+      if (combinedOrders.length > 0) {
+        setOrders(combinedOrders);
+        if (!selectedOrder && combinedOrders.length > 0) {
+          setSelectedOrder(combinedOrders[0]);
+          setOperatorRefVal(combinedOrders[0].operatorRefId || '');
+          setWorkerNotesVal(combinedOrders[0].workerNotes || '');
+          setStatusUpdateVal(combinedOrders[0].rechargeStatus);
         }
       }
     } catch (err) {
@@ -229,20 +489,30 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   ) => {
     setIsUpdatingOrder(true);
     try {
+      const headers = await getAuthHeaders();
       const res = await fetch('/api/admin/orders/update', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           orderId,
           rechargeStatus: newStatus,
           operatorRefId: customRef !== undefined ? customRef : (operatorRefVal || `TXN-REF-${Math.floor(100000 + Math.random() * 900000)}`),
           workerNotes: notes !== undefined ? notes : workerNotesVal,
           triggerSignalRefresh: refreshSignal || false,
-          callerEmail: user?.email || '',
         }),
       });
       const data = await res.json();
       if (data.success) {
+        // Sync updated order status to Cloud Firestore
+        if (db && data.order) {
+          try {
+            const cleanOrder = sanitizePayload(data.order);
+            setDoc(doc(db, 'recharge_orders', orderId), cleanOrder, { merge: true }).catch(() => {});
+            setDoc(doc(db, 'pending_recharges', orderId), cleanOrder, { merge: true }).catch(() => {});
+          } catch (fbErr) {
+            console.warn('[Firestore] Order status sync:', fbErr);
+          }
+        }
         showToast(`Recharge #${orderId} marked as ${newStatus.toUpperCase()}`);
         await fetchOrders();
         await fetchReports();
@@ -389,9 +659,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const fetchPayments = async () => {
     setPaymentsLoading(true);
     try {
-      const email = user?.email || SUPER_ADMIN_EMAIL;
-      const res = await fetch(`/api/admin/payments?callerEmail=${encodeURIComponent(email)}`, {
-        headers: { 'Accept': 'application/json', 'x-caller-email': email },
+      const headers = await getAuthHeaders();
+      const res = await fetch(`/api/admin/payments`, {
+        headers,
       });
       const contentType = res.headers.get('content-type') || '';
       if (!contentType.includes('application/json')) {
@@ -413,15 +683,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [adminAccounts, setAdminAccounts] = useState<AdminAccount[]>([]);
   const [accessLoading, setAccessLoading] = useState(false);
 
-  // Authorize check
+  // Authorize check (Strictly server / Firestore / super admin verified)
   const isApprovedAdmin = useMemo(() => {
-    if (!user) return false;
-    if (isSuperAdminEmail(user?.email)) return true;
-    if (user.role === 'admin' || user.is_plan_admin) {
-      const found = adminAccounts.find((a) => a.email.toLowerCase() === user.email?.toLowerCase());
-      if (found && found.status === 'approved') return true;
-    }
-    return false;
+    if (!user || !user.email) return false;
+    if (isSuperAdminEmail(user.email)) return true;
+    const found = adminAccounts.find((a) => a.email.toLowerCase() === user.email?.toLowerCase());
+    return Boolean(found && found.status === 'approved');
   }, [user, adminAccounts]);
 
   // Direct Admin Grant Inputs
@@ -433,18 +700,79 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const fetchAccessList = async () => {
     setAccessLoading(true);
     try {
-      const email = user?.email || SUPER_ADMIN_EMAIL;
-      const res = await fetch(`/api/admin/access-list?callerEmail=${encodeURIComponent(email)}`, {
-        headers: { 'Accept': 'application/json', 'x-caller-email': email },
-      });
-      const contentType = res.headers.get('content-type') || '';
-      if (!contentType.includes('application/json')) {
-        console.warn('Non-JSON response received for access-list:', res.status);
-        return;
+      let combinedAdmins: AdminAccount[] = [];
+
+      // 1. Fetch from backend API with verified Bearer token
+      try {
+        const headers = await getAuthHeaders();
+        const res = await fetch(`/api/admin/access-list`, {
+          headers,
+        });
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          const data = await res.json();
+          if (data.success && Array.isArray(data.admins)) {
+            combinedAdmins = [...data.admins];
+          }
+        }
+      } catch (srvErr) {
+        console.warn('Backend access-list fetch note:', srvErr);
       }
-      const data = await res.json();
-      if (data.success && Array.isArray(data.admins)) {
-        setAdminAccounts(data.admins);
+
+      // 2. Fetch directly from Cloud Firestore (/admins) to ensure zero data loss across container restarts
+      if (isFirebaseLive && db) {
+        try {
+          const adminsSnap = await getDocs(collection(db, 'admins'));
+          if (!adminsSnap.empty) {
+            const firestoreAdmins: AdminAccount[] = [];
+            adminsSnap.forEach((docSnap: QueryDocumentSnapshot<DocumentData>) => {
+              const d = docSnap.data();
+              if (d && d.email) {
+                firestoreAdmins.push({
+                  uid: d.uid || docSnap.id,
+                  email: d.email,
+                  displayName: d.displayName || d.email.split('@')[0],
+                  role: (d.role as 'super_admin' | 'admin') || 'admin',
+                  status: (d.status as 'approved' | 'revoked' | 'pending') || 'approved',
+                  approvedBy: d.approvedBy || SUPER_ADMIN_EMAIL,
+                  approvedAt: d.approvedAt || new Date().toISOString(),
+                  notes: d.notes || 'Cloud Firestore Admin',
+                });
+              }
+            });
+
+            // Merge Firestore records with Server records (deduplicate by email)
+            const map = new Map<string, AdminAccount>();
+            combinedAdmins.forEach((a) => map.set(a.email.toLowerCase(), a));
+            firestoreAdmins.forEach((a) => {
+              const existing = map.get(a.email.toLowerCase());
+              if (!existing) {
+                map.set(a.email.toLowerCase(), a);
+              } else if (a.status !== existing.status) {
+                map.set(a.email.toLowerCase(), { ...existing, ...a });
+              }
+            });
+
+            combinedAdmins = Array.from(map.values());
+
+            // Two-way sync back to backend server memory & disk
+            if (firestoreAdmins.length > 0) {
+              getAuthHeaders().then((headers) => {
+                fetch('/api/admin/sync-admins', {
+                  method: 'POST',
+                  headers,
+                  body: JSON.stringify({ admins: combinedAdmins }),
+                }).catch(() => {});
+              });
+            }
+          }
+        } catch (fbErr) {
+          console.warn('Firestore admins read note:', fbErr);
+        }
+      }
+
+      if (combinedAdmins.length > 0) {
+        setAdminAccounts(combinedAdmins);
       }
     } catch (err) {
       console.warn('Network issue loading admin access list:', err);
@@ -461,11 +789,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     notes?: string
   ) => {
     try {
+      const headers = await getAuthHeaders();
       const res = await fetch('/api/admin/approve-user', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
-          callerEmail: user?.email || SUPER_ADMIN_EMAIL,
           targetEmail,
           targetName,
           targetUid,
@@ -476,10 +804,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       const data = await res.json();
       if (data.success) {
         showToast(`Administrator privileges approved for ${targetEmail}`);
-        if (isFirebaseLive && db && targetUid) {
+        if (isFirebaseLive && db) {
           try {
-            await setDoc(doc(db, 'admins', targetUid), {
-              uid: targetUid,
+            const safeDocId = (targetUid || `admin_${targetEmail}`).replace(/[^a-zA-Z0-9_-]/g, '_');
+            await setDoc(doc(db, 'admins', safeDocId), {
+              uid: targetUid || safeDocId,
               email: targetEmail,
               displayName: targetName || targetEmail.split('@')[0],
               role: 'admin',
@@ -513,17 +842,29 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     if (!adminToRevoke) return;
     setIsRevokingAdmin(true);
     try {
+      const headers = await getAuthHeaders();
       const res = await fetch('/api/admin/revoke-user', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
-          callerEmail: user?.email || SUPER_ADMIN_EMAIL,
           targetEmail: adminToRevoke,
           notes: 'Revoked by Root Administrator',
         }),
       });
       const data = await res.json();
       if (data.success) {
+        if (isFirebaseLive && db && adminToRevoke) {
+          try {
+            await setDoc(doc(db, 'admins', adminToRevoke.replace(/[^a-zA-Z0-9_-]/g, '_')), {
+              email: adminToRevoke,
+              status: 'revoked',
+              updatedAt: new Date().toISOString(),
+              notes: 'Revoked by Root Administrator',
+            }, { merge: true });
+          } catch (e) {
+            console.warn('Firestore admin revoke:', e);
+          }
+        }
         showToast(`Administrator privileges revoked for ${adminToRevoke}`);
         setAdminToRevoke(null);
         await fetchAccessList();
@@ -590,6 +931,185 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     showToast('Payment Report CSV downloaded!');
   };
 
+  // --- STATE FOR OPERATOR CONTROL & CONDITIONS ---
+  const [operatorList, setOperatorList] = useState<DthOperator[]>([]);
+  const [operatorsLoading, setOperatorsLoading] = useState(false);
+  const [selectedOperatorForModal, setSelectedOperatorForModal] = useState<DthOperator | null>(null);
+  const [isConditionModalOpen, setIsConditionModalOpen] = useState(false);
+  const [conditionType, setConditionType] = useState<OperatorDisableCondition>('scheduled_maintenance');
+  const [customConditionLabel, setCustomConditionLabel] = useState('');
+  const [maintenanceMessage, setMaintenanceMessage] = useState('');
+  const [expectedRestoration, setExpectedRestoration] = useState('');
+  const [modalTargetEnabled, setModalTargetEnabled] = useState(false);
+  const [isUpdatingOperator, setIsUpdatingOperator] = useState(false);
+
+  const CONDITION_PRESETS: Record<OperatorDisableCondition, { label: string; defaultNotice: string; defaultTime: string }> = {
+    scheduled_maintenance: {
+      label: 'Scheduled Maintenance',
+      defaultNotice: 'Undergoing routine system maintenance and security updates. Recharges will resume shortly.',
+      defaultTime: 'Within 2 hours',
+    },
+    gateway_down: {
+      label: 'API / Gateway Downtime',
+      defaultNotice: 'The operator billing gateway is currently experiencing intermittent connectivity issues.',
+      defaultTime: 'Within 1 hour',
+    },
+    transponder_outage: {
+      label: 'Satellite Transponder Outage',
+      defaultNotice: 'Operator satellite transponder uplink is currently undergoing signal alignment.',
+      defaultTime: 'Today by 6:00 PM',
+    },
+    high_failure_rate: {
+      label: 'High Transaction Failure Rate',
+      defaultNotice: 'Recharges temporarily paused due to automated gateway timeout prevention.',
+      defaultTime: 'Within 45 minutes',
+    },
+    commercial_hold: {
+      label: 'Commercial / Dealership Hold',
+      defaultNotice: 'Recharge facility temporarily held for account reconciliation and balance replenishment.',
+      defaultTime: 'Tomorrow morning',
+    },
+    custom: {
+      label: 'Custom Operational Notice',
+      defaultNotice: 'Operator recharge is temporarily disabled by system administrator.',
+      defaultTime: 'Shortly',
+    },
+  };
+
+  const fetchOperators = async () => {
+    setOperatorsLoading(true);
+    try {
+      let combinedOps: DthOperator[] = [];
+
+      // 1. Fetch from server API with verified Bearer token
+      try {
+        const headers = await getAuthHeaders();
+        const res = await fetch(`/api/admin/operators`, {
+          headers,
+        });
+        const data = await res.json();
+        if (data.success && Array.isArray(data.operators)) {
+          combinedOps = [...data.operators];
+        }
+      } catch (srvErr) {
+        console.warn('Backend operators fetch note:', srvErr);
+      }
+
+      // 2. Fetch from Cloud Firestore (/operator_settings)
+      if (isFirebaseLive && db) {
+        try {
+          const snap = await getDocs(collection(db, 'operator_settings'));
+          if (!snap.empty) {
+            const map = new Map<string, any>();
+            snap.forEach((docSnap: QueryDocumentSnapshot<DocumentData>) => {
+              const d = docSnap.data();
+              if (d && (d.operatorId || docSnap.id)) {
+                map.set(d.operatorId || docSnap.id, d);
+              }
+            });
+
+            combinedOps = combinedOps.map((op) => {
+              const remote = map.get(op.id);
+              if (remote) {
+                return {
+                  ...op,
+                  isEnabled: typeof remote.isEnabled === 'boolean' ? remote.isEnabled : op.isEnabled,
+                  condition: remote.condition || op.condition,
+                  conditionLabel: remote.conditionLabel || op.conditionLabel,
+                  maintenanceMessage: remote.maintenanceMessage || op.maintenanceMessage,
+                  expectedRestoration: remote.expectedRestoration || op.expectedRestoration,
+                  disabledAt: remote.disabledAt || op.disabledAt,
+                };
+              }
+              return op;
+            });
+          }
+        } catch (fbErr) {
+          console.warn('Firestore operator_settings read note:', fbErr);
+        }
+      }
+
+      if (combinedOps.length > 0) {
+        setOperatorList(combinedOps);
+      }
+    } catch (err) {
+      console.warn('Network issue fetching operators:', err);
+    } finally {
+      setOperatorsLoading(false);
+    }
+  };
+
+  const handleOpenConditionModal = (op: DthOperator, forceTargetEnable?: boolean) => {
+    setSelectedOperatorForModal(op);
+    const cond = op.condition || 'scheduled_maintenance';
+    setConditionType(cond);
+    setModalTargetEnabled(forceTargetEnable !== undefined ? forceTargetEnable : !op.isEnabled);
+    setCustomConditionLabel(op.conditionLabel || CONDITION_PRESETS[cond]?.label || '');
+    setMaintenanceMessage(op.maintenanceMessage || `${op.name} ${CONDITION_PRESETS[cond]?.defaultNotice || 'is temporarily offline for maintenance.'}`);
+    setExpectedRestoration(op.expectedRestoration || CONDITION_PRESETS[cond]?.defaultTime || 'Shortly');
+    setIsConditionModalOpen(true);
+  };
+
+  const handleConditionTypeChange = (newType: OperatorDisableCondition) => {
+    setConditionType(newType);
+    const preset = CONDITION_PRESETS[newType];
+    if (preset && selectedOperatorForModal) {
+      setCustomConditionLabel(preset.label);
+      setMaintenanceMessage(`${selectedOperatorForModal.name}: ${preset.defaultNotice}`);
+      setExpectedRestoration(preset.defaultTime);
+    }
+  };
+
+  const handleToggleOperatorStatus = async (
+    operatorId: DthOperatorId, 
+    enable: boolean, 
+    condition?: OperatorDisableCondition, 
+    condLabel?: string, 
+    msg?: string, 
+    restoration?: string
+  ) => {
+    setIsUpdatingOperator(true);
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch('/api/admin/operators/toggle', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          operatorId,
+          isEnabled: enable,
+          condition: enable ? undefined : (condition || conditionType),
+          conditionLabel: enable ? undefined : (condLabel || customConditionLabel || CONDITION_PRESETS[condition || conditionType]?.label),
+          maintenanceMessage: enable ? undefined : (msg || maintenanceMessage),
+          expectedRestoration: enable ? undefined : (restoration || expectedRestoration),
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.operator) {
+        showToast(data.message || 'Operator status updated');
+        if (db) {
+          try {
+            await setDoc(doc(db, 'operator_settings', operatorId), sanitizePayload(data.operator), { merge: true });
+          } catch (fbErr) {
+            console.warn('[Firestore] Operator status sync note:', fbErr);
+          }
+        }
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('operators_updated', { detail: data.operator }));
+        }
+        setIsConditionModalOpen(false);
+        setSelectedOperatorForModal(null);
+        await fetchOperators();
+      } else {
+        showToast(data.error || 'Failed to update operator status');
+      }
+    } catch (err) {
+      console.error('Error updating operator status:', err);
+      showToast('Network error updating operator');
+    } finally {
+      setIsUpdatingOperator(false);
+    }
+  };
+
   // Initial Data Fetching
   useEffect(() => {
     fetchCustomers();
@@ -597,6 +1117,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     fetchOrders();
     fetchPacks();
     fetchPayments();
+    fetchOperators();
     fetchAccessList();
   }, [user?.email]);
 
@@ -660,6 +1181,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     { id: 'recharges', label: 'Recharge Updation', icon: RefreshCw },
     { id: 'packs', label: 'Packs Updation', icon: Layers, badge: plans.length },
     { id: 'payments', label: 'Payment Reports', icon: CreditCard, badge: payments.length },
+    { id: 'operators', label: 'Operator Control', icon: Sliders, badge: operatorList.filter((o) => o.isEnabled === false).length },
     { id: 'approvals', label: 'Admin Access', icon: ShieldCheck, badge: adminAccounts.length },
   ];
 
@@ -977,6 +1499,20 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         {/* ======================================================== */}
         {activeTab === 'customers' && (
           <div className="p-4 sm:p-6 space-y-4 animate-in fade-in duration-200">
+            {/* Dealer Domain Notice */}
+            <div className={`p-4 rounded-2xl border flex items-start gap-3 ${
+              isLight ? 'bg-amber-50/80 border-amber-200 text-amber-900' : 'bg-amber-500/10 border-amber-500/30 text-amber-200'
+            }`}>
+              <Info className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" />
+              <div className="text-xs space-y-1">
+                <p className="font-bold">Verified Customer Directory &amp; Dealership Orders Ledger</p>
+                <p className="opacity-90 leading-relaxed">
+                  DTH operators (Sun Direct, Tata Play, Airtel, Dish TV, D2H) protect subscriber internal balances and do not offer open public balance query APIs. 
+                  This directory securely records your direct customer contacts (<strong>Name, Mobile, Smart Card &amp; Operator</strong>) and calculates order counts &amp; total spent directly from recharges processed through DTH Tamizhan. Renewal dates are estimated based on each customer&apos;s last purchased pack duration.
+                </p>
+              </div>
+            </div>
+
             {/* Search and Filters Bar */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
               <div className="relative flex-1 max-w-md">
@@ -1024,6 +1560,16 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 </select>
 
                 <button
+                  type="button"
+                  onClick={() => setShowAddCustModal(true)}
+                  className="px-3 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 shadow-sm transition-all"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Customer</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={fetchCustomers}
                   className={`px-3 py-2 rounded-xl text-xs font-semibold border flex items-center gap-1.5 transition-all ${
                     isLight ? 'bg-gray-100 hover:bg-gray-200 text-gray-700' : 'bg-white/10 hover:bg-white/20 text-white'
@@ -1041,21 +1587,20 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 <table className="w-full text-left text-xs">
                   <thead className={`border-b ${isLight ? 'bg-gray-50 text-gray-600' : 'bg-black/40 text-gray-400'}`}>
                     <tr>
-                      <th className="py-3 px-4 font-bold">Customer & Mobile</th>
-                      <th className="py-3 px-4 font-bold">Operator & Smart Card</th>
-                      <th className="py-3 px-4 font-bold">Active Pack</th>
-                      <th className="py-3 px-4 font-bold">Balance</th>
-                      <th className="py-3 px-4 font-bold">Expiry Date</th>
+                      <th className="py-3 px-4 font-bold">Customer &amp; Mobile</th>
+                      <th className="py-3 px-4 font-bold">Operator &amp; Smart Card</th>
+                      <th className="py-3 px-4 font-bold">Last Recharged Pack</th>
+                      <th className="py-3 px-4 font-bold">Orders via Tamizhan</th>
+                      <th className="py-3 px-4 font-bold">Estimated Renewal</th>
                       <th className="py-3 px-4 font-bold">Status</th>
-                      <th className="py-3 px-4 font-bold">Total Recharges</th>
                       <th className="py-3 px-4 font-bold text-right">Quick Actions</th>
                     </tr>
                   </thead>
                   <tbody className={`divide-y ${isLight ? 'divide-gray-100' : 'divide-white/5'}`}>
                     {filteredCustomers.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="py-8 text-center text-xs opacity-60">
-                          No customer records found matching your filters.
+                        <td colSpan={7} className="py-8 text-center text-xs opacity-60">
+                          No customer records found matching your filters. Click &quot;Add Customer&quot; above to register a new client.
                         </td>
                       </tr>
                     ) : (
@@ -1078,21 +1623,21 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                               <p className="font-mono text-[11px] opacity-80">{c.smartCardNumber}</p>
                             </td>
                             <td className="py-3 px-4">
-                              <p className="font-medium truncate max-w-[160px]">{c.activePackName}</p>
+                              <p className="font-medium truncate max-w-[170px]">{c.activePackName}</p>
+                              <p className="text-[10px] opacity-60">Last: {c.lastRechargeDate || 'None'}</p>
                             </td>
                             <td className="py-3 px-4">
-                              <span className="font-bold tabular-nums">₹{c.currentBalance.toFixed(2)}</span>
+                              <span className="font-bold tabular-nums">{c.totalRechargesCount} recharges</span>
+                              <p className="text-[10px] opacity-70">₹{c.totalSpent.toLocaleString()} total</p>
                             </td>
-                            <td className="py-3 px-4 font-mono text-[11px]">
-                              {c.expiryDate}
+                            <td className="py-3 px-4">
+                              <span className="font-mono text-[11px] font-semibold">{c.expiryDate}</span>
+                              <span className="block text-[9px] opacity-60">Estimated due</span>
                             </td>
                             <td className="py-3 px-4">
                               <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase ${statusColor}`}>
-                                {c.status === 'due_soon' ? 'Due Soon' : c.status}
+                                {c.status === 'due_soon' ? 'Renewal Due' : c.status}
                               </span>
-                            </td>
-                            <td className="py-3 px-4 font-mono text-[11px]">
-                              {c.totalRechargesCount} recharges <span className="opacity-70">(₹{c.totalSpent})</span>
                             </td>
                             <td className="py-3 px-4 text-right">
                               <div className="flex items-center justify-end gap-1.5">
@@ -1114,8 +1659,17 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                                   className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all ${
                                     isLight ? 'bg-gray-100 hover:bg-gray-200 text-gray-800' : 'bg-white/10 hover:bg-white/20 text-white'
                                   }`}
+                                  title="View Recharge Orders"
                                 >
                                   Orders
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setCustToDelete(c)}
+                                  className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-500/15 transition-all"
+                                  title="Remove Customer Record"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
                                 </button>
                               </div>
                             </td>
@@ -2257,7 +2811,399 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             </div>
           </div>
         )}
+
+        {/* ======================================================== */}
+        {/* OPERATOR CONTROL & CONDITIONAL AVAILABILITY */}
+        {/* ======================================================== */}
+        {activeTab === 'operators' && (
+          <div className="p-4 sm:p-6 space-y-6 animate-in fade-in duration-200">
+            {/* Header Banner */}
+            <div 
+              className={`p-5 rounded-2xl border shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${
+                isLight 
+                  ? 'bg-gradient-to-r from-gray-50 via-amber-50/30 to-gray-50 border-gray-200' 
+                  : 'bg-gradient-to-r from-black/40 via-amber-950/20 to-black/40 border-white/10'
+              }`}
+            >
+              <div className="flex items-center gap-3.5">
+                <div 
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center border shrink-0 shadow-sm"
+                  style={{ 
+                    backgroundColor: `${currentTheme.primaryColor}15`, 
+                    borderColor: `${currentTheme.primaryColor}30`,
+                    color: currentTheme.primaryColor 
+                  }}
+                >
+                  <Sliders className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className={`text-base sm:text-lg font-bold ${currentTheme.headingText}`}>
+                      DTH Operator Control &amp; Availability Engine
+                    </h2>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25">
+                      Live Gate
+                    </span>
+                  </div>
+                  <p className={`text-xs ${currentTheme.subText} mt-0.5`}>
+                    Instantly enable or disable any DTH operator with custom conditional reasons (Scheduled Maintenance, Gateway Outage, Transponder Issues, or Custom Notices).
+                  </p>
+                </div>
+              </div>
+
+              {/* Status summary pills */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 ${
+                  isLight ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-emerald-950/30 border-emerald-500/30 text-emerald-300'
+                }`}>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>{operatorList.filter((o) => o.isEnabled !== false).length} Active Online</span>
+                </div>
+
+                {operatorList.filter((o) => o.isEnabled === false).length > 0 && (
+                  <div className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 ${
+                    isLight ? 'bg-rose-50 border-rose-200 text-rose-800' : 'bg-rose-950/30 border-rose-500/30 text-rose-300'
+                  }`}>
+                    <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />
+                    <span>{operatorList.filter((o) => o.isEnabled === false).length} Offline / Maintenance</span>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={fetchOperators}
+                  disabled={operatorsLoading}
+                  className={`p-2 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    isLight ? 'bg-white hover:bg-gray-100 text-gray-700 border-gray-200' : 'bg-white/10 hover:bg-white/20 text-white border-white/15'
+                  }`}
+                  title="Refresh Operator Status"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${operatorsLoading ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
+            </div>
+
+            {/* Operator Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {operatorList.map((op) => {
+                const isOnline = op.isEnabled !== false;
+                return (
+                  <div
+                    key={op.id}
+                    className={`rounded-2xl border p-5 shadow-xs transition-all relative overflow-hidden flex flex-col justify-between ${
+                      isLight 
+                        ? isOnline ? 'bg-white border-gray-200 hover:border-gray-300' : 'bg-rose-50/30 border-rose-200'
+                        : isOnline ? 'bg-white/5 border-white/10 hover:border-white/20' : 'bg-rose-950/15 border-rose-500/30'
+                    }`}
+                  >
+                    {/* Top status indicator bar */}
+                    <div 
+                      className="absolute top-0 left-0 right-0 h-1"
+                      style={{ backgroundColor: isOnline ? op.logoColor : '#EF4444' }}
+                    />
+
+                    <div className="space-y-4">
+                      {/* Operator Brand Header */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div 
+                            className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-white text-sm shadow-xs shrink-0"
+                            style={{ backgroundColor: op.logoColor }}
+                          >
+                            {op.shortName ? op.shortName.slice(0, 3).toUpperCase() : op.name.slice(0, 3).toUpperCase()}
+                          </div>
+                          <div>
+                            <h3 className={`font-bold text-sm sm:text-base leading-snug ${currentTheme.headingText}`}>
+                              {op.name}
+                            </h3>
+                            <p className={`text-xs ${currentTheme.mutedText}`}>
+                              {op.tamilName} • {op.cardName}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Status Badge */}
+                        <span 
+                          className={`text-[10px] font-bold px-2.5 py-1 rounded-full border shrink-0 flex items-center gap-1.5 ${
+                            isOnline 
+                              ? isLight ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-emerald-950/40 text-emerald-300 border-emerald-500/30'
+                              : isLight ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-rose-950/40 text-rose-300 border-rose-500/30'
+                          }`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+                          {isOnline ? 'Online' : 'Disabled'}
+                        </span>
+                      </div>
+
+                      {/* Condition & Notice Details */}
+                      {!isOnline ? (
+                        <div className={`p-3 rounded-xl border text-xs space-y-2 ${
+                          isLight ? 'bg-rose-50/80 border-rose-200 text-rose-900' : 'bg-rose-950/30 border-rose-500/20 text-rose-200'
+                        }`}>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-bold flex items-center gap-1.5 text-rose-600 dark:text-rose-400">
+                              <AlertTriangle className="w-3.5 h-3.5" />
+                              {op.conditionLabel || 'Maintenance Active'}
+                            </span>
+                            {op.expectedRestoration && (
+                              <span className="text-[10px] font-semibold opacity-80">
+                                Resumes: {op.expectedRestoration}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] leading-relaxed opacity-90">
+                            &ldquo;{op.maintenanceMessage || 'Temporarily disabled for customer orders by admin.'}&rdquo;
+                          </p>
+                          {op.updatedBy && (
+                            <p className="text-[10px] opacity-70 border-t border-rose-200 dark:border-rose-900/50 pt-1.5">
+                              Updated by {op.updatedBy}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <div className={`p-3 rounded-xl border text-xs flex items-center gap-2 ${
+                          isLight ? 'bg-emerald-50/50 border-emerald-200/50 text-emerald-900' : 'bg-emerald-950/20 border-emerald-500/15 text-emerald-200'
+                        }`}>
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                          <span className="text-[11px]">Recharge gateway healthy &amp; processing subscriber transactions normally.</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="pt-4 mt-4 border-t border-gray-200 dark:border-white/10 flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenConditionModal(op)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all flex items-center gap-1.5 ${
+                          isLight ? 'bg-gray-100 hover:bg-gray-200 text-gray-800 border-gray-300' : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
+                        }`}
+                      >
+                        <Sliders className="w-3 h-3" />
+                        <span>Configure Condition</span>
+                      </button>
+
+                      {isOnline ? (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenConditionModal(op, false)}
+                          className="px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 bg-rose-500 hover:bg-rose-600 text-white shadow-xs"
+                        >
+                          <Power className="w-3.5 h-3.5" />
+                          <span>Disable</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleToggleOperatorStatus(op.id, true)}
+                          disabled={isUpdatingOperator}
+                          className="px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Enable Now</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Operator Condition Configuration Modal */}
+      {isConditionModalOpen && selectedOperatorForModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-in fade-in">
+          <div className={`w-full max-w-lg rounded-3xl p-6 border shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto ${
+            isLight ? 'bg-white border-gray-200 text-gray-800' : 'bg-[#0e172a] border-white/15 text-white'
+          }`}>
+            <div className="flex items-center justify-between border-b pb-4 border-gray-200 dark:border-white/10">
+              <div className="flex items-center gap-3">
+                <div 
+                  className="w-10 h-10 rounded-2xl flex items-center justify-center font-black text-white text-sm shrink-0 shadow-sm"
+                  style={{ backgroundColor: selectedOperatorForModal.logoColor }}
+                >
+                  {selectedOperatorForModal.shortName ? selectedOperatorForModal.shortName.slice(0, 3) : 'OP'}
+                </div>
+                <div>
+                  <h3 className="font-bold text-base">
+                    Configure {selectedOperatorForModal.name} Availability
+                  </h3>
+                  <p className="text-xs opacity-75">
+                    Control whether customers can recharge this operator and publish maintenance notices.
+                  </p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setIsConditionModalOpen(false)}
+                className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Enable/Disable Toggle Segment */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold block opacity-80">Service Status Target</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setModalTargetEnabled(true)}
+                  className={`p-3 rounded-2xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                    modalTargetEnabled
+                      ? 'bg-emerald-500 text-white border-emerald-600 shadow-sm'
+                      : isLight ? 'bg-gray-100 border-gray-200 text-gray-700 hover:bg-gray-200' : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10'
+                  }`}
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Online (Enabled)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setModalTargetEnabled(false)}
+                  className={`p-3 rounded-2xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                    !modalTargetEnabled
+                      ? 'bg-rose-500 text-white border-rose-600 shadow-sm'
+                      : isLight ? 'bg-gray-100 border-gray-200 text-gray-700 hover:bg-gray-200' : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10'
+                  }`}
+                >
+                  <Power className="w-4 h-4" />
+                  <span>Offline (Disabled)</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Condition reason (shown when disabling) */}
+            {!modalTargetEnabled && (
+              <div className="space-y-4 animate-in fade-in">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold block opacity-80">Select Condition / Reason</label>
+                  <select
+                    value={conditionType}
+                    onChange={(e) => handleConditionTypeChange(e.target.value as OperatorDisableCondition)}
+                    className={`w-full px-3.5 py-2.5 rounded-xl text-xs border focus:outline-none transition-all ${
+                      isLight ? 'bg-white border-gray-300 text-gray-800' : 'bg-black/30 border-white/20 text-white'
+                    }`}
+                  >
+                    <option value="scheduled_maintenance">🛠️ Scheduled Operator Maintenance</option>
+                    <option value="gateway_down">🔌 API / Billing Gateway Downtime</option>
+                    <option value="transponder_outage">📡 Satellite Transponder / Uplink Issues</option>
+                    <option value="high_failure_rate">⚠️ High Transaction Failure Rate</option>
+                    <option value="commercial_hold">🔒 Commercial Hold / Balance Settlement</option>
+                    <option value="custom">📝 Custom Condition / Operational Notice</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold block opacity-80">Public Condition Label</label>
+                  <input
+                    type="text"
+                    value={customConditionLabel}
+                    onChange={(e) => setCustomConditionLabel(e.target.value)}
+                    placeholder="e.g. Scheduled Gateway Maintenance"
+                    className={`w-full px-3.5 py-2 rounded-xl text-xs border focus:outline-none transition-all ${
+                      isLight ? 'bg-white border-gray-300 text-gray-800' : 'bg-black/30 border-white/20 text-white'
+                    }`}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold block opacity-80">Public Customer Notice Message</label>
+                  <textarea
+                    rows={3}
+                    value={maintenanceMessage}
+                    onChange={(e) => setMaintenanceMessage(e.target.value)}
+                    placeholder="Provide a clear, reassuring message for subscribers attempting to recharge this operator..."
+                    className={`w-full p-3 rounded-xl text-xs border focus:outline-none transition-all ${
+                      isLight ? 'bg-white border-gray-300 text-gray-800' : 'bg-black/30 border-white/20 text-white'
+                    }`}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold block opacity-80">Expected Resumption / Restoration Time</label>
+                  <input
+                    type="text"
+                    value={expectedRestoration}
+                    onChange={(e) => setExpectedRestoration(e.target.value)}
+                    placeholder="e.g. Within 1 hour, Today 6:00 PM, Tomorrow 8:00 AM"
+                    className={`w-full px-3.5 py-2 rounded-xl text-xs border focus:outline-none transition-all ${
+                      isLight ? 'bg-white border-gray-300 text-gray-800' : 'bg-black/30 border-white/20 text-white'
+                    }`}
+                  />
+                </div>
+
+                {/* Live Preview Box */}
+                <div className="space-y-1.5 pt-1">
+                  <label className="text-[11px] font-bold block text-gray-500 uppercase tracking-wider">
+                    Customer Banner Preview
+                  </label>
+                  <div className="p-3.5 rounded-2xl border bg-rose-500/10 border-rose-500/30 text-rose-800 dark:text-rose-200 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
+                      <span className="font-bold text-xs">{selectedOperatorForModal.name} is Temporarily Unavailable</span>
+                      <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-600 dark:text-rose-300 border border-rose-500/30">
+                        {customConditionLabel || 'Under Maintenance'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] opacity-90 pl-6">
+                      {maintenanceMessage || `${selectedOperatorForModal.name} is temporarily offline.`}
+                    </p>
+                    {expectedRestoration && (
+                      <p className="text-[10px] font-semibold text-rose-700 dark:text-rose-300 pl-6">
+                        Expected Restoration: {expectedRestoration}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Action buttons */}
+            <div className="pt-3 border-t border-gray-200 dark:border-white/10 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setIsConditionModalOpen(false)}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold border ${
+                  isLight ? 'bg-white hover:bg-gray-100 text-gray-700 border-gray-300' : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
+                }`}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleToggleOperatorStatus(
+                  selectedOperatorForModal.id,
+                  modalTargetEnabled,
+                  conditionType,
+                  customConditionLabel,
+                  maintenanceMessage,
+                  expectedRestoration
+                )}
+                disabled={isUpdatingOperator}
+                className={`px-5 py-2 rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 ${
+                  modalTargetEnabled
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                    : 'bg-rose-600 hover:bg-rose-700 text-white'
+                }`}
+              >
+                {isUpdatingOperator ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : modalTargetEnabled ? (
+                  <Check className="w-3.5 h-3.5" />
+                ) : (
+                  <Power className="w-3.5 h-3.5" />
+                )}
+                <span>{modalTargetEnabled ? 'Apply & Enable Operator' : 'Apply & Disable Operator'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Confirmation Modal for Pack Deletion */}
       {packToDelete && (
@@ -2381,6 +3327,173 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     <ShieldAlert className="w-3.5 h-3.5" />
                     <span>Revoke Privileges</span>
                   </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Customer Modal */}
+      {showAddCustModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className={`w-full max-w-md rounded-2xl border p-6 shadow-2xl space-y-5 ${
+            isLight ? 'bg-white border-gray-200 text-gray-900' : 'bg-[#18181b] border-white/10 text-white'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold">Add Customer Record</h3>
+                <p className="text-xs opacity-70">Save client contact details to your dealership book</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddCustModal(false)}
+                className="p-1 rounded-lg opacity-60 hover:opacity-100 transition-opacity"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateCustomer} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold mb-1">Customer Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Ramesh Krishnan"
+                  value={newCustName}
+                  onChange={(e) => setNewCustName(e.target.value)}
+                  className={`w-full px-3 py-2 rounded-xl text-xs border focus:outline-none ${
+                    isLight ? 'bg-gray-50 border-gray-200 text-gray-900 focus:border-gray-400' : 'bg-black/30 border-white/10 text-white focus:border-white/30'
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold mb-1">Registered Mobile Number *</label>
+                <input
+                  type="tel"
+                  required
+                  maxLength={10}
+                  placeholder="10-digit mobile (e.g. 9840123456)"
+                  value={newCustMobile}
+                  onChange={(e) => setNewCustMobile(e.target.value.replace(/\D/g, ''))}
+                  className={`w-full px-3 py-2 rounded-xl text-xs border font-mono focus:outline-none ${
+                    isLight ? 'bg-gray-50 border-gray-200 text-gray-900 focus:border-gray-400' : 'bg-black/30 border-white/10 text-white focus:border-white/30'
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold mb-1">DTH Operator *</label>
+                <select
+                  value={newCustOperator}
+                  onChange={(e) => setNewCustOperator(e.target.value as DthOperatorId)}
+                  className={`w-full px-3 py-2 rounded-xl text-xs border font-medium focus:outline-none ${
+                    isLight ? 'bg-gray-50 border-gray-200 text-gray-900' : 'bg-black/30 border-white/10 text-white'
+                  }`}
+                >
+                  <option value="sun_direct">Sun Direct</option>
+                  <option value="tata_play">Tata Play</option>
+                  <option value="airtel_dth">Airtel Digital TV</option>
+                  <option value="dish_tv">Dish TV</option>
+                  <option value="d2h">D2H Videocon</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold mb-1">Smart Card / VC / Subscriber ID *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. 41289456123 or 1029384756"
+                  value={newCustCard}
+                  onChange={(e) => setNewCustCard(e.target.value.replace(/\s+/g, ''))}
+                  className={`w-full px-3 py-2 rounded-xl text-xs border font-mono focus:outline-none ${
+                    isLight ? 'bg-gray-50 border-gray-200 text-gray-900 focus:border-gray-400' : 'bg-black/30 border-white/10 text-white focus:border-white/30'
+                  }`}
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddCustModal(false)}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold border ${
+                    isLight ? 'bg-gray-100 hover:bg-gray-200 text-gray-700' : 'bg-white/10 hover:bg-white/20 text-white'
+                  }`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingCust}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm flex items-center gap-1.5"
+                >
+                  {isSavingCust ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Save Customer</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Customer Confirmation Modal */}
+      {custToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className={`w-full max-w-sm rounded-2xl border p-5 shadow-2xl space-y-4 ${
+            isLight ? 'bg-white border-gray-200 text-gray-900' : 'bg-[#18181b] border-white/10 text-white'
+          }`}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-500/15 text-rose-500 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold">Remove Customer?</h3>
+                <p className="text-xs opacity-70">Remove from dealership directory</p>
+              </div>
+            </div>
+
+            <div className={`p-3 rounded-xl text-xs border ${isLight ? 'bg-gray-50 border-gray-200' : 'bg-white/5 border-white/10'}`}>
+              <p className="font-bold">{custToDelete.customerName}</p>
+              <p className="font-mono text-[11px] opacity-75">{custToDelete.operatorName} • {custToDelete.smartCardNumber}</p>
+              <p className="font-mono text-[11px] opacity-75">Mobile: {custToDelete.registeredMobile}</p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <button
+                type="button"
+                disabled={isDeletingCust}
+                onClick={() => setCustToDelete(null)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold border ${
+                  isLight ? 'bg-gray-100 hover:bg-gray-200 text-gray-700' : 'bg-white/10 hover:bg-white/15 text-white'
+                }`}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingCust}
+                onClick={handleDeleteCustomer}
+                className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-sm flex items-center gap-1.5"
+              >
+                {isDeletingCust ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Removing...</span>
+                  </>
+                ) : (
+                  <span>Delete Record</span>
                 )}
               </button>
             </div>

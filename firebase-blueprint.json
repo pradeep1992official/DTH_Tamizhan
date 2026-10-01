@@ -115,6 +115,46 @@
         "updated_by": { "type": "string", "description": "Email or ID of updating admin", "maxLength": 120 }
       },
       "required": ["id", "operator", "pack_type", "plan_name", "amount"]
+    },
+    "CustomerRecord": {
+      "title": "Customer Record",
+      "description": "Dealer customer ledger record tracking subscriber contact and recharge history",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique customer record identifier", "maxLength": 64 },
+        "customerName": { "type": "string", "description": "Full name of the customer or subscriber", "maxLength": 100 },
+        "registeredMobile": { "type": "string", "description": "10-digit customer mobile number", "maxLength": 20 },
+        "smartCardNumber": { "type": "string", "description": "DTH Smart Card / VC / Subscriber ID", "maxLength": 24 },
+        "operator": { "type": "string", "description": "DTH operator key", "enum": ["sun_direct", "tata_play", "airtel_dth", "dish_tv", "d2h"] },
+        "operatorName": { "type": "string", "description": "Display name of operator", "maxLength": 64 },
+        "activePackName": { "type": "string", "description": "Last recharged pack name", "maxLength": 100 },
+        "currentBalance": { "type": "number", "description": "Total amount recharged or ledger balance" },
+        "expiryDate": { "type": "string", "description": "Estimated next renewal date" },
+        "status": { "type": "string", "description": "Subscription health status", "enum": ["active", "due_soon", "expired"] },
+        "totalRechargesCount": { "type": "number", "description": "Total completed recharges processed through Tamizhan" },
+        "totalSpent": { "type": "number", "description": "Total INR spend through Tamizhan" },
+        "lastRechargeDate": { "type": "string", "description": "Date of last completed recharge" },
+        "createdAt": { "type": "string", "description": "Record creation timestamp" }
+      },
+      "required": ["id", "customerName", "registeredMobile", "smartCardNumber", "operator"]
+    },
+    "OperatorSetting": {
+      "title": "Operator Availability & Condition Setting",
+      "description": "Administrator control settings for enabling or disabling individual DTH operators due to maintenance, API outage, or conditions",
+      "type": "object",
+      "properties": {
+        "operatorId": { "type": "string", "enum": ["sun_direct", "tata_play", "airtel_dth", "dish_tv", "d2h"] },
+        "name": { "type": "string", "maxLength": 64 },
+        "isEnabled": { "type": "boolean" },
+        "condition": { "type": "string", "enum": ["scheduled_maintenance", "gateway_down", "transponder_outage", "high_failure_rate", "commercial_hold", "custom"] },
+        "conditionLabel": { "type": "string", "maxLength": 100 },
+        "maintenanceMessage": { "type": "string", "maxLength": 500 },
+        "expectedRestoration": { "type": "string", "maxLength": 100 },
+        "disabledAt": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "updatedBy": { "type": "string", "maxLength": 120 }
+      },
+      "required": ["operatorId", "isEnabled"]
     }
   },
   "firestore": {
@@ -141,6 +181,18 @@
     "/plan_catalog/{planId}": {
       "schema": { "$ref": "#/entities/PlanItem" },
       "description": "DTH plans catalog accessible publicly for browsing, updated only by administrators"
+    },
+    "/recharge_orders/{orderId}": {
+      "schema": { "$ref": "#/entities/PendingRecharge" },
+      "description": "Historical and completed recharge orders ledger for receipts and financial reporting"
+    },
+    "/customers/{customerId}": {
+      "schema": { "$ref": "#/entities/CustomerRecord" },
+      "description": "Dealer directory of customers and subscribers with contact information and recharge history"
+    },
+    "/operator_settings/{operatorId}": {
+      "schema": { "$ref": "#/entities/OperatorSetting" },
+      "description": "Operator availability and conditional maintenance status managed by administrators"
     }
   }
 }

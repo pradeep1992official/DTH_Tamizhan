@@ -22,7 +22,8 @@ import {
   RechargeOrder 
 } from '../types';
 import { translations } from '../lib/translations';
-import { sanitizePayload } from '../lib/firebase';
+import { db, isFirebaseLive, sanitizePayload } from '../lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -58,6 +59,18 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [cardCvv, setCardCvv] = useState('890');
   const [selectedBank, setSelectedBank] = useState('SBI');
 
+  // Customer Contact for SMS / WhatsApp Receipt & Dealership directory
+  const [customerName, setCustomerName] = useState(() => {
+    return user?.displayName || subscriber?.customerName || '';
+  });
+  const [customerMobile, setCustomerMobile] = useState(() => {
+    try {
+      const saved = localStorage.getItem('dth_tamizhan_last_mobile');
+      if (saved) return saved;
+    } catch {}
+    return user?.phoneNumber || subscriber?.registeredMobile || '';
+  });
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [upiTimer, setUpiTimer] = useState(180);
@@ -74,6 +87,19 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
   const handlePaySubmit = async () => {
     setErrorMessage(null);
+
+    const cleanMobile = customerMobile.trim().replace(/\D/g, '');
+    if (cleanMobile.length > 0 && cleanMobile.length !== 10) {
+      setErrorMessage('Please enter a valid 10-digit mobile number for the recharge receipt');
+      return;
+    }
+
+    try {
+      if (cleanMobile.length === 10) {
+        localStorage.setItem('dth_tamizhan_last_mobile', cleanMobile);
+      }
+    } catch {}
+
     setIsProcessing(true);
 
     try {
@@ -86,7 +112,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         packName: plan.name,
         packValidity: `${plan.validityDays} Days`,
         paymentMethod: paymentMethod === 'upi' ? 'upi' : paymentMethod === 'card' ? 'card' : 'netbanking',
-        registeredMobile: subscriber?.registeredMobile || user?.phoneNumber || '',
+        customerName: customerName.trim() || user?.displayName || 'Valued Subscriber',
+        registeredMobile: cleanMobile || subscriber?.registeredMobile || user?.phoneNumber || '9840123456',
         userId: user?.uid || 'guest_user',
       };
 
@@ -102,6 +129,17 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       const data = await response.json();
 
       if (data.success && data.order) {
+        // Sync order to Cloud Firestore (recharge_orders & pending_recharges)
+        if (db && data.order.orderId) {
+          try {
+            const cleanOrder = sanitizePayload(data.order);
+            setDoc(doc(db, 'recharge_orders', data.order.orderId), cleanOrder, { merge: true }).catch(() => {});
+            setDoc(doc(db, 'pending_recharges', data.order.orderId), cleanOrder, { merge: true }).catch(() => {});
+          } catch (fbErr) {
+            console.warn('[Firestore] Order sync note:', fbErr);
+          }
+        }
+
         // Confetti celebration
         try {
           confetti({
@@ -191,6 +229,48 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               </button>
             </div>
           )}
+
+          {/* Customer Contact & SMS / WhatsApp Receipt Notification */}
+          <div className="p-3.5 bg-[#070e1e] border border-[#172545] rounded-xl space-y-2.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-[#f5f2eb] flex items-center gap-1.5">
+                <Smartphone className="w-3.5 h-3.5 text-[#dfb86c]" />
+                <span>Recharge Receipt &amp; SMS Update</span>
+              </span>
+              <span className="text-[10px] text-[#8e9cb4]">Instant delivery</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <label className="text-[11px] font-medium text-[#8e9cb4] block mb-1">
+                  Customer / Payer Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Ramesh Kumar"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className="w-full bg-[#0b1429] border border-[#1c2d52] rounded-lg px-3 py-2 text-xs text-[#f5f2eb] focus:outline-none focus:border-[#c5a059]"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-medium text-[#8e9cb4] block mb-1">
+                  Mobile Number (SMS Receipt) *
+                </label>
+                <div className="relative">
+                  <span className="absolute left-2.5 top-2 text-xs text-[#8e9cb4] font-mono">+91</span>
+                  <input
+                    type="tel"
+                    maxLength={10}
+                    required
+                    placeholder="10-digit mobile"
+                    value={customerMobile}
+                    onChange={(e) => setCustomerMobile(e.target.value.replace(/\D/g, ''))}
+                    className="w-full bg-[#0b1429] border border-[#1c2d52] rounded-lg pl-10 pr-3 py-2 text-xs text-[#f5f2eb] font-mono focus:outline-none focus:border-[#c5a059]"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* Payment Tabs */}
           <div className="grid grid-cols-3 gap-2 p-1 bg-[#070e1e] rounded-xl border border-[#172545]">

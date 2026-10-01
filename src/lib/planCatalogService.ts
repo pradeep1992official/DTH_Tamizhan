@@ -1,5 +1,5 @@
 import { PlanCatalogItem, PlanAuditLog, DthOperatorId } from '../types';
-import { db, isFirebaseLive, sanitizePayload } from './firebase';
+import { db, auth, isFirebaseLive, sanitizePayload } from './firebase';
 import { 
   collection, 
   doc, 
@@ -696,9 +696,16 @@ export class PlanCatalogService {
 
     // 2. Save to Backend Server API
     try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (auth && auth.currentUser) {
+        try {
+          const token = await auth.currentUser.getIdToken();
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+        } catch {}
+      }
       await fetch('/api/admin/plans/save', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ plan: finalPlan, callerEmail: adminUid }),
       });
     } catch (e) {
@@ -762,9 +769,16 @@ export class PlanCatalogService {
 
     // 4. Delete from Backend Server API
     try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (auth && auth.currentUser) {
+        try {
+          const token = await auth.currentUser.getIdToken();
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+        } catch {}
+      }
       await fetch('/api/admin/plans/delete', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ planId, callerEmail: adminUid }),
       });
     } catch (e) {
