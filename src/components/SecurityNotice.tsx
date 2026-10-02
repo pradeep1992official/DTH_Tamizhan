@@ -3,10 +3,7 @@ import {
   ShieldCheck, 
   Lock, 
   Database, 
-  Terminal, 
-  Key, 
   CheckCircle2, 
-  AlertTriangle,
   Server
 } from 'lucide-react';
 
@@ -23,7 +20,7 @@ export const SecurityNotice: React.FC = () => {
               Security Architecture & Threat Model
             </h2>
             <p className="text-xs text-[#8e9cb4]">
-              Structured defense mapping according to OWASP Top 10, LLM Top 10, and Zero-Trust Firebase ABAC
+              Structured defense mapping according to OWASP Top 10, LLM Top 10, and Firebase Security Rules
             </p>
           </div>
         </div>
@@ -51,10 +48,10 @@ export const SecurityNotice: React.FC = () => {
                 1. Input Surfaces
               </td>
               <td className="px-4 py-3.5 text-[#c7d2e5]">
-                Invalid smart card characters, NoSQL injection, untrusted payload deserialization
+                Invalid smart card characters, NoSQL injection, file uploads exceeding limits
               </td>
               <td className="px-4 py-3.5 text-[#c7d2e5]">
-                Operator-specific regex validation (10–12 numeric), top-level request body parsing, null-safe destructuring
+                Operator-specific regex validation (10–12 numeric), top-level Zod request schemas, strict 10MB file limit enforcement
               </td>
               <td className="px-4 py-3.5 font-mono text-emerald-400 font-semibold">
                 OWASP A03 / LLM02
@@ -65,10 +62,10 @@ export const SecurityNotice: React.FC = () => {
                 2. Planning & Reasoning
               </td>
               <td className="px-4 py-3.5 text-[#c7d2e5]">
-                System instruction override, indirect injection from operator responses
+                System instruction override, indirect injection from external inputs
               </td>
               <td className="px-4 py-3.5 text-[#c7d2e5]">
-                Strict data-only deserialization, contextual state machines, fixed allowed actions
+                Strict data-only deserialization, contextual state validation, fixed allowed operators
               </td>
               <td className="px-4 py-3.5 font-mono text-emerald-400 font-semibold">
                 OWASP LLM01
@@ -79,10 +76,10 @@ export const SecurityNotice: React.FC = () => {
                 3. Tool Execution
               </td>
               <td className="px-4 py-3.5 text-[#c7d2e5]">
-                Privilege escalation, unauthorized order updates, unauthorized signal spamming
+                Privilege escalation, unauthorized order updates, transponder flooding
               </td>
               <td className="px-4 py-3.5 text-[#c7d2e5]">
-                Rate-limited refresh pulses, server-verified roles, strict parameter bounds
+                Express rate limiting (signal pulses, orders, admin actions), cryptographically verified Firebase ID tokens
               </td>
               <td className="px-4 py-3.5 font-mono text-emerald-400 font-semibold">
                 OWASP A01
@@ -93,13 +90,13 @@ export const SecurityNotice: React.FC = () => {
                 4. Memory & State
               </td>
               <td className="px-4 py-3.5 text-[#c7d2e5]">
-                Cross-tenant viewing card leaks, session hijacking, unauthenticated order manipulation
+                Cross-tenant viewing card leaks, unauthorized document overwriting, undefined crashes
               </td>
               <td className="px-4 py-3.5 text-[#c7d2e5]">
-                Owner-bound Firestore paths (<code className="text-[#dfb86c]">auth.uid == userId</code>), zero insecure defaults, undefined-stripping
+                Owner-bound Firestore paths (<code className="text-[#dfb86c]">auth.uid == userId</code>), zero insecure defaults, strict undefined-stripping
               </td>
               <td className="px-4 py-3.5 font-mono text-emerald-400 font-semibold">
-                Firestore ABAC
+                Firestore RBAC
               </td>
             </tr>
             <tr>
@@ -107,13 +104,13 @@ export const SecurityNotice: React.FC = () => {
                 5. Inter-System Comm
               </td>
               <td className="px-4 py-3.5 text-[#c7d2e5]">
-                API key leakage in browser client bundles, unencrypted gateway tokens
+                API key leakage in client browser bundles, hardcoded tokens
               </td>
               <td className="px-4 py-3.5 text-[#c7d2e5]">
-                Google Cloud Secret Manager dynamic ingestion, server-side `/api/*` proxies, zero hardcoded keys
+                Server-side `/api/*` proxies, environment variable secret injection, zero client-exposed backend credentials
               </td>
               <td className="px-4 py-3.5 font-mono text-emerald-400 font-semibold">
-                GCP Secret Mgr
+                OWASP A02 / A05
               </td>
             </tr>
           </tbody>
@@ -128,17 +125,17 @@ export const SecurityNotice: React.FC = () => {
             <span>Zero Hardcoded Secrets</span>
           </div>
           <p className="text-[11px] text-[#8e9cb4] leading-relaxed">
-            All gateway credentials retrieved via Secret Manager or environment variables. No client-side leaks.
+            All sensitive credentials loaded via server-side environment injection. No client-side leaks.
           </p>
         </div>
 
         <div className="bg-[#070e1e] p-4 rounded-xl border border-[#172545] space-y-1.5">
           <div className="flex items-center gap-2 text-[#a4b8db] font-bold text-xs">
             <Database className="w-4 h-4" />
-            <span>Strict ABAC Isolation</span>
+            <span>Owner-Isolated Storage</span>
           </div>
           <p className="text-[11px] text-[#8e9cb4] leading-relaxed">
-            Users only access their own <code className="text-[#dfb86c]">dth_connections</code>. Workers gated by <code className="text-[#dfb86c]">is_worker == true</code>.
+            Users only access their own <code className="text-[#dfb86c]">dth_connections</code>. Operations restricted to verified admins.
           </p>
         </div>
 
@@ -148,7 +145,7 @@ export const SecurityNotice: React.FC = () => {
             <span>Undefined-Free Payloads</span>
           </div>
           <p className="text-[11px] text-[#8e9cb4] leading-relaxed">
-            Runtime sanitization ensures zero <code className="text-emerald-300">undefined</code> properties ever reach Firestore drivers.
+            Runtime sanitization ensures zero <code className="text-emerald-300">undefined</code> properties reach Firestore drivers.
           </p>
         </div>
       </div>

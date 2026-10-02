@@ -1,4 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { 
+  BrowserRouter, 
+  Routes, 
+  Route, 
+  Navigate, 
+  useNavigate, 
+  useLocation, 
+  useParams 
+} from 'react-router-dom';
 import { Header } from './components/Header';
 import { RechargeFlow } from './components/RechargeFlow';
 import { AuthModal } from './components/AuthModal';
@@ -6,7 +15,7 @@ import { PaymentModal } from './components/PaymentModal';
 import { ReceiptModal } from './components/ReceiptModal';
 import { SignalRefreshModal } from './components/SignalRefreshModal';
 import { SavedConnections } from './components/SavedConnections';
-import { AdminDealerPortal, AdminPathTab } from './components/AdminDealerPortal';
+import { AdminPortal } from './components/AdminPortal';
 import { NewConnectionModal } from './components/NewConnectionModal';
 import { SecurityNotice } from './components/SecurityNotice';
 import { BrowsePlansView } from './components/BrowsePlans/BrowsePlansView';
@@ -20,6 +29,7 @@ import {
   RechargeOrder, 
   DthOperatorId,
   BrowsePlan,
+  AdminTabId,
   isUserAdmin
 } from './types';
 import { translations } from './lib/translations';
@@ -29,14 +39,64 @@ import { collection, doc, getDocs, setDoc, deleteDoc, query, where, QueryDocumen
 import { 
   Tv, 
   ShieldCheck, 
-  CheckCircle2, 
   Heart,
-  Palette,
-  Sparkles
 } from 'lucide-react';
 
-export default function App() {
-  // Prompt 2: Default to English on first load; persist manual user toggles in localStorage
+function AdminRouteWrapper({
+  currentLang,
+  user,
+  onOpenAuth,
+  onUpdateUserRole,
+  onTriggerRefresh,
+  currentTheme,
+}: {
+  currentLang: Language;
+  user: UserProfile | null;
+  onOpenAuth: () => void;
+  onUpdateUserRole?: (updated: UserProfile) => void;
+  onTriggerRefresh: (operator: DthOperatorId, card: string) => void;
+  currentTheme: any;
+}) {
+  const { tab } = useParams<{ tab?: string }>();
+  const navigate = useNavigate();
+
+  const mapSubTab = (param?: string): AdminTabId => {
+    if (!param) return 'customers';
+    if (param === 'customer' || param === 'customers') return 'customers';
+    if (param === 'pending' || param === 'worker' || param === 'dealer') return 'pending';
+    if (param === 'recharge' || param === 'recharges' || param === 'orders') return 'recharges';
+    if (param === 'pack' || param === 'packs' || param === 'plan' || param === 'plans') return 'packs';
+    if (param === 'payment' || param === 'payments') return 'payments';
+    if (param === 'report' || param === 'reports' || param === 'audit') return 'reports';
+    if (param === 'operator' || param === 'operators') return 'operators';
+    if (param === 'approval' || param === 'approvals' || param === 'admin-access') return 'approvals';
+    return 'customers';
+  };
+
+  const currentTab = mapSubTab(tab);
+
+  return (
+    <AdminPortal
+      currentLang={currentLang}
+      user={user}
+      onOpenAuth={onOpenAuth}
+      onUpdateUserRole={onUpdateUserRole}
+      onTriggerRefresh={onTriggerRefresh}
+      onBackToCustomerFlow={() => navigate('/')}
+      initialTab={currentTab}
+      currentTheme={currentTheme}
+      onPathChange={(newTab) => {
+        navigate(`/admin/${newTab}`);
+      }}
+    />
+  );
+}
+
+function MainApp() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Language state
   const [currentLang, setCurrentLang] = useState<Language>(() => {
     try {
       const saved = localStorage.getItem('dth_tamizhan_lang');
@@ -64,43 +124,7 @@ export default function App() {
 
   const isUserAdminRole = isUserAdmin(user);
 
-  const [activeTab, setActiveTab] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      const path = window.location.pathname;
-      const hash = window.location.hash;
-      const search = window.location.search;
-      const isAdminRoute = path.startsWith('/admin') || path === '/worker' || path === '/dealer' || hash.includes('admin') || search.includes('admin') || search.includes('mode=worker');
-      if (isAdminRoute) {
-        try {
-          const saved = localStorage.getItem('dth_tamizhan_user');
-          const parsed = saved ? JSON.parse(saved) : null;
-          if (isUserAdmin(parsed)) {
-            return 'admin-portal';
-          }
-        } catch {}
-        // Non-admin or unauthenticated: Direct URL routing to admin portal is restricted
-        return 'recharge';
-      }
-    }
-    return 'recharge';
-  });
-
-  const [adminPortalSubTab, setAdminPortalSubTab] = useState<AdminPathTab>(() => {
-    if (typeof window !== 'undefined') {
-      const path = window.location.pathname;
-      if (path.includes('customer')) return 'customers';
-      if (path.includes('report') && !path.includes('payment')) return 'reports';
-      if (path.includes('pending') || path === '/worker' || path === '/dealer') return 'pending';
-      if (path.includes('recharge')) return 'recharges';
-      if (path.includes('pack') || path.includes('plan')) return 'packs';
-      if (path.includes('payment')) return 'payments';
-      if (path.includes('approval') || path.includes('admin-access')) return 'approvals';
-      if (path.startsWith('/admin')) return 'customers';
-    }
-    return 'customers';
-  });
-
-  // Dynamic Theme state (Changes when operator is selected or manually switched)
+  // Selected Operator / Theme
   const [selectedOpId, setSelectedOpId] = useState<DthOperatorId>(() => {
     try {
       const saved = localStorage.getItem('dth_selected_operator');
@@ -120,7 +144,7 @@ export default function App() {
 
   const currentTheme = getOperatorTheme(selectedOpId);
 
-  // Saved Connections State
+  // Saved Connections
   const [connections, setConnections] = useState<DthConnection[]>(() => {
     try {
       const saved = localStorage.getItem('dth_tamizhan_connections');
@@ -158,7 +182,7 @@ export default function App() {
     ];
   });
 
-  // Modal Controls
+  // Modals
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
@@ -175,15 +199,12 @@ export default function App() {
   const [lastCompletedOrder, setLastCompletedOrder] = useState<RechargeOrder | null>(null);
   const [refreshTargetOp, setRefreshTargetOp] = useState<DthOperatorId>('sun_direct');
   const [refreshTargetCard, setRefreshTargetCard] = useState<string>('');
-
   const [prefillConn, setPrefillConn] = useState<DthConnection | null>(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Persist user and connections
+  // Persist User
   useEffect(() => {
     if (user) {
       localStorage.setItem('dth_tamizhan_user', JSON.stringify(user));
-      // Two-way sync with Cloud Firestore (/dth_connections)
       if (isFirebaseLive && db && user.uid) {
         const q = query(collection(db, 'dth_connections'), where('user_id', '==', user.uid));
         getDocs(q).then((snap) => {
@@ -226,101 +247,30 @@ export default function App() {
     }
   }, [user]);
 
+  // Persist Connections
   useEffect(() => {
     localStorage.setItem('dth_tamizhan_connections', JSON.stringify(connections));
   }, [connections]);
 
-  // Synchronize browser history and path for direct URL access (/admin/*, /worker, /dealer)
-  useEffect(() => {
-    const handleLocationChange = () => {
-      const path = window.location.pathname;
-      const hash = window.location.hash;
-      const search = window.location.search;
-      const isAdminRoute = path.startsWith('/admin') || path === '/worker' || path === '/dealer' || hash.includes('admin') || search.includes('admin') || search.includes('mode=worker');
-      
-      if (isAdminRoute) {
-        if (isUserAdminRole) {
-          setActiveTab('admin-portal');
-          if (path.includes('customer') || hash.includes('customer')) {
-            setAdminPortalSubTab('customers');
-          } else if ((path.includes('report') && !path.includes('payment')) || hash.includes('report')) {
-            setAdminPortalSubTab('reports');
-          } else if (path.includes('pending') || path === '/worker' || path === '/dealer' || hash.includes('pending') || hash.includes('worker')) {
-            setAdminPortalSubTab('pending');
-          } else if (path.includes('recharge') || path === '/admin/orders') {
-            setAdminPortalSubTab('recharges');
-          } else if (path.includes('pack') || path.includes('plan')) {
-            setAdminPortalSubTab('packs');
-          } else if (path.includes('payment')) {
-            setAdminPortalSubTab('payments');
-          } else if (path.includes('approval') || path.includes('admin-access')) {
-            setAdminPortalSubTab('approvals');
-          } else {
-            setAdminPortalSubTab('customers');
-          }
-        } else {
-          // If not logged in as admin, direct URL routing to admin portal is restricted!
-          if (window.location.pathname.startsWith('/admin') || window.location.pathname === '/worker' || window.location.pathname === '/dealer') {
-            window.history.replaceState(null, '', '/');
-          }
-          setActiveTab('recharge');
-          showToast(currentLang === 'ta' ? 'நிர்வாக அணுகல் தடைசெய்யப்பட்டுள்ளது (Admin Login Required)' : 'Access Restricted: Administrator sign-in required');
-        }
-      }
-    };
-
-    // If activeTab is admin-portal but user is not an admin, bounce to recharge
-    if (activeTab === 'admin-portal' && !isUserAdminRole) {
-      if (window.location.pathname.startsWith('/admin') || window.location.pathname === '/worker' || window.location.pathname === '/dealer') {
-        window.history.replaceState(null, '', '/');
-      }
-      setActiveTab('recharge');
-    }
-
-    window.addEventListener('popstate', handleLocationChange);
-    window.addEventListener('hashchange', handleLocationChange);
-    return () => {
-      window.removeEventListener('popstate', handleLocationChange);
-      window.removeEventListener('hashchange', handleLocationChange);
-    };
-  }, [isUserAdminRole, activeTab, currentLang]);
-
-  const navigateToTab = (tab: string, subTab?: AdminPathTab) => {
-    if (tab === 'admin-portal' || tab === 'admin-plans' || tab === 'admin-roles' || tab === 'worker') {
-      if (!isUserAdminRole) {
-        showToast(currentLang === 'ta' ? 'நிர்வாக அணுகல் தடைசெய்யப்பட்டுள்ளது' : 'Access Restricted: Administrator sign-in required');
-        setIsAuthOpen(true);
-        return;
-      }
-      setActiveTab('admin-portal');
-      const targetSubTab: AdminPathTab = subTab || (tab === 'worker' ? 'pending' : 'customers');
-      setAdminPortalSubTab(targetSubTab);
-      window.history.pushState(null, '', `/admin/${targetSubTab}`);
-    } else {
-      setActiveTab(tab);
-      if (window.location.pathname.startsWith('/admin') || window.location.pathname === '/worker' || window.location.pathname === '/dealer') {
-        window.history.pushState(null, '', '/');
-      }
-    }
-  };
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 4000);
-  };
-
   const handleAuthSuccess = (profile: UserProfile) => {
     setUser(profile);
-    showToast(currentLang === 'ta' ? 'வெற்றிகரமாக உள்நுழைந்தீர்கள்!' : 'Signed in successfully!');
+    setIsAuthOpen(false);
   };
 
   const handleSignOut = () => {
     setUser(null);
-    showToast(currentLang === 'ta' ? 'வெளியேறிவிட்டீர்கள்' : 'Signed out successfully');
+    localStorage.removeItem('dth_tamizhan_user');
+    navigate('/');
+  };
+
+  const handleTriggerRefreshModal = (operator: DthOperatorId, card: string) => {
+    setRefreshTargetOp(operator);
+    setRefreshTargetCard(card);
+    setIsRefreshOpen(true);
   };
 
   const handleInitiatePayment = (
-    plan: any,
+    plan: DthPlan | { name: string; price: number; validityDays: number; pack_type?: string; duration_months?: number },
     subscriber: SubscriberDetails | null,
     operator: DthOperator,
     smartCard: string,
@@ -334,244 +284,238 @@ export default function App() {
     setIsPaymentOpen(true);
   };
 
-  const handlePaymentSuccess = (order: RechargeOrder) => {
+  const handlePaymentSuccess = async (completedOrder: RechargeOrder) => {
     setIsPaymentOpen(false);
-    setLastCompletedOrder(order);
+    setLastCompletedOrder(completedOrder);
     setIsReceiptOpen(true);
 
-    // Save connection if user requested
-    if (activeSaveBox && activeOperator) {
-      const exists = connections.find(
-        (c) => c.operator === activeOperator.id && c.smartCardNumber === activeSmartCard
-      );
-      if (!exists) {
-        const newConn: DthConnection = {
-          id: `conn-${Date.now()}`,
-          user_id: user?.uid || 'guest_user',
-          operator: activeOperator.id,
-          operatorName: activeOperator.name,
-          smartCardNumber: activeSmartCard,
-          nickname: `${activeOperator.name} Box`,
-          customerName: activeSubscriber?.customerName || 'Subscriber',
-          balance: order.amount,
-          expiryDate: new Date(Date.now() + 86400000 * 30).toISOString().split('T')[0],
-          monthlyPackPrice: order.amount,
-          packName: order.packName,
-          createdAt: new Date().toISOString(),
-        };
-        setConnections((prev) => [newConn, ...prev]);
+    if (activeSaveBox) {
+      const newConn: DthConnection = {
+        id: `conn-${Date.now()}`,
+        user_id: user?.uid || 'guest_user',
+        operator: completedOrder.operator,
+        operatorName: completedOrder.operatorName,
+        smartCardNumber: completedOrder.smartCardNumber,
+        nickname: `${completedOrder.operatorName} Box`,
+        customerName: completedOrder.customerName,
+        balance: 150.00,
+        expiryDate: new Date(Date.now() + 86400000 * 30).toISOString().split('T')[0],
+        monthlyPackPrice: completedOrder.amount,
+        packName: completedOrder.packName,
+        createdAt: new Date().toISOString(),
+      };
+
+      setConnections((prev) => {
+        const filtered = prev.filter(
+          (c) => !(c.operator === newConn.operator && c.smartCardNumber === newConn.smartCardNumber)
+        );
+        return [newConn, ...filtered];
+      });
+
+      if (isFirebaseLive && db && user?.uid) {
+        try {
+          const cleanDoc = sanitizePayload(newConn);
+          await setDoc(doc(db, 'dth_connections', newConn.id), cleanDoc);
+        } catch (dbErr) {
+          console.warn('[Firestore] Error saving connection:', dbErr);
+        }
       }
     }
-
-    showToast(currentLang === 'ta' ? 'ரீசார்ஜ் வெற்றிகரமாக முடிந்தது!' : 'DTH Recharge Successful!');
-  };
-
-  const handleTriggerRefreshModal = (operator: DthOperatorId, card: string) => {
-    setRefreshTargetOp(operator);
-    setRefreshTargetCard(card);
-    setIsRefreshOpen(true);
   };
 
   const handleQuickRechargeFromSaved = (conn: DthConnection) => {
     setPrefillConn(conn);
     handleSelectOpId(conn.operator);
-    setActiveTab('recharge');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigate('/recharge');
   };
 
-  const handleAddConnection = (connData: Omit<DthConnection, 'id' | 'createdAt'>) => {
-    const newConn: DthConnection = {
-      ...connData,
-      id: `conn-${Date.now()}`,
-      createdAt: new Date().toISOString(),
+  const handleAddConnection = async (conn: Omit<DthConnection, 'id' | 'createdAt'> | DthConnection) => {
+    const fullConn: DthConnection = {
+      ...conn,
+      id: 'id' in conn && conn.id ? conn.id : `conn-${Date.now()}`,
+      createdAt: 'createdAt' in conn && conn.createdAt ? conn.createdAt : new Date().toISOString(),
     };
-    setConnections((prev) => [newConn, ...prev]);
+    setConnections((prev) => [fullConn, ...prev]);
     if (isFirebaseLive && db && user?.uid) {
-      setDoc(doc(db, 'dth_connections', newConn.id), sanitizePayload({ ...newConn, user_id: user.uid })).catch(() => {});
+      try {
+        const cleanDoc = sanitizePayload({ ...fullConn, user_id: user.uid });
+        await setDoc(doc(db, 'dth_connections', fullConn.id), cleanDoc);
+      } catch (err) {
+        console.warn('[Firestore] Add connection error:', err);
+      }
     }
-    showToast(currentLang === 'ta' ? 'புதிய பாக்ஸ் சேர்க்கப்பட்டது!' : 'Set-Top Box saved!');
   };
 
-  const handleDeleteConnection = (id: string) => {
+  const handleDeleteConnection = async (id: string) => {
     setConnections((prev) => prev.filter((c) => c.id !== id));
     if (isFirebaseLive && db) {
-      deleteDoc(doc(db, 'dth_connections', id)).catch(() => {});
+      try {
+        await deleteDoc(doc(db, 'dth_connections', id));
+      } catch (err) {
+        console.warn('[Firestore] Delete connection error:', err);
+      }
     }
-    showToast(currentLang === 'ta' ? 'இணைப்பு நீக்கப்பட்டது' : 'Connection removed');
   };
 
-  // Browse Plans -> Apply to Box Handoff (Enforcing Compatibility Rule 2)
   const handleApplyPlanFromBrowse = (plan: BrowsePlan, connection: DthConnection) => {
-    if (connection.operator !== plan.operator) {
-      showToast('Cannot apply plan to an incompatible Set-Top Box operator');
-      return;
-    }
-
-    handleSelectOpId(plan.operator);
     setPrefillConn(connection);
-
-    const adaptedPlan: DthPlan = {
-      id: plan.id,
-      operatorId: plan.operator,
-      name: plan.name,
-      tamilName: plan.tamilName || plan.name,
-      category: 'tamil_base',
-      price: plan.price,
-      validityDays: plan.duration_months * 30,
-      channelsCount: plan.channel_count,
-      hdChannelsCount: plan.hd_channel_count || (plan.type === 'HD' ? 30 : 0),
-      description: plan.description || `${plan.duration_months} Months ${plan.type} Pack`,
-      tamilChannelsHighlight: plan.channels.slice(0, 5),
-    };
-
-    const op = {
-      id: plan.operator,
-      name: plan.operator === 'sun_direct' ? 'Sun Direct' : plan.operator === 'tata_play' ? 'Tata Play' : plan.operator === 'airtel_dth' ? 'Airtel Digital TV' : plan.operator === 'dish_tv' ? 'Dish TV' : 'D2H Videocon',
-      shortName: plan.operator,
-      tamilName: plan.operator,
-      logoColor: currentTheme.primaryColor,
-      cardName: 'Smart Card Number',
-      cardPattern: '^[0-9]{8,12}$',
-      cardLengthDesc: 'Valid card number',
-      sampleId: connection.smartCardNumber,
-      tollFree: '1800 123 4567',
-      smsRefreshFormat: 'SMS REFRESH to 56677',
-      popularPacksCount: 15,
-    };
-
-    const subscriberInfo: SubscriberDetails = {
-      operator: plan.operator,
-      operatorName: op.name,
-      smartCardNumber: connection.smartCardNumber,
-      customerName: connection.customerName || user?.displayName || 'Subscriber',
-      registeredMobile: user?.phoneNumber || '+91 98401 23456',
-      currentBalance: connection.balance || 0,
-      packName: plan.name,
-      packMonthlyRent: plan.monthly_equivalent_rate || Math.round(plan.price / plan.duration_months),
-      expiryDate: connection.expiryDate || new Date().toISOString().split('T')[0],
-      isExpired: false,
-      accountStatus: 'Active',
-    };
-
-    handleInitiatePayment(adaptedPlan, subscriberInfo, op, connection.smartCardNumber, false);
-    showToast(`Applied ${plan.name} to ${connection.nickname}!`);
+    handleSelectOpId(plan.operator);
+    navigate('/recharge');
   };
 
   const handleAddNewConnectionAndApply = (
     plan: BrowsePlan,
     newConnData: { smartCardNumber: string; nickname: string; customerName?: string }
   ) => {
-    const opName = plan.operator === 'sun_direct' ? 'Sun Direct' : plan.operator === 'tata_play' ? 'Tata Play' : plan.operator === 'airtel_dth' ? 'Airtel Digital TV' : plan.operator === 'dish_tv' ? 'Dish TV' : 'D2H Videocon';
     const newConn: DthConnection = {
       id: `conn-${Date.now()}`,
       user_id: user?.uid || 'guest_user',
       operator: plan.operator,
-      operatorName: opName,
+      operatorName: plan.operatorName || plan.operator,
       smartCardNumber: newConnData.smartCardNumber,
-      nickname: newConnData.nickname || `${opName} Box`,
-      customerName: newConnData.customerName || user?.displayName || 'Subscriber',
+      nickname: newConnData.nickname || `${plan.name}`,
+      customerName: newConnData.customerName || 'DTH Subscriber',
       balance: 0,
-      expiryDate: new Date(Date.now() + 86400000 * 30).toISOString().split('T')[0],
+      expiryDate: new Date().toISOString().split('T')[0],
       monthlyPackPrice: plan.price,
       packName: plan.name,
       createdAt: new Date().toISOString(),
     };
-
-    setConnections((prev) => [newConn, ...prev]);
+    handleAddConnection(newConn);
     handleApplyPlanFromBrowse(plan, newConn);
+  };
+
+  // Determine active tab name for header navigation highlighting
+  const getActiveNavTab = () => {
+    const path = location.pathname;
+    if (path.startsWith('/admin') || path === '/worker' || path === '/dealer') return 'admin-portal';
+    if (path.startsWith('/plans')) return 'plans';
+    if (path.startsWith('/connections')) return 'connections';
+    if (path.startsWith('/security')) return 'security';
+    return 'recharge';
+  };
+
+  const handleNavTabChange = (tab: string) => {
+    if (tab === 'recharge') navigate('/recharge');
+    else if (tab === 'plans') navigate('/plans');
+    else if (tab === 'connections') navigate('/connections');
+    else if (tab === 'security') navigate('/security');
+    else if (tab === 'admin-portal') navigate('/admin/customers');
+    else if (tab === 'refresh') setIsRefreshOpen(true);
+    else if (tab === 'new-dish') setIsNewDishOpen(true);
   };
 
   const t = translations[currentLang];
   const isLight = currentTheme.isLightMode;
 
   return (
-    <div className={`min-h-screen ${currentTheme.pageBg} ${currentTheme.pageText} flex flex-col font-sans transition-colors duration-300`}>
-      {/* Toast Alert */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-emerald-500 text-white px-4 py-2.5 rounded-2xl font-bold text-xs shadow-2xl flex items-center gap-2 animate-in slide-in-from-bottom-5">
-          <CheckCircle2 className="w-4 h-4" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
-
-      {/* Global Header with Dynamic Theme & Brand Logo */}
+    <div className={`min-h-screen flex flex-col transition-colors duration-300 ${currentTheme.pageBg} ${currentTheme.pageText}`}>
       <Header
         currentLang={currentLang}
         onLanguageChange={handleLanguageChange}
         user={user}
         onOpenAuth={() => setIsAuthOpen(true)}
         onSignOut={handleSignOut}
-        activeTab={activeTab}
-        onTabChange={(tab) => {
-          navigateToTab(tab);
-          if (tab === 'refresh') setIsRefreshOpen(true);
-          if (tab === 'new-dish') setIsNewDishOpen(true);
-        }}
+        activeTab={getActiveNavTab()}
+        onTabChange={handleNavTabChange}
         currentTheme={currentTheme}
         onSelectTheme={handleSelectOpId}
       />
 
-      {/* Main Content Area */}
+      {/* Main Content View Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6 md:py-8 space-y-8">
-        {/* Merged Admin & Dealer Portal */}
-        {activeTab === 'admin-portal' && (
-          <AdminDealerPortal
-            currentLang={currentLang}
-            user={user}
-            onOpenAuth={() => setIsAuthOpen(true)}
-            onUpdateUserRole={(updated: UserProfile) => setUser(updated)}
-            onTriggerRefresh={handleTriggerRefreshModal}
-            onBackToCustomerFlow={() => navigateToTab('recharge')}
-            initialSubTab={adminPortalSubTab}
-            currentTheme={currentTheme}
-            onPathChange={(p) => setAdminPortalSubTab(p)}
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <RechargeFlow
+                currentLang={currentLang}
+                user={user}
+                onInitiatePayment={handleInitiatePayment}
+                onTriggerRefresh={handleTriggerRefreshModal}
+                prefillConnection={prefillConn}
+                selectedOpId={selectedOpId}
+                onSelectOpId={handleSelectOpId}
+                currentTheme={currentTheme}
+              />
+            }
           />
-        )}
-
-        {activeTab === 'recharge' && (
-          <RechargeFlow
-            currentLang={currentLang}
-            user={user}
-            onInitiatePayment={handleInitiatePayment}
-            onTriggerRefresh={handleTriggerRefreshModal}
-            prefillConnection={prefillConn}
-            selectedOpId={selectedOpId}
-            onSelectOpId={handleSelectOpId}
-            currentTheme={currentTheme}
+          <Route
+            path="/recharge"
+            element={
+              <RechargeFlow
+                currentLang={currentLang}
+                user={user}
+                onInitiatePayment={handleInitiatePayment}
+                onTriggerRefresh={handleTriggerRefreshModal}
+                prefillConnection={prefillConn}
+                selectedOpId={selectedOpId}
+                onSelectOpId={handleSelectOpId}
+                currentTheme={currentTheme}
+              />
+            }
           />
-        )}
-
-        {/* Public Anonymous Browse & Compare Plans */}
-        {activeTab === 'plans' && (
-          <BrowsePlansView
-            currentTheme={currentTheme}
-            currentLang={currentLang}
-            user={user}
-            connections={connections}
-            onOpenAuth={() => setIsAuthOpen(true)}
-            onApplyPlanToBox={handleApplyPlanFromBrowse}
-            onAddNewConnectionAndApply={handleAddNewConnectionAndApply}
+          <Route
+            path="/plans"
+            element={
+              <BrowsePlansView
+                currentTheme={currentTheme}
+                currentLang={currentLang}
+                user={user}
+                connections={connections}
+                onOpenAuth={() => setIsAuthOpen(true)}
+                onApplyPlanToBox={handleApplyPlanFromBrowse}
+                onAddNewConnectionAndApply={handleAddNewConnectionAndApply}
+              />
+            }
           />
-        )}
-
-        {activeTab === 'connections' && (
-          <SavedConnections
-            connections={connections}
-            currentLang={currentLang}
-            user={user}
-            onQuickRecharge={handleQuickRechargeFromSaved}
-            onTriggerRefresh={handleTriggerRefreshModal}
-            onAddConnection={handleAddConnection}
-            onDeleteConnection={handleDeleteConnection}
-            onOpenAuth={() => setIsAuthOpen(true)}
-            currentTheme={currentTheme}
+          <Route
+            path="/connections"
+            element={
+              <SavedConnections
+                connections={connections}
+                currentLang={currentLang}
+                user={user}
+                onQuickRecharge={handleQuickRechargeFromSaved}
+                onTriggerRefresh={handleTriggerRefreshModal}
+                onAddConnection={handleAddConnection}
+                onDeleteConnection={handleDeleteConnection}
+                onOpenAuth={() => setIsAuthOpen(true)}
+                currentTheme={currentTheme}
+              />
+            }
           />
-        )}
+          <Route path="/security" element={<SecurityNotice />} />
 
-        {activeTab === 'security' && <SecurityNotice />}
+          {/* Admin Routes with react-router parameterization */}
+          <Route
+            path="/admin"
+            element={
+              <Navigate to="/admin/customers" replace />
+            }
+          />
+          <Route
+            path="/admin/:tab"
+            element={
+              <AdminRouteWrapper
+                currentLang={currentLang}
+                user={user}
+                onOpenAuth={() => setIsAuthOpen(true)}
+                onUpdateUserRole={(updated) => setUser(updated)}
+                onTriggerRefresh={handleTriggerRefreshModal}
+                currentTheme={currentTheme}
+              />
+            }
+          />
+
+          {/* Legacy route redirects */}
+          <Route path="/worker" element={<Navigate to="/admin/pending" replace />} />
+          <Route path="/dealer" element={<Navigate to="/admin/pending" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </main>
 
-      {/* Footer: Fully Themed (Dark #333333 on Airtel, Themed on Others) */}
+      {/* Footer */}
       <footer className={`${currentTheme.footerBg} ${currentTheme.footerBorder} border-t py-8 px-4 text-xs ${currentTheme.footerText} mt-auto transition-colors duration-300`}>
         <div className="max-w-7xl mx-auto space-y-6">
           <div className={`flex flex-wrap items-center justify-between gap-4 border-b ${currentTheme.footerBorder} pb-6`}>
@@ -597,12 +541,12 @@ export default function App() {
               </p>
             </div>
 
-            {/* Quick Links: Unified Admin Portal - Only displayed for authenticated Admins */}
+            {/* Admin Portal Link */}
             {isUserAdminRole && (
               <div className="flex flex-wrap items-center gap-4 text-xs font-medium">
                 <button
                   id="footer-admin-dealer-portal-link"
-                  onClick={() => navigateToTab('admin-portal', 'customers')}
+                  onClick={() => navigate('/admin/customers')}
                   className={`transition-colors flex items-center gap-1.5 font-bold ${currentTheme.footerLinkHover}`}
                   style={{ color: currentTheme.primaryColor }}
                 >
@@ -671,5 +615,13 @@ export default function App() {
         currentLang={currentLang}
       />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <MainApp />
+    </BrowserRouter>
   );
 }

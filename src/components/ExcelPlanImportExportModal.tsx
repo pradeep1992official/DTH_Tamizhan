@@ -27,8 +27,10 @@ import {
   applyImportedPlans,
   PlanImportRow,
   PlanValidationSummary,
-  OPERATOR_DISPLAY_NAMES
+  OPERATOR_DISPLAY_NAMES,
+  MAX_FILE_SIZE_BYTES
 } from '../lib/excelPlanService';
+import { useAccessibleModal } from '../lib/useAccessibleModal';
 
 interface ExcelPlanImportExportModalProps {
   isOpen: boolean;
@@ -66,6 +68,8 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
   const [generalError, setGeneralError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const { modalRef } = useAccessibleModal({ isOpen, onClose });
+
   if (!isOpen) return null;
 
   // Handle File Selection
@@ -87,6 +91,17 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
     setFile(uploadedFile);
     setGeneralError(null);
     setImportSuccessResult(null);
+
+    // Enforce 10MB limit strictly
+    if (uploadedFile.size > MAX_FILE_SIZE_BYTES) {
+      const sizeMb = (uploadedFile.size / (1024 * 1024)).toFixed(1);
+      setGeneralError(`File size (${sizeMb} MB) exceeds maximum permitted limit of 10 MB.`);
+      setFile(null);
+      setParseSummary(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
     setParsing(true);
 
     try {
@@ -157,13 +172,13 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
   };
 
   // Handle Export
-  const handleTriggerExport = () => {
+  const handleTriggerExport = async () => {
     try {
       const filename = exportOp === 'all' 
         ? `dth_tamizhan_all_packs_${new Date().toISOString().slice(0, 10)}.xlsx`
         : `dth_tamizhan_${exportOp}_packs_${new Date().toISOString().slice(0, 10)}.xlsx`;
       
-      exportPlansToExcel(plans, filename, exportOp);
+      await exportPlansToExcel(plans, filename, exportOp);
       setExportSuccessMsg(`Successfully exported ${exportOp === 'all' ? 'all' : OPERATOR_DISPLAY_NAMES[exportOp]} packs to "${filename}".`);
       setTimeout(() => setExportSuccessMsg(null), 4000);
     } catch (err: any) {
@@ -172,9 +187,9 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
   };
 
   // Handle Download Blank Template
-  const handleDownloadTemplate = () => {
+  const handleDownloadTemplate = async () => {
     try {
-      downloadPlanTemplateExcel();
+      await downloadPlanTemplateExcel();
       setExportSuccessMsg('Template downloaded! Open in Excel, fill your rows, and upload here.');
       setTimeout(() => setExportSuccessMsg(null), 4000);
     } catch (err: any) {
@@ -194,8 +209,17 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
   const selectedValidCount = parseSummary?.rows.filter((r) => r.selected && r.isValid).length || 0;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-in fade-in">
+    <div 
+      className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-in fade-in"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div 
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="excel-modal-title"
         className={`w-full max-w-5xl rounded-3xl border shadow-2xl my-auto overflow-hidden flex flex-col max-h-[92vh] ${
           isLight ? 'bg-white border-gray-200 text-gray-900' : 'bg-[#0f0724] border-white/15 text-white'
         }`}
@@ -217,7 +241,7 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="font-serif-royal font-bold text-lg sm:text-xl">
+                <h2 id="excel-modal-title" className="font-serif-royal font-bold text-lg sm:text-xl">
                   Excel Pack Synchronization & Management
                 </h2>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono uppercase bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">

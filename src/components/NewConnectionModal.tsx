@@ -3,15 +3,12 @@ import {
   X, 
   Tv, 
   CheckCircle2, 
-  Sparkles, 
   Truck, 
-  Wrench, 
-  ShieldCheck, 
-  Calendar, 
-  Phone
+  Wrench
 } from 'lucide-react';
 import { Language } from '../types';
 import { translations } from '../lib/translations';
+import { useAccessibleModal } from '../lib/useAccessibleModal';
 
 interface NewConnectionModalProps {
   isOpen: boolean;
@@ -25,6 +22,7 @@ export const NewConnectionModal: React.FC<NewConnectionModalProps> = ({
   currentLang,
 }) => {
   const t = translations[currentLang];
+  const { modalRef } = useAccessibleModal({ isOpen, onClose });
 
   const [operator, setOperator] = useState('sun_direct');
   const [name, setName] = useState('');
@@ -50,26 +48,39 @@ export const NewConnectionModal: React.FC<NewConnectionModalProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#050811]/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-[#0e1935] border border-[#1e3058] rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl relative text-left">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div 
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="new-dish-title"
+        className="bg-[#0e1935] border border-[#1e3058] rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl relative text-left"
+      >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-[#172545] flex items-center justify-between bg-[#070e1e]/80">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[#c5a059]/15 text-[#dfb86c] flex items-center justify-center">
+        <div className="px-6 py-4 border-b border-[#172545] flex items-center justify-between bg-[#070e1e]/90">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center border border-amber-500/30 shadow-inner">
               <Tv className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-serif-royal font-bold text-[#f5f2eb] leading-tight">
-                {currentLang === 'ta' ? 'புதிய டிடிஎச் டிஷ் இணைப்பு முன்பதிவு' : 'Book New DTH Connection'}
+              <h2 id="new-dish-title" className="text-base font-bold text-white leading-tight">
+                {t.newDishTitle}
               </h2>
-              <p className="text-xs text-[#8e9cb4]">
-                Set-Top Box + Dish Antenna + Doorstep Installation in Tamil Nadu
+              <p className="text-xs text-gray-300">
+                {currentLang === 'ta' ? 'தமிழ்நாடு முழுவதும் வீட்டு வாசலில் பொருத்தும் சேவை' : 'Doorstep Installation across Tamil Nadu'}
               </p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-[#8e9cb4] hover:text-[#f5f2eb] hover:bg-[#142345] transition-colors"
+            aria-label={t.close}
+            className="p-1.5 rounded-xl text-gray-300 hover:text-white hover:bg-white/10 transition-colors focus-visible:ring-2 focus-visible:ring-amber-400"
           >
             <X className="w-5 h-5" />
           </button>
@@ -80,54 +91,54 @@ export const NewConnectionModal: React.FC<NewConnectionModalProps> = ({
           {!isBooked ? (
             <form onSubmit={handleBooking} className="space-y-4 text-xs">
               {/* Operator Cards */}
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-[#8e9cb4] uppercase tracking-wider block">
-                  Select Preferred DTH Brand
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-300 uppercase tracking-wider block">
+                  {t.selectDishOperator}
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { id: 'sun_direct', name: 'Sun Direct HD', price: '₹1,399', highlight: '1 Month Included Tamil Pack' },
-                    { id: 'tata_play', name: 'Tata Play HD', price: '₹1,499', highlight: 'Free Binge App Access' },
-                    { id: 'airtel_dth', name: 'Airtel HD', price: '₹1,449', highlight: 'Dolby Sound Box' },
+                    { id: 'sun_direct', name: 'Sun Direct HD', price: '₹1,399', highlight: '1 Month Tamil Pack' },
+                    { id: 'tata_play', name: 'Tata Play HD', price: '₹1,499', highlight: 'Free Binge App' },
+                    { id: 'airtel_dth', name: 'Airtel HD', price: '₹1,449', highlight: 'Dolby Sound STB' },
                   ].map((item) => (
                     <div
                       key={item.id}
                       onClick={() => setOperator(item.id)}
-                      className={`p-3 rounded-xl border cursor-pointer transition-all text-left ${
+                      className={`p-3 rounded-2xl border cursor-pointer transition-all text-left ${
                         operator === item.id
-                          ? 'bg-[#c5a059]/15 border-[#c5a059] text-[#f5f2eb] shadow'
-                          : 'bg-[#070e1e] border-[#172545] text-[#8e9cb4] hover:bg-[#101c3d]'
+                          ? 'bg-amber-500/15 border-amber-400 text-white shadow-md'
+                          : 'bg-[#070e1e] border-[#172545] text-gray-300 hover:border-gray-500'
                       }`}
                     >
-                      <p className="font-bold text-[#f5f2eb] text-xs">{item.name}</p>
-                      <p className="font-mono font-bold text-[#dfb86c] text-sm mt-0.5">{item.price}</p>
-                      <p className="text-[10px] text-[#8e9cb4] mt-1 line-clamp-1">{item.highlight}</p>
+                      <p className="font-bold text-white text-xs">{item.name}</p>
+                      <p className="font-mono font-bold text-amber-400 text-sm mt-0.5">{item.price}</p>
+                      <p className="text-xs text-gray-400 mt-1 line-clamp-1">{item.highlight}</p>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Inclusions */}
-              <div className="bg-[#070e1e] p-3 rounded-xl border border-[#172545] grid grid-cols-3 gap-2 text-center text-[#c7d2e5]">
+              <div className="bg-[#070e1e] p-3.5 rounded-2xl border border-[#172545] grid grid-cols-3 gap-2 text-center text-gray-200">
                 <div className="space-y-1">
-                  <Tv className="w-4 h-4 text-[#dfb86c] mx-auto" />
-                  <span className="text-[10px] block font-medium">Full HD STB + Remote</span>
+                  <Tv className="w-4 h-4 text-amber-400 mx-auto" />
+                  <span className="text-xs block font-semibold">HD STB + Remote</span>
                 </div>
                 <div className="space-y-1">
                   <Wrench className="w-4 h-4 text-emerald-400 mx-auto" />
-                  <span className="text-[10px] block font-medium">10m Cable + Dish</span>
+                  <span className="text-xs block font-semibold">10m Cable + Dish</span>
                 </div>
                 <div className="space-y-1">
-                  <Truck className="w-4 h-4 text-[#a4b8db] mx-auto" />
-                  <span className="text-[10px] block font-medium">TN Technician Setup</span>
+                  <Truck className="w-4 h-4 text-blue-400 mx-auto" />
+                  <span className="text-xs block font-semibold">Technician Setup</span>
                 </div>
               </div>
 
               {/* Form Fields */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[#8e9cb4] block font-medium mb-1">
-                    Customer Full Name
+                  <label className="text-xs font-semibold text-gray-300 block mb-1">
+                    {t.fullNameLabel} *
                   </label>
                   <input
                     type="text"
@@ -135,94 +146,86 @@ export const NewConnectionModal: React.FC<NewConnectionModalProps> = ({
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g. Senthil Kumar"
-                    className="w-full bg-[#070e1e] border border-[#172545] rounded-lg px-3 py-2 text-[#f5f2eb] focus:outline-none focus:border-[#c5a059]"
+                    className="w-full bg-[#070e1e] border border-[#172545] rounded-xl px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-amber-400"
                   />
                 </div>
                 <div>
-                  <label className="text-[#8e9cb4] block font-medium mb-1">
-                    Contact Mobile Number
+                  <label className="text-xs font-semibold text-gray-300 block mb-1">
+                    {t.contactNumberLabel} *
                   </label>
                   <input
                     type="tel"
-                    required
                     maxLength={10}
+                    required
                     value={mobile}
-                    onChange={(e) => setMobile(e.target.value.replace(/[^0-9]/g, ''))}
-                    placeholder="98401 23456"
-                    className="w-full bg-[#070e1e] border border-[#172545] rounded-lg px-3 py-2 text-[#f5f2eb] font-mono focus:outline-none focus:border-[#c5a059]"
+                    onChange={(e) => setMobile(e.target.value.replace(/\D/g, ''))}
+                    placeholder="10-digit mobile"
+                    className="w-full bg-[#070e1e] border border-[#172545] rounded-xl px-3 py-2 text-xs text-white font-mono placeholder-gray-500 focus:outline-none focus:border-amber-400"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[#8e9cb4] block font-medium mb-1">
-                    District in Tamil Nadu
+                  <label className="text-xs font-semibold text-gray-300 block mb-1">
+                    {t.districtLabel}
                   </label>
                   <select
                     value={district}
                     onChange={(e) => setDistrict(e.target.value)}
-                    className="w-full bg-[#070e1e] border border-[#172545] rounded-lg px-3 py-2 text-[#f5f2eb] focus:outline-none focus:border-[#c5a059]"
+                    className="w-full bg-[#070e1e] border border-[#172545] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
                   >
                     {tnDistricts.map((d) => (
-                      <option key={d} value={d} className="bg-[#0e1935] text-[#f5f2eb]">{d}</option>
+                      <option key={d} value={d} className="bg-[#070e1e]">
+                        {d}
+                      </option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="text-[#8e9cb4] block font-medium mb-1">
-                    Installation Street / Area Address
+                  <label className="text-xs font-semibold text-gray-300 block mb-1">
+                    {t.installationAddressLabel}
                   </label>
                   <input
                     type="text"
-                    required
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Door No, Street Name, Landmark"
-                    className="w-full bg-[#070e1e] border border-[#172545] rounded-lg px-3 py-2 text-[#f5f2eb] focus:outline-none focus:border-[#c5a059]"
+                    placeholder="Door no, Street, Area"
+                    className="w-full bg-[#070e1e] border border-[#172545] rounded-xl px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-amber-400"
                   />
                 </div>
               </div>
 
               <button
                 type="submit"
-                className="w-full py-3 rounded-xl bg-[#c5a059] hover:bg-[#b89248] text-[#080d1a] font-bold text-xs transition-colors shadow-lg shadow-black/30 flex items-center justify-center gap-1.5"
+                disabled={!name.trim() || mobile.length < 10}
+                className="w-full py-3.5 px-4 rounded-2xl bg-amber-400 hover:bg-amber-300 disabled:opacity-50 text-gray-950 font-bold text-sm transition-all shadow-md mt-2"
               >
-                <CheckCircle2 className="w-4 h-4 text-[#080d1a]" />
-                <span>Confirm Booking (Pay on Installation)</span>
+                {t.bookConnectionBtn}
               </button>
             </form>
           ) : (
-            <div className="text-center space-y-4 py-4 animate-in zoom-in-95">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center mx-auto">
+            <div className="text-center space-y-4 py-4">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 mx-auto flex items-center justify-center shadow-inner">
                 <CheckCircle2 className="w-8 h-8" />
               </div>
-
               <div>
-                <h3 className="text-lg font-serif-royal font-bold text-[#f5f2eb]">
-                  Booking Confirmed
+                <h3 className="text-base font-bold text-white">
+                  {t.bookingSuccess}
                 </h3>
-                <p className="text-xs text-[#8e9cb4] mt-1">
-                  Booking Reference: <span className="font-mono text-[#dfb86c] font-bold">{bookingId}</span>
+                <p className="text-xs font-mono text-amber-400 font-bold mt-1">
+                  Booking ID: {bookingId}
+                </p>
+                <p className="text-xs text-gray-300 mt-2">
+                  {currentLang === 'ta' ? 'எங்கள் உள்ளூர் தொழில்நுட்ப வல்லுநர் உங்களைத் தொடர்புகொள்வார்.' : 'Our technician will arrive at your address within 24 hours.'}
                 </p>
               </div>
-
-              <div className="bg-[#070e1e] p-4 rounded-xl border border-[#172545] text-xs text-[#c7d2e5] space-y-2 text-left">
-                <p className="flex items-center gap-2">
-                  <Truck className="w-4 h-4 text-[#dfb86c] shrink-0" />
-                  <span>Authorized Tamil Nadu DTH technician will arrive within 24 hours.</span>
-                </p>
-                <p className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Confirmation SMS has been queued to <strong>+91 {mobile}</strong>.</span>
-                </p>
-              </div>
-
               <button
+                type="button"
                 onClick={onClose}
-                className="w-full py-2.5 rounded-xl bg-[#142345] hover:bg-[#1c305e] text-[#f5f2eb] font-bold text-xs transition-colors border border-[#1e3058]"
+                className="py-2.5 px-5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs transition-colors"
               >
-                Close
+                {t.close}
               </button>
             </div>
           )}

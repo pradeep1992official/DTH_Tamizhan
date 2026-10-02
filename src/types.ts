@@ -1,50 +1,36 @@
 export type DthOperatorId = 'sun_direct' | 'tata_play' | 'airtel_dth' | 'dish_tv' | 'd2h';
 
-export type OperatorDisableCondition = 
-  | 'scheduled_maintenance' 
-  | 'gateway_down' 
-  | 'transponder_outage' 
-  | 'high_failure_rate' 
-  | 'commercial_hold' 
-  | 'custom';
-
-export interface OperatorStatusConfig {
-  operatorId: DthOperatorId;
-  name: string;
-  isEnabled: boolean;
-  condition?: OperatorDisableCondition;
-  conditionLabel?: string;
-  maintenanceMessage?: string;
-  expectedRestoration?: string;
-  disabledAt?: string;
-  updatedAt?: string;
-  updatedBy?: string;
-}
+export type OperatorDisableCondition = 'temporary_maintenance' | 'heavy_load' | 'server_outage' | 'operational';
 
 export interface DthOperator {
   id: DthOperatorId;
   name: string;
-  shortName: string;
   tamilName: string;
-  logoColor: string;
-  cardName: string;
-  cardPattern: string;
-  cardLengthDesc: string;
-  sampleId: string;
-  tollFree: string;
-  smsRefreshFormat: string;
-  popularPacksCount: number;
+  shortName?: string;
+  smartCardLength?: number;
+  sampleSmartCard?: string;
+  sampleId?: string;
+  cardName?: string;
+  cardLengthDesc?: string;
+  cardPattern?: string;
+  primaryColor?: string;
+  logoColor?: string;
+  tollFreeNumber?: string;
+  tollFree?: string;
+  smsRefreshCode?: string;
+  smsRefreshFormat?: string;
+  isActive?: boolean;
   isEnabled?: boolean;
   condition?: OperatorDisableCondition;
-  conditionLabel?: string;
+  disableReason?: string;
   maintenanceMessage?: string;
+  conditionLabel?: string;
   expectedRestoration?: string;
-  disabledAt?: string;
+  plansCount?: number;
+  popularPacksCount?: number;
   updatedAt?: string;
   updatedBy?: string;
 }
-
-export type PlanCategory = 'all' | 'tamil_base' | 'cinema' | 'sports_kids' | 'annual' | 'addon';
 
 export interface DthPlan {
   id: string;
@@ -131,11 +117,18 @@ export interface PlanCatalogItem {
   id: string;
   operator: DthOperatorId;
   pack_type: 'HD' | 'SD';
-  duration_months: 1 | 6 | 12;
+  duration_months: 1 | 3 | 6 | 12;
   plan_name: string;
+  tamilName?: string;
   amount: number;
+  price?: number;
   is_recommended: boolean;
+  channel_count?: number;
+  hd_channel_count?: number;
   channel_list: string[];
+  channels?: string[];
+  genre_tags?: string[];
+  description?: string;
   updated_at: string;
   updated_by: string;
 }
@@ -154,6 +147,7 @@ export interface PlanAuditLog {
 export interface BrowsePlan {
   id: string;
   operator: DthOperatorId;
+  operatorName?: string;
   name: string;
   tamilName?: string;
   type: 'HD' | 'SD';
@@ -184,7 +178,13 @@ export interface PlanFilters {
   searchQuery: string;
 }
 
-export const SUPER_ADMIN_EMAIL = 'professorpradeeps@gmail.com';
+// Configurable Super Admin email via environment variable
+export const SUPER_ADMIN_EMAIL = 
+  (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SUPER_ADMIN_EMAIL)
+    ? String(import.meta.env.VITE_SUPER_ADMIN_EMAIL).trim()
+    : (typeof process !== 'undefined' && process.env && process.env.SUPER_ADMIN_EMAIL)
+      ? String(process.env.SUPER_ADMIN_EMAIL).trim()
+      : 'professorpradeeps@gmail.com';
 
 export function isSuperAdminEmail(email?: string | null): boolean {
   if (!email) return false;
@@ -206,6 +206,7 @@ export type AdminTabId = 'customers' | 'reports' | 'pending' | 'recharges' | 'pa
 export interface AdminAccount {
   uid: string;
   email: string;
+  name?: string;
   displayName?: string;
   status: 'approved' | 'revoked' | 'pending';
   role: 'super_admin' | 'admin';
@@ -220,7 +221,8 @@ export interface AdminAccessRequest {
   userEmail: string;
   userName: string;
   userPhone?: string;
-  reason: string;
+  reason?: string;
+  notes?: string;
   status: 'pending' | 'approved' | 'rejected';
   requestedAt: string;
   reviewedBy?: string;
@@ -238,11 +240,16 @@ export interface CustomerRecord {
   activePackName: string;
   currentBalance: number;
   expiryDate: string;
-  status: 'active' | 'expired' | 'due_soon';
-  totalRechargesCount: number;
-  totalSpent: number;
-  lastRechargeDate: string;
-  createdAt: string;
+  status?: 'active' | 'expired' | 'due_soon';
+  accountStatus?: string;
+  planQuality?: 'HD' | 'SD';
+  registeredCity?: string;
+  registeredPincode?: string;
+  lastRechargeAmount?: number;
+  totalRechargesCount?: number;
+  totalSpent?: number;
+  lastRechargeDate?: string;
+  createdAt?: string;
 }
 
 export interface PaymentReportItem {

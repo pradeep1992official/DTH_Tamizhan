@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { DthOperatorId, Language } from '../types';
 import { translations } from '../lib/translations';
+import { useAccessibleModal } from '../lib/useAccessibleModal';
 
 interface SignalRefreshModalProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ export const SignalRefreshModal: React.FC<SignalRefreshModalProps> = ({
   initialCard = '',
 }) => {
   const t = translations[currentLang];
+  const { modalRef } = useAccessibleModal({ isOpen, onClose });
 
   const [operator, setOperator] = useState<DthOperatorId>(initialOperator);
   const [smartCard, setSmartCard] = useState(initialCard);
@@ -75,6 +77,8 @@ export const SignalRefreshModal: React.FC<SignalRefreshModalProps> = ({
         setInstructions(data.instructions || []);
         setCountdownActive(true);
         setTimer(300);
+      } else {
+        setResultMessage(data.error || 'Signal transmission limit reached or service unavailable.');
       }
     } catch (err: any) {
       setResultMessage('Signal transmission failed. Please dial operator toll-free directly.');
@@ -90,26 +94,39 @@ export const SignalRefreshModal: React.FC<SignalRefreshModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#050811]/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-[#0e1935] border border-[#1e3058] rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl relative text-left">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div 
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="signal-refresh-title"
+        className="bg-[#0e1935] border border-[#1e3058] rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl relative text-left"
+      >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-[#172545] flex items-center justify-between bg-[#070e1e]/80">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[#c5a059]/15 text-[#dfb86c] flex items-center justify-center">
-              <Radio className="w-5 h-5 text-[#dfb86c]" />
+        <div className="px-6 py-4 border-b border-[#172545] flex items-center justify-between bg-[#070e1e]/90">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center border border-amber-500/30 shadow-inner">
+              <Radio className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-serif-royal font-bold text-[#f5f2eb] leading-tight">
+              <h2 id="signal-refresh-title" className="text-base font-bold text-white leading-tight">
                 {t.signalRefreshTitle}
               </h2>
-              <p className="text-xs text-[#8e9cb4]">
-                Re-activate viewing & sync account authorization
+              <p className="text-xs text-gray-300">
+                {currentLang === 'ta' ? 'சேனல் சிக்னல் அனுமதி புதுப்பிப்பு' : 'Re-activate viewing & sync transponder authorization'}
               </p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-[#8e9cb4] hover:text-[#f5f2eb] hover:bg-[#142345] transition-colors"
+            aria-label={t.close}
+            className="p-1.5 rounded-xl text-gray-300 hover:text-white hover:bg-white/10 transition-colors focus-visible:ring-2 focus-visible:ring-amber-400"
           >
             <X className="w-5 h-5" />
           </button>
@@ -119,14 +136,14 @@ export const SignalRefreshModal: React.FC<SignalRefreshModalProps> = ({
         <div className="p-6 space-y-5">
           {!countdownActive ? (
             <>
-              <p className="text-xs text-[#c7d2e5] leading-relaxed">
+              <p className="text-xs text-gray-200 leading-relaxed">
                 {t.signalRefreshDesc}
               </p>
 
               {/* Operator Selector */}
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-[#8e9cb4] uppercase tracking-wider block">
-                  Select DTH Operator
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-300 uppercase tracking-wider block">
+                  {t.selectOperator}
                 </label>
                 <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 text-xs font-semibold">
                   {[
@@ -140,10 +157,10 @@ export const SignalRefreshModal: React.FC<SignalRefreshModalProps> = ({
                       key={op.id}
                       type="button"
                       onClick={() => setOperator(op.id as DthOperatorId)}
-                      className={`py-2 px-2 rounded-lg border text-center transition-all ${
+                      className={`p-2 rounded-xl border text-center transition-all ${
                         operator === op.id
-                          ? 'bg-[#c5a059] text-[#080d1a] font-bold border-[#c5a059]'
-                          : 'bg-[#070e1e] text-[#c7d2e5] border-[#182747] hover:bg-[#142345]'
+                          ? 'bg-amber-400 text-gray-950 font-bold border-amber-300 shadow-sm'
+                          : 'bg-[#070e1e] border-[#172545] text-gray-300 hover:border-gray-500'
                       }`}
                     >
                       {op.label}
@@ -152,96 +169,104 @@ export const SignalRefreshModal: React.FC<SignalRefreshModalProps> = ({
                 </div>
               </div>
 
-              {/* Smart Card Input */}
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-[#8e9cb4] uppercase tracking-wider block">
-                  Smart Card / Subscriber ID
+              {/* Smart Card input */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-300 uppercase tracking-wider block">
+                  {t.enterCardNumber}
                 </label>
                 <input
                   type="text"
+                  required
+                  placeholder={t.smartCardPlaceholder}
                   value={smartCard}
-                  onChange={(e) => setSmartCard(e.target.value.replace(/[^0-9]/g, ''))}
-                  placeholder="Enter 10 to 12 digit Smart Card number"
-                  className="w-full bg-[#070e1e] border border-[#182747] focus:border-[#c5a059] rounded-xl px-4 py-3 text-[#f5f2eb] placeholder-[#5a6a88] font-mono text-base font-bold focus:outline-none"
+                  onChange={(e) => setSmartCard(e.target.value.replace(/\D/g, ''))}
+                  className="w-full bg-[#070e1e] border border-[#172545] rounded-xl px-3.5 py-2.5 text-xs text-white font-mono placeholder-gray-500 focus:outline-none focus:border-amber-400"
                 />
               </div>
 
-              {/* Notice */}
-              <div className="p-3 rounded-xl bg-[#c5a059]/10 border border-[#c5a059]/25 text-xs text-[#dfb86c] flex items-start gap-2.5">
-                <Tv className="w-4 h-4 text-[#dfb86c] shrink-0 mt-0.5" />
-                <p>
-                  <strong>Pre-requisite:</strong> Please ensure your Set-Top Box is turned <strong>ON</strong> and tuned to <strong>Channel 100</strong> before requesting a signal refresh.
-                </p>
+              {resultMessage && (
+                <div className="p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-200 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                  <span>{resultMessage}</span>
+                </div>
+              )}
+
+              {/* Instruction banner */}
+              <div className="p-3.5 bg-[#070e1e] border border-[#172545] rounded-2xl flex items-start gap-2.5 text-xs text-amber-300">
+                <Tv className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+                <span>{t.turnOnChannel100}</span>
               </div>
 
-              {/* Action Button */}
+              {/* Action */}
               <button
-                id="send-signal-pulse-btn"
+                type="button"
                 onClick={handleSendSignal}
-                disabled={isTransmitting || !smartCard}
-                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#ba9b52] hover:brightness-105 disabled:opacity-50 text-[#080d1a] font-bold text-sm shadow-xl shadow-black/40 transition-all flex items-center justify-center gap-2"
+                disabled={isTransmitting || !smartCard.trim()}
+                className="w-full py-3 px-4 rounded-2xl bg-amber-400 hover:bg-amber-300 disabled:opacity-50 text-gray-950 font-bold text-sm transition-all shadow-md flex items-center justify-center gap-2"
               >
                 {isTransmitting ? (
                   <>
-                    <RefreshCw className="w-4 h-4 animate-spin text-[#080d1a]" />
+                    <RefreshCw className="w-4 h-4 animate-spin" />
                     <span>{t.refreshing}</span>
                   </>
                 ) : (
                   <>
-                    <Radio className="w-4 h-4 text-[#080d1a]" />
+                    <Radio className="w-4 h-4" />
                     <span>{t.triggerRefresh}</span>
                   </>
                 )}
               </button>
             </>
           ) : (
-            <div className="space-y-5 animate-in zoom-in-95 text-center">
-              {/* Pulse Active Animation */}
-              <div className="w-16 h-16 rounded-2xl bg-[#c5a059]/15 text-[#dfb86c] border border-[#c5a059]/30 flex items-center justify-center mx-auto relative">
-                <Radio className="w-8 h-8 animate-pulse text-[#dfb86c]" />
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full animate-ping" />
+            /* Countdown Active State */
+            <div className="space-y-5 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 mx-auto flex items-center justify-center shadow-inner">
+                <CheckCircle2 className="w-8 h-8" />
               </div>
 
-              <div>
-                <h3 className="text-base font-serif-royal font-bold text-[#f5f2eb]">
-                  Signal Refresh Request Sent!
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-white">
+                  {t.refreshSuccessTitle}
                 </h3>
-                <p className="text-xs text-[#8e9cb4] mt-1">
-                  Request Reference ID: <span className="font-mono text-[#dfb86c] font-bold">{batchId}</span>
+                <p className="text-xs text-gray-300">
+                  {resultMessage || t.refreshSuccessDesc}
                 </p>
               </div>
 
-              {/* Countdown Timer */}
-              <div className="p-4 rounded-xl bg-[#070e1e] border border-[#172545] space-y-1">
-                <span className="text-[10px] text-[#8e9cb4] uppercase tracking-widest font-bold block">
-                  Keep Box ON Channel 100
-                </span>
-                <span className="font-mono font-bold text-3xl text-emerald-400">
-                  {formatTimer(timer)}
-                </span>
-                <p className="text-[11px] text-[#8e9cb4]">
-                  Channels will automatically activate as subscription details sync.
-                </p>
+              {/* Timer Progress */}
+              <div className="p-4 bg-[#070e1e] border border-[#172545] rounded-2xl space-y-2">
+                <div className="flex items-center justify-between text-xs text-gray-300">
+                  <span>Transponder Sync Timer</span>
+                  <span className="font-mono font-bold text-amber-400 text-sm">
+                    {formatTimer(timer)}
+                  </span>
+                </div>
+                <div className="w-full bg-[#0b1429] h-2 rounded-full overflow-hidden">
+                  <div 
+                    className="bg-amber-400 h-full transition-all duration-1000"
+                    style={{ width: `${(timer / 300) * 100}%` }}
+                  />
+                </div>
               </div>
 
-              {/* Step instructions */}
-              <div className="text-left bg-[#070e1e]/60 p-4 rounded-xl border border-[#172545] space-y-2 text-xs">
-                <span className="text-[11px] font-bold text-[#f5f2eb] block">
-                  Recommended Steps:
-                </span>
-                {instructions.map((inst, idx) => (
-                  <div key={idx} className="flex items-start gap-2 text-[#c7d2e5]">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                    <span>{inst}</span>
-                  </div>
-                ))}
-              </div>
+              {instructions.length > 0 && (
+                <div className="text-left bg-[#070e1e] p-3.5 rounded-2xl border border-[#172545] space-y-1.5 text-xs text-gray-300">
+                  <p className="font-bold text-white mb-1">Steps to follow:</p>
+                  {instructions.map((inst, idx) => (
+                    <div key={idx} className="flex items-start gap-2">
+                      <span className="text-amber-400 font-bold">{idx + 1}.</span>
+                      <span>{inst}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <button
+                type="button"
                 onClick={onClose}
-                className="w-full py-2.5 rounded-xl bg-[#142345] hover:bg-[#1c305e] text-[#f5f2eb] font-bold text-xs transition-colors border border-[#1e3058]"
+                className="w-full py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs transition-colors"
               >
-                Close & Return
+                {t.close}
               </button>
             </div>
           )}

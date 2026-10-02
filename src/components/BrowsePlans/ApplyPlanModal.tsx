@@ -7,15 +7,14 @@ import {
   CheckCircle2, 
   Plus, 
   ArrowRight, 
-  Phone, 
-  Sparkles, 
   Lock, 
-  HelpCircle,
   CreditCard,
   Ban
 } from 'lucide-react';
 import { BrowsePlan, DthConnection, DthOperatorId, Language, UserProfile } from '../../types';
 import { OperatorTheme } from '../../lib/theme';
+import { translations } from '../../lib/translations';
+import { useAccessibleModal } from '../../lib/useAccessibleModal';
 
 interface ApplyPlanModalProps {
   isOpen: boolean;
@@ -95,6 +94,16 @@ export const ApplyPlanModal: React.FC<ApplyPlanModalProps> = ({
   currentTheme,
   currentLang,
 }) => {
+  const t = translations[currentLang];
+  const { modalRef } = useAccessibleModal({ isOpen, onClose });
+
+  const [selectedBoxId, setSelectedBoxId] = useState<string>('');
+  const [isAddingNew, setIsAddingNew] = useState<boolean>(false);
+  const [smartCardInput, setSmartCardInput] = useState('');
+  const [nicknameInput, setNicknameInput] = useState('Home Hall');
+  const [customerNameInput, setCustomerNameInput] = useState('');
+  const [formError, setFormError] = useState<string | null>(null);
+
   if (!isOpen || !plan) return null;
 
   const isLight = currentTheme.isLightMode;
@@ -107,30 +116,18 @@ export const ApplyPlanModal: React.FC<ApplyPlanModalProps> = ({
     color: currentTheme.primaryColor,
   };
 
-  // Hard constraint 2: Filter user's saved boxes strictly by operator
   const matchingBoxes = (connections || []).filter((c) => c.operator === plan.operator);
   const incompatibleCount = (connections || []).length - matchingBoxes.length;
 
-  const [selectedBoxId, setSelectedBoxId] = useState<string>(
-    matchingBoxes.length > 0 ? matchingBoxes[0].id : ''
-  );
-  const [isAddingNew, setIsAddingNew] = useState<boolean>(matchingBoxes.length === 0);
-
-  // New connection form states
-  const [smartCardInput, setSmartCardInput] = useState('');
-  const [nicknameInput, setNicknameInput] = useState('Home Hall');
-  const [customerNameInput, setCustomerNameInput] = useState(user?.displayName || '');
-  const [formError, setFormError] = useState<string | null>(null);
-
   const handleApplyToExisting = () => {
-    const box = matchingBoxes.find((b) => b.id === selectedBoxId);
+    const boxId = selectedBoxId || (matchingBoxes[0]?.id ?? '');
+    const box = matchingBoxes.find((b) => b.id === boxId);
     if (!box) {
-      setFormError('Please select a compatible Set-Top Box.');
+      setFormError(currentLang === 'ta' ? 'பொருத்தமான செட்-டாப் பாக்ஸைத் தேர்ந்தெடுக்கவும்' : 'Please select a compatible Set-Top Box.');
       return;
     }
-    // Hard constraint verification: Box operator must match plan operator
     if (box.operator !== plan.operator) {
-      setFormError(`Cross-operator recharge is blocked. Cannot apply ${opMeta.name} plan to a ${box.operatorName} box.`);
+      setFormError(`Cross-operator recharge blocked. Cannot apply ${opMeta.name} pack to a ${box.operatorName} box.`);
       return;
     }
     onApplyPlanToBox(plan, box);
@@ -159,9 +156,18 @@ export const ApplyPlanModal: React.FC<ApplyPlanModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div 
-        className={`rounded-3xl border w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh] ${
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="apply-plan-modal-title"
+        className={`rounded-3xl border w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh] text-left ${
           isLight ? 'bg-white border-gray-200 text-gray-900' : 'bg-[#0d172e] border-white/15 text-white'
         }`}
       >
@@ -169,16 +175,16 @@ export const ApplyPlanModal: React.FC<ApplyPlanModalProps> = ({
         <div className="px-6 py-4 border-b border-gray-500/20 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
             <div 
-              className="w-9 h-9 rounded-xl flex items-center justify-center text-white"
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold"
               style={{ backgroundColor: opMeta.color }}
             >
               <Tv className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-base">
-                {currentLang === 'ta' ? 'திட்டத்தைப் பயன்படுத்தவும்' : 'Apply Plan'}
+              <h3 id="apply-plan-modal-title" className="font-bold text-base">
+                {t.applyToBox}
               </h3>
-              <p className="text-xs opacity-60">
+              <p className="text-xs text-gray-500 dark:text-gray-300">
                 {opMeta.name} • {plan.type}
               </p>
             </div>
@@ -187,7 +193,8 @@ export const ApplyPlanModal: React.FC<ApplyPlanModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg border border-transparent hover:border-gray-500/20 hover:bg-gray-500/10 transition-colors"
+            aria-label={t.close}
+            className="p-1.5 rounded-xl border border-transparent hover:border-gray-500/20 hover:bg-gray-500/10 transition-colors focus-visible:ring-2 focus-visible:ring-amber-400"
           >
             <X className="w-5 h-5 opacity-70" />
           </button>
@@ -204,19 +211,19 @@ export const ApplyPlanModal: React.FC<ApplyPlanModalProps> = ({
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span 
-                  className="w-2 h-2 rounded-full"
+                  className="w-2.5 h-2.5 rounded-full"
                   style={{ backgroundColor: opMeta.color }}
                 />
-                <span className="text-[11px] uppercase font-bold tracking-wider opacity-80">
+                <span className="text-xs uppercase font-bold tracking-wider opacity-90">
                   {opMeta.name} • {plan.type}
                 </span>
                 <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-500">
-                  {plan.duration_months === 1 ? '1 Month' : `${plan.duration_months} Months`}
+                  {plan.duration_months === 1 ? `1 ${t.month}` : `${plan.duration_months} ${t.months}`}
                 </span>
               </div>
               <h4 className="font-bold text-sm sm:text-base mt-0.5">{plan.name}</h4>
-              <p className="text-xs opacity-80 font-medium">
-                {plan.channel_count} channels {plan.hd_channel_count ? `(${plan.hd_channel_count} HD)` : ''}
+              <p className="text-xs opacity-90 font-medium">
+                {plan.channel_count} {t.channels} {plan.hd_channel_count ? `(${plan.hd_channel_count} HD)` : ''}
               </p>
             </div>
 
@@ -232,15 +239,14 @@ export const ApplyPlanModal: React.FC<ApplyPlanModalProps> = ({
             </div>
           </div>
 
-          {/* Verification Alert: Cross-Operator Rule */}
-          <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-600 dark:text-blue-300 flex items-start gap-2">
-            <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
-            <div>
-              This plan only works with <strong>{opMeta.name}</strong> boxes.
+          {formError && (
+            <div className="p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-300 text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+              <span>{formError}</span>
             </div>
-          </div>
+          )}
 
-          {/* Case 1: User is NOT logged in */}
+          {/* User is NOT logged in */}
           {!user ? (
             <div className="text-center py-6 px-4 space-y-4 rounded-2xl border border-dashed border-gray-500/30">
               <div 
@@ -251,227 +257,132 @@ export const ApplyPlanModal: React.FC<ApplyPlanModalProps> = ({
               </div>
               <div className="space-y-1">
                 <h4 className="text-base font-bold">
-                  {currentLang === 'ta' ? 'உள்நுழையவும்' : 'Sign In to Continue'}
+                  {t.loginTitle}
                 </h4>
-                <p className="text-xs opacity-70 max-w-sm mx-auto">
-                  {currentLang === 'ta' ? 'சேமிக்கப்பட்ட இணைப்புகளைத் தேர்ந்தெடுக்க கூகிள் மூலம் உள்நுழையவும்' : 'Sign in with Google to select your saved box or link a new one.'}
+                <p className="text-xs opacity-80 max-w-sm mx-auto">
+                  {t.loginSubtitle}
                 </p>
               </div>
 
               <button
                 type="button"
-                onClick={() => {
-                  onOpenAuth();
-                }}
+                onClick={onOpenAuth}
                 className="w-full sm:w-auto px-6 py-3 rounded-xl text-xs font-bold text-white shadow-lg flex items-center justify-center gap-2 mx-auto transition-transform hover:scale-105 active:scale-95"
                 style={{ backgroundColor: currentTheme.primaryColor }}
               >
-                <span>{currentLang === 'ta' ? 'கூகிள் மூலம் உள்நுழைக' : 'Sign In with Google'}</span>
+                <span>{t.googleOption}</span>
               </button>
             </div>
           ) : (
-            /* Case 2: User IS logged in */
+            /* User IS logged in */
             <div className="space-y-4">
-              {/* If user has matching boxes and not adding new */}
               {matchingBoxes.length > 0 && !isAddingNew ? (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold uppercase tracking-wider opacity-70">
-                      Select Box:
+                    <label className="text-xs font-bold uppercase tracking-wider opacity-80">
+                      {currentLang === 'ta' ? 'சேமிக்கப்பட்ட பாக்ஸைத் தேர்ந்தெடுக்கவும்:' : 'Select Saved Box:'}
                     </label>
                     <button
                       type="button"
                       onClick={() => setIsAddingNew(true)}
-                      className="text-xs font-semibold flex items-center gap-1 hover:underline"
+                      className="text-xs font-bold flex items-center gap-1 hover:underline"
                       style={{ color: currentTheme.primaryColor }}
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>Add Box</span>
+                      <span>{t.addConnection}</span>
                     </button>
                   </div>
 
                   <div className="space-y-2">
                     {matchingBoxes.map((box) => {
-                      const isSelected = selectedBoxId === box.id;
+                      const isSelected = (selectedBoxId || matchingBoxes[0]?.id) === box.id;
                       return (
                         <div
                           key={box.id}
                           onClick={() => setSelectedBoxId(box.id)}
-                          className={`p-3.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
+                          className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
                             isSelected
-                              ? isLight 
-                                ? 'bg-amber-500/10 border-amber-500/40 shadow-sm' 
-                                : 'bg-white/10 border-white/30 shadow-md'
-                              : isLight
-                              ? 'bg-gray-50/70 border-gray-200 hover:bg-gray-100'
-                              : 'bg-white/5 border-white/10 hover:bg-white/10'
+                              ? 'border-amber-400 bg-amber-500/10'
+                              : isLight ? 'bg-gray-50 border-gray-200' : 'bg-white/5 border-white/10'
                           }`}
                         >
-                          <div className="flex items-center gap-3">
-                            <div 
-                              className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                                isSelected ? 'text-white border-transparent' : 'border-gray-400'
-                              }`}
-                              style={{
-                                backgroundColor: isSelected ? currentTheme.primaryColor : undefined,
-                              }}
-                            >
-                              {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                            </div>
-
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-bold text-xs">{box.nickname}</span>
-                              </div>
-                              <span className="font-mono text-xs font-semibold block tracking-wider mt-0.5">
-                                {box.smartCardNumber}
-                              </span>
-                              {box.customerName && (
-                                <span className="text-[10px] opacity-60 block">
-                                  {box.customerName}
-                                </span>
-                              )}
-                            </div>
+                          <div>
+                            <p className="font-bold text-xs">{box.nickname || box.customerName}</p>
+                            <p className="font-mono text-xs text-amber-400">{box.smartCardNumber}</p>
                           </div>
-
-                          <div className="text-right">
-                            <span className="text-[10px] opacity-60 block">
-                              Balance: ₹{box.balance || 0}
-                            </span>
-                          </div>
+                          {isSelected && <CheckCircle2 className="w-4 h-4 text-amber-400" />}
                         </div>
                       );
                     })}
                   </div>
 
-                  {incompatibleCount > 0 && (
-                    <p className="text-[11px] opacity-60 flex items-center gap-1">
-                      <Ban className="w-3.5 h-3.5 text-gray-400" />
-                      <span>{incompatibleCount} non-{opMeta.name} box(es) hidden.</span>
-                    </p>
-                  )}
-
-                  {formError && (
-                    <div className="p-3 rounded-xl bg-red-500/15 border border-red-500/30 text-xs text-red-500 flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 shrink-0" />
-                      <span>{formError}</span>
-                    </div>
-                  )}
-
                   <button
                     type="button"
                     onClick={handleApplyToExisting}
-                    className="w-full py-3 px-4 rounded-xl text-xs font-bold text-white shadow-lg flex items-center justify-center gap-2 transition-transform hover:scale-[1.01] active:scale-[0.99]"
+                    className="w-full py-3 px-4 rounded-2xl font-bold text-xs text-white shadow-md transition-all flex items-center justify-center gap-2"
                     style={{ backgroundColor: currentTheme.primaryColor }}
                   >
-                    <span>Continue to Recharge</span>
+                    <span>{t.applyToBox}</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
               ) : (
-                /* Add a new connection form pre-filled with operator */
-                <form onSubmit={handleCreateAndApply} className="space-y-4">
+                /* Add New Box Form */
+                <form onSubmit={handleCreateAndApply} className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-sm font-bold">
-                        Add {opMeta.name} Box
-                      </h4>
-                    </div>
-
+                    <label className="text-xs font-bold uppercase tracking-wider opacity-80">
+                      {t.addConnection}
+                    </label>
                     {matchingBoxes.length > 0 && (
                       <button
                         type="button"
                         onClick={() => setIsAddingNew(false)}
-                        className="text-xs opacity-70 hover:opacity-100 underline"
+                        className="text-xs font-bold hover:underline text-gray-400"
                       >
-                        Use Saved Box
+                        {t.cancel}
                       </button>
                     )}
                   </div>
 
-                  {/* Smart card input */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold opacity-80 flex items-center justify-between">
-                      <span>{opMeta.cardName}</span>
-                      <span className="text-[10px] font-mono opacity-60">{opMeta.hint}</span>
+                  <div>
+                    <label className="text-xs font-medium block mb-1">
+                      {opMeta.cardName} *
                     </label>
                     <input
                       type="text"
                       required
-                      value={smartCardInput}
-                      onChange={(e) => setSmartCardInput(e.target.value)}
                       placeholder={opMeta.hint}
-                      className={`w-full px-3.5 py-2.5 rounded-xl border text-xs font-mono font-bold transition-colors ${
-                        isLight 
-                          ? 'bg-white border-gray-300 text-gray-900 focus:border-black' 
-                          : 'bg-black/30 border-white/20 text-white focus:border-white'
-                      }`}
+                      value={smartCardInput}
+                      onChange={(e) => setSmartCardInput(e.target.value.replace(/\D/g, ''))}
+                      className="w-full p-2.5 rounded-xl border text-xs font-mono bg-transparent focus:outline-none focus:border-amber-400"
                     />
                   </div>
 
-                  {/* Nickname & Customer Name row */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold opacity-80">
-                        Nickname
-                      </label>
-                      <input
-                        type="text"
-                        value={nicknameInput}
-                        onChange={(e) => setNicknameInput(e.target.value)}
-                        placeholder="e.g. Living Room, Bedroom"
-                        className={`w-full px-3.5 py-2 rounded-xl border text-xs transition-colors ${
-                          isLight ? 'bg-white border-gray-300 text-gray-900' : 'bg-black/30 border-white/20 text-white'
-                        }`}
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold opacity-80">
-                        Name (Optional)
-                      </label>
-                      <input
-                        type="text"
-                        value={customerNameInput}
-                        onChange={(e) => setCustomerNameInput(e.target.value)}
-                        placeholder="e.g. Murugan K"
-                        className={`w-full px-3.5 py-2 rounded-xl border text-xs transition-colors ${
-                          isLight ? 'bg-white border-gray-300 text-gray-900' : 'bg-black/30 border-white/20 text-white'
-                        }`}
-                      />
-                    </div>
+                  <div>
+                    <label className="text-xs font-medium block mb-1">
+                      {t.boxNickname}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Living Room TV"
+                      value={nicknameInput}
+                      onChange={(e) => setNicknameInput(e.target.value)}
+                      className="w-full p-2.5 rounded-xl border text-xs bg-transparent focus:outline-none focus:border-amber-400"
+                    />
                   </div>
-
-                  {formError && (
-                    <div className="p-3 rounded-xl bg-red-500/15 border border-red-500/30 text-xs text-red-500 flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 shrink-0" />
-                      <span>{formError}</span>
-                    </div>
-                  )}
 
                   <button
                     type="submit"
-                    className="w-full py-3 px-4 rounded-xl text-xs font-bold text-white shadow-lg flex items-center justify-center gap-2 transition-transform hover:scale-[1.01] active:scale-[0.99]"
+                    className="w-full py-3 px-4 rounded-2xl font-bold text-xs text-white shadow-md transition-all flex items-center justify-center gap-2"
                     style={{ backgroundColor: currentTheme.primaryColor }}
                   >
-                    <span>Save Box & Continue</span>
+                    <span>{t.applyToBox}</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </form>
               )}
             </div>
           )}
-        </div>
-
-        {/* Modal Footer */}
-        <div className="p-4 border-t border-gray-500/20 flex items-center justify-end text-xs">
-          <button
-            type="button"
-            onClick={onClose}
-            className="hover:underline font-semibold opacity-70 hover:opacity-100"
-          >
-            Cancel
-          </button>
         </div>
       </div>
     </div>

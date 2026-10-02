@@ -3,28 +3,22 @@ import {
   Search, 
   SlidersHorizontal, 
   Tv, 
-  Sparkles, 
-  Filter, 
   ArrowUpDown, 
-  Scale, 
   RotateCcw,
-  Zap,
-  Percent,
-  Crown,
-  ChevronDown,
-  Info,
+  AlertCircle,
+  RefreshCw,
   Check
 } from 'lucide-react';
 import { BrowsePlan, DthConnection, DthOperatorId, Language, PlanFilters, UserProfile } from '../../types';
 import { OperatorTheme } from '../../lib/theme';
-import { INITIAL_BROWSE_PLANS, computePlanMetrics, filterAndSortPlans } from '../../lib/browsePlansData';
+import { INITIAL_BROWSE_PLANS, computePlanMetrics, filterAndSortPlans, catalogItemToBrowsePlan } from '../../lib/browsePlansData';
 import { PlanFilterSidebar } from './PlanFilterSidebar';
 import { PlanCard } from './PlanCard';
 import { CompareDrawer } from './CompareDrawer';
 import { ComparisonTable } from './ComparisonTable';
 import { ApplyPlanModal } from './ApplyPlanModal';
-import { db, isFirebaseLive } from '../../lib/firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { PlanCatalogService } from '../../lib/planCatalogService';
+import { translations } from '../../lib/translations';
 
 interface BrowsePlansViewProps {
   currentTheme: OperatorTheme;
@@ -43,8 +37,8 @@ const DEFAULT_FILTERS: PlanFilters = {
   operators: [],
   type: 'all',
   durations: [],
-  priceRange: [150, 4000],
-  channelRange: [50, 300],
+  priceRange: [100, 5000],
+  channelRange: [0, 500],
   genreTags: [],
   sortBy: 'recommended',
   searchQuery: '',
@@ -59,11 +53,13 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
   onApplyPlanToBox,
   onAddNewConnectionAndApply,
 }) => {
+  const t = translations[currentLang];
   const isLight = currentTheme.isLightMode;
 
-  // Plan catalog state: Starts with seeded master catalog, attempts Firestore /api/plans public fetch
+  // Plan catalog state: Starts with seeded master catalog, synchronized live via Firestore onSnapshot
   const [allPlans, setAllPlans] = useState<BrowsePlan[]>(INITIAL_BROWSE_PLANS);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [filters, setFilters] = useState<PlanFilters>(DEFAULT_FILTERS);
 
   // Compare tool state
@@ -76,72 +72,49 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
   // Mobile sidebar toggle
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState<boolean>(false);
 
-  // Public anonymous catalog loading (Reads solely from plan_catalog collection or /api/plans)
+  const fetchLivePlans = () => {
+    setIsLoading(true);
+    setFetchError(null);
+
+    PlanCatalogService.getAllPlans()
+      .then((items) => {
+        if (items && items.length > 0) {
+          setAllPlans(items.map(catalogItemToBrowsePlan));
+        }
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        console.error('Failed to load plan catalog:', err);
+        setFetchError(t.catalogLoadError);
+        setIsLoading(false);
+      });
+  };
+
+  // Authoritative live subscription to Firestore plan_catalog
   useEffect(() => {
     let isMounted = true;
+    setIsLoading(true);
 
-    async function loadPublicCatalog() {
-      setIsLoading(true);
-      try {
-        // 1. Try public Firestore plan_catalog read first if live
-        if (isFirebaseLive && db) {
-          try {
-            const plansSnap = await getDocs(collection(db, 'plan_catalog'));
-            if (!plansSnap.empty) {
-              const loaded: BrowsePlan[] = [];
-              plansSnap.forEach((doc) => {
-                const data = doc.data();
-                loaded.push({
-                  id: doc.id,
-                  operator: data.operator || 'sun_direct',
-                  name: data.plan_name || data.name || 'DTH Pack',
-                  tamilName: data.tamilName,
-                  type: data.type || data.pack_type || 'HD',
-                  duration_months: Number(data.duration_months) as any || 1,
-                  price: Number(data.price || data.amount) || 299,
-                  monthly_equivalent_rate: Number(data.monthly_equivalent_rate) || Math.round(Number(data.price || data.amount) / (Number(data.duration_months) || 1)),
-                  channel_count: Number(data.channel_count || data.channel_list?.length) || 150,
-                  hd_channel_count: Number(data.hd_channel_count) || (data.type === 'HD' ? 30 : 0),
-                  channels: Array.isArray(data.channels) ? data.channels : (Array.isArray(data.channel_list) ? data.channel_list : []),
-                  genre_tags: Array.isArray(data.genre_tags) ? data.genre_tags : ['tamil', 'entertainment'],
-                  is_recommended: Boolean(data.is_recommended),
-                  description: data.description,
-                });
-              });
-              if (isMounted && loaded.length > 0) {
-                setAllPlans(loaded);
-                setIsLoading(false);
-                return;
-              }
-            }
-          } catch (fsErr) {
-            console.warn('[BrowsePlansView] Public Firestore read fallback to API:', fsErr);
-          }
-        }
-
-        // 2. Fallback to /api/plans endpoint
-        const resp = await fetch('/api/plans', { headers: { 'Accept': 'application/json' } });
-        if (resp.ok && resp.headers.get('content-type')?.includes('application/json')) {
-          const json = await resp.json();
-          if (json.success && Array.isArray(json.plans) && json.plans.length > 0) {
-            if (isMounted) {
-              setAllPlans(json.plans);
-            }
-          }
-        }
-      } catch (err) {
-        console.warn('[BrowsePlansView] Using seeded public catalog:', err);
-      } finally {
-        if (isMounted) setIsLoading(false);
+    const unsubscribe = PlanCatalogService.subscribeToPlans((catalogItems) => {
+      if (!isMounted) return;
+      if (catalogItems && catalogItems.length > 0) {
+        const mapped = catalogItems.map(catalogItemToBrowsePlan);
+        setAllPlans(mapped);
+        setFetchError(null);
       }
-    }
+      setIsLoading(false);
+    });
 
-    loadPublicCatalog();
-    window.addEventListener('plan_catalog_updated', loadPublicCatalog);
+    const handleUpdateEvent = () => {
+      fetchLivePlans();
+    };
+
+    window.addEventListener('plan_catalog_updated', handleUpdateEvent);
 
     return () => {
       isMounted = false;
-      window.removeEventListener('plan_catalog_updated', loadPublicCatalog);
+      unsubscribe();
+      window.removeEventListener('plan_catalog_updated', handleUpdateEvent);
     };
   }, []);
 
@@ -177,69 +150,67 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
     setFilters(DEFAULT_FILTERS);
   };
 
+  // Fast Operator Pill toggles
+  const handleToggleOperatorQuick = (opId: DthOperatorId) => {
+    setFilters((prev) => {
+      const exists = prev.operators.includes(opId);
+      const newOps = exists
+        ? prev.operators.filter((o) => o !== opId)
+        : [...prev.operators, opId];
+      return { ...prev, operators: newOps };
+    });
+  };
+
+  const OPERATOR_PILLS: { id: DthOperatorId; label: string; color: string }[] = [
+    { id: 'sun_direct', label: 'Sun Direct', color: '#F97316' },
+    { id: 'tata_play', label: 'Tata Play', color: '#EC4899' },
+    { id: 'airtel_dth', label: 'Airtel', color: '#EF4444' },
+    { id: 'dish_tv', label: 'Dish TV', color: '#EB5B26' },
+    { id: 'd2h', label: 'D2H', color: '#8B5CF6' },
+  ];
+
   return (
-    <div className="space-y-6 text-left pb-20">
-      {/* Hero / Header Banner */}
+    <div className="space-y-6">
+      {/* Top Hero Banner */}
       <div 
-        className={`rounded-3xl border p-6 sm:p-8 relative overflow-hidden shadow-xl transition-colors duration-300 ${
-          isLight 
-            ? 'bg-gradient-to-br from-white via-gray-50 to-gray-100 border-gray-200' 
-            : `${currentTheme.mainContainerBg} ${currentTheme.mainContainerBorder}`
+        className={`rounded-3xl border p-6 md:p-8 shadow-sm ${
+          isLight ? 'bg-white border-gray-200' : `${currentTheme.mainContainerBg} ${currentTheme.mainContainerBorder}`
         }`}
       >
-        <div className="max-w-3xl space-y-3 relative z-10">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span 
-              className="text-[11px] font-mono font-bold uppercase tracking-wider px-2.5 py-1 rounded-full text-white shadow-xs flex items-center gap-1.5"
+        <div className="max-w-3xl space-y-3">
+          <div className="flex items-center gap-2">
+            <div 
+              className="w-8 h-8 rounded-xl flex items-center justify-center font-bold text-white shadow-sm"
               style={{ backgroundColor: currentTheme.primaryColor }}
             >
-              <Tv className="w-3.5 h-3.5" />
-              <span>Browse Plans</span>
-            </span>
+              <Tv className="w-4 h-4" />
+            </div>
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight">
+              {t.browsePacksTitle}
+            </h1>
           </div>
-
-          <h1 className={`text-2xl sm:text-4xl font-extrabold tracking-tight ${currentTheme.headingText}`}>
-            {currentLang === 'ta' ? 'அனைத்து டிடிஎச் திட்டங்களை ஒப்பிடுங்கள்' : 'Discover & Compare Plans'}
-          </h1>
-
-          <p className="text-sm opacity-85 max-w-2xl leading-relaxed">
-            Compare recharge packs across Sun Direct, Tata Play, Airtel, Dish TV, and D2H.
+          <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+            {t.browsePacksSubtitle}
           </p>
 
-          {/* Quick Operator Filter Chips */}
-          <div className="pt-2 flex flex-wrap gap-2 items-center">
-            <span className="text-xs font-bold opacity-80 mr-1">Operator:</span>
-            {[
-              { id: 'sun_direct', label: 'Sun Direct', color: '#F97316' },
-              { id: 'tata_play', label: 'Tata Play', color: '#EC4899' },
-              { id: 'airtel_dth', label: 'Airtel Digital TV', color: '#EF4444' },
-              { id: 'dish_tv', label: 'Dish TV', color: '#EB5B26' },
-              { id: 'd2h', label: 'D2H Videocon', color: '#8B5CF6' },
-            ].map((op) => {
-              const isSelected = filters.operators.includes(op.id as DthOperatorId);
+          {/* Quick Operator Filter Pills */}
+          <div className="flex flex-wrap items-center gap-2 pt-2">
+            <span className="text-xs font-bold text-gray-600 dark:text-gray-400 mr-1">
+              {t.filterByOperator}:
+            </span>
+            {OPERATOR_PILLS.map((op) => {
+              const isSelected = filters.operators.includes(op.id);
               return (
                 <button
                   key={op.id}
                   type="button"
-                  onClick={() => {
-                    if (isSelected) {
-                      setFilters((prev) => ({
-                        ...prev,
-                        operators: prev.operators.filter((id) => id !== op.id),
-                      }));
-                    } else {
-                      setFilters((prev) => ({
-                        ...prev,
-                        operators: [...prev.operators, op.id as DthOperatorId],
-                      }));
-                    }
-                  }}
-                  className={`text-xs px-3 py-1.5 rounded-xl font-semibold border transition-all flex items-center gap-1.5 ${
+                  onClick={() => handleToggleOperatorQuick(op.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border shadow-xs ${
                     isSelected
-                      ? 'text-white border-transparent shadow-sm'
+                      ? 'text-white border-transparent'
                       : isLight
-                      ? 'bg-white/80 border-gray-300 text-gray-700 hover:bg-gray-100'
-                      : 'bg-white/5 border-white/15 text-gray-300 hover:bg-white/10'
+                      ? 'bg-gray-50 border-gray-300 text-gray-800 hover:bg-gray-100'
+                      : 'bg-white/10 border-white/20 text-gray-200 hover:bg-white/20'
                   }`}
                   style={{
                     backgroundColor: isSelected ? op.color : undefined,
@@ -247,7 +218,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
                 >
                   <span className="w-2 h-2 rounded-full" style={{ backgroundColor: op.color }} />
                   <span>{op.label}</span>
-                  {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                  {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                 </button>
               );
             })}
@@ -263,16 +234,16 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
       >
         {/* Search input */}
         <div className="relative flex-1 min-w-[240px]">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 opacity-50" />
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
             value={filters.searchQuery}
             onChange={(e) => setFilters((prev) => ({ ...prev, searchQuery: e.target.value }))}
-            placeholder="Search plans or channels..."
+            placeholder={t.searchPacks}
             className={`w-full pl-10 pr-4 py-2 rounded-xl text-xs border transition-colors ${
               isLight 
                 ? 'bg-gray-50 border-gray-300 text-gray-900 focus:bg-white focus:border-black' 
-                : 'bg-black/30 border-white/15 text-white focus:border-white/40'
+                : 'bg-black/30 border-white/20 text-white focus:border-white/40'
             }`}
           />
         </div>
@@ -281,23 +252,23 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
         <div className="flex items-center gap-3 flex-wrap">
           {/* Sort Selector */}
           <div className="flex items-center gap-2 text-xs">
-            <ArrowUpDown className="w-3.5 h-3.5 opacity-60 shrink-0" />
-            <span className="font-bold opacity-70 hidden sm:inline">Sort by:</span>
+            <ArrowUpDown className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+            <span className="font-bold text-gray-700 dark:text-gray-300 hidden sm:inline">{t.sortBy}:</span>
             <select
               value={filters.sortBy}
               onChange={(e) => setFilters((prev) => ({ ...prev, sortBy: e.target.value as any }))}
               className={`py-2 px-3 rounded-xl text-xs font-semibold border cursor-pointer ${
                 isLight 
                   ? 'bg-gray-50 border-gray-300 text-gray-900' 
-                  : 'bg-white/10 border-white/15 text-white'
+                  : 'bg-white/10 border-white/20 text-white'
               }`}
             >
-              <option value="recommended">Recommended</option>
-              <option value="price_asc">Price: Low to High</option>
-              <option value="price_desc">Price: High to Low</option>
-              <option value="price_per_channel_asc">Best Value</option>
-              <option value="savings_pct_desc">Highest Savings</option>
-              <option value="channels_desc">Most Channels</option>
+              <option value="recommended">{t.sortRecommended}</option>
+              <option value="price_asc">{t.sortPriceAsc}</option>
+              <option value="price_desc">{t.sortPriceDesc}</option>
+              <option value="price_per_channel_asc">{t.saveBadge}</option>
+              <option value="savings_pct_desc">{t.sortSavingsDesc}</option>
+              <option value="channels_desc">{t.sortChannelsDesc}</option>
             </select>
           </div>
 
@@ -306,7 +277,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
             type="button"
             onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
             className={`lg:hidden py-2 px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 ${
-              isLight ? 'bg-gray-100 border-gray-300' : 'bg-white/10 border-white/20'
+              isLight ? 'bg-gray-100 border-gray-300 text-gray-900' : 'bg-white/10 border-white/20 text-white'
             }`}
           >
             <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -345,21 +316,59 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
 
         {/* Plans Grid Area */}
         <div className="lg:col-span-3 space-y-4">
+          {/* Error Banner with Retry */}
+          {fetchError && (
+            <div className="p-4 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 flex items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span>{fetchError}</span>
+              </div>
+              <button
+                type="button"
+                onClick={fetchLivePlans}
+                className="px-3 py-1.5 rounded-lg bg-rose-500 text-white font-bold text-xs flex items-center gap-1 shrink-0"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>{t.retryFetch}</span>
+              </button>
+            </div>
+          )}
+
           {/* Results count banner */}
           <div className="flex items-center justify-between text-xs px-1">
-            <span className="font-bold opacity-75">
-              Showing {displayedPlans.length} {displayedPlans.length === 1 ? 'plan' : 'plans'}
+            <span className="font-bold text-gray-700 dark:text-gray-300">
+              {displayedPlans.length} {displayedPlans.length === 1 ? 'pack' : 'packs'}
             </span>
 
             {selectedForCompare.length > 0 && (
-              <span className="text-[11px] font-mono font-bold" style={{ color: currentTheme.primaryColor }}>
-                {selectedForCompare.length}/3 selected to compare
+              <span className="text-xs font-mono font-bold" style={{ color: currentTheme.primaryColor }}>
+                {selectedForCompare.length}/3 {t.comparePacks}
               </span>
             )}
           </div>
 
-          {/* Cards Grid */}
-          {displayedPlans.length > 0 ? (
+          {/* Loading Skeleton State */}
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+              {[1, 2, 3, 4, 5, 6].map((idx) => (
+                <div 
+                  key={idx} 
+                  className={`p-6 rounded-3xl border animate-pulse space-y-4 ${
+                    isLight ? 'bg-gray-100 border-gray-200' : 'bg-white/5 border-white/10'
+                  }`}
+                >
+                  <div className="flex justify-between items-center">
+                    <div className="h-4 bg-gray-300 dark:bg-white/20 rounded w-24" />
+                    <div className="h-4 bg-gray-300 dark:bg-white/20 rounded w-12" />
+                  </div>
+                  <div className="h-6 bg-gray-300 dark:bg-white/20 rounded w-3/4" />
+                  <div className="h-16 bg-gray-300 dark:bg-white/20 rounded-2xl" />
+                  <div className="h-8 bg-gray-300 dark:bg-white/20 rounded-xl" />
+                </div>
+              ))}
+            </div>
+          ) : displayedPlans.length > 0 ? (
+            /* Cards Grid */
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
               {displayedPlans.map((plan) => {
                 const isSelectedForCompare = selectedForCompare.some((p) => p.id === plan.id);
@@ -378,7 +387,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
               })}
             </div>
           ) : (
-            /* Enhanced Empty State with specific filter nudges */
+            /* Empty State */
             <div 
               className={`rounded-3xl border p-8 sm:p-12 text-center space-y-5 shadow-lg ${
                 isLight ? 'bg-white border-gray-200' : `${currentTheme.mainContainerBg} ${currentTheme.mainContainerBorder}`
@@ -393,54 +402,13 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
 
               <div className="space-y-1.5 max-w-md mx-auto">
                 <h3 className="font-bold text-lg">
-                  {currentLang === 'ta' ? 'திட்டங்கள் எதுவும் கிடைக்கவில்லை' : 'No Matching DTH Plans Found'}
+                  {t.noPlansMatch}
                 </h3>
-                <p className="text-xs opacity-75 leading-relaxed">
-                  No plans matched your active filter criteria. Try expanding your price range, clearing specific filters, or resetting all options.
+                <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
+                  Try expanding your price range, clearing specific filters, or resetting all options.
                 </p>
               </div>
 
-              {/* Active Filter Criteria Pills */}
-              <div className="flex flex-wrap items-center justify-center gap-1.5 max-w-lg mx-auto">
-                <span className="text-xs font-bold opacity-80 mr-1">Active filters:</span>
-                {filters.operators.length > 0 && (
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-orange-500/15 text-orange-600 dark:text-orange-400 border border-orange-500/30">
-                    {filters.operators.map((o) => o.replace('_', ' ')).join(', ')}
-                  </span>
-                )}
-                {filters.type !== 'all' && (
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30">
-                    {filters.type} Clarity
-                  </span>
-                )}
-                {(filters.priceRange[0] > 150 || filters.priceRange[1] < 4000) && (
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30 font-mono">
-                    ₹{filters.priceRange[0]}–₹{filters.priceRange[1]}
-                  </span>
-                )}
-                {filters.channelRange[0] > 50 && (
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-mono">
-                    {filters.channelRange[0]}+ Channels
-                  </span>
-                )}
-                {filters.durations.length > 0 && (
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30">
-                    {filters.durations.join(', ')} Mos
-                  </span>
-                )}
-                {filters.genreTags.length > 0 && (
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-                    {filters.genreTags.join(', ')}
-                  </span>
-                )}
-                {filters.searchQuery.trim() && (
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-pink-500/15 text-pink-600 dark:text-pink-400 border border-pink-500/30">
-                    "{filters.searchQuery}"
-                  </span>
-                )}
-              </div>
-
-              {/* Quick Nudge Actions */}
               <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
                 <button
                   type="button"
@@ -449,51 +417,15 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
                   style={{ backgroundColor: currentTheme.primaryColor }}
                 >
                   <RotateCcw className="w-4 h-4" />
-                  <span>Reset All Filters</span>
+                  <span>{t.resetFilters}</span>
                 </button>
-
-                {filters.operators.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setFilters((prev) => ({ ...prev, operators: [] }))}
-                    className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-colors ${
-                      isLight ? 'bg-gray-100 hover:bg-gray-200 border-gray-300' : 'bg-white/10 hover:bg-white/15 border-white/20'
-                    }`}
-                  >
-                    Clear Operator Filter
-                  </button>
-                )}
-
-                {filters.type !== 'all' && (
-                  <button
-                    type="button"
-                    onClick={() => setFilters((prev) => ({ ...prev, type: 'all' }))}
-                    className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-colors ${
-                      isLight ? 'bg-gray-100 hover:bg-gray-200 border-gray-300' : 'bg-white/10 hover:bg-white/15 border-white/20'
-                    }`}
-                  >
-                    Show Both HD & SD
-                  </button>
-                )}
-
-                {(filters.priceRange[0] > 150 || filters.priceRange[1] < 4000) && (
-                  <button
-                    type="button"
-                    onClick={() => setFilters((prev) => ({ ...prev, priceRange: [150, 4000] }))}
-                    className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-colors ${
-                      isLight ? 'bg-gray-100 hover:bg-gray-200 border-gray-300' : 'bg-white/10 hover:bg-white/15 border-white/20'
-                    }`}
-                  >
-                    Reset Price Range
-                  </button>
-                )}
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Floating Compare Drawer (when 1-3 plans selected) */}
+      {/* Floating Comparison Drawer */}
       <CompareDrawer
         selectedPlans={selectedForCompare}
         onRemovePlan={handleRemoveCompare}
@@ -503,37 +435,35 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
         currentLang={currentLang}
       />
 
-      {/* Side-by-side comparison modal table */}
+      {/* Comparison Full Modal */}
       <ComparisonTable
         isOpen={isCompareModalOpen}
         onClose={() => setIsCompareModalOpen(false)}
         plans={selectedForCompare}
+        onRemovePlan={handleRemoveCompare}
         onSelectPlan={(p) => {
           setIsCompareModalOpen(false);
           setSelectedPlanForApply(p);
         }}
         currentTheme={currentTheme}
         currentLang={currentLang}
-        user={user}
-        connections={connections}
-        onOpenAuth={onOpenAuth}
       />
 
-      {/* Apply Plan Modal (Hard constraints enforced: OTP login prompt only here, strict operator matching, handoff) */}
+      {/* Apply Plan to Set-Top Box Modal */}
       <ApplyPlanModal
-        isOpen={selectedPlanForApply !== null}
+        isOpen={Boolean(selectedPlanForApply)}
         onClose={() => setSelectedPlanForApply(null)}
         plan={selectedPlanForApply}
         user={user}
         connections={connections}
         onOpenAuth={onOpenAuth}
-        onApplyPlanToBox={(plan, box) => {
+        onApplyPlanToBox={(p, conn) => {
           setSelectedPlanForApply(null);
-          onApplyPlanToBox(plan, box);
+          onApplyPlanToBox(p, conn);
         }}
-        onAddNewConnectionAndApply={(plan, newConnData) => {
+        onAddNewConnectionAndApply={(p, data) => {
           setSelectedPlanForApply(null);
-          onAddNewConnectionAndApply(plan, newConnData);
+          onAddNewConnectionAndApply(p, data);
         }}
         currentTheme={currentTheme}
         currentLang={currentLang}

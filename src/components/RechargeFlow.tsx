@@ -13,7 +13,8 @@ import {
   ChevronUp,
   Info,
   Layers,
-  Coins
+  Coins,
+  RefreshCw
 } from 'lucide-react';
 import { 
   DthOperator, 
@@ -57,8 +58,10 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
   const [smartCardNumber, setSmartCardNumber] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  // Plan Catalog state
+  // Plan Catalog state with loading & error handling
   const [catalogPlans, setCatalogPlans] = useState<PlanCatalogItem[]>([]);
+  const [isCatalogLoading, setIsCatalogLoading] = useState<boolean>(true);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
   const [planTab, setPlanTab] = useState<'recommended' | 'change_plan'>('recommended');
   
   // Default view state: 6 Months default selection
@@ -92,19 +95,46 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
     return () => window.removeEventListener('operators_updated', loadOps);
   }, []);
 
-  // Fetch live plan catalog from PlanCatalogService & listen for real-time Excel updates
-  useEffect(() => {
-    const loadCatalog = () => {
-      PlanCatalogService.getAllPlans()
-        .then((all) => {
-          setCatalogPlans(all);
-        })
-        .catch((err) => console.error('Failed to load plan catalog:', err));
-    };
+  const fetchCatalog = () => {
+    setIsCatalogLoading(true);
+    setCatalogError(null);
 
-    loadCatalog();
-    window.addEventListener('plan_catalog_updated', loadCatalog);
-    return () => window.removeEventListener('plan_catalog_updated', loadCatalog);
+    PlanCatalogService.getAllPlans()
+      .then((all) => {
+        if (all && all.length > 0) {
+          setCatalogPlans(all);
+        }
+        setIsCatalogLoading(false);
+      })
+      .catch((err) => {
+        console.error('Failed to load plan catalog:', err);
+        setCatalogError(t.catalogLoadError);
+        setIsCatalogLoading(false);
+      });
+  };
+
+  // Live subscription to PlanCatalogService
+  useEffect(() => {
+    let isMounted = true;
+    setIsCatalogLoading(true);
+
+    const unsubscribe = PlanCatalogService.subscribeToPlans((items) => {
+      if (!isMounted) return;
+      if (items && items.length > 0) {
+        setCatalogPlans(items);
+        setCatalogError(null);
+      }
+      setIsCatalogLoading(false);
+    });
+
+    const handleUpdate = () => fetchCatalog();
+    window.addEventListener('plan_catalog_updated', handleUpdate);
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+      window.removeEventListener('plan_catalog_updated', handleUpdate);
+    };
   }, []);
 
   // Handle prefill from saved connection
@@ -150,7 +180,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
     if (currentOp.isEnabled === false) {
       setValidationError(
         currentOp.maintenanceMessage || 
-        `${currentOp.name} is temporarily offline for maintenance (${currentOp.conditionLabel || 'Maintenance'}). Expected restoration: ${currentOp.expectedRestoration || 'Shortly'}.`
+        `${currentOp.name} is temporarily offline for maintenance. Expected restoration shortly.`
       );
       return;
     }
@@ -238,12 +268,12 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
 
           <div className="pt-2 flex flex-wrap items-center gap-3 text-xs font-medium">
             <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border ${currentTheme.heroBadgeItemBg} ${currentTheme.heroBadgeItemText} ${currentTheme.heroBadgeItemBorder}`}>
-              <Zap className="w-3.5 h-3.5 text-amber-500" />
-              <span>Fast Processing</span>
+              <Zap className="w-4 h-4 text-amber-500" />
+              <span className="font-semibold">{currentLang === 'ta' ? 'விரைவு பரிவர்த்தனை' : 'Instant Activation'}</span>
             </div>
             <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border ${currentTheme.heroBadgeItemBg} ${currentTheme.heroBadgeItemText} ${currentTheme.heroBadgeItemBorder}`}>
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-              <span>Secure Payments</span>
+              <ShieldCheck className="w-4 h-4 text-emerald-500" />
+              <span className="font-semibold">{currentLang === 'ta' ? 'பாதுகாப்பான கட்டணம்' : 'Secure Encryption'}</span>
             </div>
           </div>
         </div>
@@ -279,6 +309,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                 <button
                   key={op.id}
                   id={`operator-${op.id}-btn`}
+                  type="button"
                   onClick={() => {
                     onSelectOpId(op.id);
                     setValidationError(null);
@@ -297,8 +328,8 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
 
                   {op.isEnabled === false && (
                     <div className="absolute top-2 left-2 z-10">
-                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-rose-500 text-white shadow-xs flex items-center gap-0.5">
-                        <AlertCircle className="w-2.5 h-2.5" /> Maintenance
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-rose-500 text-white shadow-xs flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" /> Offline
                       </span>
                     </div>
                   )}
@@ -325,18 +356,13 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
             <div className="text-xs space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-bold text-sm">{currentOp.name} is Temporarily Unavailable</span>
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-rose-500/20 text-rose-600 dark:text-rose-300 border border-rose-500/30">
-                  {currentOp.conditionLabel || 'Under Maintenance'}
+                <span className="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-rose-500/20 text-rose-600 dark:text-rose-300 border border-rose-500/30">
+                  Maintenance
                 </span>
               </div>
-              <p className="opacity-90 leading-relaxed">
-                {currentOp.maintenanceMessage || `${currentOp.name} services are temporarily offline for maintenance. Recharges will resume shortly.`}
+              <p className="text-xs leading-relaxed text-rose-700 dark:text-rose-300">
+                {currentOp.maintenanceMessage || t.operatorDisabledAlert}
               </p>
-              {currentOp.expectedRestoration && (
-                <p className="text-[11px] font-semibold text-rose-700 dark:text-rose-300">
-                  Expected Resumption: {currentOp.expectedRestoration}
-                </p>
-              )}
             </div>
           </div>
         )}
@@ -353,7 +379,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                 </span>
                 <span>{t.enterCardNumber}</span>
               </h2>
-              <span className={`text-xs ${currentTheme.subText}`}>
+              <span className={`text-xs font-semibold ${currentTheme.subText}`}>
                 {currentOp.cardName} ({currentOp.cardLengthDesc})
               </span>
             </div>
@@ -368,7 +394,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                     setSmartCardNumber(e.target.value.replace(/[^0-9]/g, ''));
                     setValidationError(null);
                   }}
-                  placeholder={`e.g. ${currentOp.sampleId}`}
+                  placeholder={`e.g. ${currentOp.sampleId || currentOp.sampleSmartCard || ''}`}
                   aria-label={`${currentOp.name} ${currentOp.cardName}`}
                   className={`w-full ${currentTheme.inputBg} ${currentTheme.inputBorder} ${currentTheme.inputFocusBorder} ${currentTheme.inputText} ${currentTheme.inputPlaceholder} ${currentTheme.inputStyleClass} font-mono text-base focus:outline-none transition-all`}
                 />
@@ -378,14 +404,14 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs pt-1">
                 <span className={`flex items-center gap-1.5 ${currentTheme.subText}`}>
                   <Info className="w-3.5 h-3.5" style={{ color: currentTheme.primaryColor }} />
-                  <span>Sample:</span>
+                  <span>{t.sampleCard}</span>
                   <button
                     type="button"
-                    onClick={() => handleQuickCardFill(currentOp.sampleId)}
+                    onClick={() => handleQuickCardFill(currentOp.sampleId || currentOp.sampleSmartCard || '')}
                     className="hover:underline font-mono font-bold"
                     style={{ color: currentTheme.primaryColor }}
                   >
-                    {currentOp.sampleId}
+                    {currentOp.sampleId || currentOp.sampleSmartCard}
                   </button>
                 </span>
               </div>
@@ -393,14 +419,14 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
               {validationError && (
                 <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-300 text-xs flex items-center gap-2 animate-in fade-in">
                   <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
-                  <span>{validationError}</span>
+                  <span className="font-semibold">{validationError}</span>
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* Step 3: Select Plan or Enter Amount (3-Card Balanced Grid for All Operators) */}
+        {/* Step 3: Select Plan or Enter Amount */}
         <div className={`space-y-6 pt-4 border-t ${currentTheme.surfaceBorder}`}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <h2 className={`text-base font-bold flex items-center gap-2 ${currentTheme.headingText}`}>
@@ -424,7 +450,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                     : `${currentTheme.durationPillInactive}`
                 }`}
               >
-                Recommended
+                {t.recommendedPacks}
               </button>
               <button
                 type="button"
@@ -440,13 +466,51 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                 }`}
               >
                 <Layers className="w-3.5 h-3.5" />
-                <span>All Plans ({operatorCatalog.length})</span>
+                <span>{t.changePacks} ({operatorCatalog.length})</span>
               </button>
             </div>
           </div>
 
-          {/* VIEW 1: RECOMMENDED 3-CARD BALANCED GRID */}
-          {planTab === 'recommended' && (
+          {/* Catalog Fetch Error Banner */}
+          {catalogError && (
+            <div className="p-4 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 flex items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span className="font-semibold">{catalogError}</span>
+              </div>
+              <button
+                type="button"
+                onClick={fetchCatalog}
+                className="px-3 py-1.5 rounded-lg bg-rose-500 text-white font-bold text-xs flex items-center gap-1 shrink-0 hover:bg-rose-600 transition-colors"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>{t.retryFetch}</span>
+              </button>
+            </div>
+          )}
+
+          {/* Loading Skeleton */}
+          {isCatalogLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[1, 2, 3].map((idx) => (
+                <div 
+                  key={idx} 
+                  className={`p-6 rounded-3xl border animate-pulse space-y-4 ${
+                    isLight ? 'bg-gray-100 border-gray-200' : 'bg-white/5 border-white/10'
+                  }`}
+                >
+                  <div className="flex justify-between items-center">
+                    <div className="h-4 bg-gray-300 dark:bg-white/20 rounded w-28" />
+                    <div className="h-4 bg-gray-300 dark:bg-white/20 rounded w-12" />
+                  </div>
+                  <div className="h-6 bg-gray-300 dark:bg-white/20 rounded w-3/4" />
+                  <div className="h-16 bg-gray-300 dark:bg-white/20 rounded-2xl" />
+                  <div className="h-9 bg-gray-300 dark:bg-white/20 rounded-xl" />
+                </div>
+              ))}
+            </div>
+          ) : planTab === 'recommended' ? (
+            /* VIEW 1: RECOMMENDED 3-CARD BALANCED GRID */
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 
@@ -465,7 +529,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                     {/* Card Title */}
                     <div className="space-y-1 mb-3">
                       <h3 className={`text-xl sm:text-2xl font-black flex items-center gap-2 ${selectedPackType === 'HD' ? currentTheme.cardActiveText : currentTheme.cardInactiveText}`}>
-                        <span>{recHDPlan ? recHDPlan.plan_name : 'Recommended HD Pack'}</span>
+                        <span>{recHDPlan ? recHDPlan.plan_name : 'Premier HD Pack'}</span>
                       </h3>
                     </div>
 
@@ -496,10 +560,10 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                       </div>
                       <div className={`px-2.5 py-1.5 rounded-xl border text-xs flex items-center justify-between ${currentTheme.inputBg} ${currentTheme.inputBorder}`}>
                         <span className={`font-semibold ${currentTheme.subText}`}>
-                          {hdDuration * 30} Days Validity
+                          {hdDuration * 30} {t.days} {t.validity}
                         </span>
-                        <span className={`text-[11px] font-bold ${currentTheme.mutedText}`}>
-                          {recHDPlan?.channel_list ? `${recHDPlan.channel_list.length} Channels` : 'HD Pack'}
+                        <span className={`text-xs font-bold ${currentTheme.mutedText}`}>
+                          {recHDPlan?.channel_list ? `${recHDPlan.channel_list.length} ${t.channels}` : 'HD Pack'}
                         </span>
                       </div>
                     </div>
@@ -526,14 +590,14 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                       <div className="text-right">
                         {hdSavings.savePerMonth > 0 && (
                           <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-md border ${currentTheme.savingsBadgeBg} ${currentTheme.savingsBadgeText} ${currentTheme.savingsBadgeBorder}`}>
-                            <Zap className="w-3 h-3 text-emerald-500" />
-                            Save ₹{hdSavings.savePerMonth}/mo
+                            <Zap className="w-3.5 h-3.5 text-emerald-500" />
+                            {t.saveBadge} ₹{hdSavings.savePerMonth}/mo
                           </span>
                         )}
                       </div>
                     </div>
 
-                    {/* Card Select Button - matches HD header color */}
+                    {/* Card Select Button */}
                     <button
                       type="button"
                       onClick={() => {
@@ -546,7 +610,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                         color: currentTheme.packHdBandText,
                       }}
                     >
-                      <span>{selectedPackType === 'HD' ? 'Selected' : 'Select HD Pack'}</span>
+                      <span>{selectedPackType === 'HD' ? 'Selected' : t.selectThisPack}</span>
                     </button>
                   </div>
                 </PackCard>
@@ -566,7 +630,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                     {/* Card Title */}
                     <div className="space-y-1 mb-3">
                       <h3 className={`text-xl sm:text-2xl font-black flex items-center gap-2 ${selectedPackType === 'SD' ? currentTheme.cardActiveText : currentTheme.cardInactiveText}`}>
-                        <span>{recSDPlan ? recSDPlan.plan_name : 'Recommended SD Pack'}</span>
+                        <span>{recSDPlan ? recSDPlan.plan_name : 'Super Value SD Pack'}</span>
                       </h3>
                     </div>
 
@@ -600,10 +664,10 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                       </div>
                       <div className={`px-2.5 py-1.5 rounded-xl border text-xs flex items-center justify-between ${currentTheme.inputBg} ${currentTheme.inputBorder}`}>
                         <span className={`font-semibold ${currentTheme.subText}`}>
-                          {sdDuration * 30} Days Validity
+                          {sdDuration * 30} {t.days} {t.validity}
                         </span>
-                        <span className={`text-[11px] font-bold ${currentTheme.mutedText}`}>
-                          {recSDPlan?.channel_list ? `${recSDPlan.channel_list.length} Channels` : 'SD Pack'}
+                        <span className={`text-xs font-bold ${currentTheme.mutedText}`}>
+                          {recSDPlan?.channel_list ? `${recSDPlan.channel_list.length} ${t.channels}` : 'SD Pack'}
                         </span>
                       </div>
                     </div>
@@ -630,14 +694,14 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                       <div className="text-right">
                         {sdSavings.savePerMonth > 0 && (
                           <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-md border ${currentTheme.savingsBadgeBg} ${currentTheme.savingsBadgeText} ${currentTheme.savingsBadgeBorder}`}>
-                            <Zap className="w-3 h-3 text-emerald-500" />
-                            Save ₹{sdSavings.savePerMonth}/mo
+                            <Zap className="w-3.5 h-3.5 text-emerald-500" />
+                            {t.saveBadge} ₹{sdSavings.savePerMonth}/mo
                           </span>
                         )}
                       </div>
                     </div>
 
-                    {/* Card Select Button - matches SD header color */}
+                    {/* Card Select Button */}
                     <button
                       type="button"
                       onClick={() => {
@@ -650,12 +714,12 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                         color: currentTheme.packSdBandText,
                       }}
                     >
-                      <span>{selectedPackType === 'SD' ? 'Selected' : 'Select SD Pack'}</span>
+                      <span>{selectedPackType === 'SD' ? 'Selected' : t.selectThisPack}</span>
                     </button>
                   </div>
                 </PackCard>
 
-                {/* 3. DECISION MAKER'S CHOICE: FLEXIBLE TOP-UP CARD */}
+                {/* 3. FLEXIBLE TOP-UP CARD */}
                 <PackCard
                   id="custom-recharge-card"
                   type="FLEXIBLE"
@@ -666,13 +730,13 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                   }}
                 >
                   <div>
-                    {/* Card Title & Brief Description */}
+                    {/* Card Title & Description */}
                     <div className="space-y-1 mb-3">
                       <h3 className={`text-xl sm:text-2xl font-black flex items-center gap-2 ${selectedPackType === 'CUSTOM' ? currentTheme.cardActiveText : currentTheme.cardInactiveText}`}>
-                        <span>Flexible Top-Up</span>
+                        <span>{t.customPack}</span>
                       </h3>
-                      <p className={`text-xs sm:text-sm ${currentTheme.subText}`}>
-                        Direct wallet balance credit for any custom amount.
+                      <p className={`text-xs sm:text-sm font-medium ${currentTheme.subText}`}>
+                        {currentLang === 'ta' ? 'விருப்பத் தொகைக்கான நேரடி வாலட் ரீசார்ஜ்.' : 'Direct balance credit for any custom amount.'}
                       </p>
                     </div>
 
@@ -685,7 +749,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                           type="number"
                           min={10}
                           max={20000}
-                          placeholder="Enter Amount"
+                          placeholder={t.enterAmount}
                           aria-label="Recharge amount"
                           value={customAmount}
                           onChange={(e) => {
@@ -700,7 +764,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                         />
                       </div>
 
-                      {/* Prominent Quick select pills */}
+                      {/* Quick select pills */}
                       <div className="grid grid-cols-5 gap-1.5" aria-label="Quick amount choices">
                         {[100, 200, 350, 500, 1000].map((quick) => (
                           <button
@@ -745,7 +809,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                       </div>
 
                       <span 
-                        className="text-xs sm:text-sm font-bold px-2.5 py-1 rounded-md border"
+                        className="text-xs font-bold px-2.5 py-1 rounded-md border"
                         style={{ 
                           backgroundColor: `${currentTheme.packFlexibleBandBg}18`, 
                           borderColor: `${currentTheme.packFlexibleBandBg}35`, 
@@ -756,7 +820,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                       </span>
                     </div>
 
-                    {/* Card Select Button - matches Flexible header color */}
+                    {/* Card Select Button */}
                     <button
                       type="button"
                       onClick={() => setSelectedPackType('CUSTOM')}
@@ -766,21 +830,19 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                         color: currentTheme.packFlexibleBandText,
                       }}
                     >
-                      <span>{selectedPackType === 'CUSTOM' ? 'Selected' : 'Select Flexible Top-Up'}</span>
+                      <span>{selectedPackType === 'CUSTOM' ? 'Selected' : t.customPack}</span>
                     </button>
                   </div>
                 </PackCard>
 
               </div>
             </div>
-          )}
-
-          {/* VIEW 2: "CHANGE PLAN" TAB */}
-          {planTab === 'change_plan' && (
+          ) : (
+            /* VIEW 2: "CHANGE PLAN" ALL PLANS LIST */
             <div className="space-y-4">
               <div className={`flex items-center justify-between text-xs px-1 ${currentTheme.subText}`}>
-                <span>
-                  <strong className={`font-bold ${currentTheme.headingText}`}>{operatorCatalog.length}</strong> available packs
+                <span className="font-semibold">
+                  <strong className={`font-bold ${currentTheme.headingText}`}>{operatorCatalog.length}</strong> {t.browsePacksTitle}
                 </span>
               </div>
 
@@ -806,9 +868,9 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                       <div>
                         {/* Top Badges */}
                         <div className="flex items-center justify-between gap-2 mb-3">
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             <span
-                              className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                              className={`px-2.5 py-0.5 rounded-md text-xs font-bold uppercase ${
                                 plan.pack_type === 'HD'
                                   ? `${currentTheme.badgeBg} ${currentTheme.badgeText} border ${currentTheme.badgeBorder}`
                                   : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
@@ -816,13 +878,13 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                             >
                               {plan.pack_type}
                             </span>
-                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded border ${currentTheme.inputBg} ${currentTheme.inputBorder} ${currentTheme.subText}`}>
-                              {plan.duration_months} {plan.duration_months > 1 ? 'Months' : 'Month'}
+                            <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-md border ${currentTheme.inputBg} ${currentTheme.inputBorder} ${currentTheme.subText}`}>
+                              {plan.duration_months} {plan.duration_months > 1 ? t.months : t.month}
                             </span>
                             {plan.is_recommended && (
-                              <span className="text-xs font-bold text-amber-500 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded flex items-center gap-1">
-                                <Crown className="w-3 h-3" />
-                                Recommended
+                              <span className="text-xs font-bold text-amber-500 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                <Crown className="w-3.5 h-3.5" />
+                                {t.popularBadge}
                               </span>
                             )}
                           </div>
@@ -847,26 +909,26 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                               e.stopPropagation();
                               toggleChannelExpand(plan.id);
                             }}
-                            className={`w-full py-1.5 px-2.5 rounded-xl border text-xs font-semibold flex items-center justify-between transition-colors ${currentTheme.inputBg} ${currentTheme.inputBorder} ${currentTheme.subText}`}
+                            className={`w-full py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-between transition-colors ${currentTheme.inputBg} ${currentTheme.inputBorder} ${currentTheme.subText}`}
                           >
-                            <span className="flex items-center gap-1.5">
-                              <Tv className="w-3.5 h-3.5" style={{ color: currentTheme.primaryColor }} />
-                              <span>{plan.channel_list.length} Channels</span>
+                            <span className="flex items-center gap-1.5 font-bold">
+                              <Tv className="w-4 h-4" style={{ color: currentTheme.primaryColor }} />
+                              <span>{plan.channel_list.length} {t.channels}</span>
                             </span>
                             {isExpanded ? (
-                              <ChevronUp className="w-3.5 h-3.5" />
+                              <ChevronUp className="w-4 h-4" />
                             ) : (
-                              <ChevronDown className="w-3.5 h-3.5" />
+                              <ChevronDown className="w-4 h-4" />
                             )}
                           </button>
 
                           {isExpanded && (
-                            <div className={`mt-2 p-2.5 rounded-xl border max-h-40 overflow-y-auto space-y-1.5 animate-in fade-in duration-200 ${currentTheme.inputBg} ${currentTheme.inputBorder}`}>
-                              <div className="flex flex-wrap gap-1">
+                            <div className={`mt-2 p-3 rounded-xl border max-h-40 overflow-y-auto space-y-1.5 animate-in fade-in duration-200 ${currentTheme.inputBg} ${currentTheme.inputBorder}`}>
+                              <div className="flex flex-wrap gap-1.5">
                                 {plan.channel_list.map((ch, idx) => (
                                   <span
                                     key={idx}
-                                    className={`text-xs font-medium px-2 py-0.5 rounded border ${isLight ? 'bg-white text-gray-800 border-gray-200' : 'bg-[#0e1935] text-[#c7d2e5] border-[#1e3058]'}`}
+                                    className={`text-xs font-semibold px-2.5 py-1 rounded-lg border ${isLight ? 'bg-white text-gray-800 border-gray-200' : 'bg-[#0e1935] text-[#c7d2e5] border-[#1e3058]'}`}
                                   >
                                     {ch}
                                   </span>
@@ -879,8 +941,8 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
 
                       {/* Select Plan Button */}
                       <div className={`mt-4 pt-3 border-t ${currentTheme.surfaceBorder} flex items-center justify-between`}>
-                        <span className={`text-xs font-medium ${currentTheme.subText}`}>
-                          {plan.duration_months * 30} Days Validity
+                        <span className={`text-xs font-semibold ${currentTheme.subText}`}>
+                          {plan.duration_months * 30} {t.days} {t.validity}
                         </span>
                         <button
                           type="button"
@@ -895,7 +957,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                               : `${currentTheme.cardButtonInactive}`
                           }`}
                         >
-                          {isSelected ? 'Selected' : 'Select'}
+                          {isSelected ? 'Selected' : t.selectThisPack}
                         </button>
                       </div>
                     </div>
@@ -918,32 +980,33 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                 className="rounded border-gray-400 focus:ring-2"
                 style={{ accentColor: currentTheme.primaryColor }}
               />
-              <span className="font-medium">
-                Save this Set-Top Box for faster recharges
+              <span className="font-semibold">
+                {t.saveBoxPrompt}
               </span>
             </label>
           </div>
         )}
 
-        {/* Primary Checkout CTA (Dynamic Operator Branded Button) */}
+        {/* Primary Checkout CTA */}
         <div className={`pt-4 border-t ${currentTheme.surfaceBorder} flex flex-col sm:flex-row items-center justify-between gap-4`}>
           <div>
-            <span className={`text-xs block ${currentTheme.subText}`}>{t.totalPayable}</span>
+            <span className={`text-xs block font-semibold ${currentTheme.subText}`}>{t.totalPayable}</span>
             <div className="flex items-baseline gap-2">
               <span className="text-3xl font-extrabold tabular-nums tracking-tight" style={{ color: currentTheme.primaryColor }}>
                 ₹{payablePrice}
               </span>
               <span className={`text-xs font-semibold ${currentTheme.headingText}`}>
-                ({selectedPackType === 'CUSTOM' ? 'Custom Top-Up' : `${activePlan?.pack_type || selectedPackType} Pack • ${activePlan?.duration_months || (selectedPackType === 'HD' ? hdDuration : sdDuration)}M`})
+                ({selectedPackType === 'CUSTOM' ? t.customPack : `${activePlan?.pack_type || selectedPackType} Pack • ${activePlan?.duration_months || (selectedPackType === 'HD' ? hdDuration : sdDuration)}M`})
               </span>
             </div>
-            <span className={`text-xs block mt-0.5 ${currentTheme.mutedText}`}>
+            <span className={`text-xs block mt-0.5 font-medium ${currentTheme.mutedText}`}>
               (Includes 18% GST • Zero Service Fee)
             </span>
           </div>
 
           <button
             id="proceed-to-pay-btn"
+            type="button"
             onClick={handlePayClick}
             disabled={currentOp?.isEnabled === false}
             className={`w-full sm:w-auto px-10 py-3.5 font-bold text-sm transition-all flex items-center justify-center gap-2 ${
