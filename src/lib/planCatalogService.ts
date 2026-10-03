@@ -796,7 +796,10 @@ export class PlanCatalogService {
    * Realtime Live Subscription to Firestore (Single Source of Truth)
    * Automatically synchronizes across all tabs and UI components via onSnapshot.
    */
-  static subscribeToPlans(callback: (plans: PlanCatalogItem[]) => void): Unsubscribe {
+  static subscribeToPlans(
+    callback: (plans: PlanCatalogItem[]) => void,
+    onError?: (err: Error) => void
+  ): Unsubscribe {
     if (isFirebaseLive && db) {
       try {
         const catalogRef = collection(db, 'plan_catalog');
@@ -805,9 +808,11 @@ export class PlanCatalogService {
           (snapshot) => {
             if (snapshot.empty) {
               // Firestore is live but empty: Auto-seed initial catalog
-              this.seedInitialCatalogToFirestore().then((seeded) => {
-                callback(seeded);
-              });
+              this.seedInitialCatalogToFirestore()
+                .then((seeded) => callback(seeded))
+                .catch((err) => {
+                  onError?.(err instanceof Error ? err : new Error(String(err)));
+                });
             } else {
               const plans: PlanCatalogItem[] = [];
               snapshot.forEach((docSnap) => {
@@ -841,17 +846,28 @@ export class PlanCatalogService {
             }
           },
           (err) => {
-            console.warn('[PlanCatalogService] onSnapshot listener error, falling back to cached plans:', err);
-            this.getAllPlans().then(callback);
+            console.error('[PlanCatalogService] onSnapshot listener error:', err);
+            if (onError) {
+              onError(err instanceof Error ? err : new Error(String(err)));
+            } else {
+              this.getAllPlans({ allowFallback: true }).then(callback);
+            }
           }
         );
       } catch (err) {
-        console.warn('[PlanCatalogService] Failed to establish onSnapshot listener:', err);
+        console.error('[PlanCatalogService] Failed to establish onSnapshot listener:', err);
+        if (onError) {
+          onError(err instanceof Error ? err : new Error(String(err)));
+        }
       }
     }
 
     // Fallback if Firebase not live or snapshot unavailable
-    this.getAllPlans().then(callback);
+    this.getAllPlans({ allowFallback: true })
+      .then(callback)
+      .catch((err) => {
+        onError?.(err instanceof Error ? err : new Error(String(err)));
+      });
     return () => {};
   }
 
@@ -873,9 +889,18 @@ export class PlanCatalogService {
   }
 
   /**
+   * Synchronously return the offline seed catalog when explicitly requested by user
+   */
+  static getOfflineSeedCatalog(): PlanCatalogItem[] {
+    return INITIAL_PLAN_CATALOG;
+  }
+
+  /**
    * Get all plans from Cloud Firestore (authoritative source of truth)
    */
-  static async getAllPlans(): Promise<PlanCatalogItem[]> {
+  static async getAllPlans(options: { allowFallback?: boolean } = {}): Promise<PlanCatalogItem[]> {
+    const { allowFallback = false } = options;
+
     // 1. Primary Source: Cloud Firestore
     if (isFirebaseLive && db) {
       try {
@@ -921,7 +946,10 @@ export class PlanCatalogService {
           return seeded;
         }
       } catch (err) {
-        console.warn('[PlanCatalogService] Firestore fetch error, checking backend server / cache:', err);
+        console.error('[PlanCatalogService] Firestore fetch error:', err);
+        if (!allowFallback) {
+          throw new Error('Failed to load plan catalog from Cloud Firestore. Please check your network connection.');
+        }
       }
     }
 
@@ -937,21 +965,29 @@ export class PlanCatalogService {
           return srvData.plans;
         }
       }
-    } catch {}
-
-    // 3. Fallback: Local storage cache
-    try {
-      const stored = localStorage.getItem(LOCAL_STORAGE_CATALOG_KEY);
-      if (stored) {
-        const parsed: PlanCatalogItem[] = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
-        }
+    } catch (err) {
+      if (!allowFallback && !isFirebaseLive) {
+        throw new Error('Failed to load plan catalog from backend server.');
       }
-    } catch {}
+    }
 
-    // 4. Fallback: Unified Seed Catalog
-    return INITIAL_PLAN_CATALOG;
+    // 3. Fallback: Local storage cache (if explicitly allowed)
+    if (allowFallback) {
+      try {
+        const stored = localStorage.getItem(LOCAL_STORAGE_CATALOG_KEY);
+        if (stored) {
+          const parsed: PlanCatalogItem[] = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed;
+          }
+        }
+      } catch {}
+
+      // 4. Fallback: Unified Seed Catalog
+      return INITIAL_PLAN_CATALOG;
+    }
+
+    throw new Error('Unable to connect to live plan catalog. Please check your network connection.');
   }
 
   // Get plans for a specific operator
@@ -1015,7 +1051,7 @@ export class PlanCatalogService {
 
   // Save or update plan (admin only)
   static async savePlan(
-    plan: Omit<PlanCatalogItem, 'updated_at'> & { updated_at?: string }, 
+    plan: Omit<PlanCatalogItem, 'updated_at' | 'updated_by'> & { updated_at?: string; updated_by?: string }, 
     adminUid: string
   ): Promise<PlanCatalogItem> {
     const now = new Date().toISOString();
@@ -1201,4 +1237,16 @@ export class PlanCatalogService {
       localStorage.setItem(LOCAL_STORAGE_AUDIT_KEY, JSON.stringify(existing.slice(0, 50)));
     } catch {}
   }
+}
+
+/**
+ * Re-export calculateSavings as a standalone function
+ */
+export function calculateSavings(
+  plans: PlanCatalogItem[],
+  operator: DthOperatorId,
+  pack_type: 'HD' | 'SD',
+  duration_months: 1 | 3 | 6 | 12
+): { savePerMonth: number; percentSave: number; oneMonthRate: number } {
+  return PlanCatalogService.calculateSavings(plans, operator, pack_type, duration_months);
 }

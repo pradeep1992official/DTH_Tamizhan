@@ -388,20 +388,22 @@ export async function parseAndValidatePlanExcel(
   currentPlans: PlanCatalogItem[]
 ): Promise<PlanValidationSummary> {
   // Strict File Size Limit Enforcement (10MB)
-  if (file instanceof File) {
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      throw new Error(`File size (${(file.size / (1024 * 1024)).toFixed(1)} MB) exceeds maximum permitted limit of 10 MB.`);
+  if (typeof file === 'object' && file !== null && 'size' in file && typeof (file as any).size === 'number') {
+    const size = (file as any).size;
+    if (size > MAX_FILE_SIZE_BYTES) {
+      throw new Error(`File size (${(size / (1024 * 1024)).toFixed(1)} MB) exceeds maximum permitted limit of 10 MB.`);
     }
   }
 
   let arrayBuffer: ArrayBuffer;
-  if (file instanceof File) {
-    arrayBuffer = await file.arrayBuffer();
+  if (typeof file === 'object' && file !== null && typeof (file as any).arrayBuffer === 'function') {
+    arrayBuffer = await (file as any).arrayBuffer();
   } else {
-    arrayBuffer = file;
-    if (arrayBuffer.byteLength > MAX_FILE_SIZE_BYTES) {
-      throw new Error(`File size (${(arrayBuffer.byteLength / (1024 * 1024)).toFixed(1)} MB) exceeds maximum permitted limit of 10 MB.`);
-    }
+    arrayBuffer = file as ArrayBuffer;
+  }
+
+  if (arrayBuffer && arrayBuffer.byteLength > MAX_FILE_SIZE_BYTES) {
+    throw new Error(`File size (${(arrayBuffer.byteLength / (1024 * 1024)).toFixed(1)} MB) exceeds maximum permitted limit of 10 MB.`);
   }
 
   const workbook = new ExcelJS.Workbook();
@@ -478,8 +480,18 @@ export async function parseAndValidatePlanExcel(
 
     // 6. Price / Amount
     const rawAmount = normalizedRow['price_inr'] || normalizedRow['price'] || normalizedRow['amount'] || normalizedRow['cost'] || '';
-    const cleanAmountStr = String(rawAmount).replace(/[^0-9.]/g, '');
-    const amount = parseFloat(cleanAmountStr);
+    let amount = NaN;
+    if (typeof rawAmount === 'number') {
+      amount = rawAmount;
+    } else {
+      const trimmed = String(rawAmount).trim();
+      if (trimmed.startsWith('-') || /-[0-9]/.test(trimmed)) {
+        amount = -1; // Explicit negative value trigger
+      } else {
+        const cleanAmountStr = trimmed.replace(/^₹\s*/, '').replace(/,/g, '');
+        amount = parseFloat(cleanAmountStr);
+      }
+    }
     if (isNaN(amount) || amount <= 0) {
       errors.push(`Invalid Price Amount "${rawAmount}". Must be a positive number greater than ₹0.`);
     }

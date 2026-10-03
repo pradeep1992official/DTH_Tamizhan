@@ -1,5 +1,7 @@
 import { BrowsePlan, DthOperatorId, PlanCatalogItem, PlanFilters } from '../types';
-import { INITIAL_PLAN_CATALOG } from './planCatalogService';
+import { INITIAL_PLAN_CATALOG, calculateSavings } from './planCatalogService';
+
+export { calculateSavings };
 
 /**
  * Converts a PlanCatalogItem from Firestore / Admin Catalog to a BrowsePlan
@@ -68,13 +70,16 @@ export function computePlanMetrics(plans: BrowsePlan[]): BrowsePlan[] {
 
     // Resolve 1-month baseline rate for the same operator pack family
     const familyKey = `${plan.operator}_${plan.type}`;
-    const oneMonthBaseRate = oneMonthBaselineMap.get(familyKey) || plan.price;
-    const baseCost = oneMonthBaseRate * (plan.duration_months || 1);
+    const oneMonthBaseRate = oneMonthBaselineMap.get(familyKey);
 
-    // Compute savings percentage against 1-month baseline
-    const savingsPct = (plan.duration_months > 1 && baseCost > plan.price)
-      ? Math.round(((baseCost - plan.price) / baseCost) * 100)
-      : 0;
+    // Compute savings percentage against 1-month baseline (only if 1-month pack exists)
+    let savingsPct = 0;
+    if (oneMonthBaseRate && plan.duration_months > 1) {
+      const baseCost = oneMonthBaseRate * plan.duration_months;
+      if (baseCost > plan.price) {
+        savingsPct = Math.round(((baseCost - plan.price) / baseCost) * 100);
+      }
+    }
 
     const monthlyRate = Math.round(plan.price / (plan.duration_months || 1));
 

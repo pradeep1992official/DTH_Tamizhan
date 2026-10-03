@@ -15,6 +15,7 @@ import {
 import { DthConnection, DthOperatorId, Language, UserProfile } from '../types';
 import { translations } from '../lib/translations';
 import { OperatorTheme, getOperatorTheme } from '../lib/theme';
+import { useAccessibleModal } from '../lib/useAccessibleModal';
 
 interface SavedConnectionsProps {
   connections: DthConnection[];
@@ -48,6 +49,11 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
   const [customerName, setCustomerName] = useState('');
 
   const isLight = currentTheme.isLightMode;
+
+  const { modalRef } = useAccessibleModal({
+    isOpen: isAddOpen,
+    onClose: () => setIsAddOpen(false),
+  });
 
   const handleSubmitNew = (e: React.FormEvent) => {
     e.preventDefault();
@@ -244,22 +250,36 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
             className={`inline-flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-xs transition-all shadow-md ${currentTheme.ctaButtonClass}`}
           >
             <Plus className="w-4 h-4" />
-            <span>Add First Set-Top Box</span>
+            <span>{t.addFirstBox}</span>
           </button>
         </div>
       )}
 
       {/* Add Connection Modal Themed */}
       {isAddOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className={`${currentTheme.mainContainerBg} ${currentTheme.mainContainerBorder} border rounded-3xl w-full max-w-md overflow-hidden shadow-2xl p-6 relative space-y-5`}>
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsAddOpen(false);
+          }}
+        >
+          <div 
+            ref={modalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-box-modal-title"
+            tabIndex={-1}
+            className={`${currentTheme.mainContainerBg} ${currentTheme.mainContainerBorder} border rounded-3xl w-full max-w-md overflow-hidden shadow-2xl p-6 relative space-y-5`}
+          >
             <div className={`flex items-center justify-between border-b ${currentTheme.surfaceBorder} pb-3.5`}>
-              <h3 className={`font-bold text-base flex items-center gap-2 ${currentTheme.headingText}`}>
+              <h3 id="add-box-modal-title" className={`font-bold text-base flex items-center gap-2 ${currentTheme.headingText}`}>
                 <Plus className="w-4 h-4" style={{ color: currentTheme.primaryColor }} />
-                <span>Add Set-Top Box</span>
+                <span>{t.addSetTopBox}</span>
               </h3>
               <button
+                type="button"
                 onClick={() => setIsAddOpen(false)}
+                aria-label={t.close}
                 className={`p-1.5 rounded-lg hover:bg-gray-500/10 ${currentTheme.subText}`}
               >
                 <X className="w-5 h-5" />
@@ -269,7 +289,7 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
             <form onSubmit={handleSubmitNew} className="space-y-4 text-xs">
               <div>
                 <label className={`block font-semibold mb-1.5 ${currentTheme.subText}`}>
-                  DTH Operator
+                  {t.dthOperatorLabel}
                 </label>
                 <select
                   value={operator}
@@ -285,7 +305,7 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
 
               <div>
                 <label className={`block font-semibold mb-1.5 ${currentTheme.subText}`}>
-                  Smart Card / VC Number / Customer ID
+                  {t.smartCardNumberLabel}
                 </label>
                 <input
                   type="text"
@@ -299,13 +319,13 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
 
               <div>
                 <label className={`block font-semibold mb-1.5 ${currentTheme.subText}`}>
-                  Box Nickname / Location
+                  {t.boxNickname}
                 </label>
                 <input
                   type="text"
                   value={nickname}
                   onChange={(e) => setNickname(e.target.value)}
-                  placeholder="e.g. Living Room TV, Hall, Shop, Bedroom"
+                  placeholder={t.boxNicknamePlaceholder}
                   className={`w-full ${currentTheme.inputBg} ${currentTheme.inputBorder} ${currentTheme.inputFocusBorder} ${currentTheme.inputText} ${currentTheme.inputPlaceholder} rounded-xl px-3.5 py-2.5 font-medium focus:outline-none border transition-colors`}
                 />
               </div>
@@ -315,7 +335,7 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
                   type="submit"
                   className={`w-full py-3 rounded-xl font-bold text-xs transition-all shadow-md ${currentTheme.ctaButtonClass}`}
                 >
-                  Save Connection
+                  {t.saveBoxBtn}
                 </button>
               </div>
             </form>

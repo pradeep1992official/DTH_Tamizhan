@@ -315,3 +315,64 @@ gcloud run deploy dth-tamizhan \
 6. In **Direct Administrator Authorization**, enter an email address (e.g. `dealer.chennai@gmail.com`) to grant instant Admin privileges.
 7. Sign in as a regular customer user and open `/admin/approvals`: observe the locked notice with a **Request Administrator Privileges** form to submit an application directly to Professor Pradeep.
 
+---
+
+## 7. Testing, Tooling & CI/CD Pipeline
+
+The project includes unit tests, integration tests, and Firestore security rule tests with the local Firebase Emulator:
+
+### Automated Test Suites
+1. **Savings Calculation Engine (`tests/calculateSavings.test.ts`)**:
+   - Baseline rate comparison against 1-month plans
+   - Multi-month (3M, 6M, 12M) savings percentages and discount metrics
+   - Preferred recommended plan resolution and edge-case handling
+
+2. **Plan Filtering & Sorting Engine (`tests/filterAndSortPlans.test.ts`)**:
+   - Operator filtering (single, multi, empty)
+   - HD / SD quality filtering
+   - Duration filters (1, 3, 6, 12 months)
+   - Dynamic price and channel count boundary filtering
+   - Multilingual search across English and Tamil script
+   - Badge attribution (`is_best_value`, `is_best_savings`)
+
+3. **Excel Catalog Parser & Normalizers (`tests/excelParser.test.ts`)**:
+   - Operator code and alias normalization
+   - Boolean, duration, and quality format normalizers
+   - Full `.xlsx` spreadsheet buffer generation and parsing
+   - Deep diff detection (price changes, name edits, channel additions/removals)
+   - Max file size limits (10MB) and validation error reporting
+
+4. **Firestore Security Rules Emulator (`tests/firestore.rules.test.ts`)**:
+   - Live test environment using `@firebase/rules-unit-testing`
+   - Owner-bound access control on user profiles and saved connections
+   - Role escalation prevention (blocking self-assigned admin permissions)
+   - Immutable audit trail enforcement (blocking recharge order deletion)
+   - Super Admin authorization (`professorpradeeps@gmail.com`) and admin directory management
+
+### Execution Commands
+
+```bash
+# Run all unit tests
+npm run test:unit
+
+# Run full test suite
+npm test
+
+# Run Firestore security rules against the local Firebase emulator
+npm run test:emulator
+
+# Run TypeScript type checker / linter
+npm run lint
+
+# Build full-stack application
+npm run build
+```
+
+### GitHub Actions CI
+The workflow in `.github/workflows/ci.yml` runs on push and pull requests to validate:
+- Dependency installation (`npm ci`)
+- Static code analysis & typing (`npm run lint`)
+- Unit tests (`npm run test:unit`)
+- Live Firestore emulator rules validation (`npx firebase emulators:exec --only firestore "npm run test:rules"`)
+- Production build output (`npm run build`)
+

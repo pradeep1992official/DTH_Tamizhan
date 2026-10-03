@@ -56,8 +56,8 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
   const t = translations[currentLang];
   const isLight = currentTheme.isLightMode;
 
-  // Plan catalog state: Starts with seeded master catalog, synchronized live via Firestore onSnapshot
-  const [allPlans, setAllPlans] = useState<BrowsePlan[]>(INITIAL_BROWSE_PLANS);
+  // Plan catalog state: Starts empty to allow authentic loading state, synchronized live via Firestore onSnapshot
+  const [allPlans, setAllPlans] = useState<BrowsePlan[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [filters, setFilters] = useState<PlanFilters>(DEFAULT_FILTERS);
@@ -76,18 +76,28 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
     setIsLoading(true);
     setFetchError(null);
 
-    PlanCatalogService.getAllPlans()
+    PlanCatalogService.getAllPlans({ allowFallback: false })
       .then((items) => {
         if (items && items.length > 0) {
           setAllPlans(items.map(catalogItemToBrowsePlan));
+          setFetchError(null);
+        } else {
+          setFetchError(t.catalogLoadError);
         }
         setIsLoading(false);
       })
       .catch((err) => {
         console.error('Failed to load plan catalog:', err);
-        setFetchError(t.catalogLoadError);
+        setFetchError(err instanceof Error ? err.message : t.catalogLoadError);
         setIsLoading(false);
       });
+  };
+
+  const handleLoadOfflineCatalog = () => {
+    const offline = PlanCatalogService.getOfflineSeedCatalog();
+    setAllPlans(offline.map(catalogItemToBrowsePlan));
+    setFetchError(null);
+    setIsLoading(false);
   };
 
   // Authoritative live subscription to Firestore plan_catalog
@@ -95,15 +105,23 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
     let isMounted = true;
     setIsLoading(true);
 
-    const unsubscribe = PlanCatalogService.subscribeToPlans((catalogItems) => {
-      if (!isMounted) return;
-      if (catalogItems && catalogItems.length > 0) {
-        const mapped = catalogItems.map(catalogItemToBrowsePlan);
-        setAllPlans(mapped);
-        setFetchError(null);
+    const unsubscribe = PlanCatalogService.subscribeToPlans(
+      (catalogItems) => {
+        if (!isMounted) return;
+        if (catalogItems && catalogItems.length > 0) {
+          const mapped = catalogItems.map(catalogItemToBrowsePlan);
+          setAllPlans(mapped);
+          setFetchError(null);
+        }
+        setIsLoading(false);
+      },
+      (err) => {
+        if (!isMounted) return;
+        console.error('Live plan subscription error:', err);
+        setFetchError(err.message || t.catalogLoadError);
+        setIsLoading(false);
       }
-      setIsLoading(false);
-    });
+    );
 
     const handleUpdateEvent = () => {
       fetchLivePlans();
@@ -281,7 +299,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
             }`}
           >
             <SlidersHorizontal className="w-3.5 h-3.5" />
-            <span>Filters</span>
+            <span>{t.filters}</span>
           </button>
         </div>
       </div>
@@ -316,111 +334,165 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
 
         {/* Plans Grid Area */}
         <div className="lg:col-span-3 space-y-4">
-          {/* Error Banner with Retry */}
-          {fetchError && (
-            <div className="p-4 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 flex items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-                <span>{fetchError}</span>
-              </div>
-              <button
-                type="button"
-                onClick={fetchLivePlans}
-                className="px-3 py-1.5 rounded-lg bg-rose-500 text-white font-bold text-xs flex items-center gap-1 shrink-0"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>{t.retryFetch}</span>
-              </button>
-            </div>
-          )}
-
-          {/* Results count banner */}
-          <div className="flex items-center justify-between text-xs px-1">
-            <span className="font-bold text-gray-700 dark:text-gray-300">
-              {displayedPlans.length} {displayedPlans.length === 1 ? 'pack' : 'packs'}
-            </span>
-
-            {selectedForCompare.length > 0 && (
-              <span className="text-xs font-mono font-bold" style={{ color: currentTheme.primaryColor }}>
-                {selectedForCompare.length}/3 {t.comparePacks}
-              </span>
-            )}
-          </div>
-
-          {/* Loading Skeleton State */}
-          {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-              {[1, 2, 3, 4, 5, 6].map((idx) => (
-                <div 
-                  key={idx} 
-                  className={`p-6 rounded-3xl border animate-pulse space-y-4 ${
-                    isLight ? 'bg-gray-100 border-gray-200' : 'bg-white/5 border-white/10'
-                  }`}
-                >
-                  <div className="flex justify-between items-center">
-                    <div className="h-4 bg-gray-300 dark:bg-white/20 rounded w-24" />
-                    <div className="h-4 bg-gray-300 dark:bg-white/20 rounded w-12" />
-                  </div>
-                  <div className="h-6 bg-gray-300 dark:bg-white/20 rounded w-3/4" />
-                  <div className="h-16 bg-gray-300 dark:bg-white/20 rounded-2xl" />
-                  <div className="h-8 bg-gray-300 dark:bg-white/20 rounded-xl" />
-                </div>
-              ))}
-            </div>
-          ) : displayedPlans.length > 0 ? (
-            /* Cards Grid */
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-              {displayedPlans.map((plan) => {
-                const isSelectedForCompare = selectedForCompare.some((p) => p.id === plan.id);
-                return (
-                  <PlanCard
-                    key={plan.id}
-                    plan={plan}
-                    currentTheme={currentTheme}
-                    currentLang={currentLang}
-                    isSelectedForCompare={isSelectedForCompare}
-                    onToggleCompare={handleToggleCompare}
-                    canAddToCompare={selectedForCompare.length < 3}
-                    onSelectPlan={(p) => setSelectedPlanForApply(p)}
-                  />
-                );
-              })}
-            </div>
-          ) : (
-            /* Empty State */
+          {/* Error State when no plans loaded */}
+          {fetchError && allPlans.length === 0 ? (
             <div 
-              className={`rounded-3xl border p-8 sm:p-12 text-center space-y-5 shadow-lg ${
-                isLight ? 'bg-white border-gray-200' : `${currentTheme.mainContainerBg} ${currentTheme.mainContainerBorder}`
+              role="alert"
+              className={`rounded-3xl border p-8 sm:p-12 text-center space-y-5 shadow-lg border-rose-500/30 ${
+                isLight ? 'bg-rose-50/70 text-rose-950' : 'bg-rose-950/20 text-rose-100'
               }`}
             >
-              <div 
-                className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center text-white shadow-md"
-                style={{ backgroundColor: `${currentTheme.primaryColor}25`, color: currentTheme.primaryColor }}
-              >
-                <SlidersHorizontal className="w-8 h-8" />
+              <div className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center bg-rose-500/20 text-rose-500 shadow-md">
+                <AlertCircle className="w-8 h-8" />
               </div>
 
-              <div className="space-y-1.5 max-w-md mx-auto">
-                <h3 className="font-bold text-lg">
-                  {t.noPlansMatch}
+              <div className="space-y-2 max-w-md mx-auto">
+                <h3 className="font-bold text-lg text-rose-600 dark:text-rose-400">
+                  {t.failedToLoadCatalog}
                 </h3>
-                <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
-                  Try expanding your price range, clearing specific filters, or resetting all options.
+                <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
+                  {fetchError}
+                </p>
+                <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">
+                  {t.checkConnectionOrRetry}
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={handleResetFilters}
-                  className="py-2.5 px-5 rounded-xl text-xs font-bold text-white shadow-md inline-flex items-center gap-2 transition-transform hover:scale-105 active:scale-95"
-                  style={{ backgroundColor: currentTheme.primaryColor }}
+                  onClick={fetchLivePlans}
+                  className="py-2.5 px-5 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-500 shadow-md inline-flex items-center gap-2 transition-transform hover:scale-105 active:scale-95"
                 >
-                  <RotateCcw className="w-4 h-4" />
-                  <span>{t.resetFilters}</span>
+                  <RefreshCw className="w-4 h-4" />
+                  <span>{t.retryFetch}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLoadOfflineCatalog}
+                  className="py-2.5 px-4 rounded-xl text-xs font-semibold border border-gray-400 dark:border-white/20 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                >
+                  <span>{t.useOfflineCatalog}</span>
                 </button>
               </div>
             </div>
+          ) : (
+            <>
+              {/* Error Banner with Retry (if plans were already loaded previously) */}
+              {fetchError && (
+                <div role="alert" className="p-4 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-700 dark:text-rose-300 flex items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                    <span className="font-semibold">{fetchError}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={fetchLivePlans}
+                    className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center gap-1 shrink-0"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>{t.retryFetch}</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Results count banner */}
+              <div className="flex items-center justify-between text-xs px-1">
+                <span className="font-bold text-gray-700 dark:text-gray-300">
+                  {displayedPlans.length} {displayedPlans.length === 1 ? t.pack : t.packs}
+                </span>
+
+                {selectedForCompare.length > 0 && (
+                  <span className="text-xs font-mono font-bold" style={{ color: currentTheme.primaryColor }}>
+                    {selectedForCompare.length}/3 {t.comparePacks}
+                  </span>
+                )}
+              </div>
+
+              {/* Loading Skeleton State */}
+              {isLoading ? (
+                <div className="space-y-4">
+                  <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-xs font-semibold flex items-center gap-2">
+                    <RefreshCw className="w-4 h-4 animate-spin text-amber-500 shrink-0" />
+                    <span>{t.loadingLiveCatalog}</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                    {[1, 2, 3, 4, 5, 6].map((idx) => (
+                      <div 
+                        key={idx} 
+                        className={`p-6 rounded-3xl border animate-pulse space-y-4 ${
+                          isLight ? 'bg-gray-100 border-gray-200' : 'bg-white/5 border-white/10'
+                        }`}
+                      >
+                        <div className="flex justify-between items-center">
+                          <div className="h-4 bg-gray-300 dark:bg-white/20 rounded w-24" />
+                          <div className="h-4 bg-gray-300 dark:bg-white/20 rounded w-12" />
+                        </div>
+                        <div className="h-6 bg-gray-300 dark:bg-white/20 rounded w-3/4" />
+                        <div className="h-16 bg-gray-300 dark:bg-white/20 rounded-2xl" />
+                        <div className="h-8 bg-gray-300 dark:bg-white/20 rounded-xl" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : displayedPlans.length > 0 ? (
+                /* Cards Grid */
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                  {displayedPlans.map((plan) => {
+                    const isSelectedForCompare = selectedForCompare.some((p) => p.id === plan.id);
+                    return (
+                      <PlanCard
+                        key={plan.id}
+                        plan={plan}
+                        currentTheme={currentTheme}
+                        currentLang={currentLang}
+                        isSelectedForCompare={isSelectedForCompare}
+                        onToggleCompare={handleToggleCompare}
+                        canAddToCompare={selectedForCompare.length < 3}
+                        onSelectPlan={(p) => setSelectedPlanForApply(p)}
+                      />
+                    );
+                  })}
+                </div>
+              ) : (
+                /* Empty State */
+                <div 
+                  className={`rounded-3xl border p-8 sm:p-12 text-center space-y-5 shadow-lg ${
+                    isLight ? 'bg-white border-gray-200' : `${currentTheme.mainContainerBg} ${currentTheme.mainContainerBorder}`
+                  }`}
+                >
+                  <div 
+                    className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center text-white shadow-md"
+                    style={{ backgroundColor: `${currentTheme.primaryColor}25`, color: currentTheme.primaryColor }}
+                  >
+                    <SlidersHorizontal className="w-8 h-8" />
+                  </div>
+
+                  <div className="space-y-1.5 max-w-md mx-auto">
+                    <h3 className="font-bold text-lg">
+                      {t.noPlansMatch}
+                    </h3>
+                    <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
+                      {currentLang === 'ta'
+                        ? 'விலை வரம்பை மாற்றவும் அல்லது அனைத்து வடிகட்டல்களையும் நீக்கி மீண்டும் முயற்சிக்கவும்.'
+                        : 'Try expanding your price range, clearing specific filters, or resetting all options.'}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={handleResetFilters}
+                      className="py-2.5 px-5 rounded-xl text-xs font-bold text-white shadow-md inline-flex items-center gap-2 transition-transform hover:scale-105 active:scale-95"
+                      style={{ backgroundColor: currentTheme.primaryColor }}
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      <span>{t.resetFilters}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

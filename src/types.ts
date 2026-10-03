@@ -129,8 +129,8 @@ export interface PlanCatalogItem {
   channels?: string[];
   genre_tags?: string[];
   description?: string;
-  updated_at: string;
-  updated_by: string;
+  updated_at?: string;
+  updated_by?: string;
 }
 
 export interface PlanAuditLog {
@@ -250,6 +250,7 @@ export interface CustomerRecord {
   totalSpent?: number;
   lastRechargeDate?: string;
   createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface PaymentReportItem {

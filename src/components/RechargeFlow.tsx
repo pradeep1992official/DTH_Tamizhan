@@ -99,18 +99,28 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
     setIsCatalogLoading(true);
     setCatalogError(null);
 
-    PlanCatalogService.getAllPlans()
+    PlanCatalogService.getAllPlans({ allowFallback: false })
       .then((all) => {
         if (all && all.length > 0) {
           setCatalogPlans(all);
+          setCatalogError(null);
+        } else {
+          setCatalogError(t.catalogLoadError);
         }
         setIsCatalogLoading(false);
       })
       .catch((err) => {
         console.error('Failed to load plan catalog:', err);
-        setCatalogError(t.catalogLoadError);
+        setCatalogError(err instanceof Error ? err.message : t.catalogLoadError);
         setIsCatalogLoading(false);
       });
+  };
+
+  const handleLoadOfflineCatalog = () => {
+    const offline = PlanCatalogService.getOfflineSeedCatalog();
+    setCatalogPlans(offline);
+    setCatalogError(null);
+    setIsCatalogLoading(false);
   };
 
   // Live subscription to PlanCatalogService
@@ -118,14 +128,22 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
     let isMounted = true;
     setIsCatalogLoading(true);
 
-    const unsubscribe = PlanCatalogService.subscribeToPlans((items) => {
-      if (!isMounted) return;
-      if (items && items.length > 0) {
-        setCatalogPlans(items);
-        setCatalogError(null);
+    const unsubscribe = PlanCatalogService.subscribeToPlans(
+      (items) => {
+        if (!isMounted) return;
+        if (items && items.length > 0) {
+          setCatalogPlans(items);
+          setCatalogError(null);
+        }
+        setIsCatalogLoading(false);
+      },
+      (err) => {
+        if (!isMounted) return;
+        console.error('Plan catalog subscription error:', err);
+        setCatalogError(err.message || t.catalogLoadError);
+        setIsCatalogLoading(false);
       }
-      setIsCatalogLoading(false);
-    });
+    );
 
     const handleUpdate = () => fetchCatalog();
     window.addEventListener('plan_catalog_updated', handleUpdate);
@@ -473,19 +491,30 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
 
           {/* Catalog Fetch Error Banner */}
           {catalogError && (
-            <div className="p-4 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 flex items-center justify-between gap-3 text-xs">
+            <div role="alert" className="p-4 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 flex flex-wrap items-center justify-between gap-3 text-xs">
               <div className="flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
                 <span className="font-semibold">{catalogError}</span>
               </div>
-              <button
-                type="button"
-                onClick={fetchCatalog}
-                className="px-3 py-1.5 rounded-lg bg-rose-500 text-white font-bold text-xs flex items-center gap-1 shrink-0 hover:bg-rose-600 transition-colors"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>{t.retryFetch}</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={fetchCatalog}
+                  className="px-3 py-1.5 rounded-lg bg-rose-500 text-white font-bold text-xs flex items-center gap-1 shrink-0 hover:bg-rose-600 transition-colors"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>{t.retryFetch}</span>
+                </button>
+                {catalogPlans.length === 0 && (
+                  <button
+                    type="button"
+                    onClick={handleLoadOfflineCatalog}
+                    className="px-3 py-1.5 rounded-lg border border-white/20 text-white text-xs font-semibold hover:bg-white/10 transition-colors"
+                  >
+                    <span>{t.useOfflineCatalog}</span>
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
