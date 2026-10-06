@@ -34,7 +34,7 @@ export const SecurityNotice: React.FC = () => {
       {/* Threat Summary Table (Production Directive 1) */}
       <div className="overflow-x-auto">
         <table className="w-full text-xs text-left">
-          <thead className="bg-[#070e1e] text-[#8e9cb4] uppercase tracking-wider text-[10px] font-bold">
+          <thead className="bg-[#070e1e] text-[#8e9cb4] uppercase tracking-wider text-xs font-bold">
             <tr>
               <th className="px-4 py-3 rounded-l-lg">Threat Zone</th>
               <th className="px-4 py-3">Identified Attack Vectors</th>
@@ -124,7 +124,7 @@ export const SecurityNotice: React.FC = () => {
             <Lock className="w-4 h-4" />
             <span>Zero Hardcoded Secrets</span>
           </div>
-          <p className="text-[11px] text-[#8e9cb4] leading-relaxed">
+          <p className="text-xs text-[#8e9cb4] leading-relaxed">
             All sensitive credentials loaded via server-side environment injection. No client-side leaks.
           </p>
         </div>
@@ -134,7 +134,7 @@ export const SecurityNotice: React.FC = () => {
             <Database className="w-4 h-4" />
             <span>Owner-Isolated Storage</span>
           </div>
-          <p className="text-[11px] text-[#8e9cb4] leading-relaxed">
+          <p className="text-xs text-[#8e9cb4] leading-relaxed">
             Users only access their own <code className="text-[#dfb86c]">dth_connections</code>. Operations restricted to verified admins.
           </p>
         </div>
@@ -144,7 +144,7 @@ export const SecurityNotice: React.FC = () => {
             <Server className="w-4 h-4" />
             <span>Undefined-Free Payloads</span>
           </div>
-          <p className="text-[11px] text-[#8e9cb4] leading-relaxed">
+          <p className="text-xs text-[#8e9cb4] leading-relaxed">
             Runtime sanitization ensures zero <code className="text-emerald-300">undefined</code> properties reach Firestore drivers.
           </p>
         </div>

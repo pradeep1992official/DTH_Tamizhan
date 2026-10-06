@@ -532,7 +532,7 @@ function MainApp() {
                 <span className={`font-sans font-extrabold text-base tracking-tight ${isLight ? 'text-[#111827]' : 'text-[#f5f2eb]'}`}>
                   DTH <span style={{ color: currentTheme.primaryColor }}>தமிழன்</span>
                 </span>
-                <span className="text-[11px] opacity-75 border px-1.5 py-0.5 rounded font-mono ml-1">
+                <span className="text-xs opacity-75 border px-1.5 py-0.5 rounded font-mono ml-1">
                   v2.0
                 </span>
               </div>
@@ -551,20 +551,19 @@ function MainApp() {
                   style={{ color: currentTheme.primaryColor }}
                 >
                   <ShieldCheck className="w-4 h-4" />
-                  <span>Admin Operations Portal</span>
+                  <span>{t.adminConsole}</span>
                 </button>
               </div>
             )}
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-4 text-[11px] opacity-70">
+          <div className="flex flex-wrap items-center justify-between gap-4 text-xs opacity-75">
             <p>
-              Compatible with {currentTheme.name} services. All trademarks, logos and brand names are property of their respective owners.
+              {t.footerDisclaimer}
             </p>
             <div className="flex items-center gap-1">
-              <span>Made with</span>
+              <span>{t.madeWithLove}</span>
               <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
-              <span>for DTH Viewers Across Tamil Nadu</span>
             </div>
           </div>
         </div>

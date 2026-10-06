@@ -849,8 +849,6 @@ export class PlanCatalogService {
             console.error('[PlanCatalogService] onSnapshot listener error:', err);
             if (onError) {
               onError(err instanceof Error ? err : new Error(String(err)));
-            } else {
-              this.getAllPlans({ allowFallback: true }).then(callback);
             }
           }
         );
@@ -860,14 +858,21 @@ export class PlanCatalogService {
           onError(err instanceof Error ? err : new Error(String(err)));
         }
       }
+    } else {
+      // Primary/Secondary fetch from authoritative server API without silent fallback to seed data
+      this.getAllPlans({ allowFallback: false })
+        .then((plans) => {
+          if (plans && plans.length > 0) {
+            callback(plans);
+          } else {
+            onError?.(new Error('No recharge packs found in catalog.'));
+          }
+        })
+        .catch((err) => {
+          onError?.(err instanceof Error ? err : new Error(String(err)));
+        });
     }
 
-    // Fallback if Firebase not live or snapshot unavailable
-    this.getAllPlans({ allowFallback: true })
-      .then(callback)
-      .catch((err) => {
-        onError?.(err instanceof Error ? err : new Error(String(err)));
-      });
     return () => {};
   }
 

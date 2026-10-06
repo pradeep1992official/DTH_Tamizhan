@@ -33,7 +33,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({ theme, className = '', siz
           <span className="font-black tracking-tight text-lg text-[#000000] block leading-none">
             airtel <span className="text-[#E93031] font-bold">DTH</span>
           </span>
-          <span className="text-[10px] uppercase font-bold tracking-widest text-[#666666] block mt-0.5">
+          <span className="text-xs uppercase font-bold tracking-widest text-[#666666] block mt-0.5">
             Digital TV
           </span>
         </div>
@@ -48,7 +48,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({ theme, className = '', siz
         <div className={`${sizeClasses} rounded-xl bg-[#E40066] text-white flex items-center justify-center shadow-lg border border-white/20`}>
           <div className="font-black text-xs tracking-tighter flex items-center">
             <span>PL</span>
-            <span className="text-white text-[10px] mx-px">▶</span>
+            <span className="text-white text-xs mx-px">▶</span>
             <span>Y</span>
           </div>
         </div>
@@ -56,7 +56,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({ theme, className = '', siz
           <span className="font-black tracking-tight text-lg text-white block leading-none">
             TATA <span className="text-[#FF2A93]">PLAY</span>
           </span>
-          <span className="text-[10px] uppercase font-bold tracking-wider text-[#DDD0FA] block mt-0.5">
+          <span className="text-xs uppercase font-bold tracking-wider text-[#DDD0FA] block mt-0.5">
             Jingalala DTH
           </span>
         </div>
@@ -77,7 +77,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({ theme, className = '', siz
           <span className="font-black tracking-tight text-lg text-white block leading-none">
             dish<span className="text-[#FFB81C]">tv</span> <span className="text-xs font-bold text-[#60a5fa]">& d2h</span>
           </span>
-          <span className="text-[10px] uppercase font-bold tracking-wider text-[#cfb597] block mt-0.5">
+          <span className="text-xs uppercase font-bold tracking-wider text-[#cfb597] block mt-0.5">
             Direct Broadcast
           </span>
         </div>
@@ -99,7 +99,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({ theme, className = '', siz
         <span className="font-black tracking-tight text-lg text-white block leading-none">
           SUN <span className="text-[#ff6b57]">DIRECT</span>
         </span>
-        <span className="text-[10px] uppercase font-bold tracking-wider text-[#cfa4a2] block mt-0.5">
+        <span className="text-xs uppercase font-bold tracking-wider text-[#cfa4a2] block mt-0.5">
           Digital DTH
         </span>
       </div>

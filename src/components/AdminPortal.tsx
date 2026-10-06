@@ -18,6 +18,7 @@ import {
   isUserAdmin
 } from '../types';
 import { OperatorTheme } from '../lib/theme';
+import { translations } from '../lib/translations';
 import { useAdminData } from './Admin/hooks/useAdminData';
 import { CustomersTab } from './Admin/tabs/CustomersTab';
 import { PendingOrdersTab } from './Admin/tabs/PendingOrdersTab';
@@ -51,6 +52,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   currentTheme,
   onPathChange,
 }) => {
+  const t = translations[currentLang];
   const isLight = currentTheme.isLightMode;
 
   // Active Tab State
@@ -86,6 +88,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     fetchOrders,
     plans,
     plansLoading,
+    plansError,
     fetchPacks,
     setPlans,
     auditLogs,
@@ -141,9 +144,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         <div className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center bg-rose-500/10 text-rose-500 border border-rose-500/20">
           <ShieldCheck className="w-7 h-7" />
         </div>
-        <h2 className="text-xl font-bold mb-2">Restricted Access</h2>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-6">
-          You must be logged in as an authorized administrator to view operational records and manage catalogs.
+        <h2 className="text-xl font-bold mb-2">{t.restrictedAccess}</h2>
+        <p className="text-xs text-gray-600 dark:text-gray-300 mb-6">
+          {t.restrictedAccessDesc}
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <button
@@ -151,7 +154,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             onClick={onOpenAuth}
             className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-sm"
           >
-            Sign In with Google
+            {t.googleOption}
           </button>
           {onBackToCustomerFlow && (
             <button
@@ -159,7 +162,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               onClick={onBackToCustomerFlow}
               className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5"
             >
-              Back to Home
+              {t.backToCustomerPortal}
             </button>
           )}
         </div>
@@ -170,14 +173,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const pendingCount = orders.filter((o) => o.rechargeStatus === 'pending' || o.rechargeStatus === 'processing').length;
 
   const NAV_ITEMS: { id: AdminTabId; label: string; icon: React.ReactNode; badge?: number }[] = [
-    { id: 'customers', label: 'Customers', icon: <Users className="w-4 h-4" /> },
-    { id: 'pending', label: 'Pending Orders', icon: <Clock className="w-4 h-4" />, badge: pendingCount },
-    { id: 'recharges', label: 'Recharge History', icon: <RefreshCw className="w-4 h-4" /> },
-    { id: 'packs', label: 'Plan Catalog', icon: <Layers className="w-4 h-4" /> },
-    { id: 'payments', label: 'Payments', icon: <CreditCard className="w-4 h-4" /> },
-    { id: 'reports', label: 'Reports & Audits', icon: <BarChart3 className="w-4 h-4" /> },
-    { id: 'operators', label: 'Operators Control', icon: <Radio className="w-4 h-4" /> },
-    { id: 'approvals', label: 'Admin Team', icon: <ShieldCheck className="w-4 h-4" /> },
+    { id: 'customers', label: t.customersTab, icon: <Users className="w-4 h-4" /> },
+    { id: 'pending', label: t.pendingOrdersTab, icon: <Clock className="w-4 h-4" />, badge: pendingCount },
+    { id: 'recharges', label: t.rechargesTab, icon: <RefreshCw className="w-4 h-4" /> },
+    { id: 'packs', label: t.packsTab, icon: <Layers className="w-4 h-4" /> },
+    { id: 'payments', label: t.paymentsTab, icon: <CreditCard className="w-4 h-4" /> },
+    { id: 'reports', label: t.reportsTab, icon: <BarChart3 className="w-4 h-4" /> },
+    { id: 'operators', label: t.operatorsTab, icon: <Radio className="w-4 h-4" /> },
+    { id: 'approvals', label: t.approvalsTab, icon: <ShieldCheck className="w-4 h-4" /> },
   ];
 
   return (
@@ -198,27 +201,28 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 type="button"
                 onClick={onBackToCustomerFlow}
                 className="p-2 rounded-xl text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
-                title="Back to Customer Portal"
+                title={t.backToCustomerPortal}
+                aria-label={t.backToCustomerPortal}
               >
                 <ArrowLeft className="w-4 h-4" />
               </button>
             )}
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-lg font-bold">Admin & Dealer Operations</h1>
+                <h1 className="text-lg font-bold">{t.adminOperations}</h1>
                 <span
-                  className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider border"
+                  className="px-2 py-0.5 rounded text-xs font-mono font-bold uppercase tracking-wider border"
                   style={{
                     backgroundColor: `${currentTheme.primaryColor}15`,
                     color: currentTheme.primaryColor,
                     borderColor: `${currentTheme.primaryColor}30`,
                   }}
                 >
-                  Authorized
+                  {t.authorizedBadge}
                 </span>
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                Logged in as: <span className="font-medium text-gray-700 dark:text-gray-200">{user.email}</span>
+              <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
+                {t.loggedInAs}: <span className="font-semibold text-gray-800 dark:text-gray-100">{user.email}</span>
               </p>
             </div>
           </div>
@@ -242,7 +246,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 {item.icon}
                 <span>{item.label}</span>
                 {typeof item.badge === 'number' && item.badge > 0 && (
-                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                     isActive ? 'bg-amber-400 text-gray-900' : 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
                   }`}>
                     {item.badge}
@@ -298,6 +302,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           <PacksTab
             plans={plans}
             plansLoading={plansLoading}
+            plansError={plansError}
             onRefresh={fetchPacks}
             user={user}
             currentTheme={currentTheme}

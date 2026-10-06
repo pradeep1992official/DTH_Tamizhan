@@ -70,9 +70,9 @@ export const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
             <Clock className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="font-bold text-sm">Operator Verification Queue</h3>
+            <h3 className="font-bold text-sm">{t.operatorQueueTitle}</h3>
             <p className="text-xs text-gray-600 dark:text-gray-300">
-              {pendingQueue.length} order{pendingQueue.length === 1 ? '' : 's'} waiting for transponder confirmation or credit dispatch.
+              {pendingQueue.length} {pendingQueue.length === 1 ? t.order : t.orders} • {t.operatorQueueDesc}
             </p>
           </div>
         </div>
@@ -81,8 +81,8 @@ export const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
           type="button"
           onClick={onRefresh}
           className="p-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-500 transition-colors"
-          title="Refresh Queue"
-          aria-label="Refresh Queue"
+          title={t.refreshQueue}
+          aria-label={t.refreshQueue}
         >
           <RefreshCw className={`w-4 h-4 ${ordersLoading ? 'animate-spin' : ''}`} />
         </button>
@@ -94,8 +94,8 @@ export const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
           isLight ? 'bg-white border-gray-200 text-gray-700' : 'bg-white/[0.02] border-white/10 text-gray-300'
         }`}>
           <CheckCircle2 className="w-10 h-10 mx-auto text-emerald-500 mb-2" />
-          <h4 className="font-bold text-sm">Queue is completely clear!</h4>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium">All customer recharge requests have been fulfilled successfully.</p>
+          <h4 className="font-bold text-sm">{t.queueClear}</h4>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium">{t.queueClearDesc}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -114,7 +114,7 @@ export const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
               </div>
 
               <div className="space-y-1 text-xs">
-                <div className="font-bold text-sm">{order.customerName || 'Subscriber'}</div>
+                <div className="font-bold text-sm">{order.customerName || t.customer}</div>
                 <div className="text-xs text-gray-600 dark:text-gray-300 font-mono">{order.operatorName} • {order.smartCardNumber}</div>
                 <div className="font-semibold text-gray-800 dark:text-gray-200">{order.packName} ({order.packValidity})</div>
               </div>
@@ -126,8 +126,8 @@ export const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
                     type="button"
                     onClick={() => onTriggerRefresh(order.operator, order.smartCardNumber)}
                     className="p-1.5 rounded-lg border text-purple-400 hover:bg-purple-500/10"
-                    title="Send refresh pulse"
-                    aria-label="Send signal refresh pulse"
+                    title={t.refreshStatus}
+                    aria-label={t.refreshStatus}
                   >
                     <Radio className="w-3.5 h-3.5" />
                   </button>
@@ -136,14 +136,14 @@ export const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
                     onClick={() => handleProcessOrder(order.orderId, 'failed')}
                     className="px-2.5 py-1.5 rounded-lg font-bold text-rose-500 hover:bg-rose-500/10 text-xs"
                   >
-                    Reject
+                    {t.reject}
                   </button>
                   <button
                     type="button"
                     onClick={() => handleProcessOrder(order.orderId, 'completed')}
                     className="px-3 py-1.5 rounded-lg font-bold text-white bg-emerald-600 hover:bg-emerald-500 text-xs shadow"
                   >
-                    Confirm Credit
+                    {t.confirmCredit}
                   </button>
                 </div>
               </div>

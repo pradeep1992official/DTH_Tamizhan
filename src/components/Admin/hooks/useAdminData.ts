@@ -37,6 +37,7 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
   // 3. Plan Catalog State
   const [plans, setPlans] = useState<PlanCatalogItem[]>([]);
   const [plansLoading, setPlansLoading] = useState(false);
+  const [plansError, setPlansError] = useState<string | null>(null);
 
   // 4. Reports & Audit Logs State
   const [auditLogs, setAuditLogs] = useState<PlanAuditLog[]>([]);
@@ -143,11 +144,13 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
   // Fetch Plans
   const fetchPacks = useCallback(async () => {
     setPlansLoading(true);
+    setPlansError(null);
     try {
-      const allPlans = await PlanCatalogService.getAllPlans();
+      const allPlans = await PlanCatalogService.getAllPlans({ allowFallback: false });
       setPlans(allPlans);
-    } catch (err) {
+    } catch (err: any) {
       console.error('[AdminData] Error loading packs:', err);
+      setPlansError(err?.message || 'Failed to load plan catalog');
     } finally {
       setPlansLoading(false);
     }
@@ -226,9 +229,15 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
 
   // Subscribe to live plan catalog updates
   useEffect(() => {
-    const unsub = PlanCatalogService.subscribeToPlans((newPlans: PlanCatalogItem[]) => {
-      setPlans(newPlans);
-    });
+    const unsub = PlanCatalogService.subscribeToPlans(
+      (newPlans: PlanCatalogItem[]) => {
+        setPlans(newPlans);
+        setPlansError(null);
+      },
+      (err: Error) => {
+        setPlansError(err.message || 'Failed to sync plan catalog');
+      }
+    );
     return () => unsub();
   }, []);
 
@@ -244,6 +253,7 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
     setOrders,
     plans,
     plansLoading,
+    plansError,
     fetchPacks,
     setPlans,
     auditLogs,

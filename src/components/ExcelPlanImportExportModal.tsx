@@ -244,7 +244,7 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
                 <h2 id="excel-modal-title" className="font-serif-royal font-bold text-lg sm:text-xl">
                   Excel Pack Synchronization & Management
                 </h2>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono uppercase bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                <span className="px-2 py-0.5 rounded-full text-xs font-bold font-mono uppercase bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                   .xlsx / .csv
                 </span>
               </div>
@@ -418,22 +418,22 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
                   {/* Summary Metric Badges */}
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
                     <div className={`p-3 rounded-2xl border ${isLight ? 'bg-gray-50 border-gray-200' : 'bg-white/5 border-white/10'}`}>
-                      <span className="text-[10px] uppercase font-bold opacity-60 block">Total In Sheet</span>
+                      <span className="text-xs uppercase font-bold text-gray-500 dark:text-gray-400 block">Total In Sheet</span>
                       <span className="text-lg font-black">{parseSummary.totalRows}</span>
                     </div>
 
                     <div className="p-3 rounded-2xl border bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
-                      <span className="text-[10px] uppercase font-bold opacity-80 block">Valid Rows</span>
+                      <span className="text-xs uppercase font-bold opacity-90 block">Valid Rows</span>
                       <span className="text-lg font-black">{parseSummary.validRows}</span>
                     </div>
 
                     <div className="p-3 rounded-2xl border bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-400">
-                      <span className="text-[10px] uppercase font-bold opacity-80 block">Price/Data Updates</span>
+                      <span className="text-xs uppercase font-bold opacity-90 block">Price/Data Updates</span>
                       <span className="text-lg font-black">{parseSummary.updatesCount}</span>
                     </div>
 
                     <div className="p-3 rounded-2xl border bg-purple-500/10 border-purple-500/30 text-purple-600 dark:text-purple-400">
-                      <span className="text-[10px] uppercase font-bold opacity-80 block">New Packs</span>
+                      <span className="text-xs uppercase font-bold opacity-90 block">New Packs</span>
                       <span className="text-lg font-black">{parseSummary.createsCount}</span>
                     </div>
 
@@ -442,7 +442,7 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
                         ? 'bg-rose-500/15 border-rose-500/30 text-rose-600 dark:text-rose-400'
                         : isLight ? 'bg-gray-50 border-gray-200 text-gray-500' : 'bg-white/5 border-white/10 text-gray-400'
                     }`}>
-                      <span className="text-[10px] uppercase font-bold opacity-80 block">Errors Found</span>
+                      <span className="text-xs uppercase font-bold opacity-90 block">Errors Found</span>
                       <span className="text-lg font-black">{parseSummary.invalidRows}</span>
                     </div>
                   </div>

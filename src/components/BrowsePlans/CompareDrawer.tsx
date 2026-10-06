@@ -2,6 +2,7 @@ import React from 'react';
 import { X, Scale, ArrowRight, Trash2, CheckCircle2 } from 'lucide-react';
 import { BrowsePlan, Language } from '../../types';
 import { OperatorTheme } from '../../lib/theme';
+import { translations } from '../../lib/translations';
 
 interface CompareDrawerProps {
   selectedPlans: BrowsePlan[];
@@ -28,6 +29,7 @@ export const CompareDrawer: React.FC<CompareDrawerProps> = ({
   currentTheme,
   currentLang,
 }) => {
+  const t = translations[currentLang];
   if (selectedPlans.length === 0) return null;
 
   const isLight = currentTheme.isLightMode;
@@ -52,10 +54,10 @@ export const CompareDrawer: React.FC<CompareDrawerProps> = ({
             </div>
             <div>
               <span className="text-xs font-bold block">
-                Compare ({selectedPlans.length}/3)
+                {t.comparePacks} ({selectedPlans.length}/3)
               </span>
-              <span className="text-[10px] opacity-60">
-                {selectedPlans.length < 2 ? 'Select at least 2' : 'Ready to compare'}
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                {selectedPlans.length < 2 ? t.selectAtLeastTwo : t.readyToCompare}
               </span>
             </div>
           </div>
@@ -75,7 +77,7 @@ export const CompareDrawer: React.FC<CompareDrawerProps> = ({
                   <span className="font-bold truncate max-w-[120px] block leading-tight">
                     {plan.name}
                   </span>
-                  <span className="text-[10px] opacity-70 font-mono">
+                  <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">
                     ₹{plan.price} • {plan.type}
                   </span>
                 </div>
@@ -102,7 +104,7 @@ export const CompareDrawer: React.FC<CompareDrawerProps> = ({
             }`}
           >
             <Trash2 className="w-3.5 h-3.5" />
-            <span>Clear</span>
+            <span>{t.clearAll}</span>
           </button>
 
           <button
@@ -118,7 +120,7 @@ export const CompareDrawer: React.FC<CompareDrawerProps> = ({
               backgroundColor: selectedPlans.length >= 2 ? currentTheme.primaryColor : '#64748b',
             }}
           >
-            <span>Compare ({selectedPlans.length})</span>
+            <span>{t.comparePacks} ({selectedPlans.length})</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>

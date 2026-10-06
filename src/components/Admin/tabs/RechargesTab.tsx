@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { RechargeOrder, Language, DthOperatorId } from '../../../types';
 import { OperatorTheme } from '../../../lib/theme';
+import { translations } from '../../../lib/translations';
 
 interface RechargesTabProps {
   orders: RechargeOrder[];
@@ -34,6 +35,7 @@ export const RechargesTab: React.FC<RechargesTabProps> = ({
   showToast,
   onTriggerRefresh,
 }) => {
+  const t = translations[currentLang];
   const isLight = currentTheme.isLightMode;
   const [orderSearch, setOrderSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -82,7 +84,7 @@ export const RechargesTab: React.FC<RechargesTabProps> = ({
             <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
             <input
               type="text"
-              placeholder="Search by Order ID, card number, or name..."
+              placeholder={t.searchOrders}
               value={orderSearch}
               onChange={(e) => setOrderSearch(e.target.value)}
               className={`w-full rounded-xl pl-9 pr-3 py-2 text-xs border focus:outline-none ${
@@ -98,11 +100,11 @@ export const RechargesTab: React.FC<RechargesTabProps> = ({
               isLight ? 'bg-gray-50 border-gray-300 text-gray-900' : 'bg-[#140029] border-white/20 text-white'
             }`}
           >
-            <option value="all">All Statuses</option>
-            <option value="completed">Completed</option>
-            <option value="pending">Pending</option>
+            <option value="all">{t.allStatuses}</option>
+            <option value="completed">{t.completed}</option>
+            <option value="pending">{t.pending}</option>
             <option value="processing">Processing</option>
-            <option value="failed">Failed</option>
+            <option value="failed">{t.failed}</option>
           </select>
 
           <select
@@ -112,7 +114,7 @@ export const RechargesTab: React.FC<RechargesTabProps> = ({
               isLight ? 'bg-gray-50 border-gray-300 text-gray-900' : 'bg-[#140029] border-white/20 text-white'
             }`}
           >
-            <option value="all">All Operators</option>
+            <option value="all">{t.allOperators}</option>
             <option value="sun_direct">Sun Direct</option>
             <option value="tata_play">Tata Play</option>
             <option value="airtel_dth">Airtel DTH</option>
@@ -126,7 +128,7 @@ export const RechargesTab: React.FC<RechargesTabProps> = ({
           className={`p-2.5 rounded-xl border transition-colors ${
             isLight ? 'bg-gray-100 hover:bg-gray-200 text-gray-700' : 'bg-white/10 hover:bg-white/20 text-white'
           }`}
-          title="Refresh orders"
+          title={t.refresh}
         >
           <RefreshCw className={`w-4 h-4 ${ordersLoading ? 'animate-spin' : ''}`} />
         </button>
@@ -140,19 +142,19 @@ export const RechargesTab: React.FC<RechargesTabProps> = ({
           <table className="w-full text-left text-xs">
             <thead className={`border-b ${isLight ? 'bg-gray-50/80 text-gray-600 border-gray-200' : 'bg-white/[0.03] text-gray-400 border-white/10'}`}>
               <tr>
-                <th className="p-3.5 font-bold uppercase tracking-wider">Order ID & Date</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">Customer & Card</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">Pack & Validity</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">Amount & Payment</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">Status</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider text-right">Actions</th>
+                <th className="p-3.5 font-bold uppercase tracking-wider">{t.orderIdAndDate}</th>
+                <th className="p-3.5 font-bold uppercase tracking-wider">{t.customerAndCard}</th>
+                <th className="p-3.5 font-bold uppercase tracking-wider">{t.packAndValidity}</th>
+                <th className="p-3.5 font-bold uppercase tracking-wider">{t.amountAndPayment}</th>
+                <th className="p-3.5 font-bold uppercase tracking-wider">{t.status}</th>
+                <th className="p-3.5 font-bold uppercase tracking-wider text-right">{t.actions}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-500/10">
               {filteredOrders.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-gray-500">
-                    No recharge orders found.
+                    {t.noOrdersFound}
                   </td>
                 </tr>
               ) : (
@@ -160,24 +162,24 @@ export const RechargesTab: React.FC<RechargesTabProps> = ({
                   <tr key={ord.orderId} className="hover:bg-white/[0.02] transition-colors">
                     <td className="p-3.5 font-mono">
                       <div className="font-bold">{ord.orderId}</div>
-                      <div className="text-[10px] opacity-60">
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
                         {new Date(ord.createdAt).toLocaleString()}
                       </div>
                     </td>
                     <td className="p-3.5">
-                      <div className="font-semibold">{ord.customerName || 'Subscriber'}</div>
-                      <div className="text-[11px] font-mono opacity-75">{ord.operatorName} • {ord.smartCardNumber}</div>
+                      <div className="font-semibold">{ord.customerName || t.customer}</div>
+                      <div className="text-xs font-mono text-gray-500 dark:text-gray-400">{ord.operatorName} • {ord.smartCardNumber}</div>
                     </td>
                     <td className="p-3.5">
                       <div className="font-medium">{ord.packName}</div>
-                      <div className="text-[10px] opacity-60">{ord.packValidity}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">{ord.packValidity}</div>
                     </td>
                     <td className="p-3.5">
                       <div className="font-mono font-bold text-sm">₹{ord.amount}</div>
-                      <div className="text-[10px] uppercase opacity-60 font-semibold">{ord.paymentMethod}</div>
+                      <div className="text-xs uppercase text-gray-500 dark:text-gray-400 font-semibold">{ord.paymentMethod}</div>
                     </td>
                     <td className="p-3.5">
-                      <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase inline-flex items-center gap-1 ${
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-bold uppercase inline-flex items-center gap-1 ${
                         ord.rechargeStatus === 'completed'
                           ? 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/30'
                           : ord.rechargeStatus === 'failed'
@@ -194,15 +196,15 @@ export const RechargesTab: React.FC<RechargesTabProps> = ({
                       {ord.rechargeStatus !== 'completed' && (
                         <button
                           onClick={() => handleUpdateStatus(ord.orderId, 'completed')}
-                          className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] shadow"
+                          className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow"
                         >
-                          Credit Box
+                          {t.creditBox}
                         </button>
                       )}
                       <button
                         onClick={() => onTriggerRefresh(ord.operator, ord.smartCardNumber)}
                         className="p-1.5 rounded-lg border text-purple-400 hover:bg-purple-500/10 transition-colors"
-                        title="Send satellite refresh pulse"
+                        title={t.refreshStatus}
                       >
                         <Radio className="w-3.5 h-3.5" />
                       </button>

@@ -19,6 +19,7 @@ import { OperatorTheme } from '../../../lib/theme';
 import { db, isFirebaseLive, sanitizePayload } from '../../../lib/firebase';
 import { doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { translations } from '../../../lib/translations';
+import { useAccessibleModal } from '../../../lib/useAccessibleModal';
 
 interface CustomersTabProps {
   customers: CustomerRecord[];
@@ -45,6 +46,17 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
   const [custOpFilter, setCustOpFilter] = useState<string>('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<CustomerRecord | null>(null);
+
+  // Accessible Modal Focus Trapping & Escape-to-close
+  const { modalRef: addModalRef } = useAccessibleModal({
+    isOpen: isAddModalOpen,
+    onClose: () => setIsAddModalOpen(false),
+  });
+
+  const { modalRef: deleteModalRef } = useAccessibleModal({
+    isOpen: Boolean(customerToDelete),
+    onClose: () => setCustomerToDelete(null),
+  });
 
   const [formData, setFormData] = useState({
     customerName: '',
@@ -311,6 +323,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
           }}
         >
           <div 
+            ref={addModalRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="add-subscriber-title"
@@ -319,7 +332,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
             }`}
           >
             <div className="flex items-center justify-between border-b pb-3 border-gray-500/20">
-              <h3 id="add-subscriber-title" className="font-bold text-base">Register New Subscriber</h3>
+              <h3 id="add-subscriber-title" className="font-bold text-base">{t.registerNewSubscriber}</h3>
               <button 
                 type="button"
                 onClick={() => setIsAddModalOpen(false)} 
@@ -332,7 +345,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
 
             <form onSubmit={handleCreateCustomer} className="space-y-3 text-xs">
               <div>
-                <label className="font-semibold block mb-1 text-gray-700 dark:text-gray-300">Customer Full Name</label>
+                <label className="font-semibold block mb-1 text-gray-700 dark:text-gray-300">{t.customerFullName}</label>
                 <input
                   type="text"
                   required
@@ -344,7 +357,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
               </div>
 
               <div>
-                <label className="font-semibold block mb-1 text-gray-700 dark:text-gray-300">Registered Mobile Number</label>
+                <label className="font-semibold block mb-1 text-gray-700 dark:text-gray-300">{t.registeredMobile}</label>
                 <input
                   type="tel"
                   required
@@ -357,7 +370,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-semibold block mb-1 text-gray-700 dark:text-gray-300">DTH Operator</label>
+                  <label className="font-semibold block mb-1 text-gray-700 dark:text-gray-300">{t.dthOperatorLabel}</label>
                   <select
                     value={formData.operator}
                     onChange={(e) => {
@@ -382,7 +395,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
                 </div>
 
                 <div>
-                  <label className="font-semibold block mb-1 text-gray-700 dark:text-gray-300">Quality</label>
+                  <label className="font-semibold block mb-1 text-gray-700 dark:text-gray-300">{t.qualityLabel}</label>
                   <select
                     value={formData.planQuality}
                     onChange={(e) => setFormData({ ...formData, planQuality: e.target.value as any })}
@@ -395,7 +408,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
               </div>
 
               <div>
-                <label className="font-semibold block mb-1 text-gray-700 dark:text-gray-300">Smart Card / CDSN / Subscriber ID</label>
+                <label className="font-semibold block mb-1 text-gray-700 dark:text-gray-300">{t.smartCardNumberField}</label>
                 <input
                   type="text"
                   required
@@ -407,7 +420,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
               </div>
 
               <div>
-                <label className="font-semibold block mb-1 text-gray-700 dark:text-gray-300">Active Bouquet / Pack</label>
+                <label className="font-semibold block mb-1 text-gray-700 dark:text-gray-300">{t.activeBouquetPack}</label>
                 <input
                   type="text"
                   required
@@ -420,7 +433,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-semibold block mb-1 text-gray-700 dark:text-gray-300">Initial Balance (₹)</label>
+                  <label className="font-semibold block mb-1 text-gray-700 dark:text-gray-300">{t.initialBalance}</label>
                   <input
                     type="number"
                     value={formData.currentBalance}
@@ -429,7 +442,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="font-semibold block mb-1 text-gray-700 dark:text-gray-300">Expiry Date</label>
+                  <label className="font-semibold block mb-1 text-gray-700 dark:text-gray-300">{t.validityExpires}</label>
                   <input
                     type="date"
                     value={formData.expiryDate}
@@ -452,7 +465,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
                   className="px-4 py-2 rounded-xl font-bold text-white shadow"
                   style={{ backgroundColor: currentTheme.primaryColor }}
                 >
-                  Create Subscriber
+                  {t.save}
                 </button>
               </div>
             </form>
@@ -469,6 +482,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
           }}
         >
           <div 
+            ref={deleteModalRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="delete-customer-title"
@@ -476,9 +490,11 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
               isLight ? 'bg-white border-rose-200 text-gray-900' : 'bg-[#180530] border-rose-500/30 text-white'
             }`}
           >
-            <h3 id="delete-customer-title" className="font-bold text-base text-rose-500">Delete Subscriber Record?</h3>
+            <h3 id="delete-customer-title" className="font-bold text-base text-rose-500">{t.delete}</h3>
             <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
-              Are you sure you want to permanently delete <strong>{customerToDelete.customerName}</strong> ({customerToDelete.smartCardNumber})?
+              {currentLang === 'ta'
+                ? `நீங்கள் நிச்சயமாக ${customerToDelete.customerName} (${customerToDelete.smartCardNumber}) வாடிக்கையாளர் பதிவை நீக்க விரும்புகிறீர்களா?`
+                : `Are you sure you want to delete ${customerToDelete.customerName} (${customerToDelete.smartCardNumber})?`}
             </p>
             <div className="flex justify-end gap-2 pt-2">
               <button
@@ -491,7 +507,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
               <button
                 type="button"
                 onClick={() => handleDeleteCustomer(customerToDelete.id)}
-                className="px-3.5 py-2 rounded-xl text-xs font-bold bg-rose-600 text-white"
+                className="px-3.5 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white shadow-sm"
               >
                 {t.delete}
               </button>

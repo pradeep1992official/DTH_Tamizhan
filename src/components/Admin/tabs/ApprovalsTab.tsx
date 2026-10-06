@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { AdminAccount, AdminAccessRequest, Language, UserProfile, SUPER_ADMIN_EMAIL, isSuperAdminEmail } from '../../../types';
 import { OperatorTheme } from '../../../lib/theme';
+import { translations } from '../../../lib/translations';
+import { useAccessibleModal } from '../../../lib/useAccessibleModal';
 
 interface ApprovalsTabProps {
   approvedAdmins: AdminAccount[];
@@ -36,12 +38,23 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
   showToast,
   user,
 }) => {
+  const t = translations[currentLang];
   const isLight = currentTheme.isLightMode;
   const [directEmail, setDirectEmail] = useState('');
   const [directName, setDirectName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [adminToRevoke, setAdminToRevoke] = useState<AdminAccount | null>(null);
+
+  const { modalRef: revokeModalRef } = useAccessibleModal({
+    isOpen: Boolean(adminToRevoke),
+    onClose: () => setAdminToRevoke(null),
+  });
 
   const isSuperAdmin = isSuperAdminEmail(user?.email);
+
+  const handleRevokeAdmin = (admin: AdminAccount) => {
+    setAdminToRevoke(admin);
+  };
 
   const handleGrantAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,19 +88,21 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
     }
   };
 
-  const handleRevokeAdmin = async (admin: AdminAccount) => {
-    if (!window.confirm(`Revoke admin access for ${admin.email}?`)) return;
+  const handleConfirmRevoke = async () => {
+    if (!adminToRevoke) return;
+    const emailToRevoke = adminToRevoke.email;
+    setAdminToRevoke(null);
 
     try {
       const headers = await getAuthHeaders();
       const res = await fetch('/api/admin/revoke-user', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ email: admin.email }),
+        body: JSON.stringify({ email: emailToRevoke }),
       });
 
       if (res.ok) {
-        showToast(`Access revoked for ${admin.email}`);
+        showToast(`Access revoked for ${emailToRevoke}`);
         onRefresh();
       } else {
         showToast('Failed to revoke admin access');
@@ -175,7 +190,7 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
           }`}
         >
           <RefreshCw className={`w-3.5 h-3.5 ${accessLoading ? 'animate-spin' : ''}`} />
-          <span>Refresh Team</span>
+          <span>{t.refresh}</span>
         </button>
       </div>
 
@@ -185,7 +200,7 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
           <div className="mb-4">
             <h4 className="text-sm font-bold flex items-center gap-2">
               <Plus className="w-4 h-4 text-emerald-500" />
-              Direct Administrator Authorization
+              {t.grantAdminAccess}
             </h4>
             <p className={`text-xs ${currentTheme.subText}`}>
               Add a new administrator by email to instantly grant operational access.
@@ -198,7 +213,7 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
               required
               value={directEmail}
               onChange={(e) => setDirectEmail(e.target.value)}
-              placeholder="Admin Email (e.g. manager@gmail.com)"
+              placeholder={t.emailAddressLabel}
               className={`px-3 py-2 rounded-xl text-xs border font-medium focus:outline-none ${
                 isLight ? 'bg-white border-gray-200 text-gray-800' : 'bg-black/30 border-white/10 text-white'
               }`}
@@ -207,7 +222,7 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
               type="text"
               value={directName}
               onChange={(e) => setDirectName(e.target.value)}
-              placeholder="Full Name / Branch (Optional)"
+              placeholder={t.nameOptionalLabel}
               className={`px-3 py-2 rounded-xl text-xs border font-medium focus:outline-none ${
                 isLight ? 'bg-white border-gray-200 text-gray-800' : 'bg-black/30 border-white/10 text-white'
               }`}
@@ -218,7 +233,7 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
               className="py-2 px-4 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white transition-all flex items-center justify-center gap-1.5 shadow-xs"
             >
               <ShieldCheck className="w-4 h-4" />
-              <span>{isSubmitting ? 'Authorizing...' : 'Authorize Administrator'}</span>
+              <span>{isSubmitting ? '...' : t.grantAccessBtn}</span>
             </button>
           </form>
         </div>
@@ -230,7 +245,7 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
           <div className="mb-3">
             <h4 className="text-sm font-bold flex items-center gap-2 text-amber-700 dark:text-amber-300">
               <Clock className="w-4 h-4" />
-              Pending Access Requests ({pendingRequests.length})
+              {t.pendingAccessRequests} ({pendingRequests.length})
             </h4>
           </div>
 
@@ -244,8 +259,8 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
               >
                 <div>
                   <p className="text-xs font-bold">{req.userName || req.userEmail}</p>
-                  <p className="text-[11px] font-mono text-gray-500">{req.userEmail}</p>
-                  {req.notes && <p className="text-[11px] text-gray-600 dark:text-gray-400 mt-1">{req.notes}</p>}
+                  <p className="text-xs font-mono text-gray-500">{req.userEmail}</p>
+                  {req.notes && <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{req.notes}</p>}
                 </div>
 
                 {isSuperAdmin && (
@@ -269,7 +284,7 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
         <div className="mb-4">
           <h4 className="text-sm font-bold flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-500" />
-            Authorized Administrators Directory ({approvedAdmins.length})
+            {t.authorizedAdministrators} ({approvedAdmins.length})
           </h4>
         </div>
 
@@ -280,7 +295,7 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
                 <th className="py-3 px-4 font-bold">Admin Details</th>
                 <th className="py-3 px-4 font-bold">Role</th>
                 <th className="py-3 px-4 font-bold">Authorized Date</th>
-                {isSuperAdmin && <th className="py-3 px-4 font-bold text-right">Actions</th>}
+                {isSuperAdmin && <th className="py-3 px-4 font-bold text-right">{t.actions}</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-white/5">
@@ -290,20 +305,20 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
                   <tr key={admin.uid || admin.email} className="hover:bg-gray-50/50 dark:hover:bg-white/5">
                     <td className="py-3 px-4">
                       <p className="font-bold text-gray-800 dark:text-gray-100">{admin.name || admin.email}</p>
-                      <p className="text-[11px] font-mono text-gray-500">{admin.email}</p>
+                      <p className="text-xs font-mono text-gray-500">{admin.email}</p>
                     </td>
                     <td className="py-3 px-4">
                       <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        className={`px-2 py-0.5 rounded text-xs font-bold ${
                           isSuper
                             ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
                             : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
                         }`}
                       >
-                        {isSuper ? 'Super Admin' : 'Admin'}
+                        {isSuper ? t.superAdminBadge : t.adminBadge}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-gray-500 text-[11px]">
+                    <td className="py-3 px-4 text-gray-500 text-xs">
                       {admin.approvedAt ? new Date(admin.approvedAt).toLocaleDateString() : 'Initial'}
                     </td>
                     {isSuperAdmin && (
@@ -313,7 +328,7 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
                             type="button"
                             onClick={() => handleRevokeAdmin(admin)}
                             className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-500/10 transition-colors"
-                            title="Revoke Admin Access"
+                            title={t.revokeAccess}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -327,6 +342,54 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
           </table>
         </div>
       </div>
+
+      {/* Accessible Revoke Confirmation Modal */}
+      {adminToRevoke && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="revoke-modal-title"
+        >
+          <div
+            ref={revokeModalRef}
+            className={`w-full max-w-md p-6 rounded-3xl border shadow-2xl relative ${
+              isLight ? 'bg-white border-gray-200 text-gray-900' : 'bg-[#0f172a] border-white/10 text-white'
+            }`}
+          >
+            <div className="w-12 h-12 rounded-2xl bg-rose-500/15 text-rose-500 flex items-center justify-center mb-4">
+              <AlertCircle className="w-6 h-6" />
+            </div>
+            <h3 id="revoke-modal-title" className="text-lg font-bold">
+              {t.confirmRevokeTitle}
+            </h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 leading-relaxed">
+              {t.confirmRevokeDesc}
+              <span className="font-mono font-bold text-gray-800 dark:text-gray-200 block mt-1">{adminToRevoke.email}</span>
+            </p>
+
+            <div className="flex items-center justify-end gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => setAdminToRevoke(null)}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold border ${
+                  isLight ? 'bg-gray-100 hover:bg-gray-200 border-gray-300' : 'bg-white/10 hover:bg-white/20 border-white/10'
+                }`}
+              >
+                {t.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmRevoke}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-md flex items-center gap-1.5"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>{t.revokeAccess}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

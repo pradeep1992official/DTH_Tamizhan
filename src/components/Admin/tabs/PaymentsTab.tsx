@@ -11,6 +11,7 @@ import {
 import { PaymentReportItem } from '../hooks/useAdminData';
 import { Language } from '../../../types';
 import { OperatorTheme } from '../../../lib/theme';
+import { translations } from '../../../lib/translations';
 
 interface PaymentsTabProps {
   payments: PaymentReportItem[];
@@ -27,6 +28,7 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
   currentTheme,
   currentLang,
 }) => {
+  const t = translations[currentLang];
   const isLight = currentTheme.isLightMode;
   const [paySearch, setPaySearch] = useState('');
   const [methodFilter, setMethodFilter] = useState('all');
@@ -47,15 +49,15 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
       {/* Metrics Banner */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className={`p-4 rounded-2xl border ${isLight ? 'bg-white border-gray-200' : 'bg-white/[0.02] border-white/10'}`}>
-          <div className="text-xs opacity-60 font-semibold uppercase">Total Settled Volume</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase">{t.totalSettledVolume}</div>
           <div className="text-2xl font-mono font-bold mt-1 text-emerald-500">₹{totalVolume.toLocaleString()}</div>
         </div>
         <div className={`p-4 rounded-2xl border ${isLight ? 'bg-white border-gray-200' : 'bg-white/[0.02] border-white/10'}`}>
-          <div className="text-xs opacity-60 font-semibold uppercase">Settled Transactions</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase">{t.settledTransactions}</div>
           <div className="text-2xl font-mono font-bold mt-1">{filteredPayments.length}</div>
         </div>
         <div className={`p-4 rounded-2xl border ${isLight ? 'bg-white border-gray-200' : 'bg-white/[0.02] border-white/10'}`}>
-          <div className="text-xs opacity-60 font-semibold uppercase">Gateway Success Rate</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase">{t.gatewaySuccessRate}</div>
           <div className="text-2xl font-mono font-bold mt-1 text-indigo-400">99.8%</div>
         </div>
       </div>
@@ -69,7 +71,7 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
             <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
             <input
               type="text"
-              placeholder="Search by Order ID, reference, or name..."
+              placeholder={t.searchPayments}
               value={paySearch}
               onChange={(e) => setPaySearch(e.target.value)}
               className={`w-full rounded-xl pl-9 pr-3 py-2 text-xs border focus:outline-none ${
@@ -85,7 +87,7 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
               isLight ? 'bg-gray-50 border-gray-300 text-gray-900' : 'bg-[#140029] border-white/20 text-white'
             }`}
           >
-            <option value="all">All Payment Methods</option>
+            <option value="all">{t.allPaymentMethods}</option>
             <option value="upi">UPI (GPay / PhonePe)</option>
             <option value="qr_code">Dynamic QR Code</option>
             <option value="card">Debit / Credit Card</option>
@@ -98,7 +100,7 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
           className={`p-2.5 rounded-xl border transition-colors ${
             isLight ? 'bg-gray-100 hover:bg-gray-200 text-gray-700' : 'bg-white/10 hover:bg-white/20 text-white'
           }`}
-          title="Refresh payments"
+          title={t.refresh}
         >
           <RefreshCw className={`w-4 h-4 ${paymentsLoading ? 'animate-spin' : ''}`} />
         </button>
@@ -112,12 +114,12 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
           <table className="w-full text-left text-xs">
             <thead className={`border-b ${isLight ? 'bg-gray-50/80 text-gray-600 border-gray-200' : 'bg-white/[0.03] text-gray-400 border-white/10'}`}>
               <tr>
-                <th className="p-3.5 font-bold uppercase tracking-wider">Transaction ID</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">Customer</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">Operator</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">Method</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">Amount</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">Status</th>
+                <th className="p-3.5 font-bold uppercase tracking-wider">{t.transactionId}</th>
+                <th className="p-3.5 font-bold uppercase tracking-wider">{t.customer}</th>
+                <th className="p-3.5 font-bold uppercase tracking-wider">{t.operatorLabel}</th>
+                <th className="p-3.5 font-bold uppercase tracking-wider">{t.paymentMethod}</th>
+                <th className="p-3.5 font-bold uppercase tracking-wider">{t.amount}</th>
+                <th className="p-3.5 font-bold uppercase tracking-wider">{t.status}</th>
                 <th className="p-3.5 font-bold uppercase tracking-wider text-right">Gateway Ref</th>
               </tr>
             </thead>
@@ -125,7 +127,7 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
               {filteredPayments.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-gray-500">
-                    No payment records found.
+                    {t.noPaymentsFound}
                   </td>
                 </tr>
               ) : (
@@ -134,14 +136,14 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
                     <td className="p-3.5 font-mono font-bold">{p.id}</td>
                     <td className="p-3.5 font-medium">{p.customerName}</td>
                     <td className="p-3.5 capitalize">{p.operator.replace('_', ' ')}</td>
-                    <td className="p-3.5 uppercase text-[11px] font-semibold opacity-75">{p.paymentMethod}</td>
+                    <td className="p-3.5 uppercase text-xs font-semibold text-gray-500 dark:text-gray-400">{p.paymentMethod}</td>
                     <td className="p-3.5 font-mono font-bold text-sm text-emerald-500">₹{p.amount}</td>
                     <td className="p-3.5">
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-500 font-bold uppercase border border-emerald-500/30">
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-500 font-bold uppercase border border-emerald-500/30">
                         {p.status}
                       </span>
                     </td>
-                    <td className="p-3.5 text-right font-mono text-[11px] opacity-75">{p.operatorRefId}</td>
+                    <td className="p-3.5 text-right font-mono text-xs text-gray-500 dark:text-gray-400">{p.operatorRefId}</td>
                   </tr>
                 ))
               )}

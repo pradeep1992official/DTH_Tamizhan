@@ -79,7 +79,7 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
                 {t.comparePacks}
               </h3>
               <p className="text-xs text-gray-500 dark:text-gray-300">
-                {plans.length} {plans.length === 1 ? 'pack' : 'packs'} selected
+                {plans.length} {plans.length === 1 ? t.pack : t.packs} {t.selected}
               </p>
             </div>
           </div>
@@ -101,7 +101,7 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
               <thead>
                 <tr>
                   <th className="p-3 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 w-1/4 border-b border-gray-500/20">
-                    Feature
+                    {t.feature}
                   </th>
                   {plans.map((p) => {
                     const op = OPERATOR_DATA[p.operator] || { name: p.operator, color: currentTheme.primaryColor };
@@ -138,13 +138,13 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
               </thead>
               <tbody className="divide-y divide-gray-500/20 text-xs">
                 <tr>
-                  <td className="p-3 font-semibold text-gray-500 dark:text-gray-400">Quality</td>
+                  <td className="p-3 font-semibold text-gray-500 dark:text-gray-400">{t.qualityLabel}</td>
                   {plans.map((p) => (
                     <td key={p.id} className="p-3 font-bold">
                       <span className={`px-2 py-0.5 rounded text-xs font-mono font-bold ${
                         p.type === 'HD' ? 'bg-amber-500/20 text-amber-600 dark:text-amber-300' : 'bg-blue-500/20 text-blue-600 dark:text-blue-300'
                       }`}>
-                        {p.type} Clarity
+                        {p.type} {t.clarity}
                       </span>
                     </td>
                   ))}
@@ -153,7 +153,7 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
                   <td className="p-3 font-semibold text-gray-500 dark:text-gray-400">{t.channels}</td>
                   {plans.map((p) => (
                     <td key={p.id} className="p-3 font-bold">
-                      {p.channel_count} total {p.hd_channel_count ? `(${p.hd_channel_count} HD)` : ''}
+                      {p.channel_count} {t.total} {p.hd_channel_count ? `(${p.hd_channel_count} HD)` : ''}
                     </td>
                   ))}
                 </tr>
@@ -174,15 +174,15 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
                   ))}
                 </tr>
                 <tr>
-                  <td className="p-3 font-semibold text-gray-500 dark:text-gray-400">Savings %</td>
+                  <td className="p-3 font-semibold text-gray-500 dark:text-gray-400">{t.savingsPercent}</td>
                   {plans.map((p) => (
                     <td key={p.id} className="p-3 font-bold text-emerald-500">
-                      {(p.savings_pct || 0) > 0 ? `${p.savings_pct}% Saved` : 'Standard Rate'}
+                      {(p.savings_pct || 0) > 0 ? `${p.savings_pct}% ${t.saved}` : t.standardRate}
                     </td>
                   ))}
                 </tr>
                 <tr>
-                  <td className="p-3 font-semibold text-gray-500 dark:text-gray-400">Action</td>
+                  <td className="p-3 font-semibold text-gray-500 dark:text-gray-400">{t.action}</td>
                   {plans.map((p) => (
                     <td key={p.id} className="p-3">
                       <button

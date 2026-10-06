@@ -81,7 +81,7 @@ export const PlanFilterSidebar: React.FC<PlanFilterSidebarProps> = ({
         <div className="flex items-center gap-2">
           <SlidersHorizontal className="w-5 h-5" style={{ color: currentTheme.primaryColor }} />
           <h3 className="font-bold text-base">
-            {currentLang === 'ta' ? 'வடிகட்டிகள்' : 'Filters'}
+            {t.filters}
           </h3>
           {activeFiltersCount > 0 && (
             <span 

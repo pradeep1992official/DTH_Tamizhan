@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { DthOperator, DthOperatorId, Language } from '../../../types';
 import { OperatorTheme } from '../../../lib/theme';
+import { translations } from '../../../lib/translations';
+import { useAccessibleModal } from '../../../lib/useAccessibleModal';
 
 interface OperatorsTabProps {
   operators: DthOperator[];
@@ -32,10 +34,17 @@ export const OperatorsTab: React.FC<OperatorsTabProps> = ({
   currentLang,
   showToast,
 }) => {
+  const t = translations[currentLang];
   const isLight = currentTheme.isLightMode;
   const [operatorToToggle, setOperatorToToggle] = useState<DthOperator | null>(null);
   const [disableReason, setDisableReason] = useState('Gateway Maintenance');
   const [isToggling, setIsToggling] = useState(false);
+
+  // Accessible Modal Hook
+  const { modalRef } = useAccessibleModal({
+    isOpen: Boolean(operatorToToggle),
+    onClose: () => setOperatorToToggle(null),
+  });
 
   const handleConfirmToggle = async () => {
     if (!operatorToToggle) return;
@@ -94,7 +103,7 @@ export const OperatorsTab: React.FC<OperatorsTabProps> = ({
                 Operator Service Controls & Gateway Status
               </h3>
               <span 
-                className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border"
+                className="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded border"
                 style={{
                   backgroundColor: `${currentTheme.primaryColor}15`,
                   color: currentTheme.primaryColor,
@@ -121,7 +130,7 @@ export const OperatorsTab: React.FC<OperatorsTabProps> = ({
           }`}
         >
           <RefreshCw className={`w-3.5 h-3.5 ${operatorsLoading ? 'animate-spin' : ''}`} />
-          <span>Refresh Status</span>
+          <span>{t.refreshStatus}</span>
         </button>
       </div>
 
@@ -134,7 +143,7 @@ export const OperatorsTab: React.FC<OperatorsTabProps> = ({
               key={op.id}
               className={`p-5 rounded-2xl border transition-all ${
                 isLight ? 'bg-white border-gray-200 shadow-xs' : 'bg-black/20 border-white/10'
-              } ${!isActive ? 'opacity-75 border-amber-500/40' : ''}`}
+              } ${!isActive ? 'border-amber-500/40' : ''}`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
@@ -143,31 +152,31 @@ export const OperatorsTab: React.FC<OperatorsTabProps> = ({
                   </div>
                   <div>
                     <h4 className="text-sm font-bold">{op.name}</h4>
-                    <p className="text-[11px] font-mono text-gray-500">{op.id}</p>
+                    <p className="text-xs font-mono text-gray-600 dark:text-gray-300">{op.id}</p>
                   </div>
                 </div>
 
                 <span
-                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 ${
+                  className={`px-2.5 py-1 rounded-full text-xs font-bold border flex items-center gap-1 ${
                     isActive
                       ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
                       : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
                   }`}
                 >
                   <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-                  {isActive ? 'Operational' : 'Disabled'}
+                  {isActive ? t.operational : t.disabled}
                 </span>
               </div>
 
               <div className="mt-4 pt-3 border-t border-gray-100 dark:border-white/5 space-y-2 text-xs">
-                <div className="flex items-center justify-between text-gray-500 dark:text-gray-400 text-[11px]">
-                  <span>Viewing Card Format:</span>
+                <div className="flex items-center justify-between text-gray-600 dark:text-gray-300 text-xs">
+                  <span>{t.viewingCardFormat}</span>
                   <span className="font-mono font-medium text-gray-800 dark:text-gray-200">
-                    {op.smartCardLength} Digits
+                    {op.smartCardLength} {t.digits}
                   </span>
                 </div>
                 {op.disableReason && !isActive && (
-                  <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-[11px] flex items-center gap-1.5">
+                  <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-xs flex items-center gap-1.5 font-medium">
                     <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                     <span>{op.disableReason}</span>
                   </div>
@@ -185,7 +194,7 @@ export const OperatorsTab: React.FC<OperatorsTabProps> = ({
                   }`}
                 >
                   <Power className="w-3.5 h-3.5" />
-                  <span>{isActive ? 'Emergency Suspend / Disable' : 'Re-enable Operator'}</span>
+                  <span>{isActive ? t.suspendOperator : t.reEnableOperator}</span>
                 </button>
               </div>
             </div>
@@ -195,31 +204,44 @@ export const OperatorsTab: React.FC<OperatorsTabProps> = ({
 
       {/* Confirmation Modal */}
       {operatorToToggle && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className={`max-w-md w-full p-6 rounded-2xl border shadow-xl ${isLight ? 'bg-white border-gray-200 text-gray-900' : 'bg-[#0f172a] border-white/10 text-white'}`}>
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setOperatorToToggle(null);
+          }}
+        >
+          <div 
+            ref={modalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="operator-toggle-title"
+            className={`max-w-md w-full p-6 rounded-2xl border shadow-xl text-left ${isLight ? 'bg-white border-gray-200 text-gray-900' : 'bg-[#0f172a] border-white/10 text-white'}`}
+          >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2 font-bold text-sm">
                 <ShieldAlert className="w-5 h-5 text-amber-500" />
-                <span>Confirm Operator Status Change</span>
+                <span id="operator-toggle-title">{t.confirmStatusChange}</span>
               </div>
               <button
                 type="button"
                 onClick={() => setOperatorToToggle(null)}
+                aria-label={t.close}
                 className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-              Are you sure you want to {operatorToToggle.isActive !== false ? 'suspend' : 're-enable'}{' '}
-              <strong className="text-gray-800 dark:text-gray-200">{operatorToToggle.name}</strong>?
+            <p className="text-xs text-gray-600 dark:text-gray-300 mb-4 leading-relaxed">
+              {currentLang === 'ta'
+                ? `நீங்கள் நிச்சயமாக ${operatorToToggle.name} ஆபரேட்டரை ${operatorToToggle.isActive !== false ? 'நிறுத்தி வைக்க' : 'மீண்டும் செயல்படுத்த'} விரும்புகிறீர்களா?`
+                : `Are you sure you want to ${operatorToToggle.isActive !== false ? 'suspend' : 're-enable'} ${operatorToToggle.name}?`}
             </p>
 
             {operatorToToggle.isActive !== false && (
               <div className="space-y-1.5 mb-4">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                  Suspension Reason
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                  {t.suspensionReason}
                 </label>
                 <input
                   type="text"
@@ -239,15 +261,15 @@ export const OperatorsTab: React.FC<OperatorsTabProps> = ({
                 onClick={() => setOperatorToToggle(null)}
                 className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5"
               >
-                Cancel
+                {t.cancel}
               </button>
               <button
                 type="button"
                 onClick={handleConfirmToggle}
                 disabled={isToggling}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white transition-all"
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white transition-all shadow-sm"
               >
-                {isToggling ? 'Updating...' : 'Confirm'}
+                {isToggling ? '...' : t.confirm}
               </button>
             </div>
           </div>

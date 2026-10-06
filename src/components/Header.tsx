@@ -174,10 +174,10 @@ export const Header: React.FC<HeaderProps> = ({
 
               <div className="text-left hidden sm:block">
                 <p className={`text-xs font-bold leading-tight ${isLight ? 'text-[#000000]' : 'text-[#f5f2eb]'}`}>
-                  {user ? (user.displayName || (user.email ? user.email.split('@')[0] : 'Subscriber')) : 'Profile & Settings'}
+                  {user ? (user.displayName || (user.email ? user.email.split('@')[0] : t.customer)) : t.profileSettings}
                 </p>
-                <p className="text-[10px] leading-none mt-0.5 font-semibold" style={{ color: currentTheme.primaryColor }}>
-                  {isAdmin ? 'Administrator' : (user ? 'Customer' : 'Account & Options')}
+                <p className="text-xs leading-none mt-0.5 font-semibold" style={{ color: currentTheme.primaryColor }}>
+                  {isAdmin ? t.adminBadge : (user ? t.customerBadge : t.accountOptions)}
                 </p>
               </div>
 
@@ -194,10 +194,10 @@ export const Header: React.FC<HeaderProps> = ({
                 {/* User Summary Header */}
                 <div className="px-4 py-3">
                   <p className={`font-bold text-sm truncate ${isLight ? 'text-[#000000]' : 'text-[#f5f2eb]'}`}>
-                    {user ? (user.displayName || user.email || 'Subscriber') : 'Guest User'}
+                    {user ? (user.displayName || user.email || t.customer) : t.guestUser}
                   </p>
-                  <p className={`text-[11px] truncate mt-0.5 ${isLight ? 'text-[#666666]' : 'text-[#8e9cb4]'}`}>
-                    {user ? (user.email || 'DTH Account Verified') : 'Sign in to access saved boxes & orders'}
+                  <p className={`text-xs truncate mt-0.5 ${isLight ? 'text-[#666666]' : 'text-[#8e9cb4]'}`}>
+                    {user ? (user.email || 'DTH Account Verified') : t.signInPrompt}
                   </p>
                 </div>
 
@@ -215,7 +215,7 @@ export const Header: React.FC<HeaderProps> = ({
                     }`}
                   >
                     <UserCheck className="w-4 h-4 opacity-70" />
-                    <span>View Saved Set-Top Boxes</span>
+                    <span>{t.viewSavedBoxes}</span>
                   </button>
 
                   <button
@@ -229,24 +229,24 @@ export const Header: React.FC<HeaderProps> = ({
                     }`}
                   >
                     <Sliders className="w-4 h-4 opacity-70" />
-                    <span>{user ? 'Edit Profile' : 'Sign in with Google'}</span>
+                    <span>{user ? t.editProfile : (currentLang === 'ta' ? 'கூகிள் மூலம் உள்நுழைக' : 'Sign in with Google')}</span>
                   </button>
                 </div>
 
                 {/* Settings & Preferences Section: Theme + Language */}
                 <div className="p-3 space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="font-bold uppercase tracking-wider text-[10px] opacity-60 flex items-center gap-1.5">
+                    <span className="font-bold uppercase tracking-wider text-xs opacity-75 flex items-center gap-1.5">
                       <Settings className="w-3.5 h-3.5" />
-                      Settings & Preferences
+                      {t.settingsPreferences}
                     </span>
                   </div>
 
                   {/* Language Toggle */}
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-semibold flex items-center gap-1.5 opacity-80">
+                    <label className="text-xs font-semibold flex items-center gap-1.5 opacity-80">
                       <Languages className="w-3.5 h-3.5" style={{ color: currentTheme.primaryColor }} />
-                      Language (மொழி)
+                      {t.language}
                     </label>
                     <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-gray-500/10 border border-gray-500/20">
                       <button
@@ -277,9 +277,9 @@ export const Header: React.FC<HeaderProps> = ({
                   {/* Operator Theme Selector */}
                   {onSelectTheme && (
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-semibold flex items-center gap-1.5 opacity-80">
+                      <label className="text-xs font-semibold flex items-center gap-1.5 opacity-80">
                         <Palette className="w-3.5 h-3.5" style={{ color: currentTheme.primaryColor }} />
-                        App Theme / Operator
+                        {t.brandTheme}
                       </label>
                       <div className="grid grid-cols-2 gap-1.5">
                         {(['sun_direct', 'tata_play', 'airtel_dth', 'dish_tv'] as DthOperatorId[]).map((opId) => {
@@ -306,7 +306,7 @@ export const Header: React.FC<HeaderProps> = ({
                                 className="w-3 h-3 rounded-full flex-shrink-0" 
                                 style={{ backgroundColor: opTh.primaryColor }}
                               />
-                              <span className="truncate text-[11px]">{opTh.name}</span>
+                              <span className="truncate text-xs">{opTh.name}</span>
                             </button>
                           );
                         })}

@@ -41,10 +41,8 @@ describe('Firestore Security Rules', () => {
       const parts = process.env.FIRESTORE_EMULATOR_HOST.split(':');
       emulatorHost = parts[0] || '127.0.0.1';
       emulatorPort = parseInt(parts[1] || '8080', 10);
-      hasEmulator = await checkEmulatorAvailable(emulatorHost, emulatorPort);
-    } else {
-      hasEmulator = false;
     }
+    hasEmulator = await checkEmulatorAvailable(emulatorHost, emulatorPort);
 
     if (hasEmulator) {
       const rulesPath = path.resolve(process.cwd(), 'firestore.rules');

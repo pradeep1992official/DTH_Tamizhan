@@ -233,7 +233,7 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
           </div>
           <div className="max-w-md mx-auto space-y-1">
             <h3 className={`font-bold text-base ${currentTheme.headingText}`}>
-              No Saved Set-Top Boxes
+              {currentLang === 'ta' ? 'சேமிக்கப்பட்ட செட்-டாப் பாக்ஸ்கள் இல்லை' : 'No Saved Set-Top Boxes'}
             </h3>
             <p className={`text-xs ${currentTheme.subText}`}>
               {t.noConnections}

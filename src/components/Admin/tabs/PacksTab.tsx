@@ -17,10 +17,12 @@ import { OperatorTheme } from '../../../lib/theme';
 import { PlanCatalogService } from '../../../lib/planCatalogService';
 import { ExcelPlanImportExportModal } from '../../ExcelPlanImportExportModal';
 import { translations } from '../../../lib/translations';
+import { useAccessibleModal } from '../../../lib/useAccessibleModal';
 
 interface PacksTabProps {
   plans: PlanCatalogItem[];
   plansLoading: boolean;
+  plansError?: string | null;
   onRefresh: () => void;
   user: UserProfile | null;
   currentTheme: OperatorTheme;
@@ -32,6 +34,7 @@ interface PacksTabProps {
 export const PacksTab: React.FC<PacksTabProps> = ({
   plans,
   plansLoading,
+  plansError,
   onRefresh,
   user,
   currentTheme,
@@ -48,6 +51,17 @@ export const PacksTab: React.FC<PacksTabProps> = ({
   const [packToDelete, setPackToDelete] = useState<PlanCatalogItem | null>(null);
   const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
   const [excelModalTab, setExcelModalTab] = useState<'import' | 'export'>('import');
+
+  // Accessible Modal Hooks for Focus Trapping & Escape-to-close
+  const { modalRef: packModalRef } = useAccessibleModal({
+    isOpen: isPackModalOpen,
+    onClose: () => setIsPackModalOpen(false),
+  });
+
+  const { modalRef: deleteModalRef } = useAccessibleModal({
+    isOpen: Boolean(packToDelete),
+    onClose: () => setPackToDelete(null),
+  });
 
   const [formData, setFormData] = useState<{
     id?: string;
@@ -243,6 +257,24 @@ export const PacksTab: React.FC<PacksTabProps> = ({
         </div>
       </div>
 
+      {/* Error Banner with Retry */}
+      {plansError && (
+        <div role="alert" className="p-4 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-700 dark:text-rose-300 flex items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+            <span className="font-semibold">{plansError}</span>
+          </div>
+          <button
+            type="button"
+            onClick={onRefresh}
+            className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center gap-1 shrink-0"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>{t.retryFetch}</span>
+          </button>
+        </div>
+      )}
+
       {/* Packs Table */}
       <div className={`border rounded-2xl overflow-hidden shadow-sm ${
         isLight ? 'bg-white border-gray-200' : 'bg-white/[0.02] border-white/10'
@@ -251,12 +283,12 @@ export const PacksTab: React.FC<PacksTabProps> = ({
           <table className="w-full text-left text-xs">
             <thead className={`border-b ${isLight ? 'bg-gray-50/80 text-gray-700 border-gray-200' : 'bg-white/[0.03] text-gray-300 border-white/10'}`}>
               <tr>
-                <th className="p-3.5 font-bold uppercase tracking-wider">Pack Name</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">Operator</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">Quality</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">Duration</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">Price (INR)</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">Status</th>
+                <th className="p-3.5 font-bold uppercase tracking-wider">{t.packNameLabel}</th>
+                <th className="p-3.5 font-bold uppercase tracking-wider">{t.operatorLabel}</th>
+                <th className="p-3.5 font-bold uppercase tracking-wider">{t.qualityLabel}</th>
+                <th className="p-3.5 font-bold uppercase tracking-wider">{t.durationMonthsLabel}</th>
+                <th className="p-3.5 font-bold uppercase tracking-wider">{t.priceInrLabel}</th>
+                <th className="p-3.5 font-bold uppercase tracking-wider">{t.status}</th>
                 <th className="p-3.5 font-bold uppercase tracking-wider text-right">{t.actions}</th>
               </tr>
             </thead>
@@ -266,14 +298,14 @@ export const PacksTab: React.FC<PacksTabProps> = ({
                   <td colSpan={7} className="p-8 text-center text-gray-400">
                     <div className="flex items-center justify-center gap-2">
                       <RefreshCw className="w-4 h-4 animate-spin text-amber-500" />
-                      <span>Loading real-time catalog...</span>
+                      <span>{t.loadingLiveCatalog}</span>
                     </div>
                   </td>
                 </tr>
               ) : filteredPlans.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-gray-500">
-                    No packs found.
+                    {t.noPlansMatch}
                   </td>
                 </tr>
               ) : (
@@ -343,6 +375,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
           }}
         >
           <div 
+            ref={packModalRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="pack-editor-title"
@@ -351,7 +384,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
             }`}
           >
             <div className="flex items-center justify-between border-b pb-3 border-gray-500/20">
-              <h3 id="pack-editor-title" className="font-bold text-base">{editingPack ? 'Edit Pack in Catalog' : 'Add Pack to Catalog'}</h3>
+              <h3 id="pack-editor-title" className="font-bold text-base">{editingPack ? t.editPackTitle : t.addPackTitle}</h3>
               <button 
                 type="button"
                 onClick={() => setIsPackModalOpen(false)} 
@@ -527,6 +560,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
           }}
         >
           <div 
+            ref={deleteModalRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="delete-pack-title"
@@ -534,9 +568,9 @@ export const PacksTab: React.FC<PacksTabProps> = ({
               isLight ? 'bg-white border-rose-200 text-gray-900' : 'bg-[#180530] border-rose-500/30 text-white'
             }`}
           >
-            <h3 id="delete-pack-title" className="font-bold text-base text-rose-500">Delete Plan from Catalog?</h3>
+            <h3 id="delete-pack-title" className="font-bold text-base text-rose-500">{t.confirmDeletePackTitle}</h3>
             <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
-              Are you sure you want to delete <strong>{packToDelete.plan_name}</strong> (₹{packToDelete.amount}) from Firestore?
+              {t.confirmDeletePackDesc} <strong>{packToDelete.plan_name}</strong> (₹{packToDelete.amount})?
             </p>
             <div className="flex justify-end gap-2 pt-2">
               <button
@@ -549,7 +583,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
               <button
                 type="button"
                 onClick={() => handleDeletePack(packToDelete.id)}
-                className="px-3.5 py-2 rounded-xl text-xs font-bold bg-rose-600 text-white"
+                className="px-3.5 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white shadow-sm"
               >
                 {t.delete}
               </button>

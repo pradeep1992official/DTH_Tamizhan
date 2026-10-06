@@ -34,6 +34,9 @@ const PORT = 3000;
 async function startServer() {
   const app = express();
 
+  // Enable trust proxy for reverse proxies (Google Cloud Run / Load Balancer)
+  app.set('trust proxy', 1);
+
   // 1. Security Headers via Helmet
   app.use(
     helmet({
