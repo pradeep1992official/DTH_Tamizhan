@@ -1,20 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Users, 
-  BarChart3, 
-  Clock, 
-  RefreshCw, 
-  Layers, 
-  CreditCard, 
-  ArrowLeft, 
-  ShieldCheck, 
+import {
+  Users,
+  BarChart3,
+  Clock,
+  RefreshCw,
+  Layers,
+  CreditCard,
+  ArrowLeft,
+  ShieldCheck,
   Radio
-} from 'lucide-react';
-import { 
-  Language, 
-  UserProfile, 
-  DthOperatorId, 
-  AdminTabId, 
+} from '../lib/icons';
+import {
+  Language,
+  UserProfile,
+  AdminTabId,
   isUserAdmin
 } from '../types';
 import { OperatorTheme } from '../lib/theme';
@@ -34,7 +33,6 @@ interface AdminPortalProps {
   user: UserProfile | null;
   onOpenAuth: () => void;
   onUpdateUserRole?: (updated: UserProfile) => void;
-  onTriggerRefresh: (operator: DthOperatorId, card: string) => void;
   onBackToCustomerFlow?: () => void;
   initialTab?: AdminTabId;
   currentTheme: OperatorTheme;
@@ -46,7 +44,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   user,
   onOpenAuth,
   onUpdateUserRole,
-  onTriggerRefresh,
   onBackToCustomerFlow,
   initialTab = 'customers',
   currentTheme,
@@ -101,6 +98,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     fetchPayments,
     operators,
     operatorsLoading,
+    operatorsError,
     fetchOperators,
     approvedAdmins,
     pendingRequests,
@@ -144,19 +142,19 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
   if (!user || !isAdmin) {
     return (
-      <div className="max-w-md mx-auto my-12 p-8 text-center rounded-3xl border shadow-xl bg-white dark:bg-[#0f172a] border-gray-200 dark:border-white/10">
-        <div className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center bg-rose-500/10 text-rose-500 border border-rose-500/20">
+      <div className="admin-access">
+        <div className="admin-access-icon">
           <ShieldCheck className="w-7 h-7" />
         </div>
-        <h2 className={`text-xl font-bold mb-2 ${isLight ? 'text-gray-900' : 'text-white'}`}>{t.restrictedAccess}</h2>
-        <p className={`text-sm mb-6 ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>
+        <h2 className={`text-xl font-bold mb-2 ${isLight ? 'text-ink' : 'text-accent-ink'}`}>{t.restrictedAccess}</h2>
+        <p className={`text-sm mb-6 ${isLight ? 'text-ink' : 'text-muted'}`}>
           {t.restrictedAccessDesc}
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <button
             type="button"
             onClick={onOpenAuth}
-            className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-sm"
+            className="admin-primary w-full sm:w-auto"
           >
             {t.googleOption}
           </button>
@@ -164,7 +162,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             <button
               type="button"
               onClick={onBackToCustomerFlow}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5"
+              className="admin-quiet w-full sm:w-auto"
             >
               {t.backToCustomerPortal}
             </button>
@@ -188,52 +186,33 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="admin-shell">
       {/* Toast */}
       {toastMsg && (
-        <div className="fixed bottom-6 right-6 z-50 bg-gray-900 text-white px-4 py-3 rounded-2xl shadow-xl border border-white/20 text-xs font-semibold animate-in fade-in slide-in-from-bottom-2">
+        <div role="status" className="admin-toast">
           {toastMsg}
         </div>
       )}
 
-      {/* Top Header & Navigation Bar */}
-      <div className={`p-4 sm:p-5 rounded-3xl border shadow-sm ${isLight ? 'bg-white border-gray-200' : 'bg-[#0f172a] border-white/10'}`}>
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b pb-4 mb-4 border-gray-100 dark:border-white/5">
-          <div className="flex items-center gap-3">
-            {onBackToCustomerFlow && (
-              <button
-                type="button"
-                onClick={onBackToCustomerFlow}
-                className="p-2 rounded-xl text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
-                title={t.backToCustomerPortal}
-                aria-label={t.backToCustomerPortal}
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </button>
-            )}
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-bold">{t.adminOperations}</h1>
-                <span
-                  className="px-2 py-0.5 rounded text-xs font-mono font-bold uppercase tracking-wider border"
-                  style={{
-                    backgroundColor: `${currentTheme.primaryColor}15`,
-                    color: currentTheme.primaryColor,
-                    borderColor: `${currentTheme.primaryColor}30`,
-                  }}
-                >
-                  {t.authorizedBadge}
-                </span>
-              </div>
-              <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
-                {t.loggedInAs}: <span className="font-semibold text-gray-800 dark:text-gray-100">{user.email}</span>
-              </p>
-            </div>
+      <aside className="admin-rail">
+        <div className="admin-rail-heading">
+          {onBackToCustomerFlow && (
+            <button type="button" onClick={onBackToCustomerFlow} className="admin-back" title={t.backToCustomerPortal} aria-label={t.backToCustomerPortal}>
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+          )}
+          <div>
+            <h1 className="admin-title">{t.adminOperations}</h1>
           </div>
         </div>
-
-        {/* Tab Selection */}
-        <nav aria-label="Admin sections" className="flex items-center gap-1.5 overflow-x-auto pb-2">
+        <div className="admin-account">
+          <p className="admin-identity">
+            <span className="admin-identity-label">{t.loggedInAs}</span>
+            <strong className="admin-email" title={user.email}>{user.email}</strong>
+          </p>
+          <span className="admin-authorized"><ShieldCheck className="w-3.5 h-3.5" />{t.authorizedBadge}</span>
+        </div>
+        <nav aria-label="Admin sections" className="admin-nav">
           {NAV_ITEMS.map((item) => {
             const isActive = activeTab === item.id;
             return (
@@ -242,29 +221,20 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 type="button"
                 onClick={() => handleTabChange(item.id)}
                 aria-current={isActive ? 'page' : undefined}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current ${
-                  isActive
-                    ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5'
-                }`}
+                className={`admin-nav-item active:translate-y-px ${isActive ? 'is-active' : ''}`}
               >
                 {item.icon}
                 <span>{item.label}</span>
-                {typeof item.badge === 'number' && item.badge > 0 && (
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                    isActive ? 'bg-amber-400 text-gray-900' : 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
-                  }`}>
-                    {item.badge}
-                  </span>
-                )}
+                {typeof item.badge === 'number' && item.badge > 0 && <span className="admin-count">{item.badge}</span>}
               </button>
             );
           })}
         </nav>
-      </div>
+      </aside>
 
       {/* Tab Contents */}
-      <div className={`rounded-3xl border shadow-sm overflow-hidden ${isLight ? 'bg-white border-gray-200' : 'bg-[#0f172a] border-white/10'}`}>
+      <div className="admin-workspace">
+        <div className="admin-workspace-heading"><h2>{NAV_ITEMS.find((item) => item.id === activeTab)?.label}</h2></div>
         {activeTab === 'customers' && (
           <CustomersTab
             customers={customers}
@@ -288,7 +258,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             currentTheme={currentTheme}
             currentLang={currentLang}
             showToast={showToast}
-            onTriggerRefresh={onTriggerRefresh}
           />
         )}
 
@@ -302,7 +271,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             currentTheme={currentTheme}
             currentLang={currentLang}
             showToast={showToast}
-            onTriggerRefresh={onTriggerRefresh}
           />
         )}
 
@@ -346,6 +314,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           <OperatorsTab
             operators={operators}
             operatorsLoading={operatorsLoading}
+            operatorsError={operatorsError}
             onRefresh={fetchOperators}
             getAuthHeaders={getAuthHeaders}
             currentTheme={currentTheme}

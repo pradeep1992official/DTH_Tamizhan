@@ -1,0 +1,31 @@
+import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import fs from 'node:fs';
+const require=createRequire(import.meta.url);
+const p=require(path.join(tmpdir(),'hallmark-audit-tools/node_modules/puppeteer-core'));
+const browser=await p.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true});
+try {
+ const page=await browser.newPage();await page.setViewport({width:1280,height:800});
+ await page.goto('http://localhost:3012/',{waitUntil:'networkidle2'});
+ await page.click('#profile-dropdown-trigger-btn');
+ await page.waitForSelector('#profile-settings-panel');
+ const panel=await page.$eval('#profile-settings-panel',e=>({text:e.innerText,signInButtons:[...e.querySelectorAll('button')].filter(b=>/sign in with google/i.test(b.textContent)).length}));
+ if(panel.signInButtons!==1)throw new Error('Duplicate or missing guest sign-in action');
+ if(/Operator Brand Theme|Sun Direct|Tata Play|Airtel Digital|Dish TV/.test(panel.text))throw new Error('Operator theme choices still visible');
+ await page.click('.profile-language-options button:nth-child(2)');
+ if(await page.$eval('.profile-language-options button:nth-child(2)',e=>e.getAttribute('aria-pressed'))!=='true')throw new Error('Tamil selection did not update');
+ await page.click('.profile-language-options button:first-child');
+ await page.keyboard.press('Escape');
+ if(await page.$('#profile-settings-panel'))throw new Error('Escape did not close panel');
+ if(await page.evaluate(()=>document.activeElement.id)!=='profile-dropdown-trigger-btn')throw new Error('Focus was not restored');
+ await page.click('#profile-dropdown-trigger-btn');
+ fs.mkdirSync('.hallmark/dropdown-shots',{recursive:true});
+ await (await page.$('#profile-settings-panel')).screenshot({path:'.hallmark/dropdown-shots/desktop.png'});
+ await page.setViewport({width:375,height:844});await page.evaluate(()=>window.scrollTo(0,0));
+ await (await page.$('#profile-settings-panel')).screenshot({path:'.hallmark/dropdown-shots/phone.png'});
+ const box=await page.$eval('#profile-settings-panel',e=>{const r=e.getBoundingClientRect();return {left:r.left,right:r.right,width:innerWidth}});
+ if(box.left<0||box.right>box.width)throw new Error('Dropdown overflows phone');
+ await page.mouse.click(5,500);await page.waitForSelector('#profile-settings-panel',{hidden:true});if(await page.$('#profile-settings-panel'))throw new Error('Outside click did not close panel');
+ console.log(JSON.stringify({passed:true,signInActions:panel.signInButtons,operatorThemeRemoved:true,languageSwitch:true,escapeAndOutsideClose:true,phoneBounds:box}));
+}finally{await browser.close();}

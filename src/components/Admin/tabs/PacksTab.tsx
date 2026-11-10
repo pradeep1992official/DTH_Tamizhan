@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
-import { 
-  Plus, 
-  Search, 
-  Edit3, 
-  Trash2, 
-  FileSpreadsheet, 
-  Tv, 
-  Check, 
-  X, 
+import {
+  Plus,
+  Search,
+  Edit3,
+  Trash2,
+  FileSpreadsheet,
+  Tv,
+  Check,
+  X,
   Sparkles,
   RefreshCw,
   AlertCircle
-} from 'lucide-react';
+} from '../../../lib/icons';
 import { PlanCatalogItem, DthOperatorId, Language, UserProfile, canonicalizeDthOperatorId, isSameDthOperatorGroup } from '../../../types';
 import { OperatorTheme } from '../../../lib/theme';
 import { PlanCatalogService } from '../../../lib/planCatalogService';
@@ -188,19 +188,19 @@ export const PacksTab: React.FC<PacksTabProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="admin-tab space-y-6">
       {/* Top Controls */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+      <div className="admin-toolbar flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3 flex-1">
-          <div className="relative flex-1 min-w-[200px] max-w-md">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <div className="relative w-full sm:flex-1 min-w-0 sm:max-w-md">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
             <input
               type="text"
-              placeholder="Search packs in catalog..."
+              placeholder="Search packs in catalog" aria-label="Search packs"
               value={packSearch}
               onChange={(e) => setPackSearch(e.target.value)}
-              className={`w-full pl-9 pr-4 py-2.5 rounded-xl border text-xs font-medium focus:outline-none transition-colors ${
-                isLight ? 'bg-gray-50 border-gray-300 text-gray-900 focus:bg-white' : 'bg-[#140029] border-white/20 text-white'
+              className={`w-full pl-9 pr-4 py-2.5 rounded-xl border text-sm font-medium focus:outline-none transition-colors ${
+                isLight ? 'bg-paper-2 border-rule text-ink focus:bg-paper' : 'bg-paper border-rule text-accent-ink'
               }`}
             />
           </div>
@@ -208,8 +208,8 @@ export const PacksTab: React.FC<PacksTabProps> = ({
           <select
             value={selectedPackOp}
             onChange={(e) => setSelectedPackOp(e.target.value as any)}
-            className={`py-2.5 px-3 rounded-xl border text-xs font-semibold focus:outline-none cursor-pointer ${
-              isLight ? 'bg-gray-50 border-gray-300 text-gray-900' : 'bg-[#140029] border-white/20 text-white'
+            className={`py-2.5 px-3 rounded-xl border text-sm font-medium focus:outline-none cursor-pointer ${
+              isLight ? 'bg-paper-2 border-rule text-ink' : 'bg-paper border-rule text-accent-ink'
             }`}
           >
             <option value="all">All Operators</option>
@@ -227,7 +227,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
               setExcelModalTab('import');
               setIsExcelModalOpen(true);
             }}
-            className="px-3.5 py-2.5 rounded-xl border font-semibold text-xs flex items-center gap-1.5 transition-colors bg-emerald-500/15 border-emerald-500/30 text-emerald-600 dark:text-emerald-300 hover:bg-emerald-500/25"
+            className="px-3.5 py-2.5 rounded-xl border font-medium text-sm flex items-center gap-1.5 transition-colors bg-success/10 border-rule text-success  hover:bg-success/10"
           >
             <FileSpreadsheet className="w-4 h-4" />
             <span>Excel Batch Tool</span>
@@ -237,7 +237,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
             type="button"
             onClick={onRefresh}
             className={`p-2.5 rounded-xl border transition-colors ${
-              isLight ? 'bg-gray-100 hover:bg-gray-200 text-gray-700' : 'bg-white/10 hover:bg-white/20 text-white'
+              isLight ? 'bg-paper-2 hover:bg-paper-2 text-ink' : 'bg-paper-2 hover:bg-paper-2 text-accent-ink'
             }`}
             title="Refresh catalog"
           >
@@ -247,7 +247,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
           <button
             type="button"
             onClick={handleOpenAdd}
-            className="px-4 py-2.5 rounded-xl text-white font-bold text-xs shadow-md transition-all flex items-center gap-1.5 hover:opacity-95"
+            className="px-4 py-2.5 rounded-xl text-accent-ink font-bold text-sm shadow-none transition-colors flex items-center gap-1.5 hover:opacity-95"
             style={{ backgroundColor: currentTheme.primaryColor }}
           >
             <Plus className="w-4 h-4" />
@@ -258,15 +258,15 @@ export const PacksTab: React.FC<PacksTabProps> = ({
 
       {/* Error Banner with Retry */}
       {plansError && (
-        <div role="alert" className="p-4 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-700 dark:text-rose-300 flex items-center justify-between gap-3 text-xs">
+        <div role="alert" className="p-4 rounded-lg bg-error/10 border border-rule text-error  flex items-center justify-between gap-3 text-sm">
           <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-            <span className="font-semibold">{plansError}</span>
+            <AlertCircle className="w-4 h-4 text-error shrink-0" />
+            <span className="font-medium">{plansError}</span>
           </div>
           <button
             type="button"
             onClick={onRefresh}
-            className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center gap-1 shrink-0"
+            className="px-3 py-1.5 rounded-lg bg-accent hover:bg-error/10 text-accent-ink font-bold text-sm flex items-center gap-1 shrink-0"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span>{t.retryFetch}</span>
@@ -275,92 +275,94 @@ export const PacksTab: React.FC<PacksTabProps> = ({
       )}
 
       {/* Packs Table */}
-      <div className={`border rounded-2xl overflow-hidden shadow-sm ${
-        isLight ? 'bg-white border-gray-200' : 'bg-white/[0.02] border-white/10'
+      <div className={`border rounded-lg overflow-hidden shadow-none ${
+        isLight ? 'bg-paper border-rule' : 'bg-paper-2 border-rule'
       }`}>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className={`border-b ${isLight ? 'bg-gray-50/80 text-gray-700 border-gray-200' : 'bg-white/[0.03] text-gray-300 border-white/10'}`}>
+          <table className="admin-responsive-table w-full text-left text-sm">
+            <thead className={`border-b ${isLight ? 'bg-paper-2 text-ink border-rule' : 'bg-paper-2 text-muted border-rule'}`}>
               <tr>
-                <th className="p-3.5 font-semibold">{t.packNameLabel}</th>
-                <th className="hidden md:table-cell p-3.5 font-semibold">{t.operatorLabel}</th>
-                <th className="p-3.5 font-semibold">{t.qualityLabel}</th>
-                <th className="hidden md:table-cell p-3.5 font-semibold">{t.durationMonthsLabel}</th>
-                <th className="p-3.5 font-semibold">{t.priceInrLabel}</th>
-                <th className="hidden sm:table-cell p-3.5 font-semibold">{t.status}</th>
-                <th className="p-3.5 font-semibold text-right">{t.actions}</th>
+                <th className="p-3.5 font-medium">{t.packNameLabel}</th>
+                <th className="hidden md:table-cell p-3.5 font-medium">{t.operatorLabel}</th>
+                <th className="p-3.5 font-medium">{t.qualityLabel}</th>
+                <th className="hidden md:table-cell p-3.5 font-medium">{t.durationMonthsLabel}</th>
+                <th className="p-3.5 font-medium">{t.priceInrLabel}</th>
+                <th className="hidden sm:table-cell p-3.5 font-medium">{t.status}</th>
+                <th className="p-3.5 font-medium text-right">{t.actions}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-500/10">
+            <tbody className="divide-y divide-rule">
               {plansLoading ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-gray-600 dark:text-gray-300">
+                  <td colSpan={7} className="p-8 text-center text-muted ">
                     <div className="flex items-center justify-center gap-2">
-                      <RefreshCw className="w-4 h-4 animate-spin text-amber-500" />
+                      <RefreshCw className="w-4 h-4 animate-spin text-warning" />
                       <span>{t.loadingLiveCatalog}</span>
                     </div>
                   </td>
                 </tr>
               ) : filteredPlans.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-gray-700 dark:text-gray-300">
+                  <td colSpan={7} className="p-8 text-center text-ink ">
                     {t.noPlansMatch}
                   </td>
                 </tr>
               ) : (
                 filteredPlans.map((plan) => (
-                  <tr key={plan.id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="p-3.5 font-semibold">
-                      <div className="font-bold text-sm text-gray-900 dark:text-white">{plan.plan_name}</div>
-                      <div className="hidden md:block text-xs text-gray-600 dark:text-gray-300 font-mono">ID: {plan.id}</div>
-                      <div className="md:hidden text-xs text-gray-700 dark:text-gray-300">
+                  <tr key={plan.id} className="hover:bg-paper-2 transition-colors">
+                    <td data-label={t.packNameLabel} className="p-3.5 font-medium">
+                      <div className="font-bold text-sm text-ink ">{plan.plan_name}</div>
+                      <div className="hidden md:block text-sm text-muted">ID: {plan.id}</div>
+                      <div className="md:hidden text-sm text-ink ">
                         {plan.operator.replace('_', ' ')} · {plan.duration_months}M
                       </div>
                     </td>
-                    <td className="hidden md:table-cell p-3.5 capitalize font-medium text-gray-800 dark:text-gray-200">{plan.operator.replace('_', ' ')}</td>
-                    <td className="p-3.5">
-                      <span className={`text-xs px-2.5 py-0.5 rounded-md font-bold uppercase ${
+                    <td data-label={t.operatorLabel} className="hidden md:table-cell p-3.5 capitalize font-medium text-ink ">{plan.operator.replace('_', ' ')}</td>
+                    <td data-label={t.qualityLabel} className="p-3.5">
+                      <span className={`text-sm px-2.5 py-0.5 rounded-md font-bold  ${
                         plan.pack_type === 'HD'
-                          ? `bg-amber-500/20 ${isLight ? 'text-amber-900' : 'text-amber-200'} border border-amber-500/30`
-                          : `bg-blue-500/20 ${isLight ? 'text-blue-900' : 'text-blue-200'} border border-blue-500/30`
+                          ? `bg-warning/10 ${isLight ? 'text-warning' : 'text-warning'} border border-rule`
+                          : `bg-accent-soft ${isLight ? 'text-accent' : 'text-accent'} border border-rule`
                       }`}>
                         {plan.pack_type}
                       </span>
                     </td>
-                    <td className="hidden md:table-cell p-3.5 font-semibold text-gray-800 dark:text-gray-200">{plan.duration_months} Month{plan.duration_months > 1 ? 's' : ''}</td>
-                    <td className="p-3.5">
-                      <div className="font-mono font-bold text-sm text-gray-900 dark:text-white">₹{plan.amount}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">₹{Math.round(plan.amount / plan.duration_months)}/mo</div>
+                    <td data-label={t.durationMonthsLabel} className="hidden md:table-cell p-3.5 font-medium text-ink ">{plan.duration_months} Month{plan.duration_months > 1 ? 's' : ''}</td>
+                    <td data-label={t.priceInrLabel} className="p-3.5">
+                      <div className="font-mono font-medium text-sm text-ink ">₹{plan.amount}</div>
+                      <div className="text-sm text-muted ">₹{Math.round(plan.amount / plan.duration_months)}/mo</div>
                     </td>
-                    <td className="hidden sm:table-cell p-3.5">
+                    <td data-label={t.status} className="hidden sm:table-cell p-3.5">
                       {plan.is_recommended ? (
-                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/30 flex items-center gap-1 w-fit">
+                        <span className="text-sm px-2.5 py-0.5 rounded-full bg-success/10 text-success  font-bold border border-rule flex items-center gap-1 w-fit">
                           <Sparkles className="w-3.5 h-3.5" />
                           <span>Recommended</span>
                         </span>
                       ) : (
-                        <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Standard</span>
+                        <span className="text-sm text-muted  font-medium">Standard</span>
                       )}
                     </td>
-                    <td className="p-3.5 text-right space-x-1.5">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenEdit(plan)}
-                        className="p-1.5 rounded-lg border hover:bg-white/10 transition-colors"
-                        title="Edit Pack"
-                        aria-label={`Edit ${plan.plan_name}`}
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPackToDelete(plan)}
-                        className="p-1.5 rounded-lg border text-rose-500 hover:bg-rose-500/10 transition-colors"
-                        title="Delete Pack"
-                        aria-label={`Delete ${plan.plan_name}`}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                    <td data-label={t.actions} className="admin-pack-actions p-3.5">
+                      <div className="admin-pack-action-group">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(plan)}
+                          className="admin-pack-action p-1.5 rounded-lg border hover:bg-paper-2 transition-colors"
+                          title="Edit Pack"
+                          aria-label={`Edit ${plan.plan_name}`}
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPackToDelete(plan)}
+                          className="admin-pack-action p-1.5 rounded-lg border text-error hover:bg-error/10 transition-colors"
+                          title="Delete Pack"
+                          aria-label={`Delete ${plan.plan_name}`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -372,41 +374,41 @@ export const PacksTab: React.FC<PacksTabProps> = ({
 
       {/* Add / Edit Pack Modal */}
       {isPackModalOpen && (
-        <div 
-          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in"
+        <div
+          className="fixed inset-0 z-50 bg-ink/70  flex items-center justify-center p-4  "
           onClick={(e) => {
             if (e.target === e.currentTarget) setIsPackModalOpen(false);
           }}
         >
-          <div 
+          <div
             ref={packModalRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="pack-editor-title"
-            className={`border rounded-3xl max-h-[calc(100dvh-2rem)] overflow-y-auto max-w-lg w-full p-6 space-y-4 shadow-2xl text-left ${
-              isLight ? 'bg-white border-gray-200 text-gray-900' : 'bg-[#180530] border-white/20 text-white'
+            className={`border rounded-xl max-h-[calc(100dvh-2rem)] overflow-y-auto max-w-lg w-full p-6 space-y-4 shadow-2xl text-left ${
+              isLight ? 'bg-paper border-rule text-ink' : 'bg-paper border-rule text-accent-ink'
             }`}
           >
-            <div className="flex items-center justify-between border-b pb-3 border-gray-500/20">
+            <div className="flex items-center justify-between border-b pb-3 border-rule">
               <h3 id="pack-editor-title" className="font-bold text-base">{editingPack ? t.editPackTitle : t.addPackTitle}</h3>
-              <button 
+              <button
                 type="button"
-                onClick={() => setIsPackModalOpen(false)} 
+                onClick={() => setIsPackModalOpen(false)}
                 aria-label={t.close}
-                className="p-1.5 rounded-lg hover:bg-white/10"
+                className="p-1.5 rounded-lg hover:bg-paper-2"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSavePack} className="space-y-3 text-xs">
+            <form onSubmit={handleSavePack} className="space-y-3 text-sm">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-semibold block mb-1 text-gray-700 dark:text-gray-300">DTH Operator</label>
+                  <label className="font-medium block mb-1 text-ink ">DTH Operator</label>
                   <select
                     value={formData.operator}
                     onChange={(e) => setFormData({ ...formData, operator: e.target.value as DthOperatorId })}
-                    className="w-full rounded-xl px-3 py-2 border bg-black/20 focus:outline-none"
+                    className="w-full rounded-xl px-3 py-2 border bg-ink/20 focus:outline-none"
                   >
                     <option value="sun_direct">Sun Direct</option>
                     <option value="tata_play">Tata Play</option>
@@ -416,11 +418,11 @@ export const PacksTab: React.FC<PacksTabProps> = ({
                 </div>
 
                 <div>
-                  <label className="font-semibold block mb-1 text-gray-700 dark:text-gray-300">Quality Type</label>
+                  <label className="font-medium block mb-1 text-ink ">Quality Type</label>
                   <select
                     value={formData.pack_type}
                     onChange={(e) => setFormData({ ...formData, pack_type: e.target.value as any })}
-                    className="w-full rounded-xl px-3 py-2 border bg-black/20 focus:outline-none"
+                    className="w-full rounded-xl px-3 py-2 border bg-ink/20 focus:outline-none"
                   >
                     <option value="HD">HD Pack</option>
                     <option value="SD">SD Pack</option>
@@ -429,17 +431,17 @@ export const PacksTab: React.FC<PacksTabProps> = ({
               </div>
 
               <div>
-                <label className="font-semibold block mb-1 text-gray-700 dark:text-gray-300">Duration (Months)</label>
+                <label className="font-medium block mb-1 text-ink ">Duration (Months)</label>
                 <div className="grid grid-cols-4 gap-2">
                   {([1, 3, 6, 12] as const).map((d) => (
                     <button
                       key={d}
                       type="button"
                       onClick={() => setFormData({ ...formData, duration_months: d })}
-                      className={`py-2 rounded-xl font-bold border transition-all ${
+                      className={`py-2 rounded-xl font-bold border transition-colors ${
                         formData.duration_months === d
-                          ? 'text-white border-transparent shadow'
-                          : 'bg-black/20 text-gray-300 border-white/10'
+                          ? 'text-accent-ink border-transparent shadow'
+                          : 'bg-ink/20 text-muted border-rule'
                       }`}
                       style={{
                         backgroundColor: formData.duration_months === d ? currentTheme.primaryColor : undefined,
@@ -452,19 +454,19 @@ export const PacksTab: React.FC<PacksTabProps> = ({
               </div>
 
               <div>
-                <label className="font-semibold block mb-1 text-gray-700 dark:text-gray-300">Pack Name</label>
+                <label className="font-medium block mb-1 text-ink ">Pack Name</label>
                 <input
                   type="text"
                   required
                   value={formData.plan_name}
                   onChange={(e) => setFormData({ ...formData, plan_name: e.target.value })}
                   placeholder="e.g. Sun Direct Prime HD (6 Months Saver)"
-                  className="w-full rounded-xl px-3 py-2 border bg-black/20 focus:outline-none"
+                  className="w-full rounded-xl px-3 py-2 border bg-ink/20 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="font-semibold block mb-1 text-gray-700 dark:text-gray-300">Amount in INR (₹)</label>
+                <label className="font-medium block mb-1 text-ink ">Amount in INR (₹)</label>
                 <input
                   type="number"
                   required
@@ -472,12 +474,12 @@ export const PacksTab: React.FC<PacksTabProps> = ({
                   value={formData.amount}
                   onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                   placeholder="1650"
-                  className="w-full rounded-xl px-3 py-2 border bg-black/20 focus:outline-none font-mono font-bold"
+                  className="w-full rounded-xl px-3 py-2 border bg-ink/20 focus:outline-none font-mono font-bold"
                 />
               </div>
 
               <div>
-                <label className="flex items-center gap-2 cursor-pointer font-semibold py-1 text-gray-700 dark:text-gray-300">
+                <label className="flex items-center gap-2 cursor-pointer font-medium py-1 text-ink ">
                   <input
                     type="checkbox"
                     checked={formData.is_recommended}
@@ -490,7 +492,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
 
               {/* Channels List Editor */}
               <div className="space-y-2">
-                <label className="font-semibold block text-gray-700 dark:text-gray-300">Channel Highlights</label>
+                <label className="font-medium block text-ink ">Channel Highlights</label>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -503,27 +505,27 @@ export const PacksTab: React.FC<PacksTabProps> = ({
                       }
                     }}
                     placeholder="Add channel (e.g. Sun TV HD)"
-                    className="flex-1 rounded-xl px-3 py-1.5 border bg-black/20 focus:outline-none"
+                    className="flex-1 rounded-xl px-3 py-1.5 border bg-ink/20 focus:outline-none"
                   />
                   <button
                     type="button"
                     onClick={handleAddChannel}
-                    className="px-3.5 py-1.5 rounded-xl bg-gray-500/20 font-bold hover:bg-gray-500/30"
+                    className="px-3.5 py-1.5 rounded-xl bg-paper-3 font-bold hover:bg-paper-3"
                   >
                     Add
                   </button>
                 </div>
-                <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-2.5 rounded-xl border border-gray-500/20 bg-black/10">
+                <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-2.5 rounded-xl border border-rule bg-ink/10">
                   {formData.channel_list.map((ch) => (
                     <span
                       key={ch}
-                      className="px-2.5 py-1 rounded-lg bg-white/10 text-xs font-semibold flex items-center gap-1.5"
+                      className="px-2.5 py-1 rounded-lg bg-paper-2 text-sm font-medium flex items-center gap-1.5"
                     >
                       <span>{ch}</span>
                       <button
                         type="button"
                         onClick={() => handleRemoveChannel(ch)}
-                        className="hover:text-rose-400"
+                        className="hover:text-error"
                         aria-label={`Remove ${ch}`}
                       >
                         <X className="w-3.5 h-3.5" />
@@ -533,17 +535,17 @@ export const PacksTab: React.FC<PacksTabProps> = ({
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-gray-500/20">
+              <div className="flex justify-end gap-2 pt-3 border-t border-rule">
                 <button
                   type="button"
                   onClick={() => setIsPackModalOpen(false)}
-                  className="px-4 py-2 rounded-xl font-semibold bg-gray-500/20 hover:bg-gray-500/30"
+                  className="px-4 py-2 rounded-xl font-medium bg-paper-3 hover:bg-paper-3"
                 >
                   {t.cancel}
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl font-bold text-white shadow"
+                  className="px-4 py-2 rounded-xl font-bold text-accent-ink shadow"
                   style={{ backgroundColor: currentTheme.primaryColor }}
                 >
                   {t.save}
@@ -556,37 +558,37 @@ export const PacksTab: React.FC<PacksTabProps> = ({
 
       {/* Delete Pack Confirmation */}
       {packToDelete && (
-        <div 
-          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in"
+        <div
+          className="fixed inset-0 z-50 bg-ink/70  flex items-center justify-center p-4  "
           onClick={(e) => {
             if (e.target === e.currentTarget) setPackToDelete(null);
           }}
         >
-          <div 
+          <div
             ref={deleteModalRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="delete-pack-title"
-            className={`border rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl text-left ${
-              isLight ? 'bg-white border-rose-200 text-gray-900' : 'bg-[#180530] border-rose-500/30 text-white'
+            className={`border rounded-xl max-w-sm w-full p-6 space-y-4 shadow-2xl text-left ${
+              isLight ? 'bg-paper border-rule text-ink' : 'bg-paper border-rule text-accent-ink'
             }`}
           >
-            <h3 id="delete-pack-title" className="font-bold text-base text-rose-500">{t.confirmDeletePackTitle}</h3>
-            <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
+            <h3 id="delete-pack-title" className="font-bold text-base text-error">{t.confirmDeletePackTitle}</h3>
+            <p className="text-sm text-ink  leading-relaxed">
               {t.confirmDeletePackDesc} <strong>{packToDelete.plan_name}</strong> (₹{packToDelete.amount})?
             </p>
             <div className="flex justify-end gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setPackToDelete(null)}
-                className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-gray-500/20"
+                className="px-3.5 py-2 rounded-xl text-sm font-medium bg-paper-3"
               >
                 {t.cancel}
               </button>
               <button
                 type="button"
                 onClick={() => handleDeletePack(packToDelete.id)}
-                className="px-3.5 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white shadow-sm"
+                className="px-3.5 py-2 rounded-xl text-sm font-bold bg-accent hover:bg-error/10 text-accent-ink shadow-none"
               >
                 {t.delete}
               </button>

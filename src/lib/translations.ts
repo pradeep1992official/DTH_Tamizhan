@@ -7,7 +7,6 @@ export const translations = {
     navRecharge: 'Quick Recharge',
     navPlans: 'Browse Packs',
     navConnections: 'My Set-Top Boxes',
-    navRefresh: 'Signal Refresh',
     navNewDish: 'New Dish Connection',
     navWorker: 'Dealer / Worker Queue',
     navHelp: 'Customer Care',
@@ -38,6 +37,7 @@ export const translations = {
     step1SelectOp: '1. Select DTH Operator',
     step2Card: '2. Enter Smart Card / Customer ID',
     step3Pack: '3. Select Recharge Pack or Amount',
+    step4ReviewPay: 'Review and pay',
     
     // Smart card input
     enterCardNumber: '2. Enter Smart Card / Customer ID',
@@ -136,19 +136,9 @@ export const translations = {
     printReceipt: 'Print Receipt',
     shareWhatsApp: 'Share on WhatsApp',
     downloadReceipt: 'Download Receipt',
-    channelsActiveNotice: 'Channels will resume within 5 to 10 minutes. If channels do not appear, trigger a Signal Refresh.',
+    channelsActiveNotice: 'Channels may take 5 to 10 minutes to appear after recharge. If they remain unavailable, contact your DTH operator.',
     rechargeSuccessSubtitle: 'Recharge Processed Successfully',
     officialTaxInvoice: 'Official DTH Recharge Tax Invoice',
-
-    // Signal Refresh Modal
-    signalRefreshTitle: 'DTH Signal Refresh & Channel Recovery',
-    signalRefreshDesc: 'Recharged but channels not showing? Send a signal refresh pulse directly to your set-top box to unblock channels.',
-    triggerRefresh: 'Send Signal Refresh',
-    refreshing: 'Sending signal refresh command...',
-    refreshSuccessTitle: 'Signal Refresh Command Dispatched!',
-    refreshSuccessDesc: 'Please keep your TV and Set-Top Box turned ON on Channel 100 for 5 minutes while the transponder syncs your card.',
-    turnOnChannel100: 'Keep your TV & Set-Top Box turned ON on Channel 100 for 5 minutes',
-    signalSubhead: 'Re-activate viewing & sync transponder authorization',
 
     // New Connection Modal
     newDishTitle: 'Book a New DTH Dish Connection',
@@ -266,9 +256,11 @@ export const translations = {
     savingPack: 'Saving Pack...',
     auditLog: 'Audit History',
     viewAuditLogs: 'View Catalog Audit Logs',
+    operatorAvailability: 'Operator availability',
+    operatorAvailabilityHint: 'Pause a service for maintenance, or turn it back on.',
     confirmStatusChange: 'Confirm Operator Status Change',
-    suspendOperator: 'suspend',
-    reEnableOperator: 're-enable',
+    suspendOperator: 'Pause',
+    reEnableOperator: 'Resume',
     maintenanceReason: 'Reason / Maintenance Message',
     confirmChangeBtn: 'Confirm Status Update',
     superAdminBadge: 'Super Administrator',
@@ -374,7 +366,6 @@ export const translations = {
     navRecharge: 'உடனடி ரீசார்ஜ்',
     navPlans: 'பேக்குகளை காண்க',
     navConnections: 'என் செட்-டாப் பாக்ஸ்கள்',
-    navRefresh: 'சிக்னல் புதுப்பிப்பு',
     navNewDish: 'புதிய டிஷ் இணைப்பு',
     navWorker: 'டீலர் / பணியாளர் பிரிவு',
     navHelp: 'வாடிக்கையாளர் உதவி',
@@ -405,6 +396,7 @@ export const translations = {
     step1SelectOp: '1. டிடிஎச் ஆபரேட்டரைத் தேர்ந்தெடுக்கவும்',
     step2Card: '2. ஸ்மார்ட் கார்டு / வாடிக்கையாளர் எண்',
     step3Pack: '3. ரீசார்ஜ் பேக் அல்லது தொகையைத் தேர்ந்தெடுக்கவும்',
+    step4ReviewPay: 'பார்த்து பணம் செலுத்தவும்',
 
     // Smart card input
     enterCardNumber: '2. ஸ்மார்ட் கார்டு / வாடிக்கையாளர் எண்',
@@ -503,19 +495,9 @@ export const translations = {
     printReceipt: 'ரசீதை அச்சிடுக',
     shareWhatsApp: 'வாட்ஸ்அப்பில் பகிர்க',
     downloadReceipt: 'ரசீதை பதிவிறக்குக',
-    channelsActiveNotice: 'அடுத்த 5 முதல் 10 நிமிடங்களில் சேனல்கள் இயங்கும். டிவி தெரியவில்லை என்றால் சிக்னல் புதுப்பிப்பு செய்யவும்.',
+    channelsActiveNotice: 'ரீசார்ஜுக்குப் பிறகு சேனல்கள் வர 5 முதல் 10 நிமிடங்கள் ஆகலாம். தொடர்ந்து வரவில்லை என்றால் உங்கள் டிடிஎச் நிறுவனத்தைத் தொடர்பு கொள்ளவும்.',
     rechargeSuccessSubtitle: 'ரீசார்ஜ் வெற்றிகரமாக முடிந்தது',
     officialTaxInvoice: 'அதிகாரப்பூர்வ டிடிஎச் ரீசார்ஜ் ரசீது',
-
-    // Signal Refresh Modal
-    signalRefreshTitle: 'டிடிஎச் சிக்னல் புதுப்பிப்பு மற்றும் சேனல் சரிசெய்தல்',
-    signalRefreshDesc: 'ரீசார்ஜ் செய்தும் டிவி தெரியவில்லையா? சேனல்களை இயக்க உங்கள் செட்-டாப் பாக்ஸிற்கு சிக்னல் புதுப்பிப்பு கோரிக்கையை அனுப்பவும்.',
-    triggerRefresh: 'சிக்னல் புதுப்பிக்கவும்',
-    refreshing: 'சிக்னல் புதுப்பிப்பு அனுப்பப்படுகிறது...',
-    refreshSuccessTitle: 'சிக்னல் புதுப்பிப்பு கோரிக்கை அனுப்பப்பட்டது!',
-    refreshSuccessDesc: 'டிவி மற்றும் செட்-டாப் பாக்ஸை சேனல் 100-ல் 5 நிமிடங்கள் இயக்கி வைக்கவும்.',
-    turnOnChannel100: 'உங்கள் செட்-டாப் பாக்ஸை சேனல் 100-ல் 5 நிமிடங்கள் இயக்கி வைக்கவும்',
-    signalSubhead: 'சேனல் சிக்னல் அனுமதி புதுப்பிப்பு',
 
     // New Connection Modal
     newDishTitle: 'புதிய டிடிஎச் டிஷ் இணைப்பு பதிவு',
@@ -633,6 +615,8 @@ export const translations = {
     savingPack: 'சேமிக்கப்படுகிறது...',
     auditLog: 'தணிக்கை வரலாறு',
     viewAuditLogs: 'தணிக்கை பதிவுகளைக் காண்க',
+    operatorAvailability: 'ஆபரேட்டர் சேவை நிலை',
+    operatorAvailabilityHint: 'பராமரிப்புக்காக சேவையை நிறுத்தி, பின்னர் மீண்டும் தொடங்குங்கள்.',
     confirmStatusChange: 'ஆபரேட்டர் நிலை மாற்றத்தை உறுதி செய்க',
     suspendOperator: 'நிறுத்தி வைக்க',
     reEnableOperator: 'மீண்டும் செயல்படுத்த',

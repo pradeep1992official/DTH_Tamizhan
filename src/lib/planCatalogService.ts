@@ -11,6 +11,7 @@ import {
   orderBy, 
   limit,
   onSnapshot,
+  writeBatch,
   Unsubscribe
 } from 'firebase/firestore';
 
@@ -18,7 +19,47 @@ import {
  * Single Unified Master Plan Catalog
  * Canonical source of truth for pricing, durations, channel counts, and highlights across all screens.
  */
-export const INITIAL_PLAN_CATALOG: PlanCatalogItem[] = [
+type SunDirectTariff = {
+  name: string;
+  pack_type: 'HD' | 'SD';
+  plan_family: string;
+  recommended?: boolean;
+  prices: Array<[1 | 3 | 6 | 12, number]>;
+};
+
+const SUN_DIRECT_TARIFFS: SunDirectTariff[] = [
+  { name: 'Joy', pack_type: 'SD', plan_family: 'sundirect_sd_joy', recommended: true, prices: [[1, 199], [3, 659], [6, 1199], [12, 1899]] },
+  { name: 'Joy Plus', pack_type: 'SD', plan_family: 'sundirect_sd_joy_plus', prices: [[1, 229], [3, 669], [6, 1209], [12, 2279]] },
+  { name: 'Basic', pack_type: 'SD', plan_family: 'sundirect_sd_basic', prices: [[1, 249], [3, 749], [6, 1439], [12, 2749]] },
+  { name: 'Silver', pack_type: 'SD', plan_family: 'sundirect_sd_silver', prices: [[1, 279], [3, 839], [6, 1559], [12, 2969]] },
+  { name: 'Gold', pack_type: 'SD', plan_family: 'sundirect_sd_gold', prices: [[1, 309], [3, 929], [6, 1709], [12, 3249]] },
+  { name: 'Tamil Malayalam Jodi', pack_type: 'SD', plan_family: 'sundirect_sd_tamil_malayalam_jodi', prices: [[1, 327], [3, 987], [6, 1797]] },
+  { name: 'Tamil Kannada Jodi', pack_type: 'SD', plan_family: 'sundirect_sd_tamil_kannada_jodi', prices: [[1, 339], [3, 1019], [6, 1869]] },
+  { name: 'Tamil Telugu Jodi', pack_type: 'SD', plan_family: 'sundirect_sd_tamil_telugu_jodi', prices: [[1, 329], [3, 989], [6, 1809]] },
+  { name: 'Premium', pack_type: 'SD', plan_family: 'sundirect_sd_premium', prices: [[1, 389], [3, 1169], [6, 2139]] },
+  { name: 'Economy HD', pack_type: 'HD', plan_family: 'sundirect_hd_economy', recommended: true, prices: [[1, 259], [3, 739], [6, 1399], [12, 2689]] },
+  { name: 'Value HD', pack_type: 'HD', plan_family: 'sundirect_hd_value', prices: [[1, 289], [3, 829], [6, 1569]] },
+  { name: 'Super Value HD', pack_type: 'HD', plan_family: 'sundirect_hd_super_value', prices: [[1, 340], [3, 969], [6, 1839]] },
+];
+
+const SUN_DIRECT_TARIFF_PLANS: PlanCatalogItem[] = SUN_DIRECT_TARIFFS.flatMap((tariff) =>
+  tariff.prices.map(([duration, amount]): PlanCatalogItem => ({
+    id: `sundirect_${tariff.plan_family.replace('sundirect_', '')}_${duration}m`,
+    operator: 'sun_direct',
+    pack_type: tariff.pack_type,
+    plan_family: tariff.plan_family,
+    duration_months: duration,
+    plan_name: tariff.name,
+    amount,
+    is_recommended: tariff.recommended === true,
+    channel_list: [],
+    description: `Sun Direct ${tariff.name} ${tariff.pack_type} recharge for ${duration} month${duration === 1 ? '' : 's'}.`,
+    updated_at: new Date().toISOString(),
+    updated_by: 'admin_sys_init',
+  }))
+);
+
+export const INITIAL_PLAN_CATALOG: PlanCatalogItem[] = ([
   // =========================================================================
   // 1. SUN DIRECT (சன் டைரக்ட்)
   // =========================================================================
@@ -238,7 +279,7 @@ export const INITIAL_PLAN_CATALOG: PlanCatalogItem[] = [
     plan_name: 'Tata Play Tamil Thalaiva HD (3 Months)',
     tamilName: 'டாடா பிளே தமிழ் தலைவா எச்டி (3 மாதங்கள்)',
     amount: 1020, // ₹340/mo (saves ₹20/mo vs ₹360)
-    is_recommended: false,
+    is_recommended: true,
     channel_count: 220,
     hd_channel_count: 36,
     channel_list: ['Star Vijay HD', 'Sun TV HD', 'KTV HD', 'Zee Tamil HD', 'Colors Tamil HD', 'Star Sports 1 Tamil HD', 'Sony Sports Ten 1 HD'],
@@ -371,139 +412,201 @@ export const INITIAL_PLAN_CATALOG: PlanCatalogItem[] = [
   // 3. AIRTEL DIGITAL TV (ஏர்டெல் டிவி)
   // =========================================================================
   {
-    id: 'airtel_hd_1m_rec',
+    id: 'airtel_hd_superstar_1m',
     operator: 'airtel_dth',
     pack_type: 'HD',
+    plan_family: 'airtel_hd_superstar_20',
     duration_months: 1,
-    plan_name: 'Airtel Tamil Mega HD',
-    tamilName: 'ஏர்டெல் தமிழ் மெகா எச்டி',
-    amount: 320,
+    plan_name: 'Tamil Super Star HD Pack (20 HD)',
+    tamilName: 'தமிழ் சூப்பர் ஸ்டார் எச்டி பேக் (20 எச்டி)',
+    amount: 279,
     is_recommended: true,
-    channel_count: 215,
-    hd_channel_count: 34,
+    channel_count: 140,
+    hd_channel_count: 20,
     channel_list: ['Sun TV HD', 'Star Vijay HD', 'KTV HD', 'Zee Tamil HD', 'Colors Tamil HD', 'Star Sports 1 Tamil HD', 'Sony Ten 1 HD', 'Discovery HD Tamil', 'Hungama TV'],
     genre_tags: ['tamil', 'entertainment', 'movies', 'sports', 'kids'],
-    description: 'High-clarity Tamil broadcast with top-tier sports and kids entertainment from Airtel Digital TV.',
+    description: 'Airtel Tamil Super Star HD pack with 20 HD channels.',
     updated_at: new Date(Date.now() - 86400000 * 2).toISOString(),
     updated_by: 'admin_sys_init',
   },
   {
-    id: 'airtel_hd_3m_rec',
+    id: 'airtel_hd_superstar_6m',
     operator: 'airtel_dth',
     pack_type: 'HD',
-    duration_months: 3,
-    plan_name: 'Airtel Tamil Mega HD (3 Months)',
-    tamilName: 'ஏர்டெல் தமிழ் மெகா எச்டி (3 மாதங்கள்)',
-    amount: 910, // ₹303.33/mo (saves ₹17/mo vs ₹320)
-    is_recommended: false,
-    channel_count: 215,
-    hd_channel_count: 34,
+    plan_family: 'airtel_hd_superstar_20',
+    duration_months: 6,
+    plan_name: 'Tamil Super Star HD Pack (20 HD)',
+    tamilName: 'தமிழ் சூப்பர் ஸ்டார் எச்டி பேக் (20 எச்டி)',
+    amount: 1396,
+    is_recommended: true,
+    channel_count: 140,
+    hd_channel_count: 20,
     channel_list: ['Sun TV HD', 'Star Vijay HD', 'KTV HD', 'Zee Tamil HD', 'Colors Tamil HD', 'Star Sports 1 Tamil HD', 'Discovery HD Tamil'],
     genre_tags: ['tamil', 'entertainment', 'movies', 'sports'],
-    description: 'Quarterly pack for Airtel Tamil Mega HD with reduced monthly bill.',
+    description: 'Airtel Tamil Super Star HD pack with 20 HD channels.',
     updated_at: new Date(Date.now() - 86400000 * 2).toISOString(),
     updated_by: 'admin_sys_init',
   },
   {
-    id: 'airtel_hd_6m_rec',
+    id: 'airtel_hd_superstar_12m',
     operator: 'airtel_dth',
     pack_type: 'HD',
-    duration_months: 6,
-    plan_name: 'Airtel Tamil Mega HD (6 Months Saver)',
-    tamilName: 'ஏர்டெல் தமிழ் மெகா எச்டி (6 மாதங்கள்)',
-    amount: 1740, // ₹290/mo (saves ₹30/mo vs ₹320)
-    is_recommended: true,
-    channel_count: 215,
-    hd_channel_count: 34,
-    channel_list: ['Sun TV HD', 'Star Vijay HD', 'KTV HD', 'Zee Tamil HD', 'Colors Tamil HD', 'Star Sports 1 Tamil HD', 'Sony Ten 1 HD', 'Discovery HD Tamil', 'Hungama TV'],
-    genre_tags: ['tamil', 'entertainment', 'movies', 'sports', 'kids'],
-    description: 'Half-yearly mega HD saver with 6 months continuous high definition service.',
-    updated_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-    updated_by: 'admin_sys_init',
-  },
-  {
-    id: 'airtel_hd_12m_rec',
-    operator: 'airtel_dth',
-    pack_type: 'HD',
+    plan_family: 'airtel_hd_superstar_20',
     duration_months: 12,
-    plan_name: 'Airtel Tamil Mega HD (12 Months Annual)',
-    tamilName: 'ஏர்டெல் தமிழ் மெகா எச்டி (வருடாந்திரம்)',
-    amount: 3240, // ₹270/mo (saves ₹50/mo vs ₹320)
+    plan_name: 'Tamil Super Star HD Pack (20 HD)',
+    tamilName: 'தமிழ் சூப்பர் ஸ்டார் எச்டி பேக் (20 எச்டி)',
+    amount: 2791,
     is_recommended: true,
-    channel_count: 215,
-    hd_channel_count: 34,
+    channel_count: 140,
+    hd_channel_count: 20,
     channel_list: ['Sun TV HD', 'Star Vijay HD', 'KTV HD', 'Zee Tamil HD', 'Colors Tamil HD', 'Star Sports 1 Tamil HD', 'Sony Ten 1 HD', 'Discovery HD Tamil', 'Hungama TV'],
     genre_tags: ['tamil', 'entertainment', 'movies', 'sports', 'kids'],
-    description: 'Best annual HD price with free dish maintenance and priority Airtel customer care.',
+    description: 'Airtel Tamil Super Star HD pack with 20 HD channels.',
     updated_at: new Date(Date.now() - 86400000 * 2).toISOString(),
     updated_by: 'admin_sys_init',
   },
   {
-    id: 'airtel_sd_1m_rec',
+    id: 'airtel_hd_superstar_plus_1m',
+    operator: 'airtel_dth',
+    pack_type: 'HD',
+    plan_family: 'airtel_hd_superstar_plus_29',
+    duration_months: 1,
+    plan_name: 'Tamil Super Star Plus HD Pack (29 HD)',
+    tamilName: 'தமிழ் சூப்பர் ஸ்டார் பிளஸ் எச்டி பேக் (29 எச்டி)',
+    amount: 309,
+    is_recommended: false,
+    channel_count: 150,
+    hd_channel_count: 29,
+    channel_list: ['Sun TV HD', 'Star Vijay HD', 'KTV HD', 'Zee Tamil HD', 'Colors Tamil HD', 'Star Sports 1 Tamil HD', 'Sony Ten 1 HD', 'Discovery HD Tamil', 'Hungama TV'],
+    genre_tags: ['tamil', 'entertainment', 'movies', 'sports', 'kids'],
+    description: 'Airtel Tamil Super Star Plus HD pack with 29 HD channels.',
+    updated_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+    updated_by: 'admin_sys_init',
+  },
+  {
+    id: 'airtel_hd_superstar_plus_6m',
+    operator: 'airtel_dth',
+    pack_type: 'HD',
+    plan_family: 'airtel_hd_superstar_plus_29',
+    duration_months: 6,
+    plan_name: 'Tamil Super Star Plus HD Pack (29 HD)',
+    tamilName: 'தமிழ் சூப்பர் ஸ்டார் பிளஸ் எச்டி பேக் (29 எச்டி)',
+    amount: 1546,
+    is_recommended: false,
+    channel_count: 150,
+    hd_channel_count: 29,
+    channel_list: ['Sun TV HD', 'Star Vijay HD', 'KTV HD', 'Zee Tamil HD', 'Colors Tamil HD', 'Star Sports 1 Tamil HD', 'Sony Ten 1 HD', 'Discovery HD Tamil', 'Hungama TV'],
+    genre_tags: ['tamil', 'entertainment', 'movies', 'sports', 'kids'],
+    description: 'Airtel Tamil Super Star Plus HD pack with 29 HD channels.',
+    updated_at: new Date(Date.now() - 86400000 * 3).toISOString(),
+    updated_by: 'admin_sys_init',
+  },
+  {
+    id: 'airtel_hd_superstar_plus_12m',
+    operator: 'airtel_dth',
+    pack_type: 'HD',
+    plan_family: 'airtel_hd_superstar_plus_29',
+    duration_months: 12,
+    plan_name: 'Tamil Super Star Plus HD Pack (29 HD)',
+    tamilName: 'தமிழ் சூப்பர் ஸ்டார் பிளஸ் எச்டி பேக் (29 எச்டி)',
+    amount: 3091,
+    is_recommended: false,
+    channel_count: 150,
+    hd_channel_count: 29,
+    channel_list: ['Sun TV HD', 'Star Vijay HD', 'KTV HD', 'Zee Tamil HD', 'Colors Tamil HD', 'Star Sports 1 Tamil HD', 'Sony Ten 1 HD', 'Discovery HD Tamil', 'Hungama TV'],
+    genre_tags: ['tamil', 'entertainment', 'movies', 'sports', 'kids'],
+    description: 'Airtel Tamil Super Star Plus HD pack with 29 HD channels.',
+    updated_at: new Date(Date.now() - 86400000 * 3).toISOString(),
+    updated_by: 'admin_sys_init',
+  },
+  {
+    id: 'airtel_sd_superstar_6m',
     operator: 'airtel_dth',
     pack_type: 'SD',
-    duration_months: 1,
-    plan_name: 'Airtel Tamil Value Pack',
-    tamilName: 'ஏர்டெல் தமிழ் வேல்யூ பேக்',
-    amount: 215,
+    plan_family: 'airtel_sd_superstar',
+    duration_months: 6,
+    plan_name: 'Tamil Super Star Pack',
+    tamilName: 'தமிழ் சூப்பர் ஸ்டார் பேக்',
+    amount: 1289,
     is_recommended: true,
     channel_count: 140,
     hd_channel_count: 0,
     channel_list: ['Sun TV', 'Star Vijay', 'KTV', 'Zee Tamil', 'Colors Tamil', 'Star Sports 1 Tamil', 'Discovery Tamil', 'Chutti TV', 'Sun News', 'Thanthi TV'],
     genre_tags: ['tamil', 'entertainment', 'movies', 'news'],
-    description: 'Value pack with popular regional channels, movies and news for budget-conscious families.',
+    description: 'Airtel Tamil Super Star SD pack.',
     updated_at: new Date(Date.now() - 86400000 * 3).toISOString(),
     updated_by: 'admin_sys_init',
   },
   {
-    id: 'airtel_sd_3m_rec',
+    id: 'airtel_sd_superstar_12m',
     operator: 'airtel_dth',
     pack_type: 'SD',
-    duration_months: 3,
-    plan_name: 'Airtel Tamil Value Pack (3 Months)',
-    tamilName: 'ஏர்டெல் தமிழ் வேல்யூ (3 மாதங்கள்)',
-    amount: 610, // ₹203.33/mo (saves ₹12/mo vs ₹215)
+    plan_family: 'airtel_sd_superstar',
+    duration_months: 12,
+    plan_name: 'Tamil Super Star Pack',
+    tamilName: 'தமிழ் சூப்பர் ஸ்டார் பேக்',
+    amount: 2581,
+    is_recommended: true,
+    channel_count: 140,
+    hd_channel_count: 0,
+    channel_list: ['Sun TV', 'Star Vijay', 'KTV', 'Zee Tamil', 'Colors Tamil', 'Star Sports 1 Tamil', 'Discovery Tamil', 'Chutti TV', 'Sun News', 'Thanthi TV'],
+    genre_tags: ['tamil', 'entertainment', 'movies', 'news'],
+    description: 'Airtel Tamil Super Star SD pack.',
+    updated_at: new Date(Date.now() - 86400000 * 3).toISOString(),
+    updated_by: 'admin_sys_init',
+  },
+  {
+    id: 'airtel_sd_superstar_plus_1m',
+    operator: 'airtel_dth',
+    pack_type: 'SD',
+    plan_family: 'airtel_sd_superstar_plus',
+    duration_months: 1,
+    plan_name: 'Tamil Super Star Plus Pack',
+    tamilName: 'தமிழ் சூப்பர் ஸ்டார் பிளஸ் பேக்',
+    amount: 308,
     is_recommended: false,
     channel_count: 140,
     hd_channel_count: 0,
-    channel_list: ['Sun TV', 'Star Vijay', 'KTV', 'Zee Tamil', 'Colors Tamil', 'Star Sports 1 Tamil', 'Discovery Tamil', 'Chutti TV'],
+    channel_list: ['Sun TV', 'Star Vijay', 'KTV', 'Zee Tamil', 'Colors Tamil', 'Star Sports 1 Tamil', 'Discovery Tamil', 'Chutti TV', 'Sun News', 'Thanthi TV'],
     genre_tags: ['tamil', 'entertainment', 'movies', 'news'],
-    description: '3 months advance payment with uninterrupted daily television.',
-    updated_at: new Date(Date.now() - 86400000 * 3).toISOString(),
+    description: 'Airtel Tamil Super Star Plus SD pack.',
+    updated_at: new Date(Date.now() - 86400000 * 2).toISOString(),
     updated_by: 'admin_sys_init',
   },
   {
-    id: 'airtel_sd_6m_rec',
+    id: 'airtel_sd_superstar_plus_6m',
     operator: 'airtel_dth',
     pack_type: 'SD',
+    plan_family: 'airtel_sd_superstar_plus',
     duration_months: 6,
-    plan_name: 'Airtel Tamil Value Pack (6 Months Saver)',
-    tamilName: 'ஏர்டெல் தமிழ் வேல்யூ (6 மாதங்கள்)',
-    amount: 1170, // ₹195/mo (saves ₹20/mo vs ₹215)
-    is_recommended: true,
+    plan_name: 'Tamil Super Star Plus Pack',
+    tamilName: 'தமிழ் சூப்பர் ஸ்டார் பிளஸ் பேக்',
+    amount: 1541,
+    is_recommended: false,
     channel_count: 140,
     hd_channel_count: 0,
     channel_list: ['Sun TV', 'Star Vijay', 'KTV', 'Zee Tamil', 'Colors Tamil', 'Star Sports 1 Tamil', 'Discovery Tamil', 'Chutti TV', 'Sun News', 'Thanthi TV'],
     genre_tags: ['tamil', 'entertainment', 'movies', 'news'],
-    description: '6 Months value advance recharge with ₹20 discount every month.',
-    updated_at: new Date(Date.now() - 86400000 * 3).toISOString(),
+    description: 'Airtel Tamil Super Star Plus SD pack.',
+    updated_at: new Date(Date.now() - 86400000 * 2).toISOString(),
     updated_by: 'admin_sys_init',
   },
   {
-    id: 'airtel_sd_12m_rec',
+    id: 'airtel_sd_superstar_plus_12m',
     operator: 'airtel_dth',
     pack_type: 'SD',
+    plan_family: 'airtel_sd_superstar_plus',
     duration_months: 12,
-    plan_name: 'Airtel Tamil Value Pack (Annual)',
-    tamilName: 'ஏர்டெல் தமிழ் வேல்யூ (வருடாந்திரம்)',
-    amount: 2160, // ₹180/mo (saves ₹35/mo vs ₹215)
-    is_recommended: true,
+    plan_name: 'Tamil Super Star Plus Pack',
+    tamilName: 'தமிழ் சூப்பர் ஸ்டார் பிளஸ் பேக்',
+    amount: 3081,
+    is_recommended: false,
     channel_count: 140,
     hd_channel_count: 0,
     channel_list: ['Sun TV', 'Star Vijay', 'KTV', 'Zee Tamil', 'Colors Tamil', 'Star Sports 1 Tamil', 'Discovery Tamil', 'Chutti TV', 'Sun News', 'Thanthi TV'],
     genre_tags: ['tamil', 'entertainment', 'movies', 'news'],
-    description: 'Annual value pack at only ₹180 per month with zero recharge hassle for 365 days.',
-    updated_at: new Date(Date.now() - 86400000 * 3).toISOString(),
+    description: 'Airtel Tamil Super Star Plus SD pack.',
+    updated_at: new Date(Date.now() - 86400000 * 2).toISOString(),
     updated_by: 'admin_sys_init',
   },
 
@@ -786,10 +889,74 @@ export const INITIAL_PLAN_CATALOG: PlanCatalogItem[] = [
     updated_at: new Date(Date.now() - 86400000 * 4).toISOString(),
     updated_by: 'admin_sys_init',
   },
-];
+] as PlanCatalogItem[]).filter((plan) => plan.operator !== 'sun_direct').concat(SUN_DIRECT_TARIFF_PLANS);
 
 const LOCAL_STORAGE_CATALOG_KEY = 'dth_plan_catalog_cache_v2';
 const LOCAL_STORAGE_AUDIT_KEY = 'dth_plan_audit_logs_cache_v2';
+const PLAN_CATALOG_STATE_ID = 'catalog_state';
+const PLAN_CATALOG_STATE_REF = () => doc(db!, 'plan_catalog', PLAN_CATALOG_STATE_ID);
+const AIRTEL_CATALOG_SEED_VERSION = 2;
+const AIRTEL_RECOMMENDATION_VERSION = 1;
+const SUN_DIRECT_CATALOG_SEED_VERSION = 1;
+const AIRTEL_RECOMMENDATION_FLAGS: Record<string, boolean> = {
+  airtel_hd_superstar_1m: true,
+  airtel_hd_superstar_6m: true,
+  airtel_hd_superstar_12m: true,
+  airtel_hd_superstar_plus_1m: false,
+  airtel_hd_superstar_plus_6m: false,
+  airtel_hd_superstar_plus_12m: false,
+  airtel_sd_superstar_6m: true,
+  airtel_sd_superstar_12m: true,
+  airtel_sd_superstar_plus_1m: false,
+  airtel_sd_superstar_plus_6m: false,
+  airtel_sd_superstar_plus_12m: false,
+};
+const LEGACY_AIRTEL_PLAN_IDS = [
+  'airtel_hd_1m_rec',
+  'airtel_hd_3m_rec',
+  'airtel_hd_6m_rec',
+  'airtel_hd_12m_rec',
+  'airtel_sd_1m_rec',
+  'airtel_sd_3m_rec',
+  'airtel_sd_6m_rec',
+  'airtel_sd_12m_rec',
+];
+const LEGACY_SUN_DIRECT_PLAN_IDS = [
+  'sun_hd_1m_rec',
+  'sun_hd_3m_rec',
+  'sun_hd_6m_rec',
+  'sun_hd_12m_rec',
+  'sun_sd_1m_rec',
+  'sun_sd_3m_rec',
+  'sun_sd_6m_rec',
+  'sun_sd_12m_rec',
+  'sun_hd_cinema_1m',
+  'sun_sd_sports_1m',
+  'sun_sd_budget_1m',
+];
+
+function getFirebaseErrorDetails(error: unknown): string {
+  if (!(error instanceof Error)) return String(error);
+  const code = 'code' in error && typeof error.code === 'string' ? ` (${error.code})` : '';
+  return `${error.message}${code}`;
+}
+
+function getPlanFamilyKey(plan: PlanCatalogItem): string {
+  if (plan.plan_family) return `family:${plan.plan_family}`;
+  if (plan.pack_type === 'HD' && plan.hd_channel_count !== undefined) {
+    return `hd-channels:${plan.hd_channel_count}`;
+  }
+  return `name:${plan.plan_name
+    .toLowerCase()
+    .replace(/\s*\([^)]*\)/g, '')
+    .replace(/\s+(annual|yearly|saver|quarterly)$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim()}`;
+}
+
+function isSamePlanFamily(left: PlanCatalogItem, right: PlanCatalogItem): boolean {
+  return getPlanFamilyKey(left) === getPlanFamilyKey(right);
+}
 
 export class PlanCatalogService {
   /**
@@ -807,20 +974,30 @@ export class PlanCatalogService {
           catalogRef,
           (snapshot) => {
             if (snapshot.empty) {
-              // Firestore is live but empty: Auto-seed initial catalog
-              this.seedInitialCatalogToFirestore()
-                .then((seeded) => callback(seeded))
+              getDoc(PLAN_CATALOG_STATE_REF())
+                .then((state) => {
+                  if (state.data()?.initialized === true) {
+                    try {
+                      localStorage.setItem(LOCAL_STORAGE_CATALOG_KEY, JSON.stringify([]));
+                    } catch {}
+                    callback([]);
+                    return;
+                  }
+                  return this.seedInitialCatalogToFirestore().then(callback);
+                })
                 .catch((err) => {
                   onError?.(err instanceof Error ? err : new Error(String(err)));
                 });
             } else {
               const plans: PlanCatalogItem[] = [];
               snapshot.forEach((docSnap) => {
+                if (docSnap.id === PLAN_CATALOG_STATE_ID) return;
                 const data = docSnap.data();
                 plans.push({
                   id: docSnap.id,
                   operator: data.operator,
                   pack_type: data.pack_type || data.type || 'HD',
+                  plan_family: data.plan_family,
                   duration_months: (Number(data.duration_months) || 1) as 1 | 3 | 6 | 12,
                   plan_name: data.plan_name || data.name || 'DTH Pack',
                   tamilName: data.tamilName,
@@ -881,12 +1058,24 @@ export class PlanCatalogService {
    */
   static async seedInitialCatalogToFirestore(): Promise<PlanCatalogItem[]> {
     if (isFirebaseConfigured && db) {
+      let allWritesSucceeded = true;
       for (const item of INITIAL_PLAN_CATALOG) {
         try {
           const cleanPayload = sanitizePayload(item);
           await setDoc(doc(db, 'plan_catalog', item.id), cleanPayload);
         } catch (seedErr) {
+          allWritesSucceeded = false;
           console.warn('[PlanCatalogService] Seeding plan to Firestore:', item.id, seedErr);
+        }
+      }
+      if (allWritesSucceeded) {
+        try {
+          await setDoc(PLAN_CATALOG_STATE_REF(), {
+            initialized: true,
+            updated_at: new Date().toISOString(),
+          }, { merge: true });
+        } catch (stateErr) {
+          console.warn('[PlanCatalogService] Failed to mark plan catalog initialized:', stateErr);
         }
       }
     }
@@ -898,6 +1087,93 @@ export class PlanCatalogService {
    */
   static getOfflineSeedCatalog(): PlanCatalogItem[] {
     return INITIAL_PLAN_CATALOG;
+  }
+
+  static async seedAirtelPlansIntoLiveCatalog(): Promise<void> {
+    if (!isFirebaseConfigured || !db) return;
+
+    const stateRef = PLAN_CATALOG_STATE_REF();
+    const state = await getDoc(stateRef);
+    if (Number(state.data()?.airtelSeedVersion) >= AIRTEL_CATALOG_SEED_VERSION) return;
+
+    const airtelPlans = INITIAL_PLAN_CATALOG.filter((plan) => plan.operator === 'airtel_dth');
+    const batch = writeBatch(db);
+    for (const legacyId of LEGACY_AIRTEL_PLAN_IDS) {
+      batch.delete(doc(db, 'plan_catalog', legacyId));
+    }
+    for (const plan of airtelPlans) {
+      batch.set(doc(db, 'plan_catalog', plan.id), sanitizePayload(plan));
+    }
+    batch.set(stateRef, {
+      initialized: true,
+      airtelSeedVersion: AIRTEL_CATALOG_SEED_VERSION,
+      updated_at: new Date().toISOString(),
+    }, { merge: true });
+
+    await batch.commit();
+  }
+
+  static async applyAirtelRecommendationFlags(): Promise<void> {
+    if (!isFirebaseConfigured || !db) return;
+
+    const stateRef = PLAN_CATALOG_STATE_REF();
+    const state = await getDoc(stateRef);
+    if (Number(state.data()?.airtelRecommendationVersion) >= AIRTEL_RECOMMENDATION_VERSION) return;
+
+    const snapshot = await getDocs(collection(db, 'plan_catalog'));
+    const availableIds = new Set(snapshot.docs.map((catalogDoc) => catalogDoc.id));
+    const recommendationEntries = Object.entries(AIRTEL_RECOMMENDATION_FLAGS)
+      .filter(([id]) => availableIds.has(id));
+    if (recommendationEntries.length === 0) return;
+
+    const batch = writeBatch(db);
+    const updatedAt = new Date().toISOString();
+    for (const [id, isRecommended] of recommendationEntries) {
+      batch.update(doc(db, 'plan_catalog', id), {
+        is_recommended: isRecommended,
+        updated_at: updatedAt,
+        updated_by: 'admin_sys_migration',
+      });
+    }
+    batch.set(stateRef, {
+      airtelRecommendationVersion: AIRTEL_RECOMMENDATION_VERSION,
+      updated_at: updatedAt,
+    }, { merge: true });
+
+    await batch.commit();
+  }
+
+  static async seedSunDirectPlansIntoLiveCatalog(): Promise<void> {
+    if (!isFirebaseConfigured || !db) return;
+
+    const stateRef = PLAN_CATALOG_STATE_REF();
+    const state = await getDoc(stateRef);
+    if (Number(state.data()?.sunDirectSeedVersion) >= SUN_DIRECT_CATALOG_SEED_VERSION) return;
+
+    const catalogSnapshot = await getDocs(collection(db, 'plan_catalog'));
+    const hasPlanDocuments = catalogSnapshot.docs.some((catalogDoc) => catalogDoc.id !== PLAN_CATALOG_STATE_ID);
+    if (!hasPlanDocuments && state.data()?.initialized === true) {
+      await setDoc(stateRef, {
+        sunDirectSeedVersion: SUN_DIRECT_CATALOG_SEED_VERSION,
+        updated_at: new Date().toISOString(),
+      }, { merge: true });
+      return;
+    }
+
+    const batch = writeBatch(db);
+    for (const legacyId of LEGACY_SUN_DIRECT_PLAN_IDS) {
+      batch.delete(doc(db, 'plan_catalog', legacyId));
+    }
+    for (const plan of SUN_DIRECT_TARIFF_PLANS) {
+      batch.set(doc(db, 'plan_catalog', plan.id), sanitizePayload(plan));
+    }
+    batch.set(stateRef, {
+      initialized: true,
+      sunDirectSeedVersion: SUN_DIRECT_CATALOG_SEED_VERSION,
+      updated_at: new Date().toISOString(),
+    }, { merge: true });
+
+    await batch.commit();
   }
 
   /**
@@ -915,11 +1191,13 @@ export class PlanCatalogService {
         if (!snapshot.empty) {
           const remotePlans: PlanCatalogItem[] = [];
           snapshot.forEach((docSnap) => {
+            if (docSnap.id === PLAN_CATALOG_STATE_ID) return;
             const data = docSnap.data();
             remotePlans.push({
               id: docSnap.id,
               operator: data.operator,
               pack_type: data.pack_type || data.type || 'HD',
+              plan_family: data.plan_family,
               duration_months: (Number(data.duration_months) || 1) as 1 | 3 | 6 | 12,
               plan_name: data.plan_name || data.name || 'DTH Pack',
               tamilName: data.tamilName,
@@ -943,7 +1221,14 @@ export class PlanCatalogService {
 
           return remotePlans;
         } else {
-          // FIRESTORE IS EMPTY: Seed initial catalog
+          const state = await getDoc(PLAN_CATALOG_STATE_REF());
+          if (state.data()?.initialized === true) {
+            try {
+              localStorage.setItem(LOCAL_STORAGE_CATALOG_KEY, JSON.stringify([]));
+            } catch {}
+            return [];
+          }
+
           const seeded = await this.seedInitialCatalogToFirestore();
           try {
             localStorage.setItem(LOCAL_STORAGE_CATALOG_KEY, JSON.stringify(seeded));
@@ -963,7 +1248,7 @@ export class PlanCatalogService {
       const srvRes = await fetch('/api/admin/plans');
       if (srvRes.ok) {
         const srvData = await srvRes.json();
-        if (srvData.success && Array.isArray(srvData.plans) && srvData.plans.length > 0) {
+        if (srvData.success && Array.isArray(srvData.plans)) {
           try {
             localStorage.setItem(LOCAL_STORAGE_CATALOG_KEY, JSON.stringify(srvData.plans));
           } catch {}
@@ -1024,34 +1309,45 @@ export class PlanCatalogService {
     plans: PlanCatalogItem[],
     operator: DthOperatorId,
     pack_type: 'HD' | 'SD',
-    duration_months: 1 | 3 | 6 | 12
+    duration_months: 1 | 3 | 6 | 12,
+    displayedPlan?: PlanCatalogItem
   ): { savePerMonth: number; percentSave: number; oneMonthRate: number } {
-    const plan1M = this.getRecommendedPlan(plans, operator, pack_type, 1) ||
-      plans.find((p) => isSameDthOperatorGroup(p.operator, operator) && p.pack_type === pack_type && p.duration_months === 1);
+    const candidates = plans.filter((plan) =>
+      isSameDthOperatorGroup(plan.operator, operator) &&
+      plan.pack_type === pack_type &&
+      plan.duration_months === duration_months
+    );
+    const planSelected = displayedPlan && candidates.some((plan) => plan.id === displayedPlan.id)
+      ? displayedPlan
+      : candidates.find((plan) => plan.is_recommended) || candidates[0];
 
-    const oneMonthRate = plan1M ? plan1M.amount : 0;
-
-    if (duration_months === 1 || oneMonthRate <= 0) {
-      return { savePerMonth: 0, percentSave: 0, oneMonthRate };
+    if (!planSelected || duration_months === 1) {
+      return { savePerMonth: 0, percentSave: 0, oneMonthRate: 0 };
     }
 
-    const planSelected = this.getRecommendedPlan(plans, operator, pack_type, duration_months) ||
-      plans.find((p) => isSameDthOperatorGroup(p.operator, operator) && p.pack_type === pack_type && p.duration_months === duration_months);
+    const plan1M = plans.find((plan) =>
+      isSameDthOperatorGroup(plan.operator, operator) &&
+      plan.pack_type === pack_type &&
+      plan.duration_months === 1 &&
+      isSamePlanFamily(planSelected, plan) &&
+      plan.is_recommended
+    ) || plans.find((plan) =>
+      isSameDthOperatorGroup(plan.operator, operator) &&
+      plan.pack_type === pack_type &&
+      plan.duration_months === 1 &&
+      isSamePlanFamily(planSelected, plan)
+    );
+    const oneMonthRate = plan1M?.amount || 0;
+    if (oneMonthRate <= 0) return { savePerMonth: 0, percentSave: 0, oneMonthRate };
 
-    if (!planSelected) {
-      return { savePerMonth: 0, percentSave: 0, oneMonthRate };
-    }
+    const savePerMonth = Math.round(oneMonthRate - planSelected.amount / duration_months);
+    if (savePerMonth <= 0) return { savePerMonth: 0, percentSave: 0, oneMonthRate };
 
-    const price1M = oneMonthRate;
-    const effectiveMonthly = planSelected.amount / duration_months;
-    const savePerMonth = Math.round(price1M - effectiveMonthly);
-
-    if (savePerMonth > 0) {
-      const percentSave = Math.round((savePerMonth / price1M) * 100);
-      return { savePerMonth, percentSave, oneMonthRate };
-    }
-
-    return { savePerMonth: 0, percentSave: 0, oneMonthRate };
+    return {
+      savePerMonth,
+      percentSave: Math.round((savePerMonth / oneMonthRate) * 100),
+      oneMonthRate,
+    };
   }
 
   // Save or update plan (admin only)
@@ -1142,10 +1438,20 @@ export class PlanCatalogService {
     // 1. Delete from Firebase Firestore
     if (isFirebaseConfigured && db) {
       try {
-        const planDocRef = doc(db, 'plan_catalog', planId);
-        await deleteDoc(planDocRef);
+        await setDoc(PLAN_CATALOG_STATE_REF(), {
+          initialized: true,
+          updated_at: new Date().toISOString(),
+        }, { merge: true });
+      } catch (err) {
+        console.error('[PlanCatalogService] Failed to mark catalog initialized before deletion:', err);
+        throw new Error(`Could not prepare the catalog for deletion: ${getFirebaseErrorDetails(err)}`);
+      }
+
+      try {
+        await deleteDoc(doc(db, 'plan_catalog', planId));
       } catch (err) {
         console.error('[PlanCatalogService] Firestore delete error:', err);
+        throw new Error(`Firestore rejected plan deletion: ${getFirebaseErrorDetails(err)}`);
       }
     }
 
@@ -1251,7 +1557,8 @@ export function calculateSavings(
   plans: PlanCatalogItem[],
   operator: DthOperatorId,
   pack_type: 'HD' | 'SD',
-  duration_months: 1 | 3 | 6 | 12
+  duration_months: 1 | 3 | 6 | 12,
+  displayedPlan?: PlanCatalogItem
 ): { savePerMonth: number; percentSave: number; oneMonthRate: number } {
-  return PlanCatalogService.calculateSavings(plans, operator, pack_type, duration_months);
+  return PlanCatalogService.calculateSavings(plans, operator, pack_type, duration_months, displayedPlan);
 }

@@ -437,10 +437,49 @@ export function initStoreFromDisk(): void {
       }
     }
 
+    if (fs.existsSync(OPERATOR_SETTINGS_FILE)) {
+      const raw = fs.readFileSync(OPERATOR_SETTINGS_FILE, 'utf-8');
+      const parsed: unknown = JSON.parse(raw);
+      if (!Array.isArray(parsed)) {
+        throw new Error('Operator settings must be a JSON array.');
+      }
+
+      for (const setting of parsed) {
+        if (!setting || typeof setting !== 'object' || !('id' in setting)) continue;
+        const operator = OPERATORS.find((item) => item.id === setting.id);
+        if (!operator) continue;
+
+        const saved = setting as Partial<DthOperator>;
+        if (typeof saved.isEnabled === 'boolean') operator.isEnabled = saved.isEnabled;
+        operator.condition = saved.condition;
+        operator.conditionLabel = saved.conditionLabel;
+        operator.disableReason = saved.conditionLabel || saved.disableReason;
+        operator.maintenanceMessage = saved.maintenanceMessage;
+        operator.expectedRestoration = saved.expectedRestoration;
+        operator.updatedAt = saved.updatedAt;
+        operator.updatedBy = saved.updatedBy;
+      }
+    }
+
     refreshApprovedAdminEmails();
   } catch (err) {
     console.warn('[Server Store] Error initializing store from disk:', err);
   }
+}
+
+export function saveOperatorSettingsToDisk(): void {
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  const settings = OPERATORS.map((operator) => ({
+    id: operator.id,
+    isEnabled: operator.isEnabled !== false,
+    condition: operator.condition,
+    conditionLabel: operator.conditionLabel,
+    maintenanceMessage: operator.maintenanceMessage,
+    expectedRestoration: operator.expectedRestoration,
+    updatedAt: operator.updatedAt,
+    updatedBy: operator.updatedBy,
+  }));
+  fs.writeFileSync(OPERATOR_SETTINGS_FILE, JSON.stringify(settings, null, 2), 'utf-8');
 }
 
 export function saveCustomersToDisk(): void {

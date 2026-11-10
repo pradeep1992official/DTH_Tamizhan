@@ -1,0 +1,156 @@
+/* Hallmark · theme: Dose (brand adapted) · shape: app screen · redesign: full · scope: app · v2.0.0 */
+/* Hallmark · pre-emit critique: P4 H4 E4 S4 R4 V3 · weakest: V, shared dialogs deliberately repeat one accessible interaction pattern */
+:root {
+  --google-blue: #4285f4;
+  --google-green: #34a853;
+  --google-yellow: #fbbc05;
+  --google-red: #ea4335;
+}
+.dialog-backdrop {
+  background: color-mix(in oklab, var(--color-ink) 56%, transparent);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.hm-dialog {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  border: 0;
+  border-radius: 12px;
+  max-height: calc(100dvh - 2rem);
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  box-shadow: 0 24px 80px color-mix(in oklab, var(--color-ink) 18%, transparent);
+}
+
+.hm-dialog > :first-child {
+  background: var(--color-paper);
+  gap: var(--space-md);
+}
+
+.hm-dialog h2,
+.hm-dialog h3,
+.hm-dialog h4 {
+  color: var(--color-ink);
+  overflow-wrap: break-word;
+  min-width: 0;
+  font-weight: 700;
+  text-wrap: balance;
+}
+
+.hm-dialog label,
+.hm-dialog th {
+  font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.hm-dialog :is(input:not([type='radio']):not([type='checkbox']), select, textarea) {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  border-color: var(--color-muted);
+  min-height: 44px;
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+.hm-dialog input::placeholder,
+.hm-dialog textarea::placeholder {
+  color: var(--color-muted);
+}
+
+.hm-dialog :is(button, a),
+.compare-tray button {
+  min-height: 44px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.hm-dialog :is(button, a, input, select, textarea):focus-visible,
+.compare-tray button:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+  transition: none;
+}
+
+.hm-dialog button:disabled,
+.compare-tray button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.hm-dialog button[aria-busy='true'] { cursor: progress; }
+
+.hm-dialog .dialog-primary,
+.compare-tray .dialog-primary {
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+  box-shadow: none;
+}
+
+.hm-dialog button.bg-accent { color: var(--color-accent-ink); }
+
+.hm-dialog .dialog-primary:hover:not(:disabled),
+.compare-tray .dialog-primary:hover:not(:disabled) {
+  background: var(--color-accent-deep);
+}
+
+.dialog-primary:active:not(:disabled) { transform: translateY(1px); }
+
+.dialog-summary {
+  border: 0;
+  border-block: 1px solid var(--color-rule);
+  border-radius: 0;
+  background: var(--color-paper-2);
+  box-shadow: none;
+}
+
+.dialog-section {
+  border: 0;
+  border-top: 1px solid var(--color-rule);
+  border-radius: 0;
+  padding-inline: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.receipt-details > div {
+  gap: var(--space-lg);
+  align-items: baseline;
+  padding-block: var(--space-sm);
+}
+
+.receipt-details > div > :last-child {
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.dialog-choice {
+  width: 100%;
+  text-align: left;
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+.dialog-choice[aria-pressed='true'] {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.compare-tray { padding-bottom: env(safe-area-inset-bottom); }
+.compare-tray > div { background: var(--color-paper); }
+
+@media (max-width: 40rem) {
+  .dialog-backdrop { padding: var(--space-sm); }
+  .hm-dialog { max-height: calc(100dvh - 24px); }
+  .hm-dialog > div { padding-inline: var(--space-20); }
+  .compare-tray { bottom: 12px; padding-inline: var(--space-sm); }
+  .compare-tray > div > :first-child { width: 100%; }
+  .compare-tray > div > :first-child > :last-child { display: none; }
+  .compare-tray > div > :last-child { width: 100%; justify-content: space-between; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hm-dialog *, .compare-tray * { animation: none !important; transition: none !important; }
+  .dialog-primary:active:not(:disabled) { transform: none; }
+}

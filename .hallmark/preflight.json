@@ -1,7 +1,7 @@
 {
   "scanned": "2026-11-10",
-  "mode": "audit",
-  "genre": "modern-minimal (inferred)",
+  "mode": "restyle",
+  "genre": "modern-minimal",
   "scope": "app",
   "findings": {
     "fonts": "Plus Jakarta Sans, Noto Sans Tamil, JetBrains Mono; src/index.css:4; index.html:14",
@@ -10,6 +10,19 @@
     "spacing": "Tailwind utilities; centered max-w-7xl src/App.tsx:446",
     "framework": "React 19 / Vite 8 / Tailwind 4 / React Router 7"
   },
-  "preserve": ["all application files and existing uncommitted work", "operator identities", "bilingual typography", "capped shell", "routes and handlers"],
-  "introduce": []
+  "preserve": [
+    "layout and routes",
+    "operator logo assets and original operator identifiers",
+    "English and Tamil font support",
+    "explicit selected pack and month state",
+    "all service handlers"
+  ],
+  "introduce": [
+    "shared colorful semantic surfaces",
+    "colorful page and pack headers",
+    "navy admin rail and footer",
+    "tinted dialog headers"
+  ],
+  "depth": "restyle",
+  "palette": "user-requested full-palette: crimson, teal, gold, lilac, pale blue"
 }

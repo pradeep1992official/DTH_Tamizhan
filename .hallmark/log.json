@@ -1,0 +1,90 @@
+[
+  {
+    "mode": "redesign",
+    "depth": "restyle",
+    "scope": "app",
+    "shape": "app screen",
+    "theme": "dose colorful DTH palette (user requested)",
+    "axes": "light/geometric-sans/chromatic",
+    "hero": "kept compact app heading",
+    "nav": "kept service top bar and admin rail",
+    "footer": "navy service footer",
+    "imagery": "existing operator assets unchanged",
+    "photos": [],
+    "entry": "src/App.tsx",
+    "fingerprint": {
+      "layout": "kept",
+      "palette": "crimson teal gold lilac pale blue"
+    },
+    "sections": [
+      "customer pages",
+      "admin screens",
+      "dialogs"
+    ],
+    "signature": "explicit operator, pack and duration choices in a colorful workbench",
+    "waived": [
+      "3 inline plan comparison headers",
+      "23 explicit full-palette surfaces",
+      "39b full operator choice targets"
+    ],
+    "prompt": "Hallmark change into colorful theme; keep clear card and month selection states",
+    "finish_review": "ship; no visual regressions found",
+    "date": "2026-11-10",
+    "verification": {
+      "floor": 0,
+      "open_reflex": 0,
+      "warn": 0,
+      "waived_occurrences": 4,
+      "finish_review": "subagent ship",
+      "build": "passed with existing warnings",
+      "typecheck": "passed",
+      "selection_behavior": "passed"
+    }
+  },
+  {
+    "mode": "redesign",
+    "depth": "full",
+    "scope": "app",
+    "shape": "app screen",
+    "theme": "dose (brand adapted)",
+    "axes": "light/geometric-sans/warm",
+    "hero": "none (app scope)",
+    "nav": "service top bar and admin work rail",
+    "footer": "compact service footer",
+    "imagery": "existing operator assets",
+    "photos": [],
+    "entry": "src/App.tsx",
+    "fingerprint": {
+      "lead": "operator workbench",
+      "navigation": "service top bar",
+      "records": "flat desktop tables and labeled phone records"
+    },
+    "sections": [
+      "recharge",
+      "plans",
+      "connections",
+      "security",
+      "admin tabs",
+      "dialogs"
+    ],
+    "signature": "operator-to-pack recharge workbench",
+    "waived": [
+      "39b: complete operator choice targets"
+    ],
+    "prompt": "Hallmark redesign entire webapp; preserve operator identity, bilingual support, routes and functionality; restrained utilitarian service app",
+    "date": "2026-11-10",
+    "verification": {
+      "floor": 0,
+      "open_reflex": 0,
+      "waived": 1,
+      "raw_warn": 1,
+      "warn_disposition": "kept figure concatenation dismissed by source inspection",
+      "finish_review": "ship, 2 resolved",
+      "admin_review": "6 resolved",
+      "dialog_review": "5 resolved",
+      "unit_tests": "47 passed",
+      "typecheck": "passed",
+      "build": "passed with existing warnings"
+    }
+  }
+]

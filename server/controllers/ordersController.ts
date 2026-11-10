@@ -94,22 +94,6 @@ export const ordersController = {
     }
   },
 
-  async signalRefresh(req: Request, res: Response): Promise<void> {
-    try {
-      const { operator, smartCardNumber } = req.body;
-      const pulseId = `PULSE-${Date.now().toString().slice(-6)}`;
-      res.json({
-        success: true,
-        message: `Signal refresh pulse sent successfully to ${operator} satellite transponder for smart card ${smartCardNumber}.`,
-        pulseId,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      console.error('[API Error] /api/recharge/signal-refresh failed:', error);
-      res.status(500).json({ success: false, error: 'Failed to send signal refresh pulse.' });
-    }
-  },
-
   verifySubscriber(req: Request, res: Response): void {
     try {
       const { operator, smartCardNumber } = req.body;

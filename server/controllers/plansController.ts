@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { isCallerAdminAuthorized } from '../middleware/auth';
 import { APPROVED_ADMIN_EMAILS, SAMPLE_PLANS } from '../models/store';
-import { filterAndSortPlans, catalogItemToBrowsePlan, INITIAL_BROWSE_PLANS } from '../../src/lib/browsePlansData';
+import { filterAndSortPlans, catalogItemToBrowsePlan } from '../../src/lib/browsePlansData';
 import { PlanCatalogItem } from '../../src/types';
 import { planModel } from '../models/planModel';
 
@@ -47,9 +47,7 @@ export const plansController = {
         sort === 'channels_desc'
       ) ? sort : 'recommended';
       const catalogPlans = planModel.getAll();
-      const sourcePlans = catalogPlans.length > 0
-        ? catalogPlans.map(catalogItemToBrowsePlan)
-        : INITIAL_BROWSE_PLANS;
+      const sourcePlans = catalogPlans.map(catalogItemToBrowsePlan);
       const results = filterAndSortPlans(sourcePlans, {
         operators: parsedOperators as any,
         type: parsedType,

@@ -23,19 +23,6 @@ export const apiLimiter = rateLimit({
 });
 
 /**
- * Strict rate limiter for signal refresh command pulses (prevents satellite transponder flooding)
- */
-export const signalRefreshLimiter = rateLimit({
-  ...commonRateLimitOptions,
-  windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 10, // Max 10 refresh commands per 5-minute window per IP
-  message: {
-    success: false,
-    error: 'Signal refresh rate limit exceeded. Satellite transponder cooldown in effect. Please retry in a few minutes.',
-  },
-});
-
-/**
  * Rate limiter for order creations
  */
 export const orderCreateLimiter = rateLimit({

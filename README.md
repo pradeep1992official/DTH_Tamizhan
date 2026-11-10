@@ -255,6 +255,13 @@ gcloud run deploy dth-tamizhan \
   --port=3000
 ```
 
+If serving the frontend through Firebase Hosting, build the client and deploy Hosting after the Cloud Run service is available. The `/api/**` rewrite in `firebase.json` forwards API requests to `dth-tamizhan` in `asia-south1`.
+
+```bash
+npm run build
+firebase deploy --only hosting
+```
+
 ---
 
 ## 7. Functional Walkthrough & Step-by-Step Test Scenarios

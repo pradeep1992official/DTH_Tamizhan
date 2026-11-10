@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, Database, Lock, Server, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, Database, Lock, Server, ShieldCheck } from '../lib/icons';
 import { OperatorTheme } from '../lib/theme';
 
 interface SecurityNoticeProps {
@@ -41,19 +41,19 @@ const THREAT_ROWS = [
 
 export const SecurityNotice: React.FC<SecurityNoticeProps> = ({ currentTheme }) => {
   const isLight = currentTheme.isLightMode;
-  const surface = isLight ? 'bg-white border-gray-200 text-gray-900' : `${currentTheme.mainContainerBg} ${currentTheme.mainContainerBorder} text-white`;
-  const nestedSurface = isLight ? 'bg-gray-50 border-gray-200' : 'bg-black/20 border-white/10';
-  const primaryText = isLight ? 'text-gray-900' : 'text-white';
-  const secondaryText = isLight ? 'text-gray-700' : 'text-gray-300';
-  const mutedText = isLight ? 'text-gray-700' : 'text-gray-300';
+  const surface = isLight ? 'bg-paper border-rule text-ink' : `${currentTheme.mainContainerBg} ${currentTheme.mainContainerBorder} text-accent-ink`;
+  const nestedSurface = isLight ? 'bg-paper-2 border-rule' : 'bg-scrim/20 border-rule-strong';
+  const primaryText = isLight ? 'text-ink' : 'text-accent-ink';
+  const secondaryText = isLight ? 'text-ink-2' : 'text-muted';
+  const mutedText = isLight ? 'text-ink-2' : 'text-muted';
 
   return (
-    <section className={`rounded-2xl border p-5 sm:p-6 md:p-8 space-y-6 text-left ${surface}`}>
-      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-500/20 pb-4">
+    <section className={`security-page space-y-6 text-left ${surface}`}>
+      <header className="page-heading flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-start gap-3 min-w-0">
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-            style={{ backgroundColor: `${currentTheme.primaryColor}20`, color: currentTheme.primaryColor }}
+            style={{ backgroundColor: `color-mix(in oklab, ${currentTheme.primaryColor} 13%, transparent)`, color: currentTheme.primaryColor }}
           >
             <ShieldCheck className="w-6 h-6" />
           </div>
@@ -64,8 +64,8 @@ export const SecurityNotice: React.FC<SecurityNoticeProps> = ({ currentTheme }) 
             </p>
           </div>
         </div>
-        <span className={`self-start sm:self-auto px-3 py-1.5 rounded-full text-sm font-semibold border flex items-center gap-1.5 ${
-          isLight ? 'bg-emerald-50 text-emerald-900 border-emerald-200' : 'bg-emerald-500/10 text-emerald-200 border-emerald-500/30'
+        <span className={`self-start sm:self-auto px-3 py-1.5 rounded-full text-sm font-medium border flex items-center gap-1.5 ${
+          isLight ? 'bg-success-soft text-success border-success' : 'bg-success-soft text-success border-rule'
         }`}>
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           5 control areas
@@ -74,10 +74,10 @@ export const SecurityNotice: React.FC<SecurityNoticeProps> = ({ currentTheme }) 
 
       <div className="space-y-3 md:hidden">
         {THREAT_ROWS.map((row) => (
-          <article key={row.zone} className={`rounded-xl border p-4 space-y-2 ${nestedSurface}`}>
+          <article key={row.zone} className={`security-row space-y-2 ${nestedSurface}`}>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className={`font-bold ${primaryText}`}>{row.zone}</h2>
-              <span className="text-xs font-mono font-semibold" style={{ color: currentTheme.primaryColor }}>
+              <span className="text-xs font-mono font-medium" style={{ color: currentTheme.primaryColor }}>
                 {row.standard}
               </span>
             </div>
@@ -87,23 +87,23 @@ export const SecurityNotice: React.FC<SecurityNoticeProps> = ({ currentTheme }) 
         ))}
       </div>
 
-      <div className="hidden md:block overflow-x-auto rounded-xl border border-gray-500/20">
+      <div className="security-table hidden md:block overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead className={nestedSurface}>
             <tr>
-              <th className="px-4 py-3 font-semibold">Control area</th>
-              <th className="px-4 py-3 font-semibold">Example risks</th>
-              <th className="px-4 py-3 font-semibold">Described controls</th>
-              <th className="px-4 py-3 font-semibold">Reference</th>
+              <th className="px-4 py-3 font-medium">Control area</th>
+              <th className="px-4 py-3 font-medium">Example risks</th>
+              <th className="px-4 py-3 font-medium">Described controls</th>
+              <th className="px-4 py-3 font-medium">Reference</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-500/20">
+          <tbody className="divide-y divide-rule-strong">
             {THREAT_ROWS.map((row) => (
               <tr key={row.zone}>
-                <th scope="row" className={`px-4 py-3.5 font-semibold align-top ${primaryText}`}>{row.zone}</th>
+                <th scope="row" className={`px-4 py-3.5 font-medium align-top ${primaryText}`}>{row.zone}</th>
                 <td className={`px-4 py-3.5 align-top leading-relaxed ${mutedText}`}>{row.vectors}</td>
                 <td className={`px-4 py-3.5 align-top leading-relaxed ${mutedText}`}>{row.controls}</td>
-                <td className="px-4 py-3.5 align-top font-mono text-xs font-semibold whitespace-nowrap" style={{ color: currentTheme.primaryColor }}>
+                <td className="px-4 py-3.5 align-top font-mono text-xs font-medium whitespace-nowrap" style={{ color: currentTheme.primaryColor }}>
                   {row.standard}
                 </td>
               </tr>
@@ -113,8 +113,8 @@ export const SecurityNotice: React.FC<SecurityNoticeProps> = ({ currentTheme }) 
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <article className={`p-4 rounded-xl border space-y-2 ${nestedSurface}`}>
-          <h2 className="flex items-center gap-2 font-semibold text-sm" style={{ color: currentTheme.primaryColor }}>
+        <article className={`security-row space-y-2 ${nestedSurface}`}>
+          <h2 className="flex items-center gap-2 font-medium text-sm" style={{ color: currentTheme.primaryColor }}>
             <Lock className="w-4 h-4" />
             Credential handling
           </h2>
@@ -122,8 +122,8 @@ export const SecurityNotice: React.FC<SecurityNoticeProps> = ({ currentTheme }) 
             The project describes server-side environment configuration for sensitive credentials.
           </p>
         </article>
-        <article className={`p-4 rounded-xl border space-y-2 ${nestedSurface}`}>
-          <h2 className="flex items-center gap-2 font-semibold text-sm" style={{ color: currentTheme.primaryColor }}>
+        <article className={`security-row space-y-2 ${nestedSurface}`}>
+          <h2 className="flex items-center gap-2 font-medium text-sm" style={{ color: currentTheme.primaryColor }}>
             <Database className="w-4 h-4" />
             Data access
           </h2>
@@ -131,8 +131,8 @@ export const SecurityNotice: React.FC<SecurityNoticeProps> = ({ currentTheme }) 
             Firestore rules define access for customer connections and administrative data.
           </p>
         </article>
-        <article className={`p-4 rounded-xl border space-y-2 ${nestedSurface}`}>
-          <h2 className="flex items-center gap-2 font-semibold text-sm" style={{ color: currentTheme.primaryColor }}>
+        <article className={`security-row space-y-2 ${nestedSurface}`}>
+          <h2 className="flex items-center gap-2 font-medium text-sm" style={{ color: currentTheme.primaryColor }}>
             <Server className="w-4 h-4" />
             Server requests
           </h2>
@@ -142,7 +142,7 @@ export const SecurityNotice: React.FC<SecurityNoticeProps> = ({ currentTheme }) 
         </article>
       </div>
 
-      <p className={`text-xs leading-relaxed border-t border-gray-500/20 pt-4 ${secondaryText}`}>
+      <p className={`text-xs leading-relaxed border-t border-rule-strong pt-4 ${secondaryText}`}>
         This page summarizes project documentation; it is not an independent security assessment. Effective protection depends on deployment and configuration.
       </p>
     </section>

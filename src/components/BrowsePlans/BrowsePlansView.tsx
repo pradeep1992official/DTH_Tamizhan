@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Search, 
-  SlidersHorizontal, 
-  Tv, 
-  ArrowUpDown, 
+import {
+  Search,
+  SlidersHorizontal,
+  Tv,
+  ArrowUpDown,
   RotateCcw,
   AlertCircle,
   RefreshCw,
-} from 'lucide-react';
+} from '../../lib/icons';
 import { BrowsePlan, DthConnection, Language, PlanFilters, UserProfile } from '../../types';
 import { OperatorTheme } from '../../lib/theme';
 import { INITIAL_BROWSE_PLANS, computePlanMetrics, filterAndSortPlans, catalogItemToBrowsePlan } from '../../lib/browsePlansData';
@@ -168,17 +168,17 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="plans-page">
       {/* Top Hero Banner */}
-      <div 
-        className={`rounded-3xl border p-6 md:p-8 shadow-sm ${
-          isLight ? 'bg-white border-gray-200' : `${currentTheme.mainContainerBg} ${currentTheme.mainContainerBorder}`
+      <div
+        className={`page-heading ${
+          isLight ? 'bg-paper border-rule' : `${currentTheme.mainContainerBg} ${currentTheme.mainContainerBorder}`
         }`}
       >
         <div className="max-w-3xl space-y-3">
           <div className="flex items-center gap-2">
-            <div 
-              className="w-8 h-8 rounded-xl flex items-center justify-center font-bold text-white shadow-sm"
+            <div
+              className="w-8 h-8 rounded-xl flex items-center justify-center font-bold text-accent-ink shadow-sm"
               style={{ backgroundColor: currentTheme.primaryColor }}
             >
               <Tv className="w-4 h-4" />
@@ -187,30 +187,30 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
               {t.browsePacksTitle}
             </h1>
           </div>
-          <p className={`text-sm leading-relaxed ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>
+          <p className={`text-sm leading-relaxed ${isLight ? 'text-ink-2' : 'text-muted'}`}>
             {t.browsePacksSubtitle}
           </p>
         </div>
       </div>
 
       {/* Control Bar: Search, Sort & Results Count */}
-      <div 
-        className={`rounded-2xl border p-4 flex flex-wrap items-center justify-between gap-4 shadow-sm ${
-          isLight ? 'bg-white border-gray-200' : `${currentTheme.mainContainerBg} ${currentTheme.mainContainerBorder}`
+      <div
+        className={`catalog-toolbar flex flex-wrap items-center justify-between gap-4 ${
+          isLight ? 'bg-paper border-rule' : `${currentTheme.mainContainerBg} ${currentTheme.mainContainerBorder}`
         }`}
       >
         {/* Search input */}
-        <div className="relative flex-1 min-w-[240px]">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+        <div className="relative flex-1 min-w-0">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
           <input
             type="text"
             value={filters.searchQuery}
             onChange={(e) => setFilters((prev) => ({ ...prev, searchQuery: e.target.value }))}
             placeholder={t.searchPacks}
             className={`w-full pl-10 pr-4 py-2 rounded-xl text-xs border transition-colors ${
-              isLight 
-                ? 'bg-gray-50 border-gray-300 text-gray-900 focus:bg-white focus:border-black' 
-                : 'bg-black/30 border-white/20 text-white focus:border-white/40'
+              isLight
+                ? 'bg-paper-2 border-rule text-ink focus:bg-paper focus:border-rule-strong'
+                : 'bg-scrim/30 border-rule-strong text-accent-ink focus:border-rule-strong'
             }`}
           />
         </div>
@@ -219,15 +219,15 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
         <div className="flex items-center gap-3 flex-wrap">
           {/* Sort Selector */}
           <div className="flex items-center gap-2 text-xs">
-            <ArrowUpDown className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-            <span className={`font-bold hidden sm:inline ${isLight ? 'text-gray-800' : 'text-gray-200'}`}>{t.sortBy}:</span>
+            <ArrowUpDown className="w-3.5 h-3.5 text-muted shrink-0" />
+            <span className={`font-bold hidden sm:inline ${isLight ? 'text-ink' : 'text-muted'}`}>{t.sortBy}:</span>
             <select
               value={filters.sortBy}
               onChange={(e) => setFilters((prev) => ({ ...prev, sortBy: e.target.value as any }))}
-              className={`py-2 px-3 rounded-xl text-xs font-semibold border cursor-pointer ${
-                isLight 
-                  ? 'bg-gray-50 border-gray-300 text-gray-900' 
-                  : 'bg-white/10 border-white/20 text-white'
+              className={`py-2 px-3 rounded-xl text-xs font-medium border cursor-pointer ${
+                isLight
+                  ? 'bg-paper-2 border-rule text-ink'
+                  : 'bg-paper border-rule-strong text-accent-ink'
               }`}
             >
               <option value="recommended">{t.sortRecommended}</option>
@@ -244,7 +244,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
             type="button"
             onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
             className={`lg:hidden py-2 px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 ${
-              isLight ? 'bg-gray-100 border-gray-300 text-gray-900' : 'bg-white/10 border-white/20 text-white'
+              isLight ? 'bg-paper-2 border-rule text-ink' : 'bg-paper border-rule-strong text-accent-ink'
             }`}
           >
             <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -254,9 +254,9 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
       </div>
 
       {/* Main Grid: Sidebar on Left, Cards on Right */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+      <div className="catalog-layout">
         {/* Desktop Filter Sidebar */}
-        <div className="hidden lg:block lg:col-span-1 sticky top-6">
+        <div className="hidden lg:block catalog-filters">
           <PlanFilterSidebar
             filters={filters}
             onChange={(updated) => setFilters(updated)}
@@ -282,27 +282,27 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
         )}
 
         {/* Plans Grid Area */}
-        <div className="lg:col-span-3 space-y-4">
+        <div className="catalog-results space-y-4">
           {/* Error State when no plans loaded */}
           {fetchError && allPlans.length === 0 ? (
-            <div 
+            <div
               role="alert"
-              className={`rounded-3xl border p-8 sm:p-12 text-center space-y-5 shadow-lg border-rose-500/30 ${
-                isLight ? 'bg-rose-50/70 text-rose-950' : 'bg-rose-950/20 text-rose-100'
+              className={`rounded-3xl border p-8 sm:p-12 text-center space-y-5 shadow-lg border-rule ${
+                isLight ? 'bg-error-soft text-error' : 'bg-error-soft text-error'
               }`}
             >
-              <div className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center bg-rose-500/20 text-rose-500 shadow-md">
+              <div className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center bg-error-soft text-error shadow-md">
                 <AlertCircle className="w-8 h-8" />
               </div>
 
               <div className="space-y-2 max-w-md mx-auto">
-                <h3 className={`font-bold text-lg ${isLight ? 'text-rose-800' : 'text-rose-300'}`}>
+                <h3 className={`font-bold text-lg ${isLight ? 'text-error' : 'text-error'}`}>
                   {t.failedToLoadCatalog}
                 </h3>
-                <p className={`text-sm leading-relaxed ${isLight ? 'text-gray-800' : 'text-gray-200'}`}>
+                <p className={`text-sm leading-relaxed ${isLight ? 'text-ink' : 'text-muted'}`}>
                   {fetchError}
                 </p>
-                <p className={`text-sm font-semibold ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>
+                <p className={`text-sm font-medium ${isLight ? 'text-ink-2' : 'text-muted'}`}>
                   {t.checkConnectionOrRetry}
                 </p>
               </div>
@@ -311,7 +311,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
                 <button
                   type="button"
                   onClick={fetchLivePlans}
-                  className="py-2.5 px-5 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-500 shadow-md inline-flex items-center gap-2 transition-transform hover:scale-105 active:scale-95"
+                  className="py-2.5 px-5 rounded-xl text-xs font-bold text-accent-ink bg-error hover:bg-error shadow-md inline-flex items-center gap-2 transition-transform  active:scale-95"
                 >
                   <RefreshCw className="w-4 h-4" />
                   <span>{t.retryFetch}</span>
@@ -319,7 +319,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
                 <button
                   type="button"
                   onClick={handleLoadOfflineCatalog}
-                  className="py-2.5 px-4 rounded-xl text-xs font-semibold border border-gray-400 dark:border-white/20 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                  className="py-2.5 px-4 rounded-xl text-xs font-medium border border-rule-strong  hover:bg-scrim/5  transition-colors"
                 >
                   <span>{t.useOfflineCatalog}</span>
                 </button>
@@ -329,15 +329,15 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
             <>
               {/* Error Banner with Retry (if plans were already loaded previously) */}
               {fetchError && (
-                <div role="alert" className="p-4 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-700 dark:text-rose-300 flex items-center justify-between gap-3 text-xs">
+                <div role="alert" className="p-4 rounded-2xl bg-error-soft border border-rule text-error  flex items-center justify-between gap-3 text-xs">
                   <div className="flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-                    <span className="font-semibold">{fetchError}</span>
+                    <AlertCircle className="w-4 h-4 text-error shrink-0" />
+                    <span className="font-medium">{fetchError}</span>
                   </div>
                   <button
                     type="button"
                     onClick={fetchLivePlans}
-                    className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center gap-1 shrink-0"
+                    className="px-3 py-1.5 rounded-lg bg-error hover:bg-error text-accent-ink font-bold text-xs flex items-center gap-1 shrink-0"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
                     <span>{t.retryFetch}</span>
@@ -347,7 +347,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
 
               {/* Results count banner */}
               <div className="flex items-center justify-between text-xs px-1">
-                <span className={`font-bold ${isLight ? 'text-gray-800' : 'text-gray-200'}`}>
+                <span className={`font-bold ${isLight ? 'text-ink' : 'text-muted'}`}>
                   {displayedPlans.length} {displayedPlans.length === 1 ? t.pack : t.packs}
                 </span>
 
@@ -361,32 +361,32 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
               {/* Loading Skeleton State */}
               {isLoading ? (
                 <div className="space-y-4">
-                  <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-xs font-semibold flex items-center gap-2">
-                    <RefreshCw className="w-4 h-4 animate-spin text-amber-500 shrink-0" />
+                  <div className="p-3 rounded-2xl bg-warning-soft border border-rule text-warning  text-xs font-medium flex items-center gap-2">
+                    <RefreshCw className="w-4 h-4 animate-spin text-warning shrink-0" />
                     <span>{t.loadingLiveCatalog}</span>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                  <div className="catalog-plans">
                     {[1, 2, 3, 4, 5, 6].map((idx) => (
-                      <div 
-                        key={idx} 
+                      <div
+                        key={idx}
                         className={`p-6 rounded-3xl border animate-pulse space-y-4 ${
-                          isLight ? 'bg-gray-100 border-gray-200' : 'bg-white/5 border-white/10'
+                          isLight ? 'bg-paper-2 border-rule' : 'bg-paper border-rule-strong'
                         }`}
                       >
                         <div className="flex justify-between items-center">
-                          <div className="h-4 bg-gray-300 dark:bg-white/20 rounded w-24" />
-                          <div className="h-4 bg-gray-300 dark:bg-white/20 rounded w-12" />
+                          <div className="h-4 bg-paper-3  rounded w-24" />
+                          <div className="h-4 bg-paper-3  rounded w-12" />
                         </div>
-                        <div className="h-6 bg-gray-300 dark:bg-white/20 rounded w-3/4" />
-                        <div className="h-16 bg-gray-300 dark:bg-white/20 rounded-2xl" />
-                        <div className="h-8 bg-gray-300 dark:bg-white/20 rounded-xl" />
+                        <div className="h-6 bg-paper-3  rounded w-3/4" />
+                        <div className="h-16 bg-paper-3  rounded-2xl" />
+                        <div className="h-8 bg-paper-3  rounded-xl" />
                       </div>
                     ))}
                   </div>
                 </div>
               ) : displayedPlans.length > 0 ? (
                 /* Cards Grid */
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                <div className="catalog-plans">
                   {displayedPlans.map((plan) => {
                     const isSelectedForCompare = selectedForCompare.some((p) => p.id === plan.id);
                     return (
@@ -405,14 +405,14 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
                 </div>
               ) : (
                 /* Empty State */
-                <div 
+                <div
                   className={`rounded-3xl border p-8 sm:p-12 text-center space-y-5 shadow-lg ${
-                    isLight ? 'bg-white border-gray-200' : `${currentTheme.mainContainerBg} ${currentTheme.mainContainerBorder}`
+                    isLight ? 'bg-paper border-rule' : `${currentTheme.mainContainerBg} ${currentTheme.mainContainerBorder}`
                   }`}
                 >
-                  <div 
-                    className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center text-white shadow-md"
-                    style={{ backgroundColor: `${currentTheme.primaryColor}25`, color: currentTheme.primaryColor }}
+                  <div
+                    className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center text-accent-ink shadow-md"
+                    style={{ backgroundColor: `color-mix(in oklab, ${currentTheme.primaryColor} 15%, transparent)`, color: currentTheme.primaryColor }}
                   >
                     <SlidersHorizontal className="w-8 h-8" />
                   </div>
@@ -421,7 +421,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
                     <h3 className="font-bold text-lg">
                       {t.noPlansMatch}
                     </h3>
-                    <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
+                    <p className="text-xs text-ink-2  leading-relaxed">
                       {currentLang === 'ta'
                         ? 'விலை வரம்பை மாற்றவும் அல்லது அனைத்து வடிகட்டல்களையும் நீக்கி மீண்டும் முயற்சிக்கவும்.'
                         : 'Try expanding your price range, clearing specific filters, or resetting all options.'}
@@ -432,7 +432,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
                     <button
                       type="button"
                       onClick={handleResetFilters}
-                      className="py-2.5 px-5 rounded-xl text-xs font-bold text-white shadow-md inline-flex items-center gap-2 transition-transform hover:scale-105 active:scale-95"
+                      className="py-2.5 px-5 rounded-xl text-xs font-bold text-accent-ink shadow-md inline-flex items-center gap-2 transition-transform  active:scale-95"
                       style={{ backgroundColor: currentTheme.primaryColor }}
                     >
                       <RotateCcw className="w-4 h-4" />

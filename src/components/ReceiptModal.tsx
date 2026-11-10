@@ -1,12 +1,11 @@
 import React from 'react';
-import { 
-  X, 
-  CheckCircle2, 
-  Printer, 
-  Radio, 
+import {
+  X,
+  CheckCircle2,
+  Printer,
   Share2,
   Tv
-} from 'lucide-react';
+} from '../lib/icons';
 import { RechargeOrder, Language } from '../types';
 import { translations } from '../lib/translations';
 import { useAccessibleModal } from '../lib/useAccessibleModal';
@@ -15,14 +14,12 @@ interface ReceiptModalProps {
   order: RechargeOrder | null;
   onClose: () => void;
   currentLang: Language;
-  onTriggerRefresh: (operator: any, card: string) => void;
 }
 
 export const ReceiptModal: React.FC<ReceiptModalProps> = ({
   order,
   onClose,
   currentLang,
-  onTriggerRefresh,
 }) => {
   const t = translations[currentLang];
   const { modalRef } = useAccessibleModal({ isOpen: Boolean(order), onClose });
@@ -50,30 +47,30 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
   };
 
   return (
-    <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+    <div
+      className="dialog-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div 
+      <div
         ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="receipt-modal-title"
-        className="receipt-print bg-[#0e1935] border border-[#1e3058] rounded-3xl w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto shadow-2xl relative text-left"
+        className="hm-dialog receipt-print bg-paper-2 border border-rule rounded-xl w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto shadow-lg relative text-left"
       >
         {/* Receipt Header Badge */}
-        <div className="bg-emerald-600 px-6 py-5 text-white flex items-center justify-between">
+        <div className="bg-paper px-6 py-5 text-ink border-b border-rule flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-inner">
-              <CheckCircle2 className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 rounded-lg bg-paper flex items-center justify-center">
+              <CheckCircle2 className="w-6 h-6 text-ink" />
             </div>
             <div>
               <h2 id="receipt-modal-title" className="text-base font-bold tracking-tight">
                 {t.rechargeSuccess}
               </h2>
-              <p className="text-xs text-emerald-100 font-medium">
+              <p className="text-sm text-success font-medium">
                 {currentLang === 'ta' ? 'ரீசார்ஜ் வெற்றிகரமாக முடிந்தது' : 'Recharge Processed Successfully'}
               </p>
             </div>
@@ -82,111 +79,99 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label={t.close}
-            className="p-2 rounded-xl text-emerald-100 hover:text-white hover:bg-emerald-700/50 transition-colors focus-visible:ring-2 focus-visible:ring-white"
+            className="dialog-primary p-2 rounded-xl text-success hover:text-ink hover:bg-success transition-colors focus-visible:ring-2 focus-visible:ring-focus"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Printable Receipt Paper */}
-        <div className="p-6 space-y-5 bg-[#0e1935] printable-receipt">
+        <div className="p-6 space-y-5 bg-paper-2 printable-receipt">
           {/* Brand Watermark */}
-          <div className="flex items-center justify-between border-b border-[#172545] pb-3">
+          <div className="flex items-center justify-between border-b border-rule pb-3">
             <div>
-              <span className="font-bold text-base text-white">
-                DTH <span className="text-amber-400">தமிழன்</span>
+              <span className="font-bold text-base text-ink">
+                DTH <span className="text-accent">தமிழன்</span>
               </span>
-              <p className="text-xs text-gray-400">
+              <p className="text-sm text-muted">
                 {currentLang === 'ta' ? 'அதிகாரப்பூர்வ டிடிஎச் ரீசார்ஜ் ரசீது' : 'Official DTH Recharge Tax Invoice'}
               </p>
             </div>
             <div className="text-right">
-              <span className="text-xs text-gray-400 block">{t.dateLabel}</span>
-              <span className="text-xs font-mono text-gray-200">
+              <span className="text-sm text-muted block">{t.dateLabel}</span>
+              <span className="text-sm tabular-nums text-muted">
                 {new Date(order.createdAt).toLocaleDateString()} {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
           </div>
 
           {/* Key Reference Numbers */}
-          <div className="grid grid-cols-2 gap-3 bg-[#070e1e] p-3.5 rounded-2xl border border-[#172545] text-xs">
+          <div className="dialog-summary grid grid-cols-1 sm:grid-cols-2 gap-3 py-4 text-sm">
             <div>
-              <span className="text-xs text-gray-400 uppercase tracking-wider block font-bold">
+              <span className="text-sm text-muted block font-bold">
                 {t.orderIdLabel}
               </span>
-              <span className="font-mono font-bold text-white text-xs">
+              <span className="tabular-nums font-bold text-ink text-sm">
                 {order.orderId}
               </span>
             </div>
             <div>
-              <span className="text-xs text-gray-400 uppercase tracking-wider block font-bold">
+              <span className="text-sm text-muted block font-bold">
                 {t.operatorRefLabel}
               </span>
-              <span className="font-mono font-bold text-emerald-400 text-xs">
+              <span className="tabular-nums font-bold text-success text-sm">
                 {order.operatorRefId}
               </span>
             </div>
           </div>
 
           {/* Connection & Plan Details */}
-          <div className="space-y-2.5 text-xs">
-            <div className="flex justify-between py-1 border-b border-[#172545]">
-              <span className="text-gray-300">DTH Operator</span>
-              <span className="font-bold text-white">{order.operatorName}</span>
+          <div className="receipt-details text-sm">
+            <div className="flex justify-between py-1 border-b border-rule">
+              <span className="text-muted">DTH Operator</span>
+              <span className="font-bold text-ink">{order.operatorName}</span>
             </div>
-            <div className="flex justify-between py-1 border-b border-[#172545]">
-              <span className="text-gray-300">{t.viewingCardLabel}</span>
-              <span className="font-mono font-bold text-amber-300">
+            <div className="flex justify-between py-1 border-b border-rule">
+              <span className="text-muted">{t.viewingCardLabel}</span>
+              <span className="tabular-nums font-bold text-accent">
                 {order.smartCardNumber}
               </span>
             </div>
-            <div className="flex justify-between py-1 border-b border-[#172545]">
-              <span className="text-gray-300">{t.packAppliedLabel}</span>
-              <span className="font-semibold text-white">{order.packName}</span>
+            <div className="flex justify-between py-1 border-b border-rule">
+              <span className="text-muted">{t.packAppliedLabel}</span>
+              <span className="font-medium text-ink">{order.packName}</span>
             </div>
-            <div className="flex justify-between py-1 border-b border-[#172545]">
-              <span className="text-gray-300">{t.validity}</span>
-              <span className="font-medium text-gray-200">{order.packValidity}</span>
+            <div className="flex justify-between py-1 border-b border-rule">
+              <span className="text-muted">{t.validity}</span>
+              <span className="font-medium text-muted">{order.packValidity}</span>
             </div>
-            <div className="flex justify-between py-1 border-b border-[#172545]">
-              <span className="text-gray-300">Payment Mode</span>
-              <span className="font-medium text-gray-200 uppercase">{order.paymentMethod}</span>
+            <div className="flex justify-between py-1 border-b border-rule">
+              <span className="text-muted">Payment Mode</span>
+              <span className="font-medium text-muted">{order.paymentMethod}</span>
             </div>
           </div>
 
           {/* Price Calculation Breakdown */}
-          <div className="bg-[#070e1e] p-3.5 rounded-2xl border border-[#172545] space-y-2 text-xs">
-            <div className="flex justify-between text-gray-300">
+          <div className="dialog-section py-4 space-y-2 text-sm">
+            <div className="flex justify-between text-muted">
               <span>Base Recharge Value</span>
-              <span className="font-mono">₹{basePrice}</span>
+              <span className="tabular-nums">₹{basePrice}</span>
             </div>
-            <div className="flex justify-between text-gray-300">
+            <div className="flex justify-between text-muted">
               <span>GST (18%)</span>
-              <span className="font-mono">₹{gstAmount}</span>
+              <span className="tabular-nums">₹{gstAmount}</span>
             </div>
-            <div className="flex justify-between pt-2 border-t border-[#172545] font-bold text-sm text-white">
+            <div className="flex justify-between pt-2 border-t border-rule font-bold text-sm text-ink">
               <span>{t.totalPayable}</span>
-              <span className="font-mono text-amber-400">₹{order.amount}</span>
+              <span className="tabular-nums text-accent">₹{order.amount}</span>
             </div>
           </div>
 
-          {/* Channel Activation Notice & Signal Refresh Helper */}
-          <div className="p-3 bg-amber-500/10 border border-amber-500/25 rounded-2xl space-y-2">
-            <div className="flex items-start gap-2 text-amber-300 text-xs font-semibold">
+          <div className="dialog-section py-4">
+            <div className="flex items-start gap-2 text-accent text-sm font-medium">
               <Tv className="w-4 h-4 shrink-0 mt-0.5" />
               <span>{t.channelsActiveNotice}</span>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                onTriggerRefresh(order.operator, order.smartCardNumber);
-              }}
-              className="w-full py-2 px-3 rounded-xl bg-amber-400/20 hover:bg-amber-400/30 text-amber-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
-            >
-              <Radio className="w-3.5 h-3.5" />
-              <span>{t.triggerRefresh}</span>
-            </button>
           </div>
 
           {/* Receipt Actions */}
@@ -194,7 +179,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
             <button
               type="button"
               onClick={handlePrint}
-              className="py-2.5 px-3 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 border border-white/10"
+              className="py-2.5 px-3 rounded-xl bg-paper hover:bg-paper text-ink text-sm font-bold transition-colors flex items-center justify-center gap-1.5 border border-rule"
             >
               <Printer className="w-4 h-4" />
               <span>{t.printReceipt}</span>
@@ -202,7 +187,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
             <button
               type="button"
               onClick={handleShareWhatsApp}
-              className="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm"
+              className="dialog-primary py-2.5 px-3 rounded-xl bg-success hover:bg-success text-ink text-sm font-bold transition-colors flex items-center justify-center gap-1.5 shadow-sm"
             >
               <Share2 className="w-4 h-4" />
               <span>{t.shareWhatsApp}</span>

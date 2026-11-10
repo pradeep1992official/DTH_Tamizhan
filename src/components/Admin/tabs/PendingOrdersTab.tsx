@@ -1,14 +1,13 @@
 import React from 'react';
-import { 
-  Clock, 
-  CheckCircle2, 
-  AlertCircle, 
-  Radio, 
-  RefreshCw, 
+import {
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  RefreshCw,
   Sparkles,
   ArrowRight
-} from 'lucide-react';
-import { RechargeOrder, Language, DthOperatorId } from '../../../types';
+} from '../../../lib/icons';
+import { RechargeOrder, Language } from '../../../types';
 import { OperatorTheme } from '../../../lib/theme';
 import { translations } from '../../../lib/translations';
 
@@ -21,7 +20,6 @@ interface PendingOrdersTabProps {
   currentTheme: OperatorTheme;
   currentLang: Language;
   showToast: (msg: string) => void;
-  onTriggerRefresh: (operator: DthOperatorId, card: string) => void;
 }
 
 export const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
@@ -33,7 +31,6 @@ export const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
   currentTheme,
   currentLang,
   showToast,
-  onTriggerRefresh,
 }) => {
   const t = translations[currentLang];
   const isLight = currentTheme.isLightMode;
@@ -62,18 +59,18 @@ export const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="admin-tab space-y-6">
       {/* Queue Header Banner */}
-      <div className={`p-5 rounded-2xl border flex items-center justify-between gap-4 ${
-        isLight ? 'bg-amber-500/10 border-amber-500/20 text-gray-900' : 'bg-amber-500/10 border-amber-500/20 text-white'
+      <div className={`admin-section-heading flex items-center justify-between gap-4 ${
+        isLight ? 'bg-warning/10 border-rule text-ink' : 'bg-warning/10 border-rule text-accent-ink'
       }`}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center font-bold">
+          <div className="w-10 h-10 rounded-xl bg-warning/10 text-warning flex items-center justify-center font-bold">
             <Clock className="w-5 h-5" />
           </div>
           <div>
             <h3 className="font-bold text-sm">{t.operatorQueueTitle}</h3>
-            <p className="text-xs text-gray-600 dark:text-gray-300">
+            <p className="text-sm text-muted ">
               {pendingQueue.length} {pendingQueue.length === 1 ? t.order : t.orders} • {t.operatorQueueDesc}
             </p>
           </div>
@@ -82,7 +79,7 @@ export const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
         <button
           type="button"
           onClick={onRefresh}
-          className="p-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-500 transition-colors"
+          className="p-2 rounded-xl bg-warning/10 hover:bg-warning/10 text-warning transition-colors"
           title={t.refreshQueue}
           aria-label={t.refreshQueue}
         >
@@ -92,65 +89,56 @@ export const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
 
       {/* Pending Orders Cards Grid */}
       {ordersError ? (
-        <div role="alert" className={`p-6 rounded-2xl border text-center ${isLight ? 'bg-rose-50 border-rose-200 text-rose-900' : 'bg-rose-500/10 border-rose-500/30 text-rose-100'}`}>
-          <p className="text-sm font-semibold">{ordersError}</p>
-          <button type="button" onClick={onRefresh} className="mt-3 rounded-lg border px-3 py-1.5 text-xs font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">
+        <div role="alert" className={`p-6 rounded-lg border text-center ${isLight ? 'bg-error/10 border-rule text-error' : 'bg-error/10 border-rule text-error'}`}>
+          <p className="text-sm font-medium">{ordersError}</p>
+          <button type="button" onClick={onRefresh} className="mt-3 rounded-lg border px-3 py-1.5 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">
             Retry loading queue
           </button>
         </div>
       ) : pendingQueue.length === 0 ? (
-        <div className={`p-12 text-center rounded-2xl border ${
-          isLight ? 'bg-white border-gray-200 text-gray-700' : 'bg-white/[0.02] border-white/10 text-gray-300'
+        <div className={`p-12 text-center rounded-lg border ${
+          isLight ? 'bg-paper border-rule text-ink' : 'bg-paper-2 border-rule text-muted'
         }`}>
-          <CheckCircle2 className="w-10 h-10 mx-auto text-emerald-500 mb-2" />
+          <CheckCircle2 className="w-10 h-10 mx-auto text-success mb-2" />
           <h4 className="font-bold text-sm">{t.queueClear}</h4>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium">{t.queueClearDesc}</p>
+          <p className="text-sm text-muted  mt-1 font-medium">{t.queueClearDesc}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="admin-queue">
           {pendingQueue.map((order) => (
             <div
               key={order.orderId}
-              className={`p-4 rounded-2xl border space-y-3 relative overflow-hidden transition-all ${
-                isLight ? 'bg-white border-gray-200 text-gray-900 shadow-sm' : 'bg-white/[0.03] border-white/10 text-white'
+              className={`admin-queue-order space-y-3 relative ${
+                isLight ? 'bg-paper border-rule text-ink shadow-none' : 'bg-paper-2 border-rule text-accent-ink'
               }`}
             >
-              <div className="flex items-center justify-between border-b pb-2.5 border-gray-500/20">
-                <div className="font-mono text-xs font-bold text-amber-500">{order.orderId}</div>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold uppercase border border-amber-500/30">
+              <div className="flex items-center justify-between border-b pb-2.5 border-rule">
+                <div className="font-mono text-sm font-bold text-warning">{order.orderId}</div>
+                <span className="text-sm px-2.5 py-0.5 rounded-full bg-warning/10 text-warning  font-bold  border border-rule">
                   {order.rechargeStatus}
                 </span>
               </div>
 
-              <div className="space-y-1 text-xs">
+              <div className="space-y-1 text-sm">
                 <div className="font-bold text-sm">{order.customerName || t.customer}</div>
-                <div className="text-xs text-gray-600 dark:text-gray-300 font-mono">{order.operatorName} • {order.smartCardNumber}</div>
-                <div className="font-semibold text-gray-800 dark:text-gray-200">{order.packName} ({order.packValidity})</div>
+                <div className="text-sm text-muted">{order.operatorName} • {order.smartCardNumber}</div>
+                <div className="font-medium text-ink ">{order.packName} ({order.packValidity})</div>
               </div>
 
-              <div className="flex items-center justify-between pt-2 border-t border-gray-500/20 text-xs">
+              <div className="flex items-center justify-between pt-2 border-t border-rule text-sm">
                 <div className="font-mono font-bold text-base">₹{order.amount}</div>
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() => onTriggerRefresh(order.operator, order.smartCardNumber)}
-                    className="p-1.5 rounded-lg border text-purple-400 hover:bg-purple-500/10"
-                    title={t.refreshStatus}
-                    aria-label={t.refreshStatus}
-                  >
-                    <Radio className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
                     onClick={() => handleProcessOrder(order.orderId, 'failed')}
-                    className="px-2.5 py-1.5 rounded-lg font-bold text-rose-500 hover:bg-rose-500/10 text-xs"
+                    className="px-2.5 py-1.5 rounded-lg font-bold text-error hover:bg-error/10 text-sm"
                   >
                     {t.reject}
                   </button>
                   <button
                     type="button"
                     onClick={() => handleProcessOrder(order.orderId, 'completed')}
-                    className="px-3 py-1.5 rounded-lg font-bold text-white bg-emerald-600 hover:bg-emerald-500 text-xs shadow"
+                    className="px-3 py-1.5 rounded-lg font-bold text-accent-ink bg-accent hover:bg-success/10 text-sm shadow"
                   >
                     {t.confirmCredit}
                   </button>

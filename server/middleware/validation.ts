@@ -22,12 +22,6 @@ export const UpdateOrderStatusSchema = z.object({
   workerNotes: z.string().max(500).optional(),
 });
 
-export const SignalRefreshSchema = z.object({
-  operator: z.enum(['sun_direct', 'tata_play', 'airtel_dth', 'dish_tv', 'd2h']),
-  smartCardNumber: z.string().min(8).max(18),
-  customerMobile: z.string().optional(),
-});
-
 export const SavePlanSchema = z.object({
   plan: z.object({
     id: z.string().min(1),
@@ -87,9 +81,17 @@ export const ToggleOperatorSchema = z.object({
     'commercial_hold', 
     'custom'
   ]).optional(),
-  conditionLabel: z.string().max(100).optional(),
-  maintenanceMessage: z.string().max(300).optional(),
-  expectedRestoration: z.string().max(50).optional(),
+  conditionLabel: z.string().trim().min(1).max(100).optional(),
+  maintenanceMessage: z.string().trim().max(300).optional(),
+  expectedRestoration: z.string().trim().max(50).optional(),
+}).superRefine((payload, context) => {
+  if (!payload.isEnabled && !payload.conditionLabel) {
+    context.addIssue({
+      code: 'custom',
+      path: ['conditionLabel'],
+      message: 'A reason is required when suspending an operator.',
+    });
+  }
 });
 
 export const InstallationRequestSchema = z.object({

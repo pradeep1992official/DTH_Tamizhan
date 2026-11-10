@@ -1,0 +1,37 @@
+import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import fs from 'node:fs';
+const require = createRequire(import.meta.url);
+const puppeteer = require(path.join(tmpdir(), 'hallmark-audit-tools/node_modules/puppeteer-core'));
+const browser = await puppeteer.launch({executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true});
+try {
+ const page=await browser.newPage();
+ await page.setViewport({width:1280,height:900,deviceScaleFactor:1});
+ await page.goto('http://localhost:3012/',{waitUntil:'networkidle2'});
+ await page.waitForSelector('#recommended-hd-card .duration-selector button');
+ const hd=await page.$$('#recommended-hd-card .duration-selector button:not(:disabled)');
+ if (!hd.length) throw new Error('No available HD fixture duration from current catalog');
+ await hd[0].click();
+ const check=async()=>page.evaluate(()=>({cards:[...document.querySelectorAll('.recharge-pack')].map(e=>({id:e.id,selected:e.dataset.selected,unavailable:e.dataset.unavailable})),durations:[...document.querySelectorAll('#recommended-hd-card .duration-selector button')].map(e=>({label:e.innerText,selected:e.getAttribute('aria-pressed'),disabled:e.disabled,background:getComputedStyle(e).backgroundColor,color:getComputedStyle(e).color}))}));
+ await new Promise(r=>setTimeout(r,250));
+ const first=await check();
+ if(first.cards.filter(c=>c.selected==='true').length!==1 ||first.durations.filter(c=>c.selected==='true').length!==1)throw new Error('Card or duration selection is ambiguous');
+ const quick=await page.$$('.recharge-pack[data-pack-type="flexible"] .grid-cols-5 button');
+ await quick[2].click();
+ const custom=await check();
+ if(custom.cards.find(c=>c.selected==='true')?.id==='recommended-hd-card')throw new Error('Top-up did not replace HD card selection');
+ if(await page.$eval('.recharge-pack[data-pack-type="flexible"] .grid-cols-5 button:nth-child(3)',e=>e.getAttribute('aria-pressed'))!=='true')throw new Error('Quick amount has no selection state');
+ await hd[0].click();
+ await new Promise(r=>setTimeout(r,250));
+ fs.mkdirSync('.hallmark/selection-shots',{recursive:true});
+ await (await page.$('.recharge-pack-options')).screenshot({path:'.hallmark/selection-shots/cards-desktop.png'});
+ await page.evaluate(()=>{document.activeElement?.blur();window.scrollTo(0,0)});
+ await page.screenshot({path:'.hallmark/selection-shots/page-desktop.png',fullPage:true});
+ await page.setViewport({width:375,height:844,deviceScaleFactor:1});
+ await page.evaluate(()=>{document.activeElement?.blur();window.scrollTo(0,0)});
+ await new Promise(r=>setTimeout(r,150));
+ if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)) throw new Error('Phone horizontal overflow');
+ await page.screenshot({path:'.hallmark/selection-shots/page-phone.png',fullPage:true});
+ console.log(JSON.stringify({passed:true,initial:first,customSelected:custom.cards.find(c=>c.selected==='true'),screenshots:3}));
+} finally {await browser.close();}

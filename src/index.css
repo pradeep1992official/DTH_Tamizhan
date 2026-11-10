@@ -1,10 +1,22 @@
+/* Hallmark · shape: app screen · genre: modern-minimal · theme: Dose, colorful DTH palette (user requested) · redesign: restyle
+ * nav: service top bar, admin work rail · signature: operator-to-pack recharge workbench · states: loading, empty, error, full
+ * axes: light/geometric-sans/chromatic · posture: full-palette · dose: colorful, no decorative motion · brand: project operator assets and fonts · v2.0.0 */
+/* Hallmark · pre-emit critique: P4 H4 E4 S4 R4 V4 · weakest: R, confining strong color to navigation, headings and meaningful choices */
+/* Hallmark · reworded "All-in-One DTH Recharge Platform" to "Recharge your DTH connection" · 19 removes a generic platform opener, the recharge task is unchanged */
+/* Hallmark · reworded "1 1. Select DTH Operator", "2 2. Enter Smart Card / Customer ID", "3 3. Select Recharge Pack or Amount" · 69 removes duplicate step numerals; the numbered controls and their destinations remain */
+/* Hallmark · waive 39b · operator selector buttons contain full provider logos and names · customers recognize their operator through these complete choice targets, which need more height than toolbar controls */
+/* Hallmark · answered F4 · operator icon backgrounds identify the existing provider; checkout and pack selection share the action palette */
+/* Hallmark · dismissed 49 · Excel import has mutually exclusive applying and idle labels; the operator maintenance action may wrap as a readable disabled explanation */
+/* Hallmark · waive 23 · full-palette surfaces explicitly requested by the user · the recharge header and meaningful plan choices carry crimson, teal and gold while reading surfaces remain light */
+/* Hallmark · waive 3 · three plan choices use inline header icons, not icon-above-heading feature tiles · the HD, SD and flexible recharge options form an actual comparison and retain recognizable selection controls */
+/* Hallmark · finish-review: colorful restyle, subagent, ship · contrast corrections verified by final render · earlier admin/dialog fixes retained */
 @import "tailwindcss";
-
-@theme {
-  --font-sans: 'Plus Jakarta Sans', 'Noto Sans Tamil', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --font-heading: 'Plus Jakarta Sans', 'Noto Sans Tamil', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-}
+@import "./tokens.css";
+@import "./base.css" layer(base);
+@import "./workspace.css";
+@import "./admin.css";
+@import "./dialogs.css";
+@import "./colorful.css";
 
 @layer base {
   html,
@@ -65,16 +77,16 @@
       width: 100% !important;
       max-height: none !important;
       overflow: visible !important;
-      background: #fff !important;
-      color: #111827 !important;
+      background: var(--color-paper) !important;
+      color: var(--color-ink) !important;
       border: 0 !important;
       box-shadow: none !important;
     }
 
     .receipt-print * {
-      color: #111827 !important;
+      color: var(--color-ink) !important;
       background-color: transparent !important;
-      border-color: #d1d5db !important;
+      border-color: var(--color-rule) !important;
       box-shadow: none !important;
     }
 

@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
-import { 
-  CheckCircle2, 
-  Clock, 
-  AlertCircle, 
-  Search, 
-  Radio, 
-  Check, 
+import {
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  Search,
+  Check,
   RefreshCw,
   Phone,
   Eye
-} from 'lucide-react';
+} from '../../../lib/icons';
 import { RechargeOrder, Language, DthOperatorId, isSameDthOperatorGroup } from '../../../types';
 import { OperatorTheme } from '../../../lib/theme';
 import { translations } from '../../../lib/translations';
@@ -23,7 +22,6 @@ interface RechargesTabProps {
   currentTheme: OperatorTheme;
   currentLang: Language;
   showToast: (msg: string) => void;
-  onTriggerRefresh: (operator: DthOperatorId, card: string) => void;
 }
 
 export const RechargesTab: React.FC<RechargesTabProps> = ({
@@ -35,7 +33,6 @@ export const RechargesTab: React.FC<RechargesTabProps> = ({
   currentTheme,
   currentLang,
   showToast,
-  onTriggerRefresh,
 }) => {
   const t = translations[currentLang];
   const isLight = currentTheme.isLightMode;
@@ -76,21 +73,21 @@ export const RechargesTab: React.FC<RechargesTabProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="admin-tab space-y-6">
       {/* Search & Filters */}
-      <div className={`p-4 rounded-2xl border flex flex-wrap items-center justify-between gap-3 ${
-        isLight ? 'bg-white border-gray-200 shadow-sm' : 'bg-white/[0.02] border-white/10'
+      <div className={`admin-toolbar flex flex-wrap items-center justify-between gap-3 ${
+        isLight ? 'bg-paper border-rule shadow-none' : 'bg-paper-2 border-rule'
       }`}>
         <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 flex-1 min-w-0">
           <div className="relative w-full sm:flex-1 sm:max-w-md">
-            <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+            <Search className="w-4 h-4 absolute left-3 top-3 text-muted" />
             <input
               type="text"
               placeholder={t.searchOrders}
               value={orderSearch}
               onChange={(e) => setOrderSearch(e.target.value)}
-              className={`w-full rounded-xl pl-9 pr-3 py-2 text-xs border focus:outline-none ${
-                isLight ? 'bg-gray-50 border-gray-300 text-gray-900' : 'bg-black/30 border-white/20 text-white'
+              className={`w-full rounded-xl pl-9 pr-3 py-2 text-sm border focus:outline-none ${
+                isLight ? 'bg-paper-2 border-rule text-ink' : 'bg-ink/30 border-rule text-accent-ink'
               }`}
             />
           </div>
@@ -99,7 +96,7 @@ export const RechargesTab: React.FC<RechargesTabProps> = ({
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className={`w-full sm:w-auto border text-sm rounded-xl px-3 py-2 focus-visible:outline focus-visible:outline-2 ${
-              isLight ? 'bg-gray-50 border-gray-300 text-gray-900' : 'bg-[#140029] border-white/20 text-white'
+              isLight ? 'bg-paper-2 border-rule text-ink' : 'bg-paper border-rule text-accent-ink'
             }`}
           >
             <option value="all">{t.allStatuses}</option>
@@ -113,7 +110,7 @@ export const RechargesTab: React.FC<RechargesTabProps> = ({
             value={opFilter}
             onChange={(e) => setOpFilter(e.target.value)}
             className={`w-full sm:w-auto border text-sm rounded-xl px-3 py-2 focus-visible:outline focus-visible:outline-2 ${
-              isLight ? 'bg-gray-50 border-gray-300 text-gray-900' : 'bg-[#140029] border-white/20 text-white'
+              isLight ? 'bg-paper-2 border-rule text-ink' : 'bg-paper border-rule text-accent-ink'
             }`}
           >
             <option value="all">{t.allOperators}</option>
@@ -127,7 +124,7 @@ export const RechargesTab: React.FC<RechargesTabProps> = ({
         <button
           onClick={onRefresh}
           className={`p-2.5 rounded-xl border transition-colors ${
-            isLight ? 'bg-gray-100 hover:bg-gray-200 text-gray-700' : 'bg-white/10 hover:bg-white/20 text-white'
+            isLight ? 'bg-paper-2 hover:bg-paper-2 text-ink' : 'bg-paper-2 hover:bg-paper-2 text-accent-ink'
           }`}
           title={t.refresh}
         >
@@ -136,65 +133,65 @@ export const RechargesTab: React.FC<RechargesTabProps> = ({
       </div>
 
       {/* Orders Table */}
-      <div className={`border rounded-2xl overflow-hidden shadow-sm ${
-        isLight ? 'bg-white border-gray-200' : 'bg-white/[0.02] border-white/10'
+      <div className={`border rounded-lg overflow-hidden shadow-none ${
+        isLight ? 'bg-paper border-rule' : 'bg-paper-2 border-rule'
       }`}>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className={`border-b ${isLight ? 'bg-gray-50/80 text-gray-600 border-gray-200' : 'bg-white/[0.03] text-gray-400 border-white/10'}`}>
+          <table className="admin-responsive-table w-full text-left text-sm">
+            <thead className={`border-b ${isLight ? 'bg-paper-2 text-muted border-rule' : 'bg-paper-2 text-muted border-rule'}`}>
               <tr>
-                <th className="p-3.5 font-semibold">{t.orderIdAndDate}</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">{t.customerAndCard}</th>
-                <th className="hidden md:table-cell p-3.5 font-semibold">{t.packAndValidity}</th>
-                <th className="p-3.5 font-semibold">{t.amountAndPayment}</th>
-                <th className="p-3.5 font-semibold">{t.status}</th>
-                <th className="p-3.5 font-semibold text-right">{t.actions}</th>
+                <th className="p-3.5 font-medium">{t.orderIdAndDate}</th>
+                <th className="p-3.5 font-bold  ">{t.customerAndCard}</th>
+                <th className="hidden md:table-cell p-3.5 font-medium">{t.packAndValidity}</th>
+                <th className="p-3.5 font-medium">{t.amountAndPayment}</th>
+                <th className="p-3.5 font-medium">{t.status}</th>
+                <th className="p-3.5 font-medium text-right">{t.actions}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-500/10">
+            <tbody className="divide-y divide-rule">
               {ordersError ? (
                 <tr>
                   <td colSpan={6} className="p-8 text-center">
-                    <p role="alert" className="text-sm font-semibold text-rose-600 dark:text-rose-300">{ordersError}</p>
-                    <button type="button" onClick={onRefresh} className="mt-3 rounded-lg border px-3 py-1.5 text-xs font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">
+                    <p role="alert" className="text-sm font-medium text-error ">{ordersError}</p>
+                    <button type="button" onClick={onRefresh} className="mt-3 rounded-lg border px-3 py-1.5 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">
                       Retry loading recharges
                     </button>
                   </td>
                 </tr>
               ) : filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-gray-500">
+                  <td colSpan={6} className="p-8 text-center text-muted">
                     {t.noOrdersFound}
                   </td>
                 </tr>
               ) : (
                 filteredOrders.map((ord) => (
-                  <tr key={ord.orderId} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="p-3.5 font-mono">
+                  <tr key={ord.orderId} className="hover:bg-paper-2 transition-colors">
+                    <td data-label={t.orderIdAndDate} className="p-3.5 font-mono">
                       <div className="font-bold">{ord.orderId}</div>
-                      <div className="hidden sm:block text-xs text-gray-600 dark:text-gray-300">
+                      <div className="hidden sm:block text-sm text-muted ">
                         {new Date(ord.createdAt).toLocaleString()}
                       </div>
                     </td>
-                    <td className="p-3.5">
-                      <div className="font-semibold">{ord.customerName || t.customer}</div>
-                      <div className="text-xs font-mono text-gray-500 dark:text-gray-400">{ord.operatorName} • {ord.smartCardNumber}</div>
+                    <td data-label={t.customerAndCard} className="p-3.5">
+                      <div className="font-medium">{ord.customerName || t.customer}</div>
+                      <div className="text-sm font-mono text-muted ">{ord.operatorName} • {ord.smartCardNumber}</div>
                     </td>
-                    <td className="hidden md:table-cell p-3.5">
+                    <td data-label={t.packAndValidity} className="hidden md:table-cell p-3.5">
                       <div className="font-medium">{ord.packName}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">{ord.packValidity}</div>
+                      <div className="text-sm text-muted ">{ord.packValidity}</div>
                     </td>
-                    <td className="p-3.5">
-                      <div className="font-mono font-bold text-sm">₹{ord.amount}</div>
-                      <div className="text-xs uppercase text-gray-500 dark:text-gray-400 font-semibold">{ord.paymentMethod}</div>
+                    <td data-label={t.amountAndPayment} className="p-3.5">
+                      <div className="font-mono font-medium text-sm">₹{ord.amount}</div>
+                      <div className="text-sm  text-muted  font-medium">{ord.paymentMethod}</div>
                     </td>
-                    <td className="p-3.5">
-                      <span className={`text-xs px-2.5 py-1 rounded-full font-bold uppercase inline-flex items-center gap-1 ${
+                    <td data-label={t.status} className="p-3.5">
+                      <span className={`text-sm px-2.5 py-1 rounded-full font-bold  inline-flex items-center gap-1 ${
                         ord.rechargeStatus === 'completed'
-                          ? 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/30'
+                          ? 'bg-success/10 text-success border border-rule'
                           : ord.rechargeStatus === 'failed'
-                          ? 'bg-rose-500/20 text-rose-500 border border-rose-500/30'
-                          : 'bg-amber-500/20 text-amber-500 border border-amber-500/30'
+                          ? 'bg-error/10 text-error border border-rule'
+                          : 'bg-warning/10 text-warning border border-rule'
                       }`}>
                         {ord.rechargeStatus === 'completed' && <CheckCircle2 className="w-3 h-3" />}
                         {ord.rechargeStatus === 'pending' && <Clock className="w-3 h-3" />}
@@ -202,22 +199,15 @@ export const RechargesTab: React.FC<RechargesTabProps> = ({
                         <span>{ord.rechargeStatus}</span>
                       </span>
                     </td>
-                    <td className="p-3.5 text-right space-x-1.5">
+                    <td data-label={t.actions} className="p-3.5 text-right space-x-1.5">
                       {ord.rechargeStatus !== 'completed' && (
                         <button
                           onClick={() => handleUpdateStatus(ord.orderId, 'completed')}
-                          className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow"
+                          className="px-2.5 py-1 rounded-lg bg-accent hover:bg-success/10 text-accent-ink font-bold text-sm shadow"
                         >
                           {t.creditBox}
                         </button>
                       )}
-                      <button
-                        onClick={() => onTriggerRefresh(ord.operator, ord.smartCardNumber)}
-                        className="p-1.5 rounded-lg border text-purple-400 hover:bg-purple-500/10 transition-colors"
-                        title={t.refreshStatus}
-                      >
-                        <Radio className="w-3.5 h-3.5" />
-                      </button>
                     </td>
                   </tr>
                 ))

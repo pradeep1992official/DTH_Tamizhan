@@ -1,0 +1,12 @@
+.gcloudignore
+.gcloud
+.git
+.gitignore
+.env*
+data/
+.hallmark/
+coverage/
+node_modules/
+dist/
+bun.lock
+*.log

@@ -9,6 +9,7 @@ import {
   refreshApprovedAdminEmails,
   saveAdminsToDisk,
   saveCustomersToDisk,
+  saveOperatorSettingsToDisk,
 } from '../models/store';
 import {
   getSuperAdminEmail,
@@ -294,13 +295,23 @@ export const adminController = {
       res.status(404).json({ success: false, error: 'Operator not found.' });
       return;
     }
+    const previousState = { ...operator };
     operator.isEnabled = isEnabled;
-    operator.condition = condition;
-    operator.conditionLabel = conditionLabel;
-    operator.maintenanceMessage = maintenanceMessage;
-    operator.expectedRestoration = expectedRestoration;
+    operator.condition = isEnabled ? undefined : condition || 'custom';
+    operator.conditionLabel = isEnabled ? undefined : conditionLabel || maintenanceMessage;
+    operator.disableReason = operator.conditionLabel;
+    operator.maintenanceMessage = isEnabled ? undefined : maintenanceMessage || conditionLabel;
+    operator.expectedRestoration = isEnabled ? undefined : expectedRestoration;
     operator.updatedAt = new Date().toISOString();
     operator.updatedBy = auth.email || 'admin';
-    res.json({ success: true, operator });
+
+    try {
+      saveOperatorSettingsToDisk();
+      res.json({ success: true, operator });
+    } catch (error) {
+      Object.assign(operator, previousState);
+      console.error('[Admin] Failed to persist operator settings:', error);
+      res.status(500).json({ success: false, error: 'Unable to save operator settings.' });
+    }
   },
 };

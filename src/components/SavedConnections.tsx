@@ -1,17 +1,16 @@
 import React, { useState } from 'react';
-import { 
-  Tv, 
-  Plus, 
-  Trash2, 
-  Zap, 
-  Radio, 
-  CheckCircle2, 
-  AlertCircle, 
-  Calendar, 
+import {
+  Tv,
+  Plus,
+  Trash2,
+  Zap,
+  CheckCircle2,
+  AlertCircle,
+  Calendar,
   CreditCard,
   X,
   Sparkles
-} from 'lucide-react';
+} from '../lib/icons';
 import { DthConnection, DthOperatorId, Language, UserProfile, resolveDishFamilyOperatorId } from '../types';
 import { translations } from '../lib/translations';
 import { OperatorTheme, getOperatorTheme } from '../lib/theme';
@@ -22,7 +21,6 @@ interface SavedConnectionsProps {
   currentLang: Language;
   user: UserProfile | null;
   onQuickRecharge: (conn: DthConnection) => void;
-  onTriggerRefresh: (operator: DthOperatorId, card: string) => void;
   onAddConnection: (conn: Omit<DthConnection, 'id' | 'createdAt'>) => void;
   onDeleteConnection: (id: string) => void;
   onOpenAuth: () => void;
@@ -34,7 +32,6 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
   currentLang,
   user,
   onQuickRecharge,
-  onTriggerRefresh,
   onAddConnection,
   onDeleteConnection,
   onOpenAuth,
@@ -85,27 +82,27 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
   };
 
   return (
-    <div className="space-y-6 text-left animate-in fade-in duration-300">
+    <div className="connections-page space-y-6 text-left">
       {/* Header Bar Themed */}
-      <div 
-        className={`${currentTheme.mainContainerBg} ${currentTheme.mainContainerBorder} border p-6 rounded-3xl shadow-xl flex flex-wrap items-center justify-between gap-4 transition-colors duration-300`}
+      <div
+        className={`page-heading flex flex-wrap items-center justify-between gap-4`}
       >
         <div className="space-y-1 max-w-xl">
-          <h2 className={`text-xl font-bold flex items-center gap-2.5 ${currentTheme.headingText} ${currentTheme.fontHeadingClass}`}>
-            <div 
+          <h1 className={`text-2xl font-bold flex items-center gap-2.5 ${currentTheme.headingText} ${currentTheme.fontHeadingClass}`}>
+            <div
               className={`w-8 h-8 rounded-xl flex items-center justify-center border ${
-                isLight ? 'bg-white border-gray-300' : 'bg-black/30 border-white/10'
+                isLight ? 'bg-paper border-rule' : 'bg-scrim/30 border-rule-strong'
               }`}
-              style={{ borderColor: `${currentTheme.primaryColor}50` }}
+              style={{ borderColor: `color-mix(in oklab, ${currentTheme.primaryColor} 31%, transparent)` }}
             >
               <Tv className="w-4 h-4" style={{ color: currentTheme.primaryColor }} />
             </div>
             <span>{t.myConnectionsTitle}</span>
-          </h2>
+          </h1>
           <p className={`text-xs ${currentTheme.subText}`}>
             {currentLang === 'ta'
               ? 'உங்கள் வீட்டில் உள்ள அனைத்து செட்-டாப் பாக்ஸ்களையும் நிர்வகிக்கவும் மற்றும் 1-கிளிக் ரீசார்ஜ் செய்யவும்.'
-              : 'Manage your saved Set-Top Boxes for fast recharges and signal refresh.'}
+              : 'Manage your saved Set-Top Boxes and recharge them quickly.'}
           </p>
         </div>
 
@@ -118,7 +115,7 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
               setIsAddOpen(true);
             }
           }}
-          className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs transition-all hover:scale-[1.02] active:scale-[0.98] ${currentTheme.ctaButtonClass}`}
+          className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs transition-colors  active:scale-[0.98] ${currentTheme.ctaButtonClass}`}
         >
           <Plus className="w-4 h-4" />
           <span>{t.addConnection}</span>
@@ -127,7 +124,7 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
 
       {/* Cards Grid */}
       {connections.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="connection-list">
           {connections.map((conn) => {
             const normalizedOp = conn.operator === 'd2h' ? 'dish_tv' : conn.operator;
             const opTheme = getOperatorTheme(normalizedOp);
@@ -141,17 +138,17 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
                   {/* Card Header with Specific Operator Badge */}
                   <div className="flex items-start justify-between">
                     <div>
-                      <span 
-                        className="text-xs font-semibold px-2.5 py-1 rounded-full border inline-flex items-center gap-1.5"
+                      <span
+                        className="text-xs font-medium px-2.5 py-1 rounded-full border inline-flex items-center gap-1.5"
                         style={{
-                          backgroundColor: `${opTheme.primaryColor}15`,
+                          backgroundColor: `color-mix(in oklab, ${opTheme.primaryColor} 8%, transparent)`,
                           color: opTheme.primaryColor,
-                          borderColor: `${opTheme.primaryColor}30`,
+                          borderColor: `color-mix(in oklab, ${opTheme.primaryColor} 19%, transparent)`,
                         }}
                       >
-                        <span 
-                          className="w-1.5 h-1.5 rounded-full" 
-                          style={{ backgroundColor: opTheme.primaryColor }} 
+                        <span
+                          className="w-1.5 h-1.5 rounded-full"
+                          style={{ backgroundColor: opTheme.primaryColor }}
                         />
                         {conn.operatorName}
                       </span>
@@ -166,7 +163,7 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
                     <button
                       onClick={() => onDeleteConnection(conn.id)}
                       aria-label={`Remove ${conn.nickname}`}
-                      className="p-2 rounded-xl transition-colors text-rose-700 hover:bg-rose-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-600 dark:text-rose-300 dark:hover:bg-rose-500/15 dark:focus-visible:outline-rose-300"
+                      className="p-2 rounded-xl transition-colors text-error hover:bg-error-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-error   "
                       title="Remove Connection"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -176,13 +173,13 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
                   {/* Account Meta Balance & Expiry */}
                   <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
                     <div>
-                      <span className={`text-xs font-semibold block ${currentTheme.mutedText}`}>Balance</span>
-                      <span className="font-semibold text-sm">
+                      <span className={`text-xs font-medium block ${currentTheme.mutedText}`}>Balance</span>
+                      <span className="font-medium text-sm">
                         {typeof conn.balance === 'number' ? `₹${conn.balance.toFixed(2)}` : 'Not available'}
                       </span>
                     </div>
                     <div>
-                      <span className={`text-xs font-semibold block ${currentTheme.mutedText}`}>Expiry</span>
+                      <span className={`text-xs font-medium block ${currentTheme.mutedText}`}>Expiry</span>
                       <span className={`font-medium text-sm block mt-1 ${currentTheme.subText}`}>
                         {conn.expiryDate || 'N/A'}
                       </span>
@@ -192,15 +189,14 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
                   {conn.packName && (
                     <div className={`mt-3 text-xs flex items-center justify-between px-1`}>
                       <span className={currentTheme.mutedText}>Pack:</span>
-                      <span className="font-semibold text-right" style={{ color: opTheme.primaryColor }}>
+                      <span className="font-medium text-right" style={{ color: opTheme.primaryColor }}>
                         {conn.packName}
                       </span>
                     </div>
                   )}
                 </div>
 
-                {/* Actions (Recharge & Signal Refresh) */}
-                <div className={`flex items-center gap-2 pt-3 border-t ${currentTheme.surfaceBorder}`}>
+                <div className={`flex items-center pt-3 border-t ${currentTheme.surfaceBorder}`}>
                   <button
                     onClick={() => onQuickRecharge(conn)}
                     className={`flex-1 py-2.5 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-sm ${currentTheme.cardButtonActive}`}
@@ -209,13 +205,6 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
                     <span>{t.rechargeAgain}</span>
                   </button>
 
-                  <button
-                    onClick={() => onTriggerRefresh(normalizedOp, conn.smartCardNumber)}
-                    className={`p-2.5 rounded-xl transition-colors border flex items-center justify-center ${currentTheme.cardButtonInactive} ${currentTheme.inputBorder}`}
-                    title="Refresh Signal"
-                  >
-                    <Radio className="w-4 h-4" style={{ color: opTheme.primaryColor }} />
-                  </button>
                 </div>
               </div>
             );
@@ -223,11 +212,11 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
         </div>
       ) : (
         <div className={`${currentTheme.mainContainerBg} ${currentTheme.mainContainerBorder} border border-dashed rounded-3xl p-12 text-center space-y-4 shadow-sm`}>
-          <div 
+          <div
             className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto border`}
-            style={{ 
-              backgroundColor: `${currentTheme.primaryColor}15`,
-              borderColor: `${currentTheme.primaryColor}30`
+            style={{
+              backgroundColor: `color-mix(in oklab, ${currentTheme.primaryColor} 8%, transparent)`,
+              borderColor: `color-mix(in oklab, ${currentTheme.primaryColor} 19%, transparent)`
             }}
           >
             <Tv className="w-8 h-8" style={{ color: currentTheme.primaryColor }} />
@@ -248,7 +237,7 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
                 setIsAddOpen(true);
               }
             }}
-            className={`inline-flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-xs transition-all shadow-md ${currentTheme.ctaButtonClass}`}
+            className={`inline-flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-xs transition-colors shadow-md ${currentTheme.ctaButtonClass}`}
           >
             <Plus className="w-4 h-4" />
             <span>{t.addFirstBox}</span>
@@ -258,13 +247,13 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
 
       {/* Add Connection Modal Themed */}
       {isAddOpen && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-scrim/70 backdrop-blur-sm   duration-200"
           onClick={(e) => {
             if (e.target === e.currentTarget) setIsAddOpen(false);
           }}
         >
-          <div 
+          <div
             ref={modalRef}
             role="dialog"
             aria-modal="true"
@@ -281,7 +270,7 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
                 type="button"
                 onClick={() => setIsAddOpen(false)}
                 aria-label={t.close}
-                className={`p-1.5 rounded-lg hover:bg-gray-500/10 ${currentTheme.subText}`}
+                className={`p-1.5 rounded-lg hover:bg-ink ${currentTheme.subText}`}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -289,7 +278,7 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
 
             <form onSubmit={handleSubmitNew} className="space-y-4 text-xs">
               <div>
-                <label className={`block font-semibold mb-1.5 ${currentTheme.subText}`}>
+                <label className={`block font-medium mb-1.5 ${currentTheme.subText}`}>
                   {t.dthOperatorLabel}
                 </label>
                 <select
@@ -305,7 +294,7 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
               </div>
 
               <div>
-                <label className={`block font-semibold mb-1.5 ${currentTheme.subText}`}>
+                <label className={`block font-medium mb-1.5 ${currentTheme.subText}`}>
                   {t.smartCardNumberLabel}
                 </label>
                 <input
@@ -319,7 +308,7 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
               </div>
 
               <div>
-                <label className={`block font-semibold mb-1.5 ${currentTheme.subText}`}>
+                <label className={`block font-medium mb-1.5 ${currentTheme.subText}`}>
                   {t.boxNickname}
                 </label>
                 <input
@@ -334,7 +323,7 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
               <div className="pt-2">
                 <button
                   type="submit"
-                  className={`w-full py-3 rounded-xl font-bold text-xs transition-all shadow-md ${currentTheme.ctaButtonClass}`}
+                  className={`w-full py-3 rounded-xl font-bold text-xs transition-colors shadow-md ${currentTheme.ctaButtonClass}`}
                 >
                   {t.saveBoxBtn}
                 </button>

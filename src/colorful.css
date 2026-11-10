@@ -1,0 +1,107 @@
+/* Hallmark · theme: colorful DTH palette · shape: app screen · redesign: restyle · posture: full-palette · v2.0.0 */
+/* Hallmark · pre-emit critique: P4 H4 E4 S4 R4 V4 · weakest: E, retaining readable foreground pairs across every colored surface */
+.app-header { background: var(--color-theme-deep); border-bottom: 2px solid var(--color-theme-brand); }
+.app-header #brand-logo-btn > div:last-child span { color: var(--color-accent-ink); }
+.app-header #brand-logo-btn > div:last-child span[style] { color: var(--color-theme-highlight) !important; }
+.app-header #brand-logo-btn > div:last-child p { color: var(--color-paper-3); }
+.app-header .mobile-navigation { background: var(--color-theme-deep); border-color: var(--color-rule-strong); }
+.app-header :is(.desktop-navigation,.mobile-navigation) button { color: var(--color-accent-ink); }
+.app-header :is(.desktop-navigation,.mobile-navigation) button:not([aria-current="page"]):hover { background: var(--color-theme-muted); color: var(--color-accent-ink); }
+.app-header :is(.desktop-navigation,.mobile-navigation) button[aria-current="page"] { background: var(--color-theme-brand); color: var(--color-accent-ink); box-shadow: none; }
+.app-header #brand-logo-btn > div:first-child { background: var(--color-theme-brand); }
+.app-header #profile-dropdown-trigger-btn { background: var(--color-theme-surface); border-color: var(--color-rule); }
+.app-footer { background: var(--color-theme-deep); color: var(--color-accent-ink); border: 0; border-top: 2px solid var(--color-theme-brand); padding-block: var(--space-md); }
+.app-footer :is(.text-ink,.text-muted,.text-ink-2) { color: var(--color-accent-ink); }
+.app-footer-inner > div:first-child { border-color: var(--color-rule-strong); }
+.footer-brand { display: flex; align-items: center; gap: var(--space-sm); }
+.footer-brand-icon { width: 40px; height: 40px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: var(--color-theme-brand); color: var(--color-accent-ink); border-radius: var(--radius-input); }
+.footer-brand .font-sans { font-size: var(--text-xl); }
+.footer-brand p { color: var(--color-paper-3); }
+.app-header #brand-logo-btn > div:first-child svg { color: var(--color-accent-ink) !important; }
+.app-footer .text-accent, .app-footer [style*="color"] { color: var(--color-theme-brand-soft) !important; }
+
+.recharge-heading { background: var(--color-accent); border: 0; }
+.recharge-heading h1, .recharge-heading p, .recharge-heading .recharge-assurances > div, .recharge-heading .recharge-assurances svg { color: var(--color-accent-ink); }
+.recharge-operator { background: var(--color-theme-surface); }
+.recharge-subscriber { background: var(--color-theme-light); }
+.operator-options button { background: var(--color-paper); }
+.operator-options button:has(.ring-accent), .operator-options button.ring-accent { background: var(--color-accent-soft); }
+.recharge-checkout { border-color: var(--color-theme-muted); border-top-width: 3px; background: var(--color-theme-muted-soft); }
+
+.recharge-pack .pack-label { border: 0; }
+.recharge-pack[data-pack-type="hd"] .pack-label { background: var(--color-accent); }
+.recharge-pack[data-pack-type="sd"] .pack-label { background: var(--color-theme-muted); }
+.recharge-pack[data-pack-type="flexible"] .pack-label { background: var(--color-paper-2); }
+.recharge-pack[data-pack-type="hd"] .pack-kind, .recharge-pack[data-pack-type="sd"] .pack-kind,
+.recharge-pack[data-pack-type="hd"] .pack-choice-marker, .recharge-pack[data-pack-type="sd"] .pack-choice-marker,
+.recharge-pack[data-pack-type="hd"] .pack-state-text, .recharge-pack[data-pack-type="sd"] .pack-state-text { color: var(--color-accent-ink); }
+.recharge-pack[data-pack-type="flexible"] :is(.pack-kind,.pack-choice-marker,.pack-state-text) { color: var(--color-muted); }
+.recharge-pack[data-selected="true"] { border-color: var(--color-accent); box-shadow: inset 0 0 0 2px var(--color-accent); }
+.recharge-pack[data-pack-type="hd"] { border-top: 4px solid var(--color-accent); }
+.recharge-pack[data-pack-type="sd"] { border-top: 4px solid var(--color-theme-muted); }
+.recharge-pack[data-pack-type="flexible"] { border: 1px dashed var(--color-rule-strong); }
+.recharge-pack[data-pack-type="flexible"] .pack-body { background: var(--color-paper-2); }
+.recharge-pack[data-pack-type="flexible"][data-selected="true"] .pack-label { background: var(--color-accent-soft); }
+.recharge-pack[data-pack-type="flexible"][data-selected="true"] :is(.pack-kind,.pack-choice-marker,.pack-state-text) { color: var(--color-accent); }
+.recharge-pack[data-unavailable="true"] { border-color: var(--color-rule-strong); background: var(--color-pack-disabled); }
+.recharge-pack[data-unavailable="true"] .pack-label { background: var(--color-paper-3); }
+.recharge-pack[data-unavailable="true"] :is(.pack-kind,.pack-choice-marker,.pack-state-text) { color: var(--color-ink-2); }
+.pack-body .duration-selector button[aria-pressed="true"] { background: var(--color-accent) !important; color: var(--color-accent-ink) !important; }
+.recharge-pack[data-pack-type="flexible"][data-selected="true"] { background: var(--color-theme-brand-soft); }
+
+.plans-page > .page-heading { background: var(--color-theme-light); }
+.connections-page > .page-heading { background: var(--color-theme-muted-soft); }
+.security-page > .page-heading { background: var(--color-theme-surface); }
+:is(.plans-page,.connections-page,.security-page) > .page-heading { padding: var(--space-lg); border-radius: var(--radius-card); border: 0; }
+.catalog-toolbar { border-top: 3px solid var(--color-theme-rose); }
+.catalog-plan > div:first-child > div:first-child { background: var(--color-theme-surface); border-radius: var(--radius-card) var(--radius-card) 0 0; }
+.catalog-plan .plan-facts { background: transparent; }
+.filter-panel > div:first-child { color: var(--color-theme-rose); border-color: var(--color-theme-rose); }
+.connection-list > div { border-top: 4px solid var(--color-theme-muted); }
+.connection-list > div:nth-child(even) { border-top-color: var(--color-theme-rose); }
+.security-table thead { background: var(--color-theme-deep); color: var(--color-accent-ink); }
+.security-row h2 { color: var(--color-theme-muted); }
+
+.admin-rail { background: var(--color-theme-deep); padding: var(--space-md); border-radius: var(--radius-card); }
+.admin-rail :is(.admin-title,.admin-identity,.admin-authorized,.admin-nav-item,.admin-back) { color: var(--color-accent-ink); }
+.admin-nav-item:hover, .admin-back:hover { background: var(--color-theme-muted); color: var(--color-accent-ink); }
+.admin-nav-item.is-active { background: var(--color-theme-brand); color: var(--color-accent-ink); }
+.admin-workspace-heading { border-color: var(--color-theme-rose); }
+.admin-summary-item { padding: var(--space-md); border-radius: var(--radius-input); border: 0; background: var(--color-theme-surface); }
+.admin-summary-item:nth-child(2) { background: var(--color-theme-muted-soft); }
+.admin-summary-item:nth-child(3) { background: var(--color-theme-brand-soft); }
+.admin-summary-item:nth-child(4) { background: var(--color-theme-light); }
+.admin-tab thead { background: var(--color-theme-surface); color: var(--color-theme-deep); }
+.admin-access { border-top: 4px solid var(--color-accent); background: var(--color-accent-soft); }
+
+.hm-dialog > :first-child { background: var(--color-theme-surface); border-bottom: 1px solid var(--color-rule); }
+.hm-dialog:has(#payment-modal-title) > :first-child { background: var(--color-theme-muted-soft); }
+.hm-dialog:has(#new-dish-title) > :first-child { background: var(--color-theme-brand-soft); }
+.hm-dialog:has(#excel-modal-title) > :first-child { background: var(--color-theme-light); }
+.compare-tray { color: var(--color-accent-ink); }
+.compare-tray > div { border-top: 3px solid var(--color-theme-muted); background: var(--color-theme-deep); color: var(--color-accent-ink); }
+.compare-tray > div > div:first-child > div:first-child .text-muted { color: var(--color-paper-3); }
+.compare-tray > div > div:last-child > button:not(.dialog-primary) { color: var(--color-accent-ink); }
+.compare-tray .w-8.h-8 { color: var(--color-accent-ink); }
+.admin-tab :is(input,select,textarea) { border-color: var(--color-rule-strong) !important; }
+#profile-dropdown-trigger-btn p[style], .recharge-subscriber button[style] { color: var(--color-accent-deep) !important; }
+@media (max-width: 40rem) {
+  .footer-brand .font-sans { font-size: var(--text-md); }
+  :is(.plans-page,.connections-page,.security-page) > .page-heading { padding: var(--space-md); }
+  .admin-rail { padding: var(--space-md); }
+}
+@layer base {
+  .admin-rail :is(button,a):focus-visible, .app-footer :is(button,a):focus-visible { outline-color: var(--color-theme-brand-soft) !important; }
+  .app-header #brand-logo-btn:focus-visible, .app-header #profile-dropdown-trigger-btn:focus-visible, .app-header :is(.desktop-navigation,.mobile-navigation) button:focus-visible { outline-color: var(--color-theme-brand-soft) !important; }
+}
+
+.profile-menu { width: 256px; max-width: calc(100dvi - 2 * var(--space-md)); right: var(--space-xs); border-radius: var(--radius-card); box-shadow: var(--shadow-lift); }
+.profile-menu > div:first-child { padding: var(--space-sm); }
+.profile-menu button { min-height: 44px; font-size: var(--text-sm); }
+.profile-menu button:not([aria-pressed]):hover { background: var(--color-paper-2); }
+.profile-language-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-xs); padding: var(--space-xs) var(--space-sm); }
+.profile-language-options { display: flex; gap: var(--space-2xs); }
+.profile-language-options button { padding: var(--space-xs); border: 1px solid var(--color-rule); border-radius: var(--radius-input); background: var(--color-paper); color: var(--color-ink); font-weight: 500; }
+.profile-language-options button[aria-pressed="true"] { background: var(--color-accent-soft); color: var(--color-accent-deep); border-color: var(--color-accent); font-weight: 700; }
+.profile-signin-row > button { display: flex; align-items: center; justify-content: center; gap: var(--space-xs); width: 100%; padding-inline: var(--space-sm); background: var(--color-accent); color: var(--color-accent-ink); border-radius: var(--radius-input); font-weight: 700; }
+.profile-menu .profile-signin-row > button:hover { background: var(--color-accent-deep); }

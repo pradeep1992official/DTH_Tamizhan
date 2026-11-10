@@ -12,7 +12,13 @@ export function resolveDishFamilyOperatorId(subscriberId: string): 'dish_tv' | '
   return /^0(?:15|25)/.test(subscriberId) ? 'dish_tv' : 'd2h';
 }
 
-export type OperatorDisableCondition = 'temporary_maintenance' | 'heavy_load' | 'server_outage' | 'operational';
+export type OperatorDisableCondition =
+  | 'scheduled_maintenance'
+  | 'gateway_down'
+  | 'transponder_outage'
+  | 'high_failure_rate'
+  | 'commercial_hold'
+  | 'custom';
 
 export interface DthOperator {
   id: DthOperatorId;
@@ -129,6 +135,7 @@ export interface PlanCatalogItem {
   id: string;
   operator: DthOperatorId;
   pack_type: 'HD' | 'SD';
+  plan_family?: string;
   duration_months: 1 | 3 | 6 | 12;
   plan_name: string;
   tamilName?: string;

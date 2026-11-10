@@ -1,32 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  BrowserRouter, 
-  Routes, 
-  Route, 
-  Navigate, 
-  useNavigate, 
-  useLocation, 
-  useParams 
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+  useLocation,
+  useParams
 } from 'react-router-dom';
 import { Header } from './components/Header';
 import { RechargeFlow } from './components/RechargeFlow';
 import { AuthModal } from './components/AuthModal';
 import { PaymentModal } from './components/PaymentModal';
 import { ReceiptModal } from './components/ReceiptModal';
-import { SignalRefreshModal } from './components/SignalRefreshModal';
 import { SavedConnections } from './components/SavedConnections';
 import { AdminPortal } from './components/AdminPortal';
 import { NewConnectionModal } from './components/NewConnectionModal';
 import { SecurityNotice } from './components/SecurityNotice';
 import { BrowsePlansView } from './components/BrowsePlans/BrowsePlansView';
-import { 
-  Language, 
-  UserProfile, 
-  DthConnection, 
-  DthPlan, 
-  DthOperator, 
-  SubscriberDetails, 
-  RechargeOrder, 
+import {
+  Language,
+  UserProfile,
+  DthConnection,
+  DthPlan,
+  DthOperator,
+  SubscriberDetails,
+  RechargeOrder,
   DthOperatorId,
   BrowsePlan,
   AdminTabId,
@@ -38,25 +37,23 @@ import { translations } from './lib/translations';
 import { getOperatorTheme, OPERATOR_THEMES } from './lib/theme';
 import { db, isFirebaseConfigured, sanitizePayload } from './lib/firebase';
 import { collection, doc, getDocs, setDoc, deleteDoc, query, where, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
-import { 
-  Tv, 
-  ShieldCheck, 
+import {
+  Tv,
+  ShieldCheck,
   Heart,
-} from 'lucide-react';
+} from './lib/icons';
 
 function AdminRouteWrapper({
   currentLang,
   user,
   onOpenAuth,
   onUpdateUserRole,
-  onTriggerRefresh,
   currentTheme,
 }: {
   currentLang: Language;
   user: UserProfile | null;
   onOpenAuth: () => void;
   onUpdateUserRole?: (updated: UserProfile) => void;
-  onTriggerRefresh: (operator: DthOperatorId, card: string) => void;
   currentTheme: any;
 }) {
   const { tab } = useParams<{ tab?: string }>();
@@ -83,7 +80,6 @@ function AdminRouteWrapper({
       user={user}
       onOpenAuth={onOpenAuth}
       onUpdateUserRole={onUpdateUserRole}
-      onTriggerRefresh={onTriggerRefresh}
       onBackToCustomerFlow={() => navigate('/')}
       initialTab={currentTab}
       currentTheme={currentTheme}
@@ -202,7 +198,6 @@ function MainApp() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
-  const [isRefreshOpen, setIsRefreshOpen] = useState(false);
   const [isNewDishOpen, setIsNewDishOpen] = useState(false);
 
   // Active Transaction Data
@@ -213,8 +208,6 @@ function MainApp() {
   const [activeSaveBox, setActiveSaveBox] = useState<boolean>(true);
 
   const [lastCompletedOrder, setLastCompletedOrder] = useState<RechargeOrder | null>(null);
-  const [refreshTargetOp, setRefreshTargetOp] = useState<DthOperatorId>('sun_direct');
-  const [refreshTargetCard, setRefreshTargetCard] = useState<string>('');
   const [prefillConn, setPrefillConn] = useState<DthConnection | null>(null);
 
   // Persist User
@@ -273,16 +266,20 @@ function MainApp() {
     setIsAuthOpen(false);
   };
 
+  const handleUpdateProfile = async (updates: Pick<UserProfile, 'displayName' | 'phoneNumber'>) => {
+    if (!user) throw new Error('You must be signed in to edit your profile.');
+
+    const updatedProfile = { ...user, ...updates };
+    if (isFirebaseConfigured && db) {
+      await setDoc(doc(db, 'users', user.uid), sanitizePayload(updatedProfile), { merge: true });
+    }
+    setUser(updatedProfile);
+  };
+
   const handleSignOut = () => {
     setUser(null);
     localStorage.removeItem('dth_tamizhan_user');
     navigate('/');
-  };
-
-  const handleTriggerRefreshModal = (operator: DthOperatorId, card: string) => {
-    setRefreshTargetOp(operator);
-    setRefreshTargetCard(card);
-    setIsRefreshOpen(true);
   };
 
   const handleInitiatePayment = (
@@ -421,7 +418,6 @@ function MainApp() {
     else if (tab === 'connections') navigate('/connections');
     else if (tab === 'security') navigate('/security');
     else if (tab === 'admin-portal') navigate('/admin/customers');
-    else if (tab === 'refresh') setIsRefreshOpen(true);
     else if (tab === 'new-dish') setIsNewDishOpen(true);
   };
 
@@ -429,21 +425,22 @@ function MainApp() {
   const isLight = currentTheme.isLightMode;
 
   return (
-    <div className={`min-h-screen flex flex-col transition-colors duration-300 ${currentTheme.pageBg} ${currentTheme.pageText}`}>
+    <div className={`app-shell min-h-screen flex flex-col ${currentTheme.pageBg} ${currentTheme.pageText}`}>
+      <a href="#main-content" className="skip-link">{currentLang === 'ta' ? 'உள்ளடக்கத்திற்குச் செல்' : 'Skip to content'}</a>
       <Header
         currentLang={currentLang}
         onLanguageChange={handleLanguageChange}
         user={user}
         onOpenAuth={() => setIsAuthOpen(true)}
+        onUpdateProfile={handleUpdateProfile}
         onSignOut={handleSignOut}
         activeTab={getActiveNavTab()}
         onTabChange={handleNavTabChange}
         currentTheme={currentTheme}
-        onSelectTheme={handleSelectOpId}
       />
 
       {/* Main Content View Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6 md:py-8 space-y-8">
+      <main id="main-content" className="app-main">
         <Routes>
           <Route
             path="/"
@@ -452,7 +449,6 @@ function MainApp() {
                 currentLang={currentLang}
                 user={user}
                 onInitiatePayment={handleInitiatePayment}
-                onTriggerRefresh={handleTriggerRefreshModal}
                 prefillConnection={prefillConn}
                 selectedOpId={selectedOpId}
                 onSelectOpId={handleSelectOpId}
@@ -467,7 +463,6 @@ function MainApp() {
                 currentLang={currentLang}
                 user={user}
                 onInitiatePayment={handleInitiatePayment}
-                onTriggerRefresh={handleTriggerRefreshModal}
                 prefillConnection={prefillConn}
                 selectedOpId={selectedOpId}
                 onSelectOpId={handleSelectOpId}
@@ -497,7 +492,6 @@ function MainApp() {
                 currentLang={currentLang}
                 user={user}
                 onQuickRecharge={handleQuickRechargeFromSaved}
-                onTriggerRefresh={handleTriggerRefreshModal}
                 onAddConnection={handleAddConnection}
                 onDeleteConnection={handleDeleteConnection}
                 onOpenAuth={() => setIsAuthOpen(true)}
@@ -522,7 +516,6 @@ function MainApp() {
                 user={user}
                 onOpenAuth={() => setIsAuthOpen(true)}
                 onUpdateUserRole={(updated) => setUser(updated)}
-                onTriggerRefresh={handleTriggerRefreshModal}
                 currentTheme={currentTheme}
               />
             }
@@ -536,29 +529,26 @@ function MainApp() {
       </main>
 
       {/* Footer */}
-      <footer className={`${currentTheme.footerBg} ${currentTheme.footerBorder} border-t py-8 px-4 text-xs ${currentTheme.footerText} mt-auto transition-colors duration-300`}>
-        <div className="max-w-7xl mx-auto space-y-6">
+      <footer className={`app-footer ${currentTheme.footerBg} ${currentTheme.footerText}`}>
+        <div className="app-footer-inner">
           <div className={`flex flex-wrap items-center justify-between gap-4 border-b ${currentTheme.footerBorder} pb-6`}>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <div 
-                  className={`w-7 h-7 rounded-xl flex items-center justify-center border ${
-                    isLight ? 'bg-white border-gray-300' : 'bg-[#0e1933] border-white/10'
-                  }`}
-                  style={{ borderColor: `${currentTheme.primaryColor}50` }}
-                >
-                  <Tv className="w-3.5 h-3.5" style={{ color: currentTheme.primaryColor }} />
-                </div>
-                <span className={`font-sans font-extrabold text-base tracking-tight ${isLight ? 'text-[#111827]' : 'text-[#f5f2eb]'}`}>
+            <div className="footer-brand">
+              <div className="footer-brand-icon">
+                <Tv className="w-5 h-5" aria-hidden="true" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                <span className={`font-sans font-bold text-base tracking-tight ${isLight ? 'text-ink' : 'text-accent-ink'}`}>
                   DTH <span style={{ color: currentTheme.primaryColor }}>தமிழன்</span>
                 </span>
                 <span className="text-xs opacity-75 border px-1.5 py-0.5 rounded font-mono ml-1">
                   v2.0
                 </span>
-              </div>
-              <p className="text-xs opacity-80 max-w-md mt-2">
+                </div>
+              <p className="text-xs opacity-80 max-w-md">
                 {t.brandTagline}
               </p>
+              </div>
             </div>
 
             {/* Admin Portal Link */}
@@ -583,7 +573,7 @@ function MainApp() {
             </p>
             <div className="flex items-center gap-1">
               <span>{t.madeWithLove}</span>
-              <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
+              <Heart className="w-3.5 h-3.5 text-error fill-error" />
             </div>
           </div>
         </div>
@@ -618,15 +608,6 @@ function MainApp() {
         order={lastCompletedOrder}
         onClose={() => setIsReceiptOpen(false)}
         currentLang={currentLang}
-        onTriggerRefresh={handleTriggerRefreshModal}
-      />
-
-      <SignalRefreshModal
-        isOpen={isRefreshOpen}
-        onClose={() => setIsRefreshOpen(false)}
-        currentLang={currentLang}
-        initialOperator={refreshTargetOp}
-        initialCard={refreshTargetCard}
       />
 
       <NewConnectionModal

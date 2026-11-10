@@ -1,29 +1,29 @@
 import React, { useState, useRef } from 'react';
-import { 
-  FileSpreadsheet, 
-  Download, 
-  Upload, 
-  FileCheck2, 
-  AlertTriangle, 
-  CheckCircle2, 
-  X, 
-  RefreshCw, 
-  ArrowRight, 
-  Layers, 
-  HelpCircle, 
-  FileDown, 
-  Check, 
+import {
+  FileSpreadsheet,
+  Download,
+  Upload,
+  FileCheck2,
+  AlertTriangle,
+  CheckCircle2,
+  X,
+  RefreshCw,
+  ArrowRight,
+  Layers,
+  HelpCircle,
+  FileDown,
+  Check,
   Info,
   Sparkles,
   ArrowUpRight,
   Database
-} from 'lucide-react';
+} from '../lib/icons';
 import { PlanCatalogItem, DthOperatorId, UserProfile, isSameDthOperatorGroup } from '../types';
 import { OperatorTheme } from '../lib/theme';
-import { 
-  exportPlansToExcel, 
-  downloadPlanTemplateExcel, 
-  parseAndValidatePlanExcel, 
+import {
+  exportPlansToExcel,
+  downloadPlanTemplateExcel,
+  parseAndValidatePlanExcel,
   applyImportedPlans,
   PlanImportRow,
   PlanValidationSummary,
@@ -53,7 +53,7 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
 }) => {
   const isLight = currentTheme.isLightMode;
   const [activeTab, setActiveTab] = useState<'import' | 'export' | 'guide'>(defaultTab);
-  
+
   // Export states
   const [exportOp, setExportOp] = useState<DthOperatorId | 'all'>('all');
   const [exportSuccessMsg, setExportSuccessMsg] = useState<string | null>(null);
@@ -174,10 +174,10 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
   // Handle Export
   const handleTriggerExport = async () => {
     try {
-      const filename = exportOp === 'all' 
+      const filename = exportOp === 'all'
         ? `dth_tamizhan_all_packs_${new Date().toISOString().slice(0, 10)}.xlsx`
         : `dth_tamizhan_${exportOp}_packs_${new Date().toISOString().slice(0, 10)}.xlsx`;
-      
+
       await exportPlansToExcel(plans, filename, exportOp);
       setExportSuccessMsg(`Successfully exported ${exportOp === 'all' ? 'all' : OPERATOR_DISPLAY_NAMES[exportOp]} packs to "${filename}".`);
       setTimeout(() => setExportSuccessMsg(null), 4000);
@@ -209,46 +209,46 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
   const selectedValidCount = parseSummary?.rows.filter((r) => r.selected && r.isValid).length || 0;
 
   return (
-    <div 
-      className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-in fade-in"
+    <div
+      className="dialog-backdrop fixed inset-0 z-50 bg-paper-2 flex items-center justify-center p-3 sm:p-5 overflow-y-auto"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div 
+      <div
         ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="excel-modal-title"
-        className={`w-full max-w-5xl rounded-3xl border shadow-2xl my-auto overflow-hidden flex flex-col max-h-[92vh] ${
-          isLight ? 'bg-white border-gray-200 text-gray-900' : 'bg-[#0f0724] border-white/15 text-white'
+        className={`hm-dialog w-full max-w-5xl rounded-xl border shadow-lg my-auto overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)] ${
+          isLight ? 'bg-paper border-rule text-ink' : 'bg-paper-2 border-rule text-ink'
         }`}
       >
         {/* Modal Header */}
         <div className={`p-5 sm:p-6 border-b flex items-center justify-between gap-4 ${
-          isLight ? 'bg-gray-50/90 border-gray-200' : 'bg-white/[0.03] border-white/10'
+          isLight ? 'bg-paper-2 border-rule' : 'bg-paper border-rule'
         }`}>
           <div className="flex items-center gap-3">
-            <div 
-              className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-md border"
+            <div
+              className="w-12 h-12 rounded-lg flex items-center justify-center shadow-sm border"
               style={{
-                backgroundColor: `${currentTheme.primaryColor}18`,
-                borderColor: `${currentTheme.primaryColor}40`,
+                backgroundColor: 'color-mix(in oklab, var(--color-accent) 10%, transparent)',
+                borderColor: 'color-mix(in oklab, var(--color-accent) 25%, transparent)',
                 color: currentTheme.primaryColor,
               }}
             >
               <FileSpreadsheet className="w-6 h-6" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <h2 id="excel-modal-title" className="font-serif-royal font-bold text-lg sm:text-xl">
                   Excel Pack Synchronization & Management
                 </h2>
-                <span className="px-2 py-0.5 rounded-full text-xs font-bold font-mono uppercase bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                <span className="whitespace-nowrap shrink-0 px-2 py-0.5 rounded-input text-sm font-medium tabular-nums bg-success/10 text-success border border-rule">
                   .xlsx / .csv
                 </span>
               </div>
-              <p className={`text-xs mt-0.5 ${currentTheme.subText}`}>
+              <p className={`text-sm mt-0.5 ${currentTheme.subText}`}>
                 Export current live pack records to Excel for template reference, edit prices/names, and re-upload to update in real-time.
               </p>
             </div>
@@ -257,7 +257,7 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
           <button
             onClick={onClose}
             className={`p-2 rounded-xl transition-colors border ${
-              isLight ? 'bg-white hover:bg-gray-100 text-gray-500 border-gray-200' : 'bg-white/5 hover:bg-white/10 text-gray-400 border-white/10'
+              isLight ? 'bg-paper hover:bg-paper-2 text-muted border-rule' : 'bg-paper hover:bg-paper text-muted border-rule'
             }`}
           >
             <X className="w-5 h-5" />
@@ -266,47 +266,53 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
 
         {/* Tab Navigation */}
         <div className={`px-6 pt-3 border-b flex items-center justify-between gap-2 overflow-x-auto ${
-          isLight ? 'bg-gray-50/50 border-gray-200' : 'bg-black/20 border-white/10'
+          isLight ? 'bg-paper-2 border-rule' : 'bg-paper-2 border-rule'
         }`}>
           <div className="flex items-center gap-2">
             <button
+              type="button"
+              aria-pressed={activeTab === 'import'}
               onClick={() => setActiveTab('import')}
-              className={`px-4 py-2.5 text-xs font-bold rounded-t-xl border-b-2 flex items-center gap-2 transition-all ${
+              className={`px-4 py-2.5 text-sm font-bold rounded-t-xl border-b-2 flex items-center gap-2 transition-colors ${
                 activeTab === 'import'
-                  ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10'
+                  ? 'border-accent text-accent bg-accent-soft'
                   : 'border-transparent opacity-70 hover:opacity-100'
               }`}
             >
               <Upload className="w-3.5 h-3.5" />
-              <span>1. Re-upload & Update Packs</span>
+              <span>Import packs</span>
             </button>
 
             <button
+              type="button"
+              aria-pressed={activeTab === 'export'}
               onClick={() => setActiveTab('export')}
-              className={`px-4 py-2.5 text-xs font-bold rounded-t-xl border-b-2 flex items-center gap-2 transition-all ${
+              className={`px-4 py-2.5 text-sm font-bold rounded-t-xl border-b-2 flex items-center gap-2 transition-colors ${
                 activeTab === 'export'
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-500/10'
+                  ? 'border-accent text-accent bg-accent-soft'
                   : 'border-transparent opacity-70 hover:opacity-100'
               }`}
             >
               <Download className="w-3.5 h-3.5" />
-              <span>2. Export Current Records & Template</span>
+              <span>Export records</span>
             </button>
 
             <button
+              type="button"
+              aria-pressed={activeTab === 'guide'}
               onClick={() => setActiveTab('guide')}
-              className={`px-4 py-2.5 text-xs font-bold rounded-t-xl border-b-2 flex items-center gap-2 transition-all ${
+              className={`px-4 py-2.5 text-sm font-bold rounded-t-xl border-b-2 flex items-center gap-2 transition-colors ${
                 activeTab === 'guide'
-                  ? 'border-purple-500 text-purple-600 dark:text-purple-400 bg-purple-500/10'
+                  ? 'border-accent text-accent bg-accent-soft'
                   : 'border-transparent opacity-70 hover:opacity-100'
               }`}
             >
               <HelpCircle className="w-3.5 h-3.5" />
-              <span>3. Format Guide & Instructions</span>
+              <span>Format guide</span>
             </button>
           </div>
 
-          <span className={`text-xs font-mono hidden md:inline ${currentTheme.subText}`}>
+          <span className={`text-sm tabular-nums hidden md:inline ${currentTheme.subText}`}>
             {plans.length} Live Catalog Packs Active
           </span>
         </div>
@@ -315,31 +321,31 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
         <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-6">
           {/* Global Notifications */}
           {exportSuccessMsg && (
-            <div className="p-3.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-300 text-xs font-semibold flex items-center gap-2 animate-in fade-in">
-              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
+            <div className="p-3.5 rounded-lg bg-success/10 border border-rule text-success text-sm font-medium flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-success" />
               <span>{exportSuccessMsg}</span>
             </div>
           )}
 
           {importSuccessResult && (
-            <div className="p-4 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-700 dark:text-emerald-200 space-y-2 animate-in fade-in">
+            <div className="p-4 rounded-lg bg-success/10 border border-rule text-success space-y-2">
               <div className="flex items-center gap-2 font-bold text-sm">
-                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                <CheckCircle2 className="w-5 h-5 text-success" />
                 <span>Successfully Applied {importSuccessResult.count} Pack Updates!</span>
               </div>
-              <p className="text-xs opacity-90">
+              <p className="text-sm opacity-90">
                 The updated packs, pricing, durations, and channels are now live in the Firestore catalog and immediately visible in the customer recharge flow and admin panels.
               </p>
               <div className="pt-1 flex gap-2">
                 <button
                   onClick={() => setImportSuccessResult(null)}
-                  className="px-3.5 py-1.5 rounded-lg bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700"
+                  className="px-3.5 py-1.5 rounded-lg bg-success text-ink font-bold text-sm hover:bg-success"
                 >
                   Upload Another File
                 </button>
                 <button
                   onClick={onClose}
-                  className="px-3.5 py-1.5 rounded-lg border border-emerald-500/40 font-bold text-xs hover:bg-emerald-500/20"
+                  className="dialog-primary px-3.5 py-1.5 rounded-lg border border-rule font-bold text-sm hover:bg-success/10"
                 >
                   Close Window
                 </button>
@@ -348,8 +354,8 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
           )}
 
           {generalError && (
-            <div className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-300 text-xs font-semibold flex items-center gap-2 animate-in fade-in">
-              <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500" />
+            <div className="p-3.5 rounded-lg bg-error/10 border border-rule text-error text-sm font-medium flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-error" />
               <span>{generalError}</span>
             </div>
           )}
@@ -364,10 +370,10 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-3xl p-6 sm:p-8 text-center cursor-pointer transition-all ${
+                className={`border-2 border-dashed rounded-xl p-6 sm:p-8 text-center cursor-pointer transition-colors ${
                   isLight
-                    ? 'border-gray-300 bg-gray-50/60 hover:bg-gray-50 hover:border-gray-400'
-                    : 'border-white/20 bg-black/20 hover:bg-black/30 hover:border-white/30'
+                    ? 'border-rule bg-paper-2 hover:bg-paper-2 hover:border-rule'
+                    : 'border-rule bg-paper-2 hover:bg-paper-2 hover:border-rule'
                 }`}
               >
                 <input
@@ -379,11 +385,11 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
                 />
 
                 <div className="max-w-md mx-auto space-y-3">
-                  <div 
-                    className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto shadow-inner border"
+                  <div
+                    className="w-14 h-14 rounded-lg flex items-center justify-center mx-auto border"
                     style={{
-                      backgroundColor: `${currentTheme.primaryColor}15`,
-                      borderColor: `${currentTheme.primaryColor}30`,
+                      backgroundColor: 'color-mix(in oklab, var(--color-accent) 8%, transparent)',
+                      borderColor: 'color-mix(in oklab, var(--color-accent) 20%, transparent)',
                       color: currentTheme.primaryColor,
                     }}
                   >
@@ -398,13 +404,13 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
                     <h3 className="font-bold text-sm sm:text-base">
                       {file ? file.name : 'Click to Browse or Drag & Drop Excel Spreadsheet'}
                     </h3>
-                    <p className={`text-xs mt-1 ${currentTheme.subText}`}>
+                    <p className={`text-sm mt-1 ${currentTheme.subText}`}>
                       Supports Microsoft Excel (.xlsx, .xls) and CSV (.csv). Max 10MB.
                     </p>
                   </div>
 
                   {file && (
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 text-xs font-mono font-semibold">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-soft text-accent text-sm tabular-nums font-medium">
                       <FileCheck2 className="w-3.5 h-3.5" />
                       <span>{(file.size / 1024).toFixed(1)} KB Loaded</span>
                     </div>
@@ -414,54 +420,54 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
 
               {/* Parsing Validation Summary & Interactive Preview */}
               {parseSummary && (
-                <div className="space-y-4 animate-in fade-in">
+                <div className="space-y-4">
                   {/* Summary Metric Badges */}
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-                    <div className={`p-3 rounded-2xl border ${isLight ? 'bg-gray-50 border-gray-200' : 'bg-white/5 border-white/10'}`}>
-                      <span className="text-xs uppercase font-bold text-gray-500 dark:text-gray-400 block">Total In Sheet</span>
-                      <span className="text-lg font-black">{parseSummary.totalRows}</span>
+                    <div className={`p-3 rounded-lg border ${isLight ? 'bg-paper-2 border-rule' : 'bg-paper border-rule'}`}>
+                      <span className="text-sm font-bold text-muted block">Total In Sheet</span>
+                      <span className="text-lg font-bold">{parseSummary.totalRows}</span>
                     </div>
 
-                    <div className="p-3 rounded-2xl border bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
-                      <span className="text-xs uppercase font-bold opacity-90 block">Valid Rows</span>
-                      <span className="text-lg font-black">{parseSummary.validRows}</span>
+                    <div className="p-3 rounded-lg border bg-success/10 border-rule text-success">
+                      <span className="text-sm font-bold opacity-90 block">Valid Rows</span>
+                      <span className="text-lg font-bold">{parseSummary.validRows}</span>
                     </div>
 
-                    <div className="p-3 rounded-2xl border bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-400">
-                      <span className="text-xs uppercase font-bold opacity-90 block">Price/Data Updates</span>
-                      <span className="text-lg font-black">{parseSummary.updatesCount}</span>
+                    <div className="p-3 rounded-lg border bg-accent-soft border-rule text-accent">
+                      <span className="text-sm font-bold opacity-90 block">Price/Data Updates</span>
+                      <span className="text-lg font-bold">{parseSummary.updatesCount}</span>
                     </div>
 
-                    <div className="p-3 rounded-2xl border bg-purple-500/10 border-purple-500/30 text-purple-600 dark:text-purple-400">
-                      <span className="text-xs uppercase font-bold opacity-90 block">New Packs</span>
-                      <span className="text-lg font-black">{parseSummary.createsCount}</span>
+                    <div className="p-3 rounded-lg border bg-accent-soft border-rule text-accent">
+                      <span className="text-sm font-bold opacity-90 block">New Packs</span>
+                      <span className="text-lg font-bold">{parseSummary.createsCount}</span>
                     </div>
 
-                    <div className={`p-3 rounded-2xl border ${
+                    <div className={`p-3 rounded-lg border ${
                       parseSummary.invalidRows > 0
-                        ? 'bg-rose-500/15 border-rose-500/30 text-rose-600 dark:text-rose-400'
-                        : isLight ? 'bg-gray-50 border-gray-200 text-gray-500' : 'bg-white/5 border-white/10 text-gray-400'
+                        ? 'bg-error/10 border-rule text-error '
+                        : isLight ? 'bg-paper-2 border-rule text-muted' : 'bg-paper border-rule text-muted'
                     }`}>
-                      <span className="text-xs uppercase font-bold opacity-90 block">Errors Found</span>
-                      <span className="text-lg font-black">{parseSummary.invalidRows}</span>
+                      <span className="text-sm font-bold opacity-90 block">Errors Found</span>
+                      <span className="text-lg font-bold">{parseSummary.invalidRows}</span>
                     </div>
                   </div>
 
                   {/* Filter Toolbar & Actions */}
                   <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-xs font-semibold mr-1">Filter View:</span>
+                      <span className="text-sm font-medium mr-1">Filter View:</span>
                       {(['all', 'valid', 'update', 'create', 'invalid'] as const).map((filter) => (
                         <button
                           key={filter}
                           type="button"
                           onClick={() => setPreviewFilter(filter)}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all border ${
+                          className={`px-2.5 py-1 rounded-lg text-sm font-bold transition-colors border ${
                             previewFilter === filter
-                              ? 'bg-black text-white dark:bg-white dark:text-black border-transparent shadow-xs'
+                              ? 'bg-paper-2 text-ink   border-transparent shadow-xs'
                               : isLight
-                              ? 'bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-200'
-                              : 'bg-white/5 hover:bg-white/10 text-gray-300 border-white/10'
+                              ? 'bg-paper-2 hover:bg-paper-2 text-muted border-rule'
+                              : 'bg-paper hover:bg-paper text-muted border-rule'
                           }`}
                         >
                           {filter.toUpperCase()}
@@ -473,8 +479,8 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
                       <button
                         type="button"
                         onClick={() => handleToggleSelectAll(true)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold border ${
-                          isLight ? 'bg-gray-100 hover:bg-gray-200 text-gray-800' : 'bg-white/10 hover:bg-white/20 text-white'
+                        className={`px-3 py-1.5 rounded-xl text-sm font-medium border ${
+                          isLight ? 'bg-paper-2 hover:bg-paper-2 text-ink' : 'bg-paper hover:bg-paper text-ink'
                         }`}
                       >
                         Select All Valid ({parseSummary.validRows})
@@ -482,8 +488,8 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
                       <button
                         type="button"
                         onClick={() => handleToggleSelectAll(false)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold border ${
-                          isLight ? 'bg-gray-100 hover:bg-gray-200 text-gray-800' : 'bg-white/10 hover:bg-white/20 text-white'
+                        className={`px-3 py-1.5 rounded-xl text-sm font-medium border ${
+                          isLight ? 'bg-paper-2 hover:bg-paper-2 text-ink' : 'bg-paper hover:bg-paper text-ink'
                         }`}
                       >
                         Deselect All
@@ -492,13 +498,13 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
                   </div>
 
                   {/* Preview Table */}
-                  <div className={`border rounded-2xl overflow-hidden shadow-sm ${
-                    isLight ? 'bg-white border-gray-200' : 'bg-black/30 border-white/10'
+                  <div className={`border rounded-lg overflow-hidden shadow-sm ${
+                    isLight ? 'bg-paper border-rule' : 'bg-paper-2 border-rule'
                   }`}>
                     <div className="overflow-x-auto max-h-[360px]">
-                      <table className="w-full text-left text-xs">
-                        <thead className={`font-semibold border-b sticky top-0 z-10 ${
-                          isLight ? 'bg-gray-100 text-gray-700 border-gray-200' : 'bg-black text-gray-300 border-white/10'
+                      <table className="w-full text-left text-sm">
+                        <thead className={`font-medium border-b sticky top-0 z-10 ${
+                          isLight ? 'bg-paper-2 text-muted border-rule' : 'bg-paper-2 text-muted border-rule'
                         }`}>
                           <tr>
                             <th className="p-3 w-10 text-center">
@@ -515,23 +521,23 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
                             <th className="p-3">Validation Status</th>
                           </tr>
                         </thead>
-                        <tbody className={`divide-y ${isLight ? 'divide-gray-200' : 'divide-white/10'}`}>
+                        <tbody className={`divide-y ${isLight ? 'divide-rule' : 'divide-rule'}`}>
                           {displayRows.length === 0 ? (
                             <tr>
-                              <td colSpan={10} className="p-8 text-center text-xs opacity-60">
+                              <td colSpan={10} className="p-8 text-center text-sm opacity-60">
                                 No rows matching the selected filter ({previewFilter}).
                               </td>
                             </tr>
                           ) : (
                             displayRows.map((row) => (
-                              <tr 
-                                key={`${row.rowNumber}-${row.id}`} 
+                              <tr
+                                key={`${row.rowNumber}-${row.id}`}
                                 className={`transition-colors ${
-                                  !row.isValid 
-                                    ? isLight ? 'bg-rose-50/50' : 'bg-rose-950/20'
-                                    : row.selected 
-                                    ? isLight ? 'bg-emerald-50/40' : 'bg-emerald-950/20'
-                                    : isLight ? 'hover:bg-gray-50' : 'hover:bg-white/5'
+                                  !row.isValid
+                                    ? isLight ? 'bg-error/10' : 'bg-error/10'
+                                    : row.selected
+                                    ? isLight ? 'bg-success/10' : 'bg-success'
+                                    : isLight ? 'hover:bg-paper-2' : 'hover:bg-paper'
                                 }`}
                               >
                                 <td className="p-3 text-center">
@@ -543,37 +549,37 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
                                       const fullIdx = parseSummary.rows.findIndex((r) => r.rowNumber === row.rowNumber);
                                       if (fullIdx >= 0) handleToggleRow(fullIdx);
                                     }}
-                                    className="w-4 h-4 rounded text-emerald-600 focus:ring-0 disabled:opacity-30 cursor-pointer"
+                                    className="w-4 h-4 rounded text-success focus:ring-0 disabled:opacity-30 cursor-pointer"
                                   />
                                 </td>
-                                <td className="p-3 font-mono font-bold opacity-75">
+                                <td className="p-3 tabular-nums font-bold opacity-75">
                                   #{row.rowNumber}
                                 </td>
                                 <td className="p-3">
                                   {!row.isValid ? (
-                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30">
+                                    <span className="px-2 py-0.5 rounded text-sm font-bold bg-error/10 text-error border border-rule">
                                       ERROR
                                     </span>
                                   ) : row.action === 'update' ? (
-                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30">
+                                    <span className="px-2 py-0.5 rounded text-sm font-bold bg-accent-soft text-accent border border-rule">
                                       UPDATE
                                     </span>
                                   ) : row.action === 'create' ? (
-                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30">
+                                    <span className="px-2 py-0.5 rounded text-sm font-bold bg-accent-soft text-accent border border-rule">
                                       NEW
                                     </span>
                                   ) : (
-                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-gray-500/20 text-gray-600 dark:text-gray-400 border border-gray-500/30">
+                                    <span className="px-2 py-0.5 rounded text-sm font-bold bg-paper-2 text-muted border border-rule">
                                       NO CHANGE
                                     </span>
                                   )}
                                 </td>
-                                <td className="p-3 font-semibold" style={{ color: currentTheme.primaryColor }}>
+                                <td className="p-3 font-medium" style={{ color: currentTheme.primaryColor }}>
                                   {row.operatorName}
                                 </td>
                                 <td className="p-3">
-                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                                    row.pack_type === 'HD' ? 'bg-amber-500/15 text-amber-600' : 'bg-blue-500/15 text-blue-600'
+                                  <span className={`px-2 py-0.5 rounded text-sm font-bold  ${
+                                    row.pack_type === 'HD' ? 'bg-accent-soft text-accent' : 'bg-accent-soft text-accent'
                                   }`}>
                                     {row.pack_type}
                                   </span>
@@ -583,21 +589,21 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
                                 </td>
                                 <td className="p-3">
                                   <p className="font-bold">{row.plan_name}</p>
-                                  <span className="text-[10px] font-mono opacity-60">{row.id}</span>
+                                  <span className="text-sm tabular-nums opacity-60">{row.id}</span>
                                 </td>
                                 <td className="p-3">
                                   {row.diffs.some((d) => d.field === 'amount') ? (
-                                    <div className="flex items-center gap-1 font-mono text-xs">
-                                      <span className="line-through opacity-60 text-rose-500">
+                                    <div className="flex items-center gap-1 tabular-nums text-sm">
+                                      <span className="line-through opacity-60 text-error">
                                         {row.diffs.find((d) => d.field === 'amount')?.oldVal}
                                       </span>
-                                      <ArrowRight className="w-3 h-3 text-emerald-500" />
-                                      <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                                      <ArrowRight className="w-3 h-3 text-success" />
+                                      <span className="font-bold text-success">
                                         ₹{row.amount}
                                       </span>
                                     </div>
                                   ) : (
-                                    <span className="font-mono font-bold">₹{row.amount}</span>
+                                    <span className="tabular-nums font-bold">₹{row.amount}</span>
                                   )}
                                 </td>
                                 <td className="p-3">
@@ -605,13 +611,13 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
                                 </td>
                                 <td className="p-3">
                                   {row.errors.length > 0 ? (
-                                    <div className="space-y-0.5 text-rose-600 dark:text-rose-400 font-medium text-[11px]">
+                                    <div className="space-y-0.5 text-error font-medium text-sm">
                                       {row.errors.map((err, i) => (
                                         <p key={i}>• {err}</p>
                                       ))}
                                     </div>
                                   ) : row.diffs.length > 0 ? (
-                                    <div className="text-[11px] text-blue-600 dark:text-blue-300">
+                                    <div className="text-sm text-accent">
                                       {row.diffs.map((d, i) => (
                                         <span key={i} className="inline-block mr-2">
                                           {d.label}: {d.oldVal} → {d.newVal}
@@ -619,7 +625,7 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
                                       ))}
                                     </div>
                                   ) : (
-                                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                                    <span className="text-success font-medium flex items-center gap-1">
                                       <Check className="w-3 h-3" /> Ready
                                     </span>
                                   )}
@@ -633,14 +639,14 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
                   </div>
 
                   {/* Apply Action Bar */}
-                  <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-center justify-between gap-4 ${
-                    isLight ? 'bg-emerald-50/70 border-emerald-200' : 'bg-emerald-950/20 border-emerald-500/30'
+                  <div className={`p-4 rounded-lg border flex flex-col sm:flex-row items-center justify-between gap-4 ${
+                    isLight ? 'bg-success/10 border-rule' : 'bg-success border-rule'
                   }`}>
                     <div className="space-y-0.5 text-center sm:text-left">
-                      <h4 className="font-bold text-xs text-emerald-700 dark:text-emerald-300">
+                      <h4 className="font-bold text-sm text-success">
                         {selectedValidCount} of {parseSummary.validRows} Valid Plans Ready to Synchronize
                       </h4>
-                      <p className="text-[11px] opacity-80">
+                      <p className="text-sm opacity-80">
                         Clicking confirm will write records to Firestore and update all customer-facing recharge cards.
                       </p>
                     </div>
@@ -648,19 +654,20 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
                     <button
                       type="button"
                       disabled={importing || selectedValidCount === 0}
+                      aria-busy={importing}
                       onClick={handleApplyImport}
-                      className="w-full sm:w-auto px-6 py-3 rounded-xl font-bold text-xs text-white shadow-lg flex items-center justify-center gap-2 hover:opacity-95 transition-all disabled:opacity-40"
+                      className="dialog-primary whitespace-nowrap w-full sm:w-auto px-6 py-3 rounded-xl font-bold text-sm text-ink shadow-lg flex items-center justify-center gap-2 hover:opacity-95 transition-colors disabled:opacity-40"
                       style={{ backgroundColor: currentTheme.primaryColor }}
                     >
                       {importing ? (
                         <>
                           <RefreshCw className="w-4 h-4 animate-spin" />
-                          <span>Applying Updates to Database...</span>
+                          <span>Applying…</span>
                         </>
                       ) : (
                         <>
                           <CheckCircle2 className="w-4 h-4" />
-                          <span>Import & Apply {selectedValidCount} Selected Plans</span>
+                          <span>Apply packs ({selectedValidCount})</span>
                         </>
                       )}
                     </button>
@@ -677,16 +684,16 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {/* 1. Export Current Live Records */}
-                <div className={`p-6 rounded-3xl border space-y-4 shadow-sm ${
-                  isLight ? 'bg-white border-gray-200' : 'bg-black/20 border-white/10'
+                <div className={`p-6 rounded-xl border space-y-4 shadow-sm ${
+                  isLight ? 'bg-paper border-rule' : 'bg-paper-2 border-rule'
                 }`}>
                   <div className="flex items-center gap-3">
-                    <div className="p-3 rounded-2xl bg-blue-500/15 text-blue-600 dark:text-blue-400">
+                    <div className="p-3 rounded-lg bg-accent-soft text-accent">
                       <FileDown className="w-6 h-6" />
                     </div>
                     <div>
                       <h3 className="font-bold text-base">Export Active Pack Records</h3>
-                      <p className={`text-xs ${currentTheme.subText}`}>
+                      <p className={`text-sm ${currentTheme.subText}`}>
                         Download live packages from your catalog with IDs & prices.
                       </p>
                     </div>
@@ -694,14 +701,14 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
 
                   <div className="space-y-3 pt-2">
                     <div>
-                      <label className="text-xs font-semibold block mb-1">
+                      <label htmlFor="excelplanimportexportmodal-field-1" className="text-sm font-medium block mb-1">
                         Select Operator Scope
                       </label>
-                      <select
+                      <select id="excelplanimportexportmodal-field-1"
                         value={exportOp}
                         onChange={(e) => setExportOp(e.target.value as any)}
-                        className={`w-full px-3 py-2 rounded-xl text-xs border font-medium focus:outline-none ${
-                          isLight ? 'bg-gray-50 border-gray-300' : 'bg-black/40 border-white/20'
+                        className={`w-full px-3 py-2 rounded-xl text-sm border font-medium focus:outline-none ${
+                          isLight ? 'bg-paper-2 border-rule' : 'bg-paper-2 border-rule'
                         }`}
                       >
                         <option value="all">All Operators ({plans.length} total packs)</option>
@@ -715,31 +722,31 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
                     <button
                       type="button"
                       onClick={handleTriggerExport}
-                      className="w-full py-3 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-md flex items-center justify-center gap-2 transition-all"
+                      className="dialog-primary w-full py-3 rounded-xl text-sm font-bold bg-accent hover:bg-accent text-ink shadow-sm flex items-center justify-center gap-2 transition-colors"
                     >
                       <Download className="w-4 h-4" />
-                      <span>Download .xlsx Spreadsheet with Current Packs</span>
+                      <span>Download spreadsheet</span>
                     </button>
                   </div>
                 </div>
 
                 {/* 2. Download Clean Blank Template */}
-                <div className={`p-6 rounded-3xl border space-y-4 shadow-sm ${
-                  isLight ? 'bg-white border-gray-200' : 'bg-black/20 border-white/10'
+                <div className={`p-6 rounded-xl border space-y-4 shadow-sm ${
+                  isLight ? 'bg-paper border-rule' : 'bg-paper-2 border-rule'
                 }`}>
                   <div className="flex items-center gap-3">
-                    <div className="p-3 rounded-2xl bg-purple-500/15 text-purple-600 dark:text-purple-400">
+                    <div className="p-3 rounded-lg bg-accent-soft text-accent">
                       <Sparkles className="w-6 h-6" />
                     </div>
                     <div>
                       <h3 className="font-bold text-base">Download Blank Excel Template</h3>
-                      <p className={`text-xs ${currentTheme.subText}`}>
+                      <p className={`text-sm ${currentTheme.subText}`}>
                         Pre-formatted template with standard headers & example rows.
                       </p>
                     </div>
                   </div>
 
-                  <p className="text-xs leading-relaxed opacity-85">
+                  <p className="text-sm leading-relaxed opacity-85">
                     Ideal if you want to prepare a fresh price sheet or bulk add new packs without overwriting existing data. Contains field validation rules and instruction sheets.
                   </p>
 
@@ -747,42 +754,42 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
                     <button
                       type="button"
                       onClick={handleDownloadTemplate}
-                      className="w-full py-3 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-md flex items-center justify-center gap-2 transition-all"
+                      className="dialog-primary w-full py-3 rounded-xl text-sm font-bold bg-accent hover:bg-accent text-ink shadow-sm flex items-center justify-center gap-2 transition-colors"
                     >
                       <Download className="w-4 h-4" />
-                      <span>Download Blank Template (.xlsx)</span>
+                      <span>Download blank template</span>
                     </button>
                   </div>
                 </div>
               </div>
 
               {/* Step-by-Step Workflow Banner */}
-              <div className={`p-5 rounded-3xl border space-y-3 ${
-                isLight ? 'bg-gray-50 border-gray-200' : 'bg-white/[0.02] border-white/10'
+              <div className={`p-5 rounded-xl border space-y-3 ${
+                isLight ? 'bg-paper-2 border-rule' : 'bg-paper border-rule'
               }`}>
-                <h4 className="font-bold text-xs uppercase tracking-wider flex items-center gap-2">
+                <h4 className="font-bold text-sm flex items-center gap-2">
                   <Database className="w-4 h-4" style={{ color: currentTheme.primaryColor }} />
                   <span>3-Step Excel Update Workflow</span>
                 </h4>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                  <div className="p-3 rounded-2xl border bg-black/5 dark:bg-white/5 space-y-1">
-                    <span className="font-bold text-blue-500">Step 1: Export</span>
-                    <p className="opacity-80 text-[11px]">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                  <div className="p-3 rounded-lg border bg-paper-2 space-y-1">
+                    <span className="font-bold text-accent">Step 1: Export</span>
+                    <p className="opacity-80 text-sm">
                       Download current pack records or the template spreadsheet.
                     </p>
                   </div>
 
-                  <div className="p-3 rounded-2xl border bg-black/5 dark:bg-white/5 space-y-1">
-                    <span className="font-bold text-purple-500">Step 2: Edit & Review</span>
-                    <p className="opacity-80 text-[11px]">
+                  <div className="p-3 rounded-lg border bg-paper-2 space-y-1">
+                    <span className="font-bold text-accent">Step 2: Edit & Review</span>
+                    <p className="opacity-80 text-sm">
                       Update prices (e.g. ₹299 to ₹319) or add new packs in Excel / Numbers / Sheets.
                     </p>
                   </div>
 
-                  <div className="p-3 rounded-2xl border bg-black/5 dark:bg-white/5 space-y-1">
-                    <span className="font-bold text-emerald-500">Step 3: Re-upload</span>
-                    <p className="opacity-80 text-[11px]">
+                  <div className="p-3 rounded-lg border bg-paper-2 space-y-1">
+                    <span className="font-bold text-success">Step 3: Re-upload</span>
+                    <p className="opacity-80 text-sm">
                       Upload the modified file to preview diffs and apply changes with 1-click.
                     </p>
                   </div>
@@ -795,9 +802,9 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
           {/* TAB 3: FORMAT & INSTRUCTIONS */}
           {/* ======================================================== */}
           {activeTab === 'guide' && (
-            <div className="space-y-4 text-xs">
-              <div className={`p-5 rounded-3xl border space-y-3 ${
-                isLight ? 'bg-white border-gray-200' : 'bg-black/20 border-white/10'
+            <div className="space-y-4 text-sm">
+              <div className={`p-5 rounded-xl border space-y-3 ${
+                isLight ? 'bg-paper border-rule' : 'bg-paper-2 border-rule'
               }`}>
                 <h3 className="font-bold text-sm">Supported Excel Headers and Rules</h3>
                 <p className="opacity-80 leading-relaxed">
@@ -805,8 +812,8 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
                 </p>
 
                 <div className="overflow-x-auto pt-2">
-                  <table className="w-full text-left text-xs">
-                    <thead className={`border-b ${isLight ? 'bg-gray-50 text-gray-700' : 'bg-black/40 text-gray-300'}`}>
+                  <table className="w-full text-left text-sm">
+                    <thead className={`border-b ${isLight ? 'bg-paper-2 text-muted' : 'bg-paper-2 text-muted'}`}>
                       <tr>
                         <th className="p-2.5">Header Name</th>
                         <th className="p-2.5">Accepted Aliases</th>
@@ -814,56 +821,56 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
                         <th className="p-2.5">Required?</th>
                       </tr>
                     </thead>
-                    <tbody className={`divide-y ${isLight ? 'divide-gray-100' : 'divide-white/5'}`}>
+                    <tbody className={`divide-y ${isLight ? 'divide-rule' : 'divide-rule'}`}>
                       <tr>
-                        <td className="p-2.5 font-mono font-bold">Plan ID</td>
-                        <td className="p-2.5 font-mono text-[11px] opacity-75">id, plan_id, pack_id</td>
-                        <td className="p-2.5 font-mono text-[11px]">sun_hd_1m_rec</td>
-                        <td className="p-2.5 text-gray-500">Optional (Auto-generated if blank)</td>
+                        <td className="p-2.5 tabular-nums font-bold">Plan ID</td>
+                        <td className="p-2.5 tabular-nums text-sm opacity-75">id, plan_id, pack_id</td>
+                        <td className="p-2.5 tabular-nums text-sm">sun_hd_1m_rec</td>
+                        <td className="p-2.5 text-muted">Optional (Auto-generated if blank)</td>
                       </tr>
                       <tr>
-                        <td className="p-2.5 font-mono font-bold">Operator Code</td>
-                        <td className="p-2.5 font-mono text-[11px] opacity-75">operator, operator_name</td>
-                        <td className="p-2.5 font-mono text-[11px] text-emerald-600 dark:text-emerald-400">
+                        <td className="p-2.5 tabular-nums font-bold">Operator Code</td>
+                        <td className="p-2.5 tabular-nums text-sm opacity-75">operator, operator_name</td>
+                        <td className="p-2.5 tabular-nums text-sm text-success">
                           sun_direct, tata_play, airtel_dth, dish_tv, d2h
                         </td>
-                        <td className="p-2.5 text-emerald-600 font-bold">Mandatory</td>
+                        <td className="p-2.5 text-success font-bold">Mandatory</td>
                       </tr>
                       <tr>
-                        <td className="p-2.5 font-mono font-bold">Pack Quality</td>
-                        <td className="p-2.5 font-mono text-[11px] opacity-75">pack_type, quality, type</td>
-                        <td className="p-2.5 font-mono text-[11px]">HD or SD</td>
-                        <td className="p-2.5 text-emerald-600 font-bold">Mandatory</td>
+                        <td className="p-2.5 tabular-nums font-bold">Pack Quality</td>
+                        <td className="p-2.5 tabular-nums text-sm opacity-75">pack_type, quality, type</td>
+                        <td className="p-2.5 tabular-nums text-sm">HD or SD</td>
+                        <td className="p-2.5 text-success font-bold">Mandatory</td>
                       </tr>
                       <tr>
-                        <td className="p-2.5 font-mono font-bold">Duration (Months)</td>
-                        <td className="p-2.5 font-mono text-[11px] opacity-75">duration, months</td>
-                        <td className="p-2.5 font-mono text-[11px]">1, 3, 6, or 12</td>
-                        <td className="p-2.5 text-emerald-600 font-bold">Mandatory</td>
+                        <td className="p-2.5 tabular-nums font-bold">Duration (Months)</td>
+                        <td className="p-2.5 tabular-nums text-sm opacity-75">duration, months</td>
+                        <td className="p-2.5 tabular-nums text-sm">1, 3, 6, or 12</td>
+                        <td className="p-2.5 text-success font-bold">Mandatory</td>
                       </tr>
                       <tr>
-                        <td className="p-2.5 font-mono font-bold">Plan Name</td>
-                        <td className="p-2.5 font-mono text-[11px] opacity-75">name, pack_name</td>
+                        <td className="p-2.5 tabular-nums font-bold">Plan Name</td>
+                        <td className="p-2.5 tabular-nums text-sm opacity-75">name, pack_name</td>
                         <td className="p-2.5">Sun Direct Prime HD</td>
-                        <td className="p-2.5 text-emerald-600 font-bold">Mandatory</td>
+                        <td className="p-2.5 text-success font-bold">Mandatory</td>
                       </tr>
                       <tr>
-                        <td className="p-2.5 font-mono font-bold">Price (INR)</td>
-                        <td className="p-2.5 font-mono text-[11px] opacity-75">amount, price, cost</td>
-                        <td className="p-2.5 font-mono text-[11px]">299, 1650, 3100</td>
-                        <td className="p-2.5 text-emerald-600 font-bold">Mandatory</td>
+                        <td className="p-2.5 tabular-nums font-bold">Price (INR)</td>
+                        <td className="p-2.5 tabular-nums text-sm opacity-75">amount, price, cost</td>
+                        <td className="p-2.5 tabular-nums text-sm">299, 1650, 3100</td>
+                        <td className="p-2.5 text-success font-bold">Mandatory</td>
                       </tr>
                       <tr>
-                        <td className="p-2.5 font-mono font-bold">Is Recommended</td>
-                        <td className="p-2.5 font-mono text-[11px] opacity-75">recommended, is_featured</td>
-                        <td className="p-2.5 font-mono text-[11px]">TRUE or FALSE</td>
-                        <td className="p-2.5 text-gray-500">Optional (Defaults to FALSE)</td>
+                        <td className="p-2.5 tabular-nums font-bold">Is Recommended</td>
+                        <td className="p-2.5 tabular-nums text-sm opacity-75">recommended, is_featured</td>
+                        <td className="p-2.5 tabular-nums text-sm">TRUE or FALSE</td>
+                        <td className="p-2.5 text-muted">Optional (Defaults to FALSE)</td>
                       </tr>
                       <tr>
-                        <td className="p-2.5 font-mono font-bold">Channels List</td>
-                        <td className="p-2.5 font-mono text-[11px] opacity-75">channels, channel_list</td>
+                        <td className="p-2.5 tabular-nums font-bold">Channels List</td>
+                        <td className="p-2.5 tabular-nums text-sm opacity-75">channels, channel_list</td>
                         <td className="p-2.5">Sun TV HD, KTV HD, Sun Music HD</td>
-                        <td className="p-2.5 text-gray-500">Optional (Comma separated)</td>
+                        <td className="p-2.5 text-muted">Optional (Comma separated)</td>
                       </tr>
                     </tbody>
                   </table>
@@ -875,14 +882,14 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
 
         {/* Modal Footer */}
         <div className={`p-4 sm:p-5 border-t flex items-center justify-between gap-3 ${
-          isLight ? 'bg-gray-50 border-gray-200' : 'bg-black/40 border-white/10'
+          isLight ? 'bg-paper-2 border-rule' : 'bg-paper-2 border-rule'
         }`}>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handleDownloadTemplate}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold border flex items-center gap-1.5 transition-all ${
-                isLight ? 'bg-white hover:bg-gray-100 text-gray-700 border-gray-300' : 'bg-white/5 hover:bg-white/10 text-gray-300 border-white/10'
+              className={`px-3.5 py-2 rounded-xl text-sm font-medium border flex items-center gap-1.5 transition-colors ${
+                isLight ? 'bg-paper hover:bg-paper-2 text-muted border-rule' : 'bg-paper hover:bg-paper text-muted border-rule'
               }`}
             >
               <FileDown className="w-3.5 h-3.5" />
@@ -894,8 +901,8 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
             <button
               type="button"
               onClick={onClose}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold border ${
-                isLight ? 'bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-300' : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
+              className={`px-4 py-2 rounded-xl text-sm font-medium border ${
+                isLight ? 'bg-paper-2 hover:bg-paper-2 text-muted border-rule' : 'bg-paper hover:bg-paper text-ink border-rule'
               }`}
             >
               Close

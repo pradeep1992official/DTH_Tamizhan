@@ -43,6 +43,7 @@ async function startServer() {
     helmet({
       contentSecurityPolicy: false, // Allows Vite HMR and dynamic client scripts in iframe
       crossOriginEmbedderPolicy: false,
+      crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
     })
   );
 

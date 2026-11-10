@@ -1,32 +1,28 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
+import {
   Tv,
-  Languages, 
-  User, 
-  LogOut, 
+  User,
+  LogOut,
   ShieldCheck,
   ChevronDown,
-  Briefcase,
-  Settings,
   UserCheck,
-  Sliders,
-  Sparkles,
-  Palette
-} from 'lucide-react';
-import { Language, UserProfile, DthOperatorId, isSuperAdminEmail, isUserAdmin, SUPER_ADMIN_EMAIL } from '../types';
+  Sliders
+} from '../lib/icons';
+import { Language, UserProfile, isUserAdmin } from '../types';
 import { translations } from '../lib/translations';
-import { OperatorTheme, OPERATOR_THEMES } from '../lib/theme';
+import { OperatorTheme } from '../lib/theme';
+import { useAccessibleModal } from '../lib/useAccessibleModal';
 
 interface HeaderProps {
   currentLang: Language;
   onLanguageChange: (lang: Language) => void;
   user: UserProfile | null;
   onOpenAuth: () => void;
+  onUpdateProfile: (updates: Pick<UserProfile, 'displayName' | 'phoneNumber'>) => Promise<void>;
   onSignOut: () => void;
   activeTab: string;
   onTabChange: (tab: string) => void;
   currentTheme: OperatorTheme;
-  onSelectTheme?: (opId: DthOperatorId) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -34,25 +30,43 @@ export const Header: React.FC<HeaderProps> = ({
   onLanguageChange,
   user,
   onOpenAuth,
+  onUpdateProfile,
   onSignOut,
   activeTab,
   onTabChange,
   currentTheme,
-  onSelectTheme,
 }) => {
   const t = translations[currentLang];
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
-  const [showSettingsSubmenu, setShowSettingsSubmenu] = useState(false);
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [profileName, setProfileName] = useState('');
+  const [profilePhone, setProfilePhone] = useState('');
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { modalRef: profileModalRef } = useAccessibleModal({
+    isOpen: isEditProfileOpen,
+    onClose: () => setIsEditProfileOpen(false),
+  });
 
   const isAdmin = isUserAdmin(user);
+
+  useEffect(() => {
+    if (!isProfileDropdownOpen) return;
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setIsProfileDropdownOpen(false);
+      document.getElementById('profile-dropdown-trigger-btn')?.focus();
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isProfileDropdownOpen]);
 
   // Close dropdowns on click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsProfileDropdownOpen(false);
-        setShowSettingsSubmenu(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -61,50 +75,71 @@ export const Header: React.FC<HeaderProps> = ({
 
   const isLight = currentTheme.isLightMode;
 
+  const handleSaveProfile = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const displayName = profileName.trim();
+    const phoneNumber = profilePhone.trim();
+    if (displayName.length < 2) {
+      setProfileError(currentLang === 'ta' ? 'பெயர் குறைந்தது 2 எழுத்துகள் இருக்க வேண்டும்.' : 'Name must be at least 2 characters.');
+      return;
+    }
+
+    setIsSavingProfile(true);
+    setProfileError(null);
+    try {
+      await onUpdateProfile({ displayName, phoneNumber: phoneNumber || undefined });
+      setIsEditProfileOpen(false);
+    } catch (error) {
+      setProfileError(error instanceof Error ? error.message : 'Unable to save profile. Please try again.');
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
   return (
-    <header className={`sticky top-0 z-40 ${currentTheme.headerBg} backdrop-blur-md ${currentTheme.headerBorder} border-b transition-colors duration-300`}>
+    <header className={`app-header ${currentTheme.headerBg}`}>
       {/* Main Navigation Bar */}
-      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+      <div className="app-header-inner">
         {/* Brand Treatment: Official DTH Tamizhan Logo */}
         <button
           type="button"
-          onClick={() => onTabChange('recharge')} 
+          onClick={() => onTabChange('recharge')}
           className="flex items-center gap-3 text-left group focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current rounded-xl"
           id="brand-logo-btn"
           aria-label="DTH Tamizhan home"
         >
-          <div 
-            className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg transition-all border ${
-              isLight 
-                ? 'bg-[#FFFFFF] border-[#E0E0E0] shadow-sm' 
-                : 'bg-[#0f1b38] border-white/10 shadow-black/40'
+          <div
+            className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg transition-colors border ${
+              isLight
+                ? 'bg-paper border-rule shadow-sm'
+                : 'bg-ink border-rule-strong shadow-black/40'
             }`}
-            style={{ borderColor: `${currentTheme.primaryColor}50` }}
+            style={{ borderColor: `color-mix(in oklab, ${currentTheme.primaryColor} 31%, transparent)` }}
           >
-            <Tv 
-              className="w-5 h-5 transition-transform group-hover:scale-110" 
+            <Tv
+              className="w-5 h-5 transition-transform "
               style={{ color: currentTheme.primaryColor }}
             />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className={`font-sans font-extrabold text-xl tracking-tight ${isLight ? 'text-[#111827]' : 'text-[#f5f2eb]'}`}>
+              <span className={`font-sans font-bold text-xl tracking-tight ${isLight ? 'text-ink' : 'text-accent-ink'}`}>
                 DTH <span style={{ color: currentTheme.primaryColor }}>தமிழன்</span>
               </span>
             </div>
-            <p className={`text-xs hidden sm:block ${isLight ? 'text-[#4B5563]' : 'text-[#9ca3af]'}`}>
+            <p className={`text-xs hidden sm:block ${isLight ? 'text-ink-2' : 'text-muted'}`}>
               {t.brandTagline}
             </p>
           </div>
         </button>
 
         {/* Center Navigation Links: Dynamic Token Styling */}
-        <nav aria-label="Main navigation" className={`hidden lg:flex items-center gap-1 p-1 rounded-xl border ${currentTheme.navContainerBg} ${currentTheme.navContainerBorder}`}>
+        <nav aria-label="Main navigation" className={`desktop-navigation`}>
           <button
             id="nav-recharge-btn"
             onClick={() => onTabChange('recharge')}
             aria-current={activeTab === 'recharge' ? 'page' : undefined}
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold tracking-wide transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current ${
+            className={`px-4 py-1.5 rounded-lg text-xs font-bold  transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current ${
               activeTab === 'recharge'
                 ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText} shadow-sm`
                 : `${currentTheme.navInactiveText} ${currentTheme.navInactiveHoverBg}`
@@ -116,7 +151,7 @@ export const Header: React.FC<HeaderProps> = ({
             id="nav-plans-btn"
             onClick={() => onTabChange('plans')}
             aria-current={activeTab === 'plans' ? 'page' : undefined}
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold tracking-wide transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current ${
+            className={`px-4 py-1.5 rounded-lg text-xs font-bold  transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current ${
               activeTab === 'plans'
                 ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText} shadow-sm`
                 : `${currentTheme.navInactiveText} ${currentTheme.navInactiveHoverBg}`
@@ -128,7 +163,7 @@ export const Header: React.FC<HeaderProps> = ({
             id="nav-connections-btn"
             onClick={() => onTabChange('connections')}
             aria-current={activeTab === 'connections' ? 'page' : undefined}
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold tracking-wide transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current ${
+            className={`px-4 py-1.5 rounded-lg text-xs font-bold  transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current ${
               activeTab === 'connections'
                 ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText} shadow-sm`
                 : `${currentTheme.navInactiveText} ${currentTheme.navInactiveHoverBg}`
@@ -141,7 +176,7 @@ export const Header: React.FC<HeaderProps> = ({
               id="nav-admin-btn"
               onClick={() => onTabChange('admin-portal')}
               aria-current={activeTab === 'admin-portal' ? 'page' : undefined}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold tracking-wide transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold  transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current flex items-center gap-1.5 ${
                 activeTab === 'admin-portal'
                   ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText} shadow-sm`
                   : `${currentTheme.navInactiveText} ${currentTheme.navInactiveHoverBg}`
@@ -161,32 +196,30 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
               aria-expanded={isProfileDropdownOpen}
               aria-controls="profile-settings-panel"
-              className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl border transition-all shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current ${
+              className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl border transition-colors shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current ${
                 isLight
-                  ? 'bg-[#FFFFFF] hover:bg-[#F5F5F5] border-[#D4D4D4] text-[#000000]'
-                  : 'bg-[#0d172e] hover:bg-[#142244] border-[#1e2f54] text-[#f5f2eb]'
+                  ? 'bg-paper hover:bg-paper border-rule text-ink'
+                  : 'bg-ink hover:bg-ink border-accent text-accent-ink'
               }`}
             >
               {user ? (
-                <div 
+                <div
                   className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shadow-inner"
-                  style={{ backgroundColor: `${currentTheme.primaryColor}25`, color: currentTheme.primaryColor, border: `1px solid ${currentTheme.primaryColor}50` }}
+                  style={{ backgroundColor: `color-mix(in oklab, ${currentTheme.primaryColor} 15%, transparent)`, color: currentTheme.primaryColor, border: `1px solid color-mix(in oklab, ${currentTheme.primaryColor} 31%, transparent)` }}
                 >
                   {user.displayName ? user.displayName[0].toUpperCase() : (user.email ? user.email[0].toUpperCase() : 'U')}
                 </div>
               ) : (
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center ${isLight ? 'bg-[#E5E5E5] text-[#333333]' : 'bg-[#172545] text-[#9aa7be]'}`}>
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center ${isLight ? 'bg-paper text-ink-2' : 'bg-ink text-muted'}`}>
                   <User className="w-3.5 h-3.5" />
                 </div>
               )}
 
               <div className="text-left hidden sm:block">
-                <p className={`text-xs font-bold leading-tight ${isLight ? 'text-[#000000]' : 'text-[#f5f2eb]'}`}>
-                  {user ? (user.displayName || (user.email ? user.email.split('@')[0] : t.customer)) : t.profileSettings}
+                <p className={`text-xs font-bold leading-tight ${isLight ? 'text-ink' : 'text-accent-ink'}`}>
+                  {user ? (user.displayName || (user.email ? user.email.split('@')[0] : t.customer)) : (currentLang === 'ta' ? 'கணக்கு' : 'Account')}
                 </p>
-                <p className="text-xs leading-none mt-0.5 font-semibold" style={{ color: currentTheme.primaryColor }}>
-                  {isAdmin ? t.adminBadge : (user ? t.customerBadge : t.accountOptions)}
-                </p>
+
               </div>
 
               <ChevronDown className={`w-3.5 h-3.5 opacity-60 transition-transform duration-200 ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
@@ -194,17 +227,27 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Floating Profile Dropdown Menu */}
             {isProfileDropdownOpen && (
-              <div id="profile-settings-panel" className={`absolute right-0 mt-2 w-72 rounded-2xl shadow-2xl py-2 text-xs z-50 animate-in fade-in zoom-in-95 divide-y border ${
-                isLight 
-                  ? 'bg-[#FFFFFF] border-[#E0E0E0] text-[#333333] divide-[#EBEBEB]' 
-                  : 'bg-[#0a1226] border-[#1d2d52] text-[#c7d2e5] divide-[#162342]'
+              <div id="profile-settings-panel" className={`profile-menu absolute right-0 mt-2 w-72 rounded-2xl shadow-2xl text-xs z-50 divide-y border ${
+                isLight
+                  ? 'bg-paper border-rule text-ink-2 divide-rule'
+                  : 'bg-ink border-accent text-accent-ink divide-accent'
               }`}>
+                {!user && (
+                  <div className="profile-signin-row">
+                    <button id="dropdown-signin-btn" type="button" onClick={() => { setIsProfileDropdownOpen(false); onOpenAuth(); }}>
+                      <User className="w-4 h-4" aria-hidden="true" />
+                      <span>{t.googleOption}</span>
+                    </button>
+                  </div>
+                )}
+                {user && (
+                <>
                 {/* User Summary Header */}
                 <div className="px-4 py-3">
-                  <p className={`font-bold text-sm truncate ${isLight ? 'text-[#000000]' : 'text-[#f5f2eb]'}`}>
+                  <p className={`font-bold text-sm truncate ${isLight ? 'text-ink' : 'text-accent-ink'}`}>
                     {user ? (user.displayName || user.email || t.customer) : t.guestUser}
                   </p>
-                  <p className={`text-xs truncate mt-0.5 ${isLight ? 'text-[#666666]' : 'text-[#8e9cb4]'}`}>
+                  <p className={`text-xs truncate mt-0.5 ${isLight ? 'text-ink-2' : 'text-muted'}`}>
                     {user ? (user.email || 'DTH Account Verified') : t.signInPrompt}
                   </p>
                 </div>
@@ -219,113 +262,47 @@ export const Header: React.FC<HeaderProps> = ({
                       else onTabChange('connections');
                     }}
                     className={`w-full px-4 py-2 text-left flex items-center gap-2.5 transition-colors ${
-                      isLight ? 'hover:bg-[#F5F5F5] hover:text-[#000000]' : 'hover:bg-[#121f3f] hover:text-[#f5f2eb]'
+                      isLight ? 'hover:bg-paper hover:text-ink' : 'hover:bg-ink hover:text-accent-ink'
                     }`}
                   >
                     <UserCheck className="w-4 h-4 opacity-70" />
                     <span>{t.viewSavedBoxes}</span>
                   </button>
 
+                  {user && (
                   <button
                     id="dropdown-edit-profile-btn"
                     onClick={() => {
                       setIsProfileDropdownOpen(false);
-                      onOpenAuth();
+                      setProfileName(user.displayName || '');
+                      setProfilePhone(user.phoneNumber || '');
+                      setProfileError(null);
+                      setIsEditProfileOpen(true);
                     }}
                     className={`w-full px-4 py-2 text-left flex items-center gap-2.5 transition-colors ${
-                      isLight ? 'hover:bg-[#F5F5F5] hover:text-[#000000]' : 'hover:bg-[#121f3f] hover:text-[#f5f2eb]'
+                      isLight ? 'hover:bg-paper hover:text-ink' : 'hover:bg-ink hover:text-accent-ink'
                     }`}
                   >
                     <Sliders className="w-4 h-4 opacity-70" />
                     <span>{user ? t.editProfile : (currentLang === 'ta' ? 'கூகிள் மூலம் உள்நுழைக' : 'Sign in with Google')}</span>
                   </button>
+                  )}
                 </div>
 
-                {/* Settings & Preferences Section: Theme + Language */}
-                <div className="p-3 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold uppercase tracking-wider text-xs opacity-75 flex items-center gap-1.5">
-                      <Settings className="w-3.5 h-3.5" />
-                      {t.settingsPreferences}
-                    </span>
-                  </div>
+                </>
+                )}
 
-                  {/* Language Toggle */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold flex items-center gap-1.5 opacity-80">
-                      <Languages className="w-3.5 h-3.5" style={{ color: currentTheme.primaryColor }} />
-                      {t.language}
-                    </label>
-                    <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-gray-500/10 border border-gray-500/20">
-                      <button
-                        type="button"
-                        onClick={() => onLanguageChange('en')}
-                        className={`py-1.5 rounded-lg font-bold text-xs transition-all ${
-                          currentLang === 'en'
-                            ? 'bg-white text-black shadow-sm dark:bg-slate-800 dark:text-white font-bold'
-                            : 'opacity-70 hover:opacity-100'
-                        }`}
-                      >
-                        English
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onLanguageChange('ta')}
-                        className={`py-1.5 rounded-lg font-bold text-xs transition-all ${
-                          currentLang === 'ta'
-                            ? 'bg-white text-black shadow-sm dark:bg-slate-800 dark:text-white font-bold'
-                            : 'opacity-70 hover:opacity-100'
-                        }`}
-                      >
-                        தமிழ்
-                      </button>
-                    </div>
+                <div className="profile-language-row">
+                  <span className="text-sm text-ink-2">{currentLang === 'ta' ? 'மொழி' : 'Language'}</span>
+                  <div className="profile-language-options" role="group" aria-label={t.language}>
+                    <button type="button" onClick={() => onLanguageChange('en')} aria-pressed={currentLang === 'en'}>English</button>
+                    <button type="button" onClick={() => onLanguageChange('ta')} aria-pressed={currentLang === 'ta'}>தமிழ்</button>
                   </div>
-
-                  {/* Operator Theme Selector */}
-                  {onSelectTheme && (
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold flex items-center gap-1.5 opacity-80">
-                        <Palette className="w-3.5 h-3.5" style={{ color: currentTheme.primaryColor }} />
-                        {t.brandTheme}
-                      </label>
-                      <div className="grid grid-cols-2 gap-1.5">
-                        {(['sun_direct', 'tata_play', 'airtel_dth', 'dish_tv'] as DthOperatorId[]).map((opId) => {
-                          const opTh = OPERATOR_THEMES[opId];
-                          const isActive = opTh.id === currentTheme.id;
-                          return (
-                            <button
-                              key={opId}
-                              type="button"
-                              onClick={() => {
-                                onSelectTheme(opId);
-                              }}
-                              className={`p-2 rounded-xl text-left border flex items-center gap-2 transition-all ${
-                                isActive
-                                  ? 'border-2 shadow-sm font-bold'
-                                  : 'border-gray-500/20 hover:border-gray-500/40 bg-gray-500/5'
-                              }`}
-                              style={{
-                                borderColor: isActive ? opTh.primaryColor : undefined,
-                                backgroundColor: isActive ? `${opTh.primaryColor}15` : undefined,
-                              }}
-                            >
-                              <span 
-                                className="w-3 h-3 rounded-full flex-shrink-0" 
-                                style={{ backgroundColor: opTh.primaryColor }}
-                              />
-                              <span className="truncate text-xs">{opTh.name}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* Admin Operations Console - Restricted to authenticated admins */}
                 {isAdmin && (
-                  <div className="py-1 border-t border-b border-gray-500/10">
+                  <div className="py-1 border-t border-b border-rule-strong">
                     <button
                       id="dropdown-admin-portal-btn"
                       onClick={() => {
@@ -336,19 +313,19 @@ export const Header: React.FC<HeaderProps> = ({
                         onTabChange('admin-portal');
                       }}
                       className={`w-full px-4 py-2.5 text-left flex items-center justify-between transition-colors ${
-                        isLight ? 'hover:bg-[#F5F5F5] hover:text-[#000000]' : 'hover:bg-[#121f3f] hover:text-[#f5f2eb]'
+                        isLight ? 'hover:bg-paper hover:text-ink' : 'hover:bg-ink hover:text-accent-ink'
                       }`}
                     >
                       <span className="flex items-center gap-2.5">
                         <ShieldCheck className="w-4 h-4" style={{ color: currentTheme.primaryColor }} />
                         <span className="font-bold text-xs">Admin Console</span>
                       </span>
-                      <span 
-                        className="text-[9px] font-bold uppercase font-mono px-1.5 py-0.5 rounded border"
+                      <span
+                        className="text-xs font-bold  font-mono px-1.5 py-0.5 rounded border"
                         style={{
-                          backgroundColor: `${currentTheme.primaryColor}15`,
+                          backgroundColor: `color-mix(in oklab, ${currentTheme.primaryColor} 8%, transparent)`,
                           color: currentTheme.primaryColor,
-                          borderColor: `${currentTheme.primaryColor}30`,
+                          borderColor: `color-mix(in oklab, ${currentTheme.primaryColor} 19%, transparent)`,
                         }}
                       >
                         Admin
@@ -357,35 +334,21 @@ export const Header: React.FC<HeaderProps> = ({
                   </div>
                 )}
 
-                {/* Sign Out / Sign In Footer */}
-                <div className="py-1">
-                  {user ? (
+                {user && (
+                  <div className="py-1">
                     <button
                       id="dropdown-logout-btn"
                       onClick={() => {
                         setIsProfileDropdownOpen(false);
                         onSignOut();
                       }}
-                      className="w-full px-4 py-2 text-left text-rose-500 hover:bg-rose-50 hover:text-rose-600 flex items-center gap-2.5 transition-colors font-semibold"
+                      className="w-full px-4 py-2 text-left text-error hover:bg-error-soft hover:text-error flex items-center gap-2.5 transition-colors font-medium"
                     >
                       <LogOut className="w-4 h-4" />
                       <span>Log Out</span>
                     </button>
-                  ) : (
-                    <button
-                      id="dropdown-signin-btn"
-                      onClick={() => {
-                        setIsProfileDropdownOpen(false);
-                        onOpenAuth();
-                      }}
-                      className="w-full px-4 py-2 text-left flex items-center gap-2.5 transition-colors font-bold"
-                      style={{ color: currentTheme.primaryColor }}
-                    >
-                      <User className="w-4 h-4" />
-                      <span>Sign In with Google</span>
-                    </button>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -393,14 +356,14 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Mobile Navigation Tab Bar */}
-      <nav aria-label="Main navigation" className={`flex lg:hidden overflow-x-auto py-2 px-3 gap-2 border-t ${currentTheme.statusStripBg} ${currentTheme.statusStripBorder}`}>
+      <nav aria-label="Main navigation" className={`mobile-navigation ${currentTheme.statusStripBg}`}>
         <button
           id="mobile-nav-recharge-btn"
           onClick={() => onTabChange('recharge')}
           aria-current={activeTab === 'recharge' ? 'page' : undefined}
-          className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold whitespace-nowrap text-center transition-all ${
-            activeTab === 'recharge' 
-              ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText}` 
+          className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold whitespace-nowrap text-center transition-colors ${
+            activeTab === 'recharge'
+              ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText}`
               : `${currentTheme.navContainerBg} ${currentTheme.navInactiveText}`
           }`}
         >
@@ -410,9 +373,9 @@ export const Header: React.FC<HeaderProps> = ({
           id="mobile-nav-plans-btn"
           onClick={() => onTabChange('plans')}
           aria-current={activeTab === 'plans' ? 'page' : undefined}
-          className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold whitespace-nowrap text-center transition-all ${
-            activeTab === 'plans' 
-              ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText}` 
+          className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold whitespace-nowrap text-center transition-colors ${
+            activeTab === 'plans'
+              ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText}`
               : `${currentTheme.navContainerBg} ${currentTheme.navInactiveText}`
           }`}
         >
@@ -422,9 +385,9 @@ export const Header: React.FC<HeaderProps> = ({
           id="mobile-nav-connections-btn"
           onClick={() => onTabChange('connections')}
           aria-current={activeTab === 'connections' ? 'page' : undefined}
-          className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold whitespace-nowrap text-center transition-all ${
-            activeTab === 'connections' 
-              ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText}` 
+          className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold whitespace-nowrap text-center transition-colors ${
+            activeTab === 'connections'
+              ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText}`
               : `${currentTheme.navContainerBg} ${currentTheme.navInactiveText}`
           }`}
         >
@@ -435,9 +398,9 @@ export const Header: React.FC<HeaderProps> = ({
             id="mobile-nav-admin-btn"
             onClick={() => onTabChange('admin-portal')}
             aria-current={activeTab === 'admin-portal' ? 'page' : undefined}
-            className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold whitespace-nowrap text-center transition-all flex items-center justify-center gap-1 ${
-              activeTab === 'admin-portal' 
-                ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText}` 
+            className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold whitespace-nowrap text-center transition-colors flex items-center justify-center gap-1 ${
+              activeTab === 'admin-portal'
+                ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText}`
                 : `${currentTheme.navContainerBg} ${currentTheme.navInactiveText}`
             }`}
           >
@@ -446,6 +409,77 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         )}
       </nav>
+      {isEditProfileOpen && user && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setIsEditProfileOpen(false);
+          }}
+        >
+          <div
+            ref={profileModalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-profile-title"
+            className={`w-full max-w-md rounded-xl border p-5 shadow-xl ${isLight ? 'border-rule bg-paper text-ink' : 'border-rule-strong bg-ink text-accent-ink'}`}
+          >
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 id="edit-profile-title" className="text-lg font-bold">{t.editProfile}</h2>
+              <button
+                type="button"
+                onClick={() => setIsEditProfileOpen(false)}
+                aria-label={t.close}
+                className="rounded-lg px-2 py-1 text-muted hover:bg-paper-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-current"
+              >
+                ×
+              </button>
+            </div>
+            <p className="mb-4 break-all text-sm text-muted">{user.email}</p>
+            <form onSubmit={handleSaveProfile} className="space-y-4">
+              <label className="block space-y-1.5 text-sm font-medium">
+                <span>{t.customerFullName}</span>
+                <input
+                  autoComplete="name"
+                  required
+                  minLength={2}
+                  maxLength={100}
+                  value={profileName}
+                  onChange={(event) => setProfileName(event.target.value)}
+                  className="w-full rounded-lg border border-rule bg-paper px-3 py-2.5 text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
+                />
+              </label>
+              <label className="block space-y-1.5 text-sm font-medium">
+                <span>{t.registeredMobile}</span>
+                <input
+                  type="tel"
+                  autoComplete="tel"
+                  maxLength={20}
+                  value={profilePhone}
+                  onChange={(event) => setProfilePhone(event.target.value)}
+                  className="w-full rounded-lg border border-rule bg-paper px-3 py-2.5 text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
+                />
+              </label>
+              {profileError && <p role="alert" className="text-sm text-error">{profileError}</p>}
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEditProfileOpen(false)}
+                  className="rounded-lg border border-rule px-4 py-2 text-sm font-medium hover:bg-paper-2"
+                >
+                  {t.cancel}
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingProfile}
+                  className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink disabled:opacity-60"
+                >
+                  {isSavingProfile ? (currentLang === 'ta' ? 'சேமிக்கிறது…' : 'Saving…') : t.save}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </header>
   );
 };

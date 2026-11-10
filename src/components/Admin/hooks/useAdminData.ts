@@ -14,6 +14,24 @@ import { auth, db, isFirebaseConfigured, sanitizePayload } from '../../../lib/fi
 import { collection, getDocs, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { PlanCatalogService } from '../../../lib/planCatalogService';
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+async function readApiResponse(response: Response, endpoint: string): Promise<unknown> {
+  const body = await response.text();
+  if (!body.trim()) {
+    throw new Error(`${endpoint} returned an empty response (HTTP ${response.status}).`);
+  }
+
+  try {
+    return JSON.parse(body) as unknown;
+  } catch {
+    const contentType = response.headers.get('content-type') || 'unknown content type';
+    throw new Error(`${endpoint} returned invalid JSON (HTTP ${response.status}, ${contentType}).`);
+  }
+}
+
 export interface PaymentReportItem {
   id: string;
   paymentMethod: string;
@@ -52,6 +70,7 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
   // 6. Operators State
   const [operators, setOperators] = useState<DthOperator[]>([]);
   const [operatorsLoading, setOperatorsLoading] = useState(false);
+  const [operatorsError, setOperatorsError] = useState<string | null>(null);
 
   // 7. Access & Approvals State
   const [approvedAdmins, setApprovedAdmins] = useState<AdminAccount[]>([]);
@@ -82,26 +101,25 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
     try {
       if (isFirebaseConfigured && db) {
         try {
-          const snapshot = await getDocs(collection(db, 'admin_customers'));
-          if (!snapshot.empty) {
-            const firestoreCusts: CustomerRecord[] = [];
-            snapshot.forEach((d) => firestoreCusts.push({ ...d.data(), id: d.id } as CustomerRecord));
-            setCustomers(firestoreCusts);
-            setCustLoading(false);
-            return;
-          }
+          const snapshot = await getDocs(collection(db, 'customers'));
+          const firestoreCusts: CustomerRecord[] = [];
+          snapshot.forEach((d) => firestoreCusts.push({ ...d.data(), id: d.id } as CustomerRecord));
+          setCustomers(firestoreCusts);
+          return;
         } catch (fsErr) {
           console.warn('[AdminData] Firestore fetch customers fallback to server API:', fsErr);
         }
       }
 
       const headers = await getAuthHeaders();
-      const res = await fetch('/api/admin/customers', { headers });
-      const data = await res.json();
-      if (!res.ok || !data.success || !Array.isArray(data.customers)) {
-        throw new Error(data.error || `Unable to load customers (${res.status})`);
+      const endpoint = '/api/admin/customers';
+      const res = await fetch(endpoint, { headers });
+      const data = await readApiResponse(res, endpoint);
+      if (!res.ok || !isRecord(data) || data.success !== true || !Array.isArray(data.customers)) {
+        const error = isRecord(data) && typeof data.error === 'string' ? data.error : null;
+        throw new Error(error || `Unable to load customers (${res.status})`);
       }
-      setCustomers(data.customers);
+      setCustomers(data.customers as CustomerRecord[]);
     } catch (err) {
       console.error('[AdminData] Error fetching customers:', err);
       setCustomersError(err instanceof Error ? err.message : 'Unable to load customers. Please try again.');
@@ -131,12 +149,14 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
       }
 
       const headers = await getAuthHeaders();
-      const res = await fetch('/api/admin/orders', { headers });
-      const data = await res.json();
-      if (!res.ok || !data.success || !Array.isArray(data.orders)) {
-        throw new Error(data.error || `Unable to load orders (${res.status})`);
+      const endpoint = '/api/admin/orders';
+      const res = await fetch(endpoint, { headers });
+      const data = await readApiResponse(res, endpoint);
+      if (!res.ok || !isRecord(data) || data.success !== true || !Array.isArray(data.orders)) {
+        const error = isRecord(data) && typeof data.error === 'string' ? data.error : null;
+        throw new Error(error || `Unable to load orders (${res.status})`);
       }
-      setOrders(data.orders);
+      setOrders(data.orders as RechargeOrder[]);
     } catch (err) {
       console.error('[AdminData] Error fetching orders:', err);
       setOrdersError(err instanceof Error ? err.message : 'Unable to load orders. Please try again.');
@@ -150,6 +170,9 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
     setPlansLoading(true);
     setPlansError(null);
     try {
+      await PlanCatalogService.seedAirtelPlansIntoLiveCatalog();
+      await PlanCatalogService.applyAirtelRecommendationFlags();
+      await PlanCatalogService.seedSunDirectPlansIntoLiveCatalog();
       const allPlans = await PlanCatalogService.getAllPlans({ allowFallback: false });
       setPlans(allPlans);
     } catch (err: any) {
@@ -195,17 +218,20 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
   // Fetch Operators
   const fetchOperators = useCallback(async () => {
     setOperatorsLoading(true);
+    setOperatorsError(null);
     try {
       const headers = await getAuthHeaders();
-      const res = await fetch('/api/admin/operators', { headers });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && Array.isArray(data.operators)) {
-          setOperators(data.operators);
-        }
+      const endpoint = '/api/admin/operators';
+      const res = await fetch(endpoint, { headers });
+      const data = await readApiResponse(res, endpoint);
+      if (!res.ok || !isRecord(data) || data.success !== true || !Array.isArray(data.operators)) {
+        const error = isRecord(data) && typeof data.error === 'string' ? data.error : null;
+        throw new Error(error || `Unable to load operators (${res.status})`);
       }
+      setOperators(data.operators as DthOperator[]);
     } catch (err) {
       console.error('[AdminData] Error fetching operators:', err);
+      setOperatorsError(err instanceof Error ? err.message : 'Unable to load operators. Please try again.');
     } finally {
       setOperatorsLoading(false);
     }
@@ -270,6 +296,7 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
     fetchPayments,
     operators,
     operatorsLoading,
+    operatorsError,
     fetchOperators,
     setOperators,
     approvedAdmins,

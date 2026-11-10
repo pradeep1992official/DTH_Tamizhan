@@ -1,16 +1,16 @@
 import React from 'react';
-import { 
-  Tv, 
-  Sparkles, 
-  Crown, 
-  Percent, 
-  Zap, 
-  Check, 
-  ArrowRight, 
-  CheckSquare, 
+import {
+  Tv,
+  Sparkles,
+  Crown,
+  Percent,
+  Zap,
+  Check,
+  ArrowRight,
+  CheckSquare,
   Square,
   Layers
-} from 'lucide-react';
+} from '../../lib/icons';
 import { BrowsePlan, Language } from '../../types';
 import { OperatorTheme } from '../../lib/theme';
 import { translations } from '../../lib/translations';
@@ -26,11 +26,11 @@ interface PlanCardProps {
 }
 
 const OPERATOR_NAMES: Record<string, { name: string; tamil: string; color: string }> = {
-  sun_direct: { name: 'Sun Direct', tamil: 'சன் டைரக்ட்', color: '#F97316' },
-  tata_play: { name: 'Tata Play', tamil: 'டாடா பிளே', color: '#EC4899' },
-  airtel_dth: { name: 'Airtel Digital TV', tamil: 'ஏர்டெல் டிவி', color: '#EF4444' },
-  dish_tv: { name: 'Dish TV & D2H', tamil: 'டிஷ் டிவி & டி2எச்', color: '#EB5B26' },
-  d2h: { name: 'Dish TV & D2H', tamil: 'டிஷ் டிவி & டி2எச்', color: '#EB5B26' },
+  sun_direct: { name: 'Sun Direct', tamil: 'சன் டைரக்ட்', color: 'var(--operator-sun-direct)' },
+  tata_play: { name: 'Tata Play', tamil: 'டாடா பிளே', color: 'var(--operator-tata-play)' },
+  airtel_dth: { name: 'Airtel Digital TV', tamil: 'ஏர்டெல் டிவி', color: 'var(--operator-airtel-dth)' },
+  dish_tv: { name: 'Dish TV & D2H', tamil: 'டிஷ் டிவி & டி2எச்', color: 'var(--operator-dish-tv)' },
+  d2h: { name: 'Dish TV & D2H', tamil: 'டிஷ் டிவி & டி2எச்', color: 'var(--operator-dish-tv)' },
 };
 
 export const PlanCard: React.FC<PlanCardProps> = ({
@@ -53,11 +53,11 @@ export const PlanCard: React.FC<PlanCardProps> = ({
   const monthlyRate = plan.monthly_equivalent_rate || Math.round(plan.price / plan.duration_months);
 
   return (
-    <div 
-      className={`rounded-3xl border transition-all duration-300 flex flex-col justify-between relative overflow-hidden group hover:shadow-xl ${
-        isLight 
-          ? 'bg-white border-gray-200 hover:border-gray-400 text-gray-900' 
-          : `${currentTheme.mainContainerBg} ${currentTheme.mainContainerBorder} hover:border-white/30 text-white`
+    <div
+      className={`catalog-plan border transition-colors duration-150 flex flex-col justify-between relative ${
+        isLight
+          ? 'bg-paper border-rule hover:border-rule-strong text-ink'
+          : `${currentTheme.mainContainerBg} ${currentTheme.mainContainerBorder} hover:border-rule-strong text-accent-ink`
       } ${
         isSelectedForCompare ? 'ring-2' : ''
       }`}
@@ -72,18 +72,14 @@ export const PlanCard: React.FC<PlanCardProps> = ({
           {/* Operator & Type */}
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2">
-              <span 
-                className="w-2.5 h-2.5 rounded-full"
-                style={{ backgroundColor: opInfo.color }}
-              />
               <span className="font-bold text-xs">
                 {currentLang === 'ta' && opInfo.tamil ? opInfo.tamil : opInfo.name}
               </span>
-              <span 
+              <span
                 className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${
-                  plan.type === 'HD' 
-                    ? `bg-amber-500/20 ${isLight ? 'text-amber-900' : 'text-amber-200'} border border-amber-500/40`
-                      : `bg-blue-500/20 ${isLight ? 'text-blue-900' : 'text-blue-200'} border border-blue-500/40`
+                  plan.type === 'HD'
+                    ? `bg-warning-soft ${isLight ? 'text-warning' : 'text-warning'} border border-rule`
+                      : `bg-accent-soft ${isLight ? 'text-accent' : 'text-accent'} border border-rule`
                 }`}
               >
                 {plan.type}
@@ -95,14 +91,14 @@ export const PlanCard: React.FC<PlanCardProps> = ({
               type="button"
               onClick={() => onToggleCompare(plan)}
               disabled={!isSelectedForCompare && !canAddToCompare}
-              className={`text-xs font-semibold px-2.5 py-1 rounded-lg border transition-all flex items-center gap-1.5 ${
+              className={`text-xs font-medium px-2.5 py-1 rounded-lg border transition-colors flex items-center gap-1.5 ${
                 isSelectedForCompare
-                  ? 'text-white border-transparent shadow-xs'
+                  ? 'text-accent-ink border-transparent shadow-xs'
                   : !canAddToCompare
-                  ? 'opacity-40 cursor-not-allowed border-gray-400'
+                  ? 'opacity-40 cursor-not-allowed border-rule-strong'
                   : isLight
-                  ? 'bg-gray-100 border-gray-300 text-gray-800 hover:bg-gray-200'
-                  : 'bg-white/10 border-white/20 text-gray-200 hover:bg-white/20'
+                  ? 'bg-paper-2 border-rule text-ink hover:bg-paper-2'
+                  : 'bg-paper border-rule-strong text-muted hover:bg-paper'
               }`}
               style={{
                 backgroundColor: isSelectedForCompare ? currentTheme.primaryColor : undefined,
@@ -121,28 +117,28 @@ export const PlanCard: React.FC<PlanCardProps> = ({
           {/* Ranking & Highlight Tags */}
           <div className="flex flex-wrap items-center gap-1.5 min-h-[24px]">
             {plan.is_best_value && (
-              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 ${isLight ? 'text-amber-900' : 'text-amber-200'} border border-amber-500/40 flex items-center gap-1`}>
-                <Zap className="w-3 h-3 fill-amber-500 text-amber-500" />
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold bg-warning-soft ${isLight ? 'text-warning' : 'text-warning'} border border-rule flex items-center gap-1`}>
+                <Zap className="w-3 h-3 fill-warning text-warning" />
                 <span>{t.saveBadge}</span>
               </span>
             )}
 
             {plan.is_best_savings && (
-              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 ${isLight ? 'text-emerald-900' : 'text-emerald-200'} border border-emerald-500/40 flex items-center gap-1`}>
-                <Percent className="w-3 h-3 text-emerald-500" />
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold bg-success-soft ${isLight ? 'text-success' : 'text-success'} border border-rule flex items-center gap-1`}>
+                <Percent className="w-3 h-3 text-success" />
                 <span>{t.bestSavings}</span>
               </span>
             )}
 
             {plan.is_recommended && (
-              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-500/20 ${isLight ? 'text-purple-900' : 'text-purple-200'} border border-purple-500/40 flex items-center gap-1`}>
-                <Crown className="w-3 h-3 text-purple-500" />
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold bg-accent-soft ${isLight ? 'text-accent' : 'text-accent'} border border-rule flex items-center gap-1`}>
+                <Crown className="w-3 h-3 text-accent" />
                 <span>{t.popularBadge}</span>
               </span>
             )}
 
             {(plan.savings_pct || 0) > 0 && (
-              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 ${isLight ? 'text-emerald-900' : 'text-emerald-200'} border border-emerald-500/40`}>
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold bg-success-soft ${isLight ? 'text-success' : 'text-success'} border border-rule`}>
                 {plan.savings_pct}% Off
               </span>
             )}
@@ -154,23 +150,23 @@ export const PlanCard: React.FC<PlanCardProps> = ({
           </h3>
 
           {/* Channels & Duration Breakdown */}
-          <div className={`grid grid-cols-2 gap-2 p-3 rounded-2xl border text-xs ${
-            isLight ? 'bg-gray-50 border-gray-200' : 'bg-black/25 border-white/10'
+          <div className={`plan-facts grid grid-cols-2 gap-3 text-sm ${
+            isLight ? 'bg-paper-2 border-rule' : 'bg-scrim/25 border-rule-strong'
           }`}>
             <div className="space-y-0.5">
-              <span className={`text-xs block font-medium ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>
+              <span className={`text-xs block font-medium ${isLight ? 'text-ink-2' : 'text-muted'}`}>
                 {t.channels}
               </span>
               <span className="font-bold text-sm">
                 {plan.channel_count}{' '}
                 {plan.hd_channel_count ? (
-                  <span className="text-amber-500 text-xs">({plan.hd_channel_count} HD)</span>
+                  <span className="text-warning text-xs">({plan.hd_channel_count} HD)</span>
                 ) : null}
               </span>
             </div>
 
             <div className="space-y-0.5">
-              <span className={`text-xs block font-medium ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>
+              <span className={`text-xs block font-medium ${isLight ? 'text-ink-2' : 'text-muted'}`}>
                 {t.validity}
               </span>
               <span className="font-bold text-sm">
@@ -181,25 +177,25 @@ export const PlanCard: React.FC<PlanCardProps> = ({
         </div>
 
         {/* Pricing Area */}
-        <div className="px-5 py-3 border-t border-gray-200 dark:border-white/10 flex items-baseline justify-between">
+        <div className="px-5 py-3 border-t border-rule  flex items-baseline justify-between">
           <div>
             <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-extrabold tracking-tight" style={{ color: currentTheme.primaryColor }}>
+              <span className="text-2xl font-bold tabular-nums tracking-tight" style={{ color: currentTheme.primaryColor }}>
                 ₹{plan.price}
               </span>
-              <span className="text-xs text-gray-500 dark:text-gray-400">
+              <span className="text-xs text-muted ">
                 / {plan.duration_months === 1 ? `1 ${t.month}` : `${plan.duration_months} ${t.months}`}
               </span>
             </div>
             {plan.duration_months > 1 && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+              <p className="text-xs text-muted  font-medium">
                 ₹{monthlyRate} {t.perMonth}
               </p>
             )}
           </div>
 
           <div className="text-right">
-            <span className="text-xs font-mono text-gray-500 dark:text-gray-400 block">
+            <span className="text-xs font-mono text-muted  block">
               ₹{(plan.price / Math.max(1, plan.channel_count)).toFixed(1)} / ch
             </span>
           </div>
@@ -211,11 +207,11 @@ export const PlanCard: React.FC<PlanCardProps> = ({
         <button
           type="button"
           onClick={() => onSelectPlan(plan)}
-          className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-[0.98]"
+          className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-accent-ink transition-colors flex items-center justify-center gap-1.5 shadow-sm active:scale-[0.98]"
           style={{ backgroundColor: currentTheme.primaryColor }}
         >
           <span>{t.selectThisPack}</span>
-          <ArrowRight className="w-3.5 h-3.5" />
+
         </button>
       </div>
     </div>
