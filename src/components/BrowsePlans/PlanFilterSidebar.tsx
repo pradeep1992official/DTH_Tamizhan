@@ -106,7 +106,7 @@ export const PlanFilterSidebar: React.FC<PlanFilterSidebarProps> = ({
 
       {/* 1. DTH Operators Filter */}
       <div className="space-y-2.5">
-        <label className="text-xs font-bold uppercase tracking-wider opacity-90 block">
+        <label className="text-sm font-bold block">
           {t.filterByOperator}
         </label>
         <div className="space-y-1.5">
@@ -154,7 +154,7 @@ export const PlanFilterSidebar: React.FC<PlanFilterSidebarProps> = ({
 
       {/* 2. HD / SD Quality Toggle */}
       <div className="space-y-2.5">
-        <label className="text-xs font-bold uppercase tracking-wider opacity-90">
+        <label className="text-sm font-bold">
           {t.filterByQuality}
         </label>
         <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-gray-500/10 border border-gray-500/20">
@@ -185,7 +185,7 @@ export const PlanFilterSidebar: React.FC<PlanFilterSidebarProps> = ({
 
       {/* 3. Duration Selector */}
       <div className="space-y-2.5">
-        <label className="text-xs font-bold uppercase tracking-wider opacity-90 flex items-center justify-between">
+        <label className="text-sm font-bold flex items-center justify-between">
           <span>{t.filterByDuration}</span>
           <Clock className="w-3.5 h-3.5 opacity-80" />
         </label>
@@ -219,7 +219,7 @@ export const PlanFilterSidebar: React.FC<PlanFilterSidebarProps> = ({
       {/* 4. Price Range Slider */}
       <div className="space-y-2.5">
         <div className="flex items-center justify-between text-xs font-bold">
-          <label className="uppercase tracking-wider opacity-90">
+          <label>
             {t.filterByPrice}
           </label>
           <span className="font-mono" style={{ color: currentTheme.primaryColor }}>
@@ -245,7 +245,7 @@ export const PlanFilterSidebar: React.FC<PlanFilterSidebarProps> = ({
       {/* 5. Channel Count Range Slider */}
       <div className="space-y-2.5">
         <div className="flex items-center justify-between text-xs font-bold">
-          <label className="uppercase tracking-wider opacity-90">
+          <label>
             {t.filterByChannels}
           </label>
           <span className="font-mono text-emerald-600 dark:text-emerald-400">

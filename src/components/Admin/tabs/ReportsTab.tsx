@@ -33,47 +33,48 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
 }) => {
   const t = translations[currentLang];
   const isLight = currentTheme.isLightMode;
-  const totalVolume = orders.reduce((sum, o) => sum + (o.amount || 0), 0);
+  const settledOrders = orders.filter((order) => order.paymentStatus === 'paid');
+  const totalVolume = settledOrders.reduce((sum, order) => sum + (order.amount || 0), 0);
   const completedCount = orders.filter((o) => o.rechargeStatus === 'completed').length;
 
   return (
     <div className="space-y-6">
       {/* Overview Analytics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className={`p-4 rounded-2xl border ${isLight ? 'bg-white border-gray-200 shadow-sm' : 'bg-white/[0.02] border-white/10'}`}>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className={`p-3 rounded-xl border ${isLight ? 'bg-white border-gray-200 shadow-sm' : 'bg-white/[0.02] border-white/10'}`}>
           <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase">{t.totalRevenue}</span>
+            <span className="text-xs font-semibold">{t.totalRevenue}</span>
             <TrendingUp className="w-4 h-4 text-emerald-500" />
           </div>
-          <div className="text-2xl font-mono font-bold mt-2 text-emerald-500">₹{totalVolume.toLocaleString()}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Across all DTH operators</div>
+          <div className="text-xl font-mono font-bold mt-1 text-emerald-600 dark:text-emerald-400">₹{totalVolume.toLocaleString()}</div>
+          <div className="text-xs text-gray-700 dark:text-gray-300 mt-1">Settled payments</div>
         </div>
 
-        <div className={`p-4 rounded-2xl border ${isLight ? 'bg-white border-gray-200 shadow-sm' : 'bg-white/[0.02] border-white/10'}`}>
+        <div className={`p-3 rounded-xl border ${isLight ? 'bg-white border-gray-200 shadow-sm' : 'bg-white/[0.02] border-white/10'}`}>
           <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase">{t.totalSubscribers}</span>
+            <span className="text-xs font-semibold">{t.totalSubscribers}</span>
             <Users className="w-4 h-4 text-blue-400" />
           </div>
-          <div className="text-2xl font-mono font-bold mt-2">{customers.length}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Active customer accounts</div>
+          <div className="text-xl font-mono font-bold mt-1">{customers.length}</div>
+          <div className="text-xs text-gray-700 dark:text-gray-300 mt-1">Customer accounts</div>
         </div>
 
-        <div className={`p-4 rounded-2xl border ${isLight ? 'bg-white border-gray-200 shadow-sm' : 'bg-white/[0.02] border-white/10'}`}>
+        <div className={`p-3 rounded-xl border ${isLight ? 'bg-white border-gray-200 shadow-sm' : 'bg-white/[0.02] border-white/10'}`}>
           <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase">{t.processedRecharges}</span>
+            <span className="text-xs font-semibold">{t.processedRecharges}</span>
             <BarChart3 className="w-4 h-4 text-purple-400" />
           </div>
-          <div className="text-2xl font-mono font-bold mt-2">{completedCount}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Total completed orders</div>
+          <div className="text-xl font-mono font-bold mt-1">{completedCount}</div>
+          <div className="text-xs text-gray-700 dark:text-gray-300 mt-1">Completed orders</div>
         </div>
 
-        <div className={`p-4 rounded-2xl border ${isLight ? 'bg-white border-gray-200 shadow-sm' : 'bg-white/[0.02] border-white/10'}`}>
+        <div className={`p-3 rounded-xl border ${isLight ? 'bg-white border-gray-200 shadow-sm' : 'bg-white/[0.02] border-white/10'}`}>
           <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase">{t.auditLogEvents}</span>
+            <span className="text-xs font-semibold">{t.auditLogEvents}</span>
             <ShieldCheck className="w-4 h-4 text-indigo-400" />
           </div>
-          <div className="text-2xl font-mono font-bold mt-2">{auditLogs.length}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Recorded catalog changes</div>
+          <div className="text-xl font-mono font-bold mt-1">{auditLogs.length}</div>
+          <div className="text-xs text-gray-700 dark:text-gray-300 mt-1">Catalog changes</div>
         </div>
       </div>
 

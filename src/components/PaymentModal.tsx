@@ -24,11 +24,13 @@ import { translations } from '../lib/translations';
 import { db, sanitizePayload } from '../lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useAccessibleModal } from '../lib/useAccessibleModal';
+import { OperatorTheme } from '../lib/theme';
 
 interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentLang: Language;
+  currentTheme: OperatorTheme;
   user: UserProfile | null;
   plan: DthPlan | { name: string; price: number; validityDays: number };
   subscriber: SubscriberDetails | null;
@@ -42,6 +44,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   isOpen,
   onClose,
   currentLang,
+  currentTheme,
   user,
   plan,
   subscriber,
@@ -51,6 +54,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   onPaymentSuccess,
 }) => {
   const t = translations[currentLang];
+  const isLight = currentTheme.isLightMode;
+  const modalSurface = isLight ? 'bg-white border-gray-200 text-gray-900' : 'bg-[#0e1935] border-[#1e3058] text-white';
+  const headerSurface = isLight ? 'bg-gray-50 border-gray-200' : 'bg-[#070e1e]/90 border-[#172545]';
+  const panelSurface = isLight ? 'bg-gray-50 border-gray-200' : 'bg-[#070e1e] border-[#172545]';
+  const inputSurface = isLight
+    ? 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+    : 'bg-[#0b1429] border-[#1c2d52] text-white placeholder-gray-500';
+  const mutedText = isLight ? 'text-gray-700' : 'text-gray-300';
   const { modalRef } = useAccessibleModal({ isOpen, onClose });
 
   const [paymentMethod, setPaymentMethod] = useState<'upi' | 'card' | 'netbanking'>('upi');
@@ -181,19 +192,19 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="payment-modal-title"
-        className="bg-[#0e1935] border border-[#1e3058] rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl relative text-left"
+        className={`rounded-3xl border w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto shadow-2xl relative text-left ${modalSurface}`}
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-[#172545] flex items-center justify-between bg-[#070e1e]/90">
+        <div className={`px-6 py-4 border-b flex items-center justify-between ${headerSurface}`}>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center border border-amber-500/30 shadow-inner">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <h2 id="payment-modal-title" className="text-base font-bold text-white leading-tight">
+              <h2 id="payment-modal-title" className={`text-base font-bold leading-tight ${isLight ? 'text-gray-900' : 'text-white'}`}>
                 {t.paymentTitle}
               </h2>
-              <p className="text-xs text-gray-300">
+              <p className={`text-xs ${mutedText}`}>
                 {operator.name} • {smartCard}
               </p>
             </div>
@@ -202,22 +213,22 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label={t.close}
-            className="p-1.5 rounded-xl text-gray-300 hover:text-white hover:bg-white/10 transition-colors focus-visible:ring-2 focus-visible:ring-amber-400"
+            className={`p-1.5 rounded-xl transition-colors focus-visible:ring-2 focus-visible:ring-amber-400 ${isLight ? 'text-gray-600 hover:text-gray-900 hover:bg-gray-200' : 'text-gray-300 hover:text-white hover:bg-white/10'}`}
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Amount Summary Ribbon */}
-        <div className="bg-[#122044] px-6 py-3.5 border-b border-[#172545] flex items-center justify-between">
+        <div className={`sticky top-0 z-10 px-6 py-3.5 border-b flex items-center justify-between shadow-sm ${isLight ? 'bg-amber-50 border-amber-200' : 'bg-[#122044] border-[#172545]'}`}>
           <div>
-            <p className="text-xs text-gray-200 font-semibold">{plan.name}</p>
+            <p className={`text-xs font-semibold ${isLight ? 'text-gray-800' : 'text-gray-200'}`}>{plan.name}</p>
             <p className="text-xs text-amber-300 font-medium">
               {t.validity}: {plan.validityDays} {t.days}
             </p>
           </div>
           <div className="text-right">
-            <span className="text-xs text-gray-300 block">{t.totalPayable}</span>
+            <span className={`text-xs block ${mutedText}`}>{t.totalPayable}</span>
             <span className="text-2xl font-mono font-bold text-amber-400">
               ₹{plan.price}
             </span>
@@ -227,9 +238,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         {/* Body & Payment Methods */}
         <div className="p-6 space-y-5">
           {errorMessage && (
-            <div className="p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-200 text-xs flex items-center justify-between gap-2">
+            <div className={`p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-xs flex items-center justify-between gap-2 ${isLight ? 'text-rose-900' : 'text-rose-200'}`}>
               <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                <AlertCircle className={`w-4 h-4 shrink-0 ${isLight ? 'text-rose-700' : 'text-rose-400'}`} />
                 <span>{errorMessage}</span>
               </div>
               <button
@@ -243,9 +254,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           )}
 
           {/* Customer Contact & SMS / WhatsApp Receipt Notification */}
-          <div className="p-4 bg-[#070e1e] border border-[#172545] rounded-2xl space-y-3">
+          <div className={`p-4 border rounded-2xl space-y-3 ${panelSurface}`}>
             <div className="flex items-center justify-between text-xs">
-              <span className="font-bold text-white flex items-center gap-1.5">
+              <span className={`font-bold flex items-center gap-1.5 ${isLight ? 'text-gray-900' : 'text-white'}`}>
                 <Smartphone className="w-4 h-4 text-amber-400" />
                 <span>{currentLang === 'ta' ? 'ரசீது பெறும் விவரங்கள்' : 'Receipt & SMS Confirmation'}</span>
               </span>
@@ -255,7 +266,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-semibold text-gray-300 block mb-1">
+                <label className={`text-sm font-semibold block mb-1 ${mutedText}`}>
                   {t.subscriberName}
                 </label>
                 <input
@@ -263,11 +274,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   placeholder="e.g. Ramesh Kumar"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full bg-[#0b1429] border border-[#1c2d52] rounded-xl px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-amber-400"
+                  className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 ${inputSurface}`}
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-300 block mb-1">
+                <label className={`text-sm font-semibold block mb-1 ${mutedText}`}>
                   {currentLang === 'ta' ? 'மொபைல் எண் (SMS ரசீது) *' : 'Mobile Number (SMS Receipt) *'}
                 </label>
                 <div className="relative">
@@ -279,7 +290,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     placeholder="10-digit mobile"
                     value={customerMobile}
                     onChange={(e) => setCustomerMobile(e.target.value.replace(/\D/g, ''))}
-                    className="w-full bg-[#0b1429] border border-[#1c2d52] rounded-xl pl-10 pr-3 py-2 text-xs text-white font-mono placeholder-gray-500 focus:outline-none focus:border-amber-400"
+                    className={`w-full border rounded-xl pl-10 pr-3 py-2 text-sm font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 ${inputSurface}`}
                   />
                 </div>
               </div>
@@ -287,14 +298,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           </div>
 
           {/* Payment Tabs */}
-          <div className="grid grid-cols-3 gap-2 p-1.5 bg-[#070e1e] rounded-2xl border border-[#172545]">
+          <div className={`grid grid-cols-3 gap-2 p-1.5 rounded-2xl border ${panelSurface}`}>
             <button
               type="button"
               onClick={() => setPaymentMethod('upi')}
               className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                 paymentMethod === 'upi'
                   ? 'bg-amber-400 text-gray-900 shadow-md'
-                  : 'text-gray-300 hover:text-white'
+                  : (isLight ? 'text-gray-700 hover:text-gray-950' : 'text-gray-300 hover:text-white')
               }`}
             >
               <QrCode className="w-4 h-4" />
@@ -306,7 +317,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                 paymentMethod === 'card'
                   ? 'bg-amber-400 text-gray-900 shadow-md'
-                  : 'text-gray-300 hover:text-white'
+                  : (isLight ? 'text-gray-700 hover:text-gray-950' : 'text-gray-300 hover:text-white')
               }`}
             >
               <CreditCard className="w-4 h-4" />
@@ -318,7 +329,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                 paymentMethod === 'netbanking'
                   ? 'bg-amber-400 text-gray-900 shadow-md'
-                  : 'text-gray-300 hover:text-white'
+                  : (isLight ? 'text-gray-700 hover:text-gray-950' : 'text-gray-300 hover:text-white')
               }`}
             >
               <Lock className="w-4 h-4" />
@@ -330,12 +341,12 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           {paymentMethod === 'upi' && (
             <div className="space-y-4 text-center">
               <div className="p-4 bg-white rounded-2xl max-w-[200px] mx-auto shadow-inner">
-                <div className="w-full aspect-square bg-[#0c1527] rounded-xl flex flex-col items-center justify-center p-3 text-white relative">
+                <div className={`w-full aspect-square rounded-xl flex flex-col items-center justify-center p-3 relative ${isLight ? 'bg-gray-900 text-white' : 'bg-[#0c1527] text-white'}`}>
                   <QrCode className="w-28 h-28 text-amber-400 mb-1" />
                   <span className="text-xs font-mono font-bold text-amber-300">₹{plan.price}</span>
                 </div>
               </div>
-              <p className="text-xs text-gray-300">
+              <p className={`text-sm ${mutedText}`}>
                 {t.scanToPay}
               </p>
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full text-xs font-mono text-amber-300 font-semibold">
@@ -348,30 +359,30 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           {paymentMethod === 'card' && (
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-semibold text-gray-300 block mb-1">
+                <label className={`text-sm font-semibold block mb-1 ${mutedText}`}>
                   Card Number
                 </label>
                 <input
                   type="text"
                   value={cardNumber}
                   onChange={(e) => setCardNumber(e.target.value)}
-                  className="w-full bg-[#070e1e] border border-[#172545] rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-amber-400"
+                  className={`w-full border rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 ${inputSurface}`}
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-gray-300 block mb-1">
+                  <label className={`text-sm font-semibold block mb-1 ${mutedText}`}>
                     Expiry (MM/YY)
                   </label>
                   <input
                     type="text"
                     value={cardExpiry}
                     onChange={(e) => setCardExpiry(e.target.value)}
-                    className="w-full bg-[#070e1e] border border-[#172545] rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-amber-400"
+                    className={`w-full border rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 ${inputSurface}`}
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-300 block mb-1">
+                  <label className={`text-sm font-semibold block mb-1 ${mutedText}`}>
                     CVV
                   </label>
                   <input
@@ -379,7 +390,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     maxLength={4}
                     value={cardCvv}
                     onChange={(e) => setCardCvv(e.target.value)}
-                    className="w-full bg-[#070e1e] border border-[#172545] rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-amber-400"
+                    className={`w-full border rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 ${inputSurface}`}
                   />
                 </div>
               </div>
@@ -389,7 +400,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           {/* Tab Content 3: Netbanking */}
           {paymentMethod === 'netbanking' && (
             <div className="space-y-3">
-              <label className="text-xs font-semibold text-gray-300 block">
+              <label className={`text-sm font-semibold block ${mutedText}`}>
                 Select Your Bank
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -401,7 +412,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     className={`p-2 rounded-xl text-xs font-bold border transition-all ${
                       selectedBank === bank
                         ? 'bg-amber-400 text-gray-900 border-amber-300 shadow-sm'
-                        : 'bg-[#070e1e] border-[#172545] text-gray-300 hover:border-gray-500'
+                        : isLight ? 'bg-white border-gray-300 text-gray-800 hover:border-gray-500' : 'bg-[#070e1e] border-[#172545] text-gray-300 hover:border-gray-500'
                     }`}
                   >
                     {bank}

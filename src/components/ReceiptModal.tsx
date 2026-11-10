@@ -61,7 +61,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="receipt-modal-title"
-        className="bg-[#0e1935] border border-[#1e3058] rounded-3xl w-full max-w-md overflow-hidden shadow-2xl relative text-left"
+        className="receipt-print bg-[#0e1935] border border-[#1e3058] rounded-3xl w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto shadow-2xl relative text-left"
       >
         {/* Receipt Header Badge */}
         <div className="bg-emerald-600 px-6 py-5 text-white flex items-center justify-between">

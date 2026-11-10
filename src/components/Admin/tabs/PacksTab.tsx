@@ -282,19 +282,19 @@ export const PacksTab: React.FC<PacksTabProps> = ({
           <table className="w-full text-left text-xs">
             <thead className={`border-b ${isLight ? 'bg-gray-50/80 text-gray-700 border-gray-200' : 'bg-white/[0.03] text-gray-300 border-white/10'}`}>
               <tr>
-                <th className="p-3.5 font-bold uppercase tracking-wider">{t.packNameLabel}</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">{t.operatorLabel}</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">{t.qualityLabel}</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">{t.durationMonthsLabel}</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">{t.priceInrLabel}</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">{t.status}</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider text-right">{t.actions}</th>
+                <th className="p-3.5 font-semibold">{t.packNameLabel}</th>
+                <th className="hidden md:table-cell p-3.5 font-semibold">{t.operatorLabel}</th>
+                <th className="p-3.5 font-semibold">{t.qualityLabel}</th>
+                <th className="hidden md:table-cell p-3.5 font-semibold">{t.durationMonthsLabel}</th>
+                <th className="p-3.5 font-semibold">{t.priceInrLabel}</th>
+                <th className="hidden sm:table-cell p-3.5 font-semibold">{t.status}</th>
+                <th className="p-3.5 font-semibold text-right">{t.actions}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-500/10">
               {plansLoading ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-gray-400">
+                  <td colSpan={7} className="p-8 text-center text-gray-600 dark:text-gray-300">
                     <div className="flex items-center justify-center gap-2">
                       <RefreshCw className="w-4 h-4 animate-spin text-amber-500" />
                       <span>{t.loadingLiveCatalog}</span>
@@ -303,7 +303,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
                 </tr>
               ) : filteredPlans.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-gray-500">
+                  <td colSpan={7} className="p-8 text-center text-gray-700 dark:text-gray-300">
                     {t.noPlansMatch}
                   </td>
                 </tr>
@@ -312,22 +312,27 @@ export const PacksTab: React.FC<PacksTabProps> = ({
                   <tr key={plan.id} className="hover:bg-white/[0.02] transition-colors">
                     <td className="p-3.5 font-semibold">
                       <div className="font-bold text-sm text-gray-900 dark:text-white">{plan.plan_name}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 font-mono">ID: {plan.id}</div>
+                      <div className="hidden md:block text-xs text-gray-600 dark:text-gray-300 font-mono">ID: {plan.id}</div>
+                      <div className="md:hidden text-xs text-gray-700 dark:text-gray-300">
+                        {plan.operator.replace('_', ' ')} · {plan.duration_months}M
+                      </div>
                     </td>
-                    <td className="p-3.5 capitalize font-medium text-gray-800 dark:text-gray-200">{plan.operator.replace('_', ' ')}</td>
+                    <td className="hidden md:table-cell p-3.5 capitalize font-medium text-gray-800 dark:text-gray-200">{plan.operator.replace('_', ' ')}</td>
                     <td className="p-3.5">
                       <span className={`text-xs px-2.5 py-0.5 rounded-md font-bold uppercase ${
-                        plan.pack_type === 'HD' ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30' : 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30'
+                        plan.pack_type === 'HD'
+                          ? `bg-amber-500/20 ${isLight ? 'text-amber-900' : 'text-amber-200'} border border-amber-500/30`
+                          : `bg-blue-500/20 ${isLight ? 'text-blue-900' : 'text-blue-200'} border border-blue-500/30`
                       }`}>
                         {plan.pack_type}
                       </span>
                     </td>
-                    <td className="p-3.5 font-semibold text-gray-800 dark:text-gray-200">{plan.duration_months} Month{plan.duration_months > 1 ? 's' : ''}</td>
+                    <td className="hidden md:table-cell p-3.5 font-semibold text-gray-800 dark:text-gray-200">{plan.duration_months} Month{plan.duration_months > 1 ? 's' : ''}</td>
                     <td className="p-3.5">
                       <div className="font-mono font-bold text-sm text-gray-900 dark:text-white">₹{plan.amount}</div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">₹{Math.round(plan.amount / plan.duration_months)}/mo</div>
                     </td>
-                    <td className="p-3.5">
+                    <td className="hidden sm:table-cell p-3.5">
                       {plan.is_recommended ? (
                         <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/30 flex items-center gap-1 w-fit">
                           <Sparkles className="w-3.5 h-3.5" />
@@ -378,7 +383,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
             role="dialog"
             aria-modal="true"
             aria-labelledby="pack-editor-title"
-            className={`border rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl text-left ${
+            className={`border rounded-3xl max-h-[calc(100dvh-2rem)] overflow-y-auto max-w-lg w-full p-6 space-y-4 shadow-2xl text-left ${
               isLight ? 'bg-white border-gray-200 text-gray-900' : 'bg-[#180530] border-white/20 text-white'
             }`}
           >

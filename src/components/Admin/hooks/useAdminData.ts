@@ -29,10 +29,12 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
   // 1. Customer State
   const [customers, setCustomers] = useState<CustomerRecord[]>([]);
   const [custLoading, setCustLoading] = useState(false);
+  const [customersError, setCustomersError] = useState<string | null>(null);
 
   // 2. Orders & Recharges State
   const [orders, setOrders] = useState<RechargeOrder[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState<string | null>(null);
 
   // 3. Plan Catalog State
   const [plans, setPlans] = useState<PlanCatalogItem[]>([]);
@@ -76,6 +78,7 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
   // Fetch Customers
   const fetchCustomers = useCallback(async () => {
     setCustLoading(true);
+    setCustomersError(null);
     try {
       if (isFirebaseConfigured && db) {
         try {
@@ -94,14 +97,14 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
 
       const headers = await getAuthHeaders();
       const res = await fetch('/api/admin/customers', { headers });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && Array.isArray(data.customers)) {
-          setCustomers(data.customers);
-        }
+      const data = await res.json();
+      if (!res.ok || !data.success || !Array.isArray(data.customers)) {
+        throw new Error(data.error || `Unable to load customers (${res.status})`);
       }
+      setCustomers(data.customers);
     } catch (err) {
       console.error('[AdminData] Error fetching customers:', err);
+      setCustomersError(err instanceof Error ? err.message : 'Unable to load customers. Please try again.');
     } finally {
       setCustLoading(false);
     }
@@ -110,6 +113,7 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
   // Fetch Orders
   const fetchOrders = useCallback(async () => {
     setOrdersLoading(true);
+    setOrdersError(null);
     try {
       if (isFirebaseConfigured && db) {
         try {
@@ -128,14 +132,14 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
 
       const headers = await getAuthHeaders();
       const res = await fetch('/api/admin/orders', { headers });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && Array.isArray(data.orders)) {
-          setOrders(data.orders);
-        }
+      const data = await res.json();
+      if (!res.ok || !data.success || !Array.isArray(data.orders)) {
+        throw new Error(data.error || `Unable to load orders (${res.status})`);
       }
+      setOrders(data.orders);
     } catch (err) {
       console.error('[AdminData] Error fetching orders:', err);
+      setOrdersError(err instanceof Error ? err.message : 'Unable to load orders. Please try again.');
     } finally {
       setOrdersLoading(false);
     }
@@ -245,10 +249,12 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
     getAuthHeaders,
     customers,
     custLoading,
+    customersError,
     fetchCustomers,
     setCustomers,
     orders,
     ordersLoading,
+    ordersError,
     fetchOrders,
     setOrders,
     plans,

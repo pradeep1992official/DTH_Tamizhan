@@ -1,0 +1,15 @@
+{
+  "scanned": "2026-11-10",
+  "mode": "audit",
+  "genre": "modern-minimal (inferred)",
+  "scope": "app",
+  "findings": {
+    "fonts": "Plus Jakarta Sans, Noto Sans Tamil, JetBrains Mono; src/index.css:4; index.html:14",
+    "palette": "OperatorTheme objects src/lib/theme.ts:4; literals bypass theme",
+    "motion": "motion dependency package.json; Tailwind transitions and animation utilities",
+    "spacing": "Tailwind utilities; centered max-w-7xl src/App.tsx:446",
+    "framework": "React 19 / Vite 8 / Tailwind 4 / React Router 7"
+  },
+  "preserve": ["all application files and existing uncommitted work", "operator identities", "bilingual typography", "capped shell", "routes and handlers"],
+  "introduce": []
+}

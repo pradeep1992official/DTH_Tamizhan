@@ -128,7 +128,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="auth-modal-title"
-        className="bg-[#0e1935] border border-[#1e3058] rounded-3xl w-full max-w-md overflow-hidden shadow-2xl relative text-left"
+        className="bg-[#0e1935] border border-[#1e3058] rounded-3xl w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto shadow-2xl relative text-left"
       >
         {/* Header */}
         <div className="px-6 py-5 border-b border-[#172545] flex items-center justify-between bg-[#070e1e]/90">
@@ -140,7 +140,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <h2 id="auth-modal-title" className="text-base font-bold text-white">
                 {t.loginTitle}
               </h2>
-              <p className="text-xs text-gray-300 mt-0.5">
+              <p className="text-sm text-gray-300 mt-0.5">
                 {t.loginSubtitle}
               </p>
             </div>

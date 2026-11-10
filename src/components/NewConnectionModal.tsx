@@ -31,14 +31,35 @@ export const NewConnectionModal: React.FC<NewConnectionModalProps> = ({
   const [address, setAddress] = useState('');
   const [isBooked, setIsBooked] = useState(false);
   const [bookingId, setBookingId] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const handleBooking = (e: React.FormEvent) => {
+  const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault();
-    const id = `BOOK-TN-${Math.floor(100000 + Math.random() * 900000)}`;
-    setBookingId(id);
-    setIsBooked(true);
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      const response = await fetch('/api/installation-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ operator, name: name.trim(), mobile, district, address: address.trim() }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success || !result.request?.id) {
+        throw new Error(result.error || 'Unable to submit the installation request.');
+      }
+      setBookingId(result.request.id);
+      setIsBooked(true);
+    } catch (error) {
+      console.error('[Installation Request] Submission failed:', error);
+      setSubmitError(currentLang === 'ta'
+        ? 'கோரிக்கையை அனுப்ப முடியவில்லை. மீண்டும் முயற்சிக்கவும்.'
+        : error instanceof Error ? error.message : 'Unable to submit the request. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const tnDistricts = [
@@ -59,7 +80,7 @@ export const NewConnectionModal: React.FC<NewConnectionModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="new-dish-title"
-        className="bg-[#0e1935] border border-[#1e3058] rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl relative text-left"
+        className="bg-[#0e1935] border border-[#1e3058] rounded-3xl w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto shadow-2xl relative text-left"
       >
         {/* Header */}
         <div className="px-6 py-4 border-b border-[#172545] flex items-center justify-between bg-[#070e1e]/90">
@@ -95,27 +116,35 @@ export const NewConnectionModal: React.FC<NewConnectionModalProps> = ({
                 <label className="text-xs font-bold text-gray-300 uppercase tracking-wider block">
                   {t.selectDishOperator}
                 </label>
-                <div className="grid grid-cols-3 gap-2">
+                <fieldset className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {[
                     { id: 'sun_direct', name: 'Sun Direct HD', price: '₹1,399', highlight: '1 Month Tamil Pack' },
                     { id: 'tata_play', name: 'Tata Play HD', price: '₹1,499', highlight: 'Free Binge App' },
                     { id: 'airtel_dth', name: 'Airtel HD', price: '₹1,449', highlight: 'Dolby Sound STB' },
                   ].map((item) => (
-                    <div
+                    <label
                       key={item.id}
-                      onClick={() => setOperator(item.id)}
-                      className={`p-3 rounded-2xl border cursor-pointer transition-all text-left ${
+                      className={`relative p-3 rounded-2xl border cursor-pointer transition-colors text-left ${
                         operator === item.id
                           ? 'bg-amber-500/15 border-amber-400 text-white shadow-md'
                           : 'bg-[#070e1e] border-[#172545] text-gray-300 hover:border-gray-500'
                       }`}
                     >
+                      <input
+                        type="radio"
+                        name="installation-operator"
+                        value={item.id}
+                        checked={operator === item.id}
+                        onChange={() => setOperator(item.id)}
+                        className="sr-only peer"
+                      />
+                      <span className="absolute inset-0 rounded-2xl peer-focus-visible:ring-2 peer-focus-visible:ring-amber-400" aria-hidden="true" />
                       <p className="font-bold text-white text-xs">{item.name}</p>
                       <p className="font-mono font-bold text-amber-400 text-sm mt-0.5">{item.price}</p>
                       <p className="text-xs text-gray-400 mt-1 line-clamp-1">{item.highlight}</p>
-                    </div>
+                    </label>
                   ))}
-                </div>
+                </fieldset>
               </div>
 
               {/* Inclusions */}
@@ -198,11 +227,14 @@ export const NewConnectionModal: React.FC<NewConnectionModalProps> = ({
 
               <button
                 type="submit"
-                disabled={!name.trim() || mobile.length < 10}
+                disabled={!name.trim() || mobile.length !== 10 || address.trim().length < 5 || isSubmitting}
                 className="w-full py-3.5 px-4 rounded-2xl bg-amber-400 hover:bg-amber-300 disabled:opacity-50 text-gray-950 font-bold text-sm transition-all shadow-md mt-2"
               >
-                {t.bookConnectionBtn}
+                {isSubmitting
+                  ? (currentLang === 'ta' ? 'அனுப்புகிறது…' : 'Submitting request…')
+                  : (currentLang === 'ta' ? 'நிறுவல் கோரிக்கையை அனுப்பு' : 'Submit installation request')}
               </button>
+              {submitError && <p role="alert" className="text-xs text-rose-300">{submitError}</p>}
             </form>
           ) : (
             <div className="text-center space-y-4 py-4">
@@ -214,10 +246,12 @@ export const NewConnectionModal: React.FC<NewConnectionModalProps> = ({
                   {t.bookingSuccess}
                 </h3>
                 <p className="text-xs font-mono text-amber-400 font-bold mt-1">
-                  Booking ID: {bookingId}
+                  Request ID: {bookingId}
                 </p>
                 <p className="text-xs text-gray-300 mt-2">
-                  {currentLang === 'ta' ? 'எங்கள் உள்ளூர் தொழில்நுட்ப வல்லுநர் உங்களைத் தொடர்புகொள்வார்.' : 'Our technician will arrive at your address within 24 hours.'}
+                  {currentLang === 'ta'
+                    ? 'உங்கள் நிறுவல் கோரிக்கை பெறப்பட்டது. விவரங்களை உறுதிப்படுத்த எங்கள் குழு உங்களைத் தொடர்புகொள்ளும்.'
+                    : 'Your installation request has been received. Our team will contact you to confirm the details.'}
                 </p>
               </div>
               <button

@@ -15,6 +15,7 @@ import { translations } from '../../../lib/translations';
 interface PendingOrdersTabProps {
   orders: RechargeOrder[];
   ordersLoading: boolean;
+  ordersError: string | null;
   onRefresh: () => void;
   getAuthHeaders: () => Promise<Record<string, string>>;
   currentTheme: OperatorTheme;
@@ -26,6 +27,7 @@ interface PendingOrdersTabProps {
 export const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
   orders,
   ordersLoading,
+  ordersError,
   onRefresh,
   getAuthHeaders,
   currentTheme,
@@ -89,7 +91,14 @@ export const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
       </div>
 
       {/* Pending Orders Cards Grid */}
-      {pendingQueue.length === 0 ? (
+      {ordersError ? (
+        <div role="alert" className={`p-6 rounded-2xl border text-center ${isLight ? 'bg-rose-50 border-rose-200 text-rose-900' : 'bg-rose-500/10 border-rose-500/30 text-rose-100'}`}>
+          <p className="text-sm font-semibold">{ordersError}</p>
+          <button type="button" onClick={onRefresh} className="mt-3 rounded-lg border px-3 py-1.5 text-xs font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">
+            Retry loading queue
+          </button>
+        </div>
+      ) : pendingQueue.length === 0 ? (
         <div className={`p-12 text-center rounded-2xl border ${
           isLight ? 'bg-white border-gray-200 text-gray-700' : 'bg-white/[0.02] border-white/10 text-gray-300'
         }`}>

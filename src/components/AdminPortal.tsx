@@ -82,9 +82,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     getAuthHeaders,
     customers,
     custLoading,
+    customersError,
     fetchCustomers,
     orders,
     ordersLoading,
+    ordersError,
     fetchOrders,
     plans,
     plansLoading,
@@ -146,8 +148,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         <div className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center bg-rose-500/10 text-rose-500 border border-rose-500/20">
           <ShieldCheck className="w-7 h-7" />
         </div>
-        <h2 className="text-xl font-bold mb-2">{t.restrictedAccess}</h2>
-        <p className="text-xs text-gray-600 dark:text-gray-300 mb-6">
+        <h2 className={`text-xl font-bold mb-2 ${isLight ? 'text-gray-900' : 'text-white'}`}>{t.restrictedAccess}</h2>
+        <p className={`text-sm mb-6 ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>
           {t.restrictedAccessDesc}
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -231,7 +233,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         </div>
 
         {/* Tab Selection */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        <nav aria-label="Admin sections" className="flex items-center gap-1.5 overflow-x-auto pb-2">
           {NAV_ITEMS.map((item) => {
             const isActive = activeTab === item.id;
             return (
@@ -239,7 +241,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 key={item.id}
                 type="button"
                 onClick={() => handleTabChange(item.id)}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                aria-current={isActive ? 'page' : undefined}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current ${
                   isActive
                     ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5'
@@ -257,7 +260,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               </button>
             );
           })}
-        </div>
+        </nav>
       </div>
 
       {/* Tab Contents */}
@@ -266,6 +269,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           <CustomersTab
             customers={customers}
             custLoading={custLoading}
+            customersError={customersError}
             onRefresh={fetchCustomers}
             getAuthHeaders={getAuthHeaders}
             currentTheme={currentTheme}
@@ -278,6 +282,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           <PendingOrdersTab
             orders={orders}
             ordersLoading={ordersLoading}
+            ordersError={ordersError}
             onRefresh={fetchOrders}
             getAuthHeaders={getAuthHeaders}
             currentTheme={currentTheme}
@@ -291,6 +296,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           <RechargesTab
             orders={orders}
             ordersLoading={ordersLoading}
+            ordersError={ordersError}
             onRefresh={fetchOrders}
             getAuthHeaders={getAuthHeaders}
             currentTheme={currentTheme}

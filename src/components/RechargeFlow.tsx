@@ -68,8 +68,8 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
   const [planTab, setPlanTab] = useState<'recommended' | 'change_plan'>('recommended');
   
   // Default view state: 6 Months default selection
-  const [hdDuration, setHdDuration] = useState<1 | 6 | 12>(6);
-  const [sdDuration, setSdDuration] = useState<1 | 6 | 12>(6);
+  const [hdDuration, setHdDuration] = useState<1 | 3 | 6 | 12>(6);
+  const [sdDuration, setSdDuration] = useState<1 | 3 | 6 | 12>(6);
   const [selectedPackType, setSelectedPackType] = useState<'HD' | 'SD' | 'CUSTOM'>('HD');
 
   // Change Plan tab state
@@ -197,10 +197,12 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
 
   // Recommended Plans for selected operator from catalog
   const recHDPlan = PlanCatalogService.getRecommendedPlan(catalogPlans, selectedOpId, 'HD', hdDuration) ||
-    operatorCatalog.find((p) => p.pack_type === 'HD' && p.is_recommended);
+    operatorCatalog.find((p) => p.pack_type === 'HD' && p.duration_months === hdDuration);
 
   const recSDPlan = PlanCatalogService.getRecommendedPlan(catalogPlans, selectedOpId, 'SD', sdDuration) ||
-    operatorCatalog.find((p) => p.pack_type === 'SD' && p.is_recommended);
+    operatorCatalog.find((p) => p.pack_type === 'SD' && p.duration_months === sdDuration);
+  const hasDurationPlan = (type: 'HD' | 'SD', duration: 1 | 3 | 6 | 12) =>
+    operatorCatalog.some((plan) => plan.pack_type === type && plan.duration_months === duration);
 
   // Dynamic Savings per month calculated from catalog
   const hdSavings = PlanCatalogService.calculateSavings(catalogPlans, selectedOpId, 'HD', hdDuration);
@@ -349,7 +351,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
         
         {/* Step 1: Select Operator */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <h2 className={`text-base font-bold flex items-center gap-2 ${currentTheme.headingText}`}>
               <span 
                 className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${currentTheme.stepNumberBg} ${currentTheme.stepNumberText}`}
@@ -439,7 +441,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                 </span>
                 <span>{t.enterCardNumber}</span>
               </h2>
-              <span className={`text-xs font-semibold ${currentTheme.subText}`}>
+              <span className={`text-xs font-semibold sm:text-right ${currentTheme.subText}`}>
                 {currentOp.cardName} ({currentOp.cardLengthDesc})
               </span>
             </div>
@@ -632,22 +634,24 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                     {/* Duration Toggle */}
                     <div className="my-3 space-y-2" onClick={(e) => e.stopPropagation()}>
                       <div 
-                        className={`grid grid-cols-3 gap-1.5 p-1 rounded-xl border ${currentTheme.durationPillContainerBg}`}
+                        className={`grid grid-cols-4 gap-1 p-1 rounded-xl border ${currentTheme.durationPillContainerBg}`}
                         aria-label="Select HD duration"
                       >
-                        {([1, 6, 12] as const).map((dur) => (
+                        {([1, 3, 6, 12] as const).map((dur) => (
                           <button
                             key={dur}
                             type="button"
-                            disabled={!recHDPlan}
+                            disabled={!hasDurationPlan('HD', dur)}
                             onClick={() => {
-                              if (!recHDPlan) return;
+                              if (!hasDurationPlan('HD', dur)) return;
                               setHdDuration(dur);
                               setSelectedPackType('HD');
                               setCustomAmount('');
                             }}
                             className={`py-1.5 px-1 text-xs font-bold rounded-lg transition-all ${
-                              hdDuration === dur
+                              !hasDurationPlan('HD', dur)
+                                ? 'opacity-45 cursor-not-allowed'
+                                : hdDuration === dur
                                 ? `${currentTheme.durationPillActive} shadow-md`
                                 : `${currentTheme.durationPillInactive}`
                             }`}
@@ -658,10 +662,10 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                       </div>
                       <div className={`px-2.5 py-1.5 rounded-xl border text-xs flex items-center justify-between ${currentTheme.inputBg} ${currentTheme.inputBorder}`}>
                         <span className={`font-semibold ${currentTheme.subText}`}>
-                          {recHDPlan ? `${hdDuration * 30} ${t.days} ${t.validity}` : (currentLang === 'ta' ? 'திட்டம் இல்லை' : 'No plan available')}
+                          {recHDPlan ? `${hdDuration * 30} ${t.days} ${t.validity}` : (currentLang === 'ta' ? 'இந்த காலத்திற்கு திட்டம் இல்லை' : `No ${hdDuration}-month plan available`)}
                         </span>
                         <span className={`text-xs font-bold ${currentTheme.mutedText}`}>
-                          {recHDPlan?.channel_list ? `${recHDPlan.channel_list.length} ${t.channels}` : 'HD Pack'}
+                          {recHDPlan ? `${recHDPlan.channel_list.length} ${t.channels}` : (currentLang === 'ta' ? 'கிடைக்கவில்லை' : 'Unavailable')}
                         </span>
                       </div>
                     </div>
@@ -747,22 +751,24 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                     {/* Duration Toggle */}
                     <div className="my-3 space-y-2" onClick={(e) => e.stopPropagation()}>
                       <div 
-                        className={`grid grid-cols-3 gap-1.5 p-1 rounded-xl border ${currentTheme.durationPillContainerBg}`}
+                        className={`grid grid-cols-4 gap-1 p-1 rounded-xl border ${currentTheme.durationPillContainerBg}`}
                         aria-label="Select SD duration"
                       >
-                        {([1, 6, 12] as const).map((dur) => (
+                        {([1, 3, 6, 12] as const).map((dur) => (
                           <button
                             key={dur}
                             type="button"
-                            disabled={!recSDPlan}
+                            disabled={!hasDurationPlan('SD', dur)}
                             onClick={() => {
-                              if (!recSDPlan) return;
+                              if (!hasDurationPlan('SD', dur)) return;
                               setSdDuration(dur);
                               setSelectedPackType('SD');
                               setCustomAmount('');
                             }}
                             className={`py-1.5 px-1 text-xs font-bold rounded-lg transition-all ${
-                              sdDuration === dur
+                              !hasDurationPlan('SD', dur)
+                                ? 'opacity-45 cursor-not-allowed'
+                                : sdDuration === dur
                                 ? 'text-white shadow-md'
                                 : `${currentTheme.durationPillInactive}`
                             }`}
@@ -776,10 +782,10 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                       </div>
                       <div className={`px-2.5 py-1.5 rounded-xl border text-xs flex items-center justify-between ${currentTheme.inputBg} ${currentTheme.inputBorder}`}>
                         <span className={`font-semibold ${currentTheme.subText}`}>
-                          {recSDPlan ? `${sdDuration * 30} ${t.days} ${t.validity}` : (currentLang === 'ta' ? 'திட்டம் இல்லை' : 'No plan available')}
+                          {recSDPlan ? `${sdDuration * 30} ${t.days} ${t.validity}` : (currentLang === 'ta' ? 'இந்த காலத்திற்கு திட்டம் இல்லை' : `No ${sdDuration}-month plan available`)}
                         </span>
                         <span className={`text-xs font-bold ${currentTheme.mutedText}`}>
-                          {recSDPlan?.channel_list ? `${recSDPlan.channel_list.length} ${t.channels}` : 'SD Pack'}
+                          {recSDPlan ? `${recSDPlan.channel_list.length} ${t.channels}` : (currentLang === 'ta' ? 'கிடைக்கவில்லை' : 'Unavailable')}
                         </span>
                       </div>
                     </div>

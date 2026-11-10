@@ -76,14 +76,14 @@ export const PlanCard: React.FC<PlanCardProps> = ({
                 className="w-2.5 h-2.5 rounded-full"
                 style={{ backgroundColor: opInfo.color }}
               />
-              <span className="font-bold text-xs uppercase tracking-wider opacity-90">
+              <span className="font-bold text-xs">
                 {currentLang === 'ta' && opInfo.tamil ? opInfo.tamil : opInfo.name}
               </span>
               <span 
                 className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${
                   plan.type === 'HD' 
-                    ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40' 
-                    : 'bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-500/40'
+                    ? `bg-amber-500/20 ${isLight ? 'text-amber-900' : 'text-amber-200'} border border-amber-500/40`
+                      : `bg-blue-500/20 ${isLight ? 'text-blue-900' : 'text-blue-200'} border border-blue-500/40`
                 }`}
               >
                 {plan.type}
@@ -121,35 +121,35 @@ export const PlanCard: React.FC<PlanCardProps> = ({
           {/* Ranking & Highlight Tags */}
           <div className="flex flex-wrap items-center gap-1.5 min-h-[24px]">
             {plan.is_best_value && (
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40 flex items-center gap-1">
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 ${isLight ? 'text-amber-900' : 'text-amber-200'} border border-amber-500/40 flex items-center gap-1`}>
                 <Zap className="w-3 h-3 fill-amber-500 text-amber-500" />
                 <span>{t.saveBadge}</span>
               </span>
             )}
 
             {plan.is_best_savings && (
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 ${isLight ? 'text-emerald-900' : 'text-emerald-200'} border border-emerald-500/40 flex items-center gap-1`}>
                 <Percent className="w-3 h-3 text-emerald-500" />
                 <span>{t.bestSavings}</span>
               </span>
             )}
 
             {plan.is_recommended && (
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/40 flex items-center gap-1">
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-500/20 ${isLight ? 'text-purple-900' : 'text-purple-200'} border border-purple-500/40 flex items-center gap-1`}>
                 <Crown className="w-3 h-3 text-purple-500" />
                 <span>{t.popularBadge}</span>
               </span>
             )}
 
             {(plan.savings_pct || 0) > 0 && (
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40">
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 ${isLight ? 'text-emerald-900' : 'text-emerald-200'} border border-emerald-500/40`}>
                 {plan.savings_pct}% Off
               </span>
             )}
           </div>
 
           {/* Plan Name */}
-          <h3 className="font-bold text-base line-clamp-1 leading-snug">
+          <h3 className="font-bold text-base leading-snug break-words">
             {currentLang === 'ta' && plan.tamilName ? plan.tamilName : plan.name}
           </h3>
 
@@ -158,7 +158,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({
             isLight ? 'bg-gray-50 border-gray-200' : 'bg-black/25 border-white/10'
           }`}>
             <div className="space-y-0.5">
-              <span className="text-xs text-gray-500 dark:text-gray-400 block font-medium">
+              <span className={`text-xs block font-medium ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>
                 {t.channels}
               </span>
               <span className="font-bold text-sm">
@@ -170,7 +170,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({
             </div>
 
             <div className="space-y-0.5">
-              <span className="text-xs text-gray-500 dark:text-gray-400 block font-medium">
+              <span className={`text-xs block font-medium ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>
                 {t.validity}
               </span>
               <span className="font-bold text-sm">

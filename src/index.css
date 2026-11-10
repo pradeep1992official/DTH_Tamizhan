@@ -7,22 +7,80 @@
 }
 
 @layer base {
+  html,
+  body {
+    overflow-x: clip;
+  }
+
   html, body {
-    font-family: 'Plus Jakarta Sans', 'Noto Sans Tamil', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    min-width: 0;
+    text-wrap: balance;
   }
 }
 
 @layer utilities {
   /* Legacy alias mapped to clean, modern, high-legibility geometric sans */
   .font-serif-royal {
-    font-family: 'Plus Jakarta Sans', 'Noto Sans Tamil', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: var(--font-heading);
     letter-spacing: -0.02em;
   }
   .font-cinzel {
-    font-family: 'Plus Jakarta Sans', 'Noto Sans Tamil', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: var(--font-heading);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      scroll-behavior: auto !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  @media print {
+    body * {
+      visibility: hidden !important;
+    }
+
+    .receipt-print,
+    .receipt-print * {
+      visibility: visible !important;
+    }
+
+    .receipt-print {
+      position: absolute !important;
+      inset: 0 !important;
+      width: 100% !important;
+      max-height: none !important;
+      overflow: visible !important;
+      background: #fff !important;
+      color: #111827 !important;
+      border: 0 !important;
+      box-shadow: none !important;
+    }
+
+    .receipt-print * {
+      color: #111827 !important;
+      background-color: transparent !important;
+      border-color: #d1d5db !important;
+      box-shadow: none !important;
+    }
+
+    .receipt-print button {
+      display: none !important;
+    }
   }
   .tabular-nums {
     font-variant-numeric: tabular-nums;

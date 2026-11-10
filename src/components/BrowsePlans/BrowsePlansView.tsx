@@ -7,9 +7,8 @@ import {
   RotateCcw,
   AlertCircle,
   RefreshCw,
-  Check
 } from 'lucide-react';
-import { BrowsePlan, DthConnection, DthOperatorId, Language, PlanFilters, UserProfile } from '../../types';
+import { BrowsePlan, DthConnection, Language, PlanFilters, UserProfile } from '../../types';
 import { OperatorTheme } from '../../lib/theme';
 import { INITIAL_BROWSE_PLANS, computePlanMetrics, filterAndSortPlans, catalogItemToBrowsePlan } from '../../lib/browsePlansData';
 import { PlanFilterSidebar } from './PlanFilterSidebar';
@@ -168,24 +167,6 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
     setFilters(DEFAULT_FILTERS);
   };
 
-  // Fast Operator Pill toggles
-  const handleToggleOperatorQuick = (opId: DthOperatorId) => {
-    setFilters((prev) => {
-      const exists = prev.operators.includes(opId);
-      const newOps = exists
-        ? prev.operators.filter((o) => o !== opId)
-        : [...prev.operators, opId];
-      return { ...prev, operators: newOps };
-    });
-  };
-
-  const OPERATOR_PILLS: { id: DthOperatorId; label: string; color: string }[] = [
-    { id: 'sun_direct', label: 'Sun Direct', color: '#F97316' },
-    { id: 'tata_play', label: 'Tata Play', color: '#EC4899' },
-    { id: 'airtel_dth', label: 'Airtel', color: '#EF4444' },
-    { id: 'dish_tv', label: 'Dish TV & D2H', color: '#EB5B26' },
-  ];
-
   return (
     <div className="space-y-6">
       {/* Top Hero Banner */}
@@ -206,40 +187,9 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
               {t.browsePacksTitle}
             </h1>
           </div>
-          <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+          <p className={`text-sm leading-relaxed ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>
             {t.browsePacksSubtitle}
           </p>
-
-          {/* Quick Operator Filter Pills */}
-          <div className="flex flex-wrap items-center gap-2 pt-2">
-            <span className="text-xs font-bold text-gray-600 dark:text-gray-400 mr-1">
-              {t.filterByOperator}:
-            </span>
-            {OPERATOR_PILLS.map((op) => {
-              const isSelected = filters.operators.includes(op.id);
-              return (
-                <button
-                  key={op.id}
-                  type="button"
-                  onClick={() => handleToggleOperatorQuick(op.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border shadow-xs ${
-                    isSelected
-                      ? 'text-white border-transparent'
-                      : isLight
-                      ? 'bg-gray-50 border-gray-300 text-gray-800 hover:bg-gray-100'
-                      : 'bg-white/10 border-white/20 text-gray-200 hover:bg-white/20'
-                  }`}
-                  style={{
-                    backgroundColor: isSelected ? op.color : undefined,
-                  }}
-                >
-                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: op.color }} />
-                  <span>{op.label}</span>
-                  {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                </button>
-              );
-            })}
-          </div>
         </div>
       </div>
 
@@ -270,7 +220,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
           {/* Sort Selector */}
           <div className="flex items-center gap-2 text-xs">
             <ArrowUpDown className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-            <span className="font-bold text-gray-700 dark:text-gray-300 hidden sm:inline">{t.sortBy}:</span>
+            <span className={`font-bold hidden sm:inline ${isLight ? 'text-gray-800' : 'text-gray-200'}`}>{t.sortBy}:</span>
             <select
               value={filters.sortBy}
               onChange={(e) => setFilters((prev) => ({ ...prev, sortBy: e.target.value as any }))}
@@ -346,13 +296,13 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
               </div>
 
               <div className="space-y-2 max-w-md mx-auto">
-                <h3 className="font-bold text-lg text-rose-600 dark:text-rose-400">
+                <h3 className={`font-bold text-lg ${isLight ? 'text-rose-800' : 'text-rose-300'}`}>
                   {t.failedToLoadCatalog}
                 </h3>
-                <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
+                <p className={`text-sm leading-relaxed ${isLight ? 'text-gray-800' : 'text-gray-200'}`}>
                   {fetchError}
                 </p>
-                <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">
+                <p className={`text-sm font-semibold ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>
                   {t.checkConnectionOrRetry}
                 </p>
               </div>
@@ -397,7 +347,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
 
               {/* Results count banner */}
               <div className="flex items-center justify-between text-xs px-1">
-                <span className="font-bold text-gray-700 dark:text-gray-300">
+                <span className={`font-bold ${isLight ? 'text-gray-800' : 'text-gray-200'}`}>
                   {displayedPlans.length} {displayedPlans.length === 1 ? t.pack : t.packs}
                 </span>
 

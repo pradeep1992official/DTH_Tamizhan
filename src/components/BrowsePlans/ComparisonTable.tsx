@@ -78,7 +78,7 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
               <h3 id="comparison-modal-title" className="text-lg font-bold">
                 {t.comparePacks}
               </h3>
-              <p className="text-xs text-gray-500 dark:text-gray-300">
+              <p className={`text-xs ${isLight ? 'text-gray-600' : 'text-gray-300'}`}>
                 {plans.length} {plans.length === 1 ? t.pack : t.packs} {t.selected}
               </p>
             </div>
@@ -96,7 +96,59 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
 
         {/* Comparison Content Table (Scrollable) */}
         <div className="flex-1 overflow-auto p-4 sm:p-6">
-          <div className="min-w-[640px]">
+          <div className="sm:hidden space-y-3">
+            {plans.map((plan) => {
+              const op = OPERATOR_DATA[plan.operator] || { name: plan.operator, color: currentTheme.primaryColor };
+              return (
+                <article
+                  key={plan.id}
+                  className={`rounded-2xl border p-4 ${isLight ? 'border-gray-200 bg-gray-50' : 'border-white/10 bg-white/5'}`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <span className="inline-flex rounded px-2 py-0.5 text-xs font-bold text-white" style={{ backgroundColor: op.color }}>
+                        {op.name}
+                      </span>
+                      <h4 className="mt-2 break-words font-bold">{plan.name}</h4>
+                    </div>
+                    {onRemovePlan && (
+                      <button
+                        type="button"
+                        onClick={() => onRemovePlan(plan.id)}
+                        aria-label={`Remove ${plan.name} from comparison`}
+                        className="shrink-0 rounded-lg p-2 text-gray-500 hover:bg-rose-500/10 hover:text-rose-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-500"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                  <p className="mt-3 text-2xl font-extrabold" style={{ color: currentTheme.primaryColor }}>₹{plan.price}</p>
+                  <dl className={`mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t pt-3 text-xs ${isLight ? 'border-gray-200' : 'border-white/10'}`}>
+                    <dt className={isLight ? 'text-gray-600' : 'text-gray-300'}>{t.qualityLabel}</dt>
+                    <dd className="text-right font-semibold">{plan.type} {t.clarity}</dd>
+                    <dt className={isLight ? 'text-gray-600' : 'text-gray-300'}>{t.channels}</dt>
+                    <dd className="text-right font-semibold">{plan.channel_count} {t.total}</dd>
+                    <dt className={isLight ? 'text-gray-600' : 'text-gray-300'}>{t.validity}</dt>
+                    <dd className="text-right font-semibold">{plan.duration_months === 1 ? `1 ${t.month}` : `${plan.duration_months} ${t.months}`}</dd>
+                    <dt className={isLight ? 'text-gray-600' : 'text-gray-300'}>{t.monthlyEquivalent}</dt>
+                    <dd className="text-right font-semibold">₹{plan.monthly_equivalent_rate || Math.round(plan.price / plan.duration_months)} {t.perMonth}</dd>
+                    <dt className={isLight ? 'text-gray-600' : 'text-gray-300'}>{t.savingsPercent}</dt>
+                    <dd className="text-right font-semibold">{(plan.savings_pct || 0) > 0 ? `${plan.savings_pct}% ${t.saved}` : t.standardRate}</dd>
+                  </dl>
+                  <button
+                    type="button"
+                    onClick={() => onSelectPlan(plan)}
+                    className="mt-4 w-full rounded-xl px-4 py-2.5 text-sm font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+                    style={{ backgroundColor: currentTheme.primaryColor }}
+                  >
+                    {t.selectThisPack}
+                  </button>
+                </article>
+              );
+            })}
+          </div>
+
+          <div className="hidden sm:block min-w-[640px]">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr>
@@ -121,12 +173,13 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
                                 onClick={() => onRemovePlan(p.id)}
                                 className="text-gray-400 hover:text-rose-500 p-1"
                                 title="Remove from compare"
+                                aria-label={`Remove ${p.name} from comparison`}
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             )}
                           </div>
-                          <h4 className="font-bold text-sm line-clamp-1">{p.name}</h4>
+                          <h4 className="font-bold text-sm break-words">{p.name}</h4>
                           <span className="text-xl font-extrabold block" style={{ color: currentTheme.primaryColor }}>
                             ₹{p.price}
                           </span>
@@ -138,11 +191,13 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
               </thead>
               <tbody className="divide-y divide-gray-500/20 text-xs">
                 <tr>
-                  <td className="p-3 font-semibold text-gray-500 dark:text-gray-400">{t.qualityLabel}</td>
+                  <td className={`p-3 font-semibold ${isLight ? 'text-gray-600' : 'text-gray-300'}`}>{t.qualityLabel}</td>
                   {plans.map((p) => (
                     <td key={p.id} className="p-3 font-bold">
                       <span className={`px-2 py-0.5 rounded text-xs font-mono font-bold ${
-                        p.type === 'HD' ? 'bg-amber-500/20 text-amber-600 dark:text-amber-300' : 'bg-blue-500/20 text-blue-600 dark:text-blue-300'
+                        p.type === 'HD'
+                          ? `bg-amber-500/20 ${isLight ? 'text-amber-900' : 'text-amber-200'}`
+                          : `bg-blue-500/20 ${isLight ? 'text-blue-900' : 'text-blue-200'}`
                       }`}>
                         {p.type} {t.clarity}
                       </span>
@@ -150,7 +205,7 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
                   ))}
                 </tr>
                 <tr>
-                  <td className="p-3 font-semibold text-gray-500 dark:text-gray-400">{t.channels}</td>
+                  <td className={`p-3 font-semibold ${isLight ? 'text-gray-600' : 'text-gray-300'}`}>{t.channels}</td>
                   {plans.map((p) => (
                     <td key={p.id} className="p-3 font-bold">
                       {p.channel_count} {t.total} {p.hd_channel_count ? `(${p.hd_channel_count} HD)` : ''}
@@ -158,7 +213,7 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
                   ))}
                 </tr>
                 <tr>
-                  <td className="p-3 font-semibold text-gray-500 dark:text-gray-400">{t.validity}</td>
+                  <td className={`p-3 font-semibold ${isLight ? 'text-gray-600' : 'text-gray-300'}`}>{t.validity}</td>
                   {plans.map((p) => (
                     <td key={p.id} className="p-3 font-bold">
                       {p.duration_months === 1 ? `1 ${t.month}` : `${p.duration_months} ${t.months}`}
@@ -166,7 +221,7 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
                   ))}
                 </tr>
                 <tr>
-                  <td className="p-3 font-semibold text-gray-500 dark:text-gray-400">{t.monthlyEquivalent}</td>
+                  <td className={`p-3 font-semibold ${isLight ? 'text-gray-600' : 'text-gray-300'}`}>{t.monthlyEquivalent}</td>
                   {plans.map((p) => (
                     <td key={p.id} className="p-3 font-mono font-bold text-amber-500">
                       ₹{p.monthly_equivalent_rate || Math.round(p.price / p.duration_months)} {t.perMonth}
@@ -174,7 +229,7 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
                   ))}
                 </tr>
                 <tr>
-                  <td className="p-3 font-semibold text-gray-500 dark:text-gray-400">{t.savingsPercent}</td>
+                  <td className={`p-3 font-semibold ${isLight ? 'text-gray-600' : 'text-gray-300'}`}>{t.savingsPercent}</td>
                   {plans.map((p) => (
                     <td key={p.id} className="p-3 font-bold text-emerald-500">
                       {(p.savings_pct || 0) > 0 ? `${p.savings_pct}% ${t.saved}` : t.standardRate}
@@ -182,7 +237,7 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
                   ))}
                 </tr>
                 <tr>
-                  <td className="p-3 font-semibold text-gray-500 dark:text-gray-400">{t.action}</td>
+                  <td className={`p-3 font-semibold ${isLight ? 'text-gray-600' : 'text-gray-300'}`}>{t.action}</td>
                   {plans.map((p) => (
                     <td key={p.id} className="p-3">
                       <button

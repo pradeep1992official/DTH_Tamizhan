@@ -24,6 +24,7 @@ import { useAccessibleModal } from '../../../lib/useAccessibleModal';
 interface CustomersTabProps {
   customers: CustomerRecord[];
   custLoading: boolean;
+  customersError: string | null;
   onRefresh: () => void;
   getAuthHeaders: () => Promise<Record<string, string>>;
   currentTheme: OperatorTheme;
@@ -34,6 +35,7 @@ interface CustomersTabProps {
 export const CustomersTab: React.FC<CustomersTabProps> = ({
   customers,
   custLoading,
+  customersError,
   onRefresh,
   getAuthHeaders,
   currentTheme,
@@ -178,7 +180,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
       {/* Top Filter Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3 flex-1">
-          <div className="relative flex-1 min-w-[200px] max-w-md">
+          <div className="relative w-full sm:flex-1 sm:max-w-md min-w-0">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
@@ -239,27 +241,36 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
           <table className="w-full text-left text-xs">
             <thead className={`border-b ${isLight ? 'bg-gray-50/80 text-gray-700 border-gray-200' : 'bg-white/[0.03] text-gray-300 border-white/10'}`}>
               <tr>
-                <th className="p-3.5 font-bold uppercase tracking-wider">Customer Name</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">Operator & Smart Card</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">Active Pack</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">Balance & Expiry</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">Location</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider text-right">{t.actions}</th>
+                <th className="p-3.5 font-semibold">Customer</th>
+                <th className="hidden md:table-cell p-3.5 font-semibold">Operator & smart card</th>
+                <th className="hidden md:table-cell p-3.5 font-semibold">Active pack</th>
+                <th className="p-3.5 font-semibold">Balance & expiry</th>
+                <th className="hidden lg:table-cell p-3.5 font-semibold">Location</th>
+                <th className="p-3.5 font-semibold text-right">{t.actions}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-500/10">
               {custLoading ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-gray-400">
+                  <td colSpan={6} className="p-8 text-center text-gray-600 dark:text-gray-300">
                     <div className="flex items-center justify-center gap-2">
                       <RefreshCw className="w-4 h-4 animate-spin text-amber-500" />
                       <span>Loading subscribers from database...</span>
                     </div>
                   </td>
                 </tr>
+              ) : customersError ? (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center">
+                    <p role="alert" className="text-sm font-semibold text-rose-600 dark:text-rose-300">{customersError}</p>
+                    <button type="button" onClick={onRefresh} className="mt-3 rounded-lg border px-3 py-1.5 text-xs font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">
+                      Retry loading customers
+                    </button>
+                  </td>
+                </tr>
               ) : filteredCustomers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-gray-500">
+                  <td colSpan={6} className="p-8 text-center text-gray-700 dark:text-gray-300">
                     No customers found matching your criteria.
                   </td>
                 </tr>
@@ -272,15 +283,20 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
                         <Phone className="w-3.5 h-3.5" />
                         <span>{cust.registeredMobile}</span>
                       </div>
+                      <div className="md:hidden text-xs text-gray-700 dark:text-gray-300 mt-1">
+                        {cust.operatorName} · {cust.smartCardNumber}
+                      </div>
                     </td>
-                    <td className="p-3.5">
+                    <td className="hidden md:table-cell p-3.5">
                       <div className="font-semibold text-gray-900 dark:text-white">{cust.operatorName}</div>
                       <div className="font-mono text-xs text-gray-600 dark:text-gray-400">{cust.smartCardNumber}</div>
                     </td>
-                    <td className="p-3.5">
+                    <td className="hidden md:table-cell p-3.5">
                       <div className="font-medium text-gray-800 dark:text-gray-200">{cust.activePackName}</div>
                       <span className={`text-xs px-2.5 py-0.5 rounded-md font-bold uppercase mt-1 inline-block ${
-                        cust.planQuality === 'HD' ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30' : 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30'
+                        cust.planQuality === 'HD'
+                          ? `bg-amber-500/20 ${isLight ? 'text-amber-900' : 'text-amber-200'} border border-amber-500/30`
+                          : `bg-blue-500/20 ${isLight ? 'text-blue-900' : 'text-blue-200'} border border-blue-500/30`
                       }`}>
                         {cust.planQuality || 'HD'}
                       </span>
@@ -292,7 +308,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
                         <span>Expires: {cust.expiryDate}</span>
                       </div>
                     </td>
-                    <td className="p-3.5">
+                    <td className="hidden lg:table-cell p-3.5">
                       <div className="text-xs flex items-center gap-1 text-gray-700 dark:text-gray-300">
                         <MapPin className="w-3.5 h-3.5 text-rose-400" />
                         <span>{cust.registeredCity || 'Madurai, TN'}</span>
@@ -330,7 +346,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
             role="dialog"
             aria-modal="true"
             aria-labelledby="add-subscriber-title"
-            className={`border rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl text-left ${
+            className={`border rounded-3xl max-h-[calc(100dvh-2rem)] overflow-y-auto max-w-md w-full p-6 space-y-4 shadow-2xl text-left ${
               isLight ? 'bg-white border-gray-200 text-gray-900' : 'bg-[#180530] border-white/20 text-white'
             }`}
           >

@@ -505,7 +505,7 @@ function MainApp() {
               />
             }
           />
-          <Route path="/security" element={<SecurityNotice />} />
+          <Route path="/security" element={<SecurityNotice currentTheme={currentTheme} />} />
 
           {/* Admin Routes with react-router parameterization */}
           <Route
@@ -603,6 +603,7 @@ function MainApp() {
           isOpen={isPaymentOpen}
           onClose={() => setIsPaymentOpen(false)}
           currentLang={currentLang}
+          currentTheme={currentTheme}
           user={user}
           plan={activePaymentPlan}
           subscriber={activeSubscriber}

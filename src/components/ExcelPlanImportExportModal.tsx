@@ -306,7 +306,7 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
             </button>
           </div>
 
-          <span className={`text-[11px] font-mono hidden md:inline ${currentTheme.subText}`}>
+          <span className={`text-xs font-mono hidden md:inline ${currentTheme.subText}`}>
             {plans.length} Live Catalog Packs Active
           </span>
         </div>
@@ -838,7 +838,7 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
                       <tr>
                         <td className="p-2.5 font-mono font-bold">Duration (Months)</td>
                         <td className="p-2.5 font-mono text-[11px] opacity-75">duration, months</td>
-                        <td className="p-2.5 font-mono text-[11px]">1, 6, or 12</td>
+                        <td className="p-2.5 font-mono text-[11px]">1, 3, 6, or 12</td>
                         <td className="p-2.5 text-emerald-600 font-bold">Mandatory</td>
                       </tr>
                       <tr>

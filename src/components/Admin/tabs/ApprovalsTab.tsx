@@ -163,7 +163,7 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
                 Administrator Authorization & Team Management
               </h3>
               <span 
-                className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border"
+                className="text-xs font-semibold px-2 py-1 rounded border"
                 style={{
                   backgroundColor: `${currentTheme.primaryColor}15`,
                   color: currentTheme.primaryColor,
@@ -173,7 +173,7 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
                 RBAC
               </span>
             </div>
-            <p className={`text-xs mt-0.5 ${currentTheme.subText}`}>
+            <p className={`text-sm mt-1 ${currentTheme.subText}`}>
               Authorize administrative accounts to grant operations access across customer records, recharge orders, and catalog pricing.
             </p>
           </div>
@@ -327,7 +327,8 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
                           <button
                             type="button"
                             onClick={() => handleRevokeAdmin(admin)}
-                            className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-500/10 transition-colors"
+                            aria-label={`${t.revokeAccess}: ${admin.email}`}
+                            className="p-1.5 rounded-lg text-rose-700 hover:bg-rose-100 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-600 dark:text-rose-300 dark:hover:bg-rose-500/10 dark:focus-visible:outline-rose-300"
                             title={t.revokeAccess}
                           >
                             <Trash2 className="w-4 h-4" />
@@ -353,7 +354,7 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
         >
           <div
             ref={revokeModalRef}
-            className={`w-full max-w-md p-6 rounded-3xl border shadow-2xl relative ${
+            className={`w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 rounded-3xl border shadow-2xl relative ${
               isLight ? 'bg-white border-gray-200 text-gray-900' : 'bg-[#0f172a] border-white/10 text-white'
             }`}
           >

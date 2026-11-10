@@ -92,6 +92,14 @@ export const ToggleOperatorSchema = z.object({
   expectedRestoration: z.string().max(50).optional(),
 });
 
+export const InstallationRequestSchema = z.object({
+  operator: z.enum(['sun_direct', 'tata_play', 'airtel_dth']),
+  name: z.string().trim().min(2).max(100),
+  mobile: z.string().regex(/^[0-9]{10}$/, 'A 10-digit mobile number is required'),
+  district: z.string().trim().min(2).max(80),
+  address: z.string().trim().min(5).max(300),
+});
+
 /**
  * Middleware factory for validating incoming request bodies against a Zod schema
  */

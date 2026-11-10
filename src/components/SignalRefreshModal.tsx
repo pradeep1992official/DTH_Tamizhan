@@ -107,7 +107,7 @@ export const SignalRefreshModal: React.FC<SignalRefreshModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="signal-refresh-title"
-        className="bg-[#0e1935] border border-[#1e3058] rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl relative text-left"
+        className="bg-[#0e1935] border border-[#1e3058] rounded-3xl w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto shadow-2xl relative text-left"
       >
         {/* Header */}
         <div className="px-6 py-4 border-b border-[#172545] flex items-center justify-between bg-[#070e1e]/90">
@@ -242,10 +242,17 @@ export const SignalRefreshModal: React.FC<SignalRefreshModalProps> = ({
                     {formatTimer(timer)}
                   </span>
                 </div>
-                <div className="w-full bg-[#0b1429] h-2 rounded-full overflow-hidden">
+                <div
+                  className="w-full bg-[#0b1429] h-2 rounded-full overflow-hidden"
+                  role="progressbar"
+                  aria-label="Transponder sync time remaining"
+                  aria-valuemin={0}
+                  aria-valuemax={300}
+                  aria-valuenow={timer}
+                >
                   <div 
-                    className="bg-amber-400 h-full transition-all duration-1000"
-                    style={{ width: `${(timer / 300) * 100}%` }}
+                    className="bg-amber-400 h-full origin-left transition-transform duration-1000"
+                    style={{ transform: `scaleX(${timer / 300})` }}
                   />
                 </div>
               </div>

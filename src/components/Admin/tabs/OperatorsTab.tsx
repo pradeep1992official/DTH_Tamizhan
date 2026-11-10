@@ -51,14 +51,17 @@ export const OperatorsTab: React.FC<OperatorsTabProps> = ({
     setIsToggling(true);
     try {
       const headers = await getAuthHeaders();
-      const willBeActive = !operatorToToggle.isActive;
+      const wasActive = operatorToToggle.isEnabled ?? operatorToToggle.isActive ?? true;
+      const willBeActive = !wasActive;
       const res = await fetch('/api/admin/operators/toggle', {
         method: 'POST',
         headers,
         body: JSON.stringify({
           operatorId: operatorToToggle.id,
-          isActive: willBeActive,
-          disableReason: willBeActive ? undefined : disableReason,
+          isEnabled: willBeActive,
+          condition: willBeActive ? undefined : 'custom',
+          conditionLabel: willBeActive ? undefined : disableReason,
+          maintenanceMessage: willBeActive ? undefined : disableReason,
         }),
       });
 
@@ -135,32 +138,34 @@ export const OperatorsTab: React.FC<OperatorsTabProps> = ({
       </div>
 
       {/* Operators Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="space-y-2">
         {operators.map((op) => {
-          const isActive = op.isActive !== false;
+          const isActive = op.isEnabled ?? op.isActive ?? true;
           return (
             <div
               key={op.id}
-              className={`p-5 rounded-2xl border transition-all ${
+              className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 rounded-xl border transition-colors ${
                 isLight ? 'bg-white border-gray-200 shadow-xs' : 'bg-black/20 border-white/10'
               } ${!isActive ? 'border-amber-500/40' : ''}`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 flex items-center justify-center font-bold text-sm">
-                    <Tv className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                  <div className={`w-10 h-10 rounded-xl border flex items-center justify-center font-bold text-sm ${
+                    isLight ? 'bg-gray-100 border-gray-200 text-gray-700' : 'bg-white/5 border-white/10 text-gray-300'
+                  }`}>
+                    <Tv className="w-5 h-5" />
                   </div>
                   <div>
                     <h4 className="text-sm font-bold">{op.name}</h4>
-                    <p className="text-xs font-mono text-gray-600 dark:text-gray-300">{op.id}</p>
+                    <p className={`text-xs font-mono ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>{op.id}</p>
                   </div>
                 </div>
 
                 <span
                   className={`px-2.5 py-1 rounded-full text-xs font-bold border flex items-center gap-1 ${
                     isActive
-                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-                      : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
+                      ? `bg-emerald-500/10 ${isLight ? 'text-emerald-900' : 'text-emerald-200'} border-emerald-500/20`
+                      : `bg-rose-500/10 ${isLight ? 'text-rose-900' : 'text-rose-200'} border-rose-500/20`
                   }`}
                 >
                   <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-rose-500'}`} />
@@ -168,10 +173,12 @@ export const OperatorsTab: React.FC<OperatorsTabProps> = ({
                 </span>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-gray-100 dark:border-white/5 space-y-2 text-xs">
-                <div className="flex items-center justify-between text-gray-600 dark:text-gray-300 text-xs">
+              <div className={`sm:flex-1 sm:px-4 sm:border-l sm:border-r space-y-2 text-sm ${
+                isLight ? 'sm:border-gray-200' : 'sm:border-white/10'
+              }`}>
+                <div className={`flex items-center justify-between ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>
                   <span>{t.viewingCardFormat}</span>
-                  <span className="font-mono font-medium text-gray-800 dark:text-gray-200">
+                  <span className={`font-mono font-medium ${isLight ? 'text-gray-900' : 'text-gray-100'}`}>
                     {op.smartCardLength} {t.digits}
                   </span>
                 </div>
@@ -183,7 +190,7 @@ export const OperatorsTab: React.FC<OperatorsTabProps> = ({
                 )}
               </div>
 
-              <div className="mt-4">
+              <div className="sm:w-44 sm:shrink-0">
                 <button
                   type="button"
                   onClick={() => setOperatorToToggle(op)}
@@ -215,7 +222,7 @@ export const OperatorsTab: React.FC<OperatorsTabProps> = ({
             role="dialog"
             aria-modal="true"
             aria-labelledby="operator-toggle-title"
-            className={`max-w-md w-full p-6 rounded-2xl border shadow-xl text-left ${isLight ? 'bg-white border-gray-200 text-gray-900' : 'bg-[#0f172a] border-white/10 text-white'}`}
+            className={`max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 rounded-2xl border shadow-xl text-left ${isLight ? 'bg-white border-gray-200 text-gray-900' : 'bg-[#0f172a] border-white/10 text-white'}`}
           >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2 font-bold text-sm">
@@ -234,13 +241,13 @@ export const OperatorsTab: React.FC<OperatorsTabProps> = ({
 
             <p className="text-xs text-gray-600 dark:text-gray-300 mb-4 leading-relaxed">
               {currentLang === 'ta'
-                ? `நீங்கள் நிச்சயமாக ${operatorToToggle.name} ஆபரேட்டரை ${operatorToToggle.isActive !== false ? 'நிறுத்தி வைக்க' : 'மீண்டும் செயல்படுத்த'} விரும்புகிறீர்களா?`
-                : `Are you sure you want to ${operatorToToggle.isActive !== false ? 'suspend' : 're-enable'} ${operatorToToggle.name}?`}
+                ? `நீங்கள் நிச்சயமாக ${operatorToToggle.name} ஆபரேட்டரை ${(operatorToToggle.isEnabled ?? operatorToToggle.isActive ?? true) ? 'நிறுத்தி வைக்க' : 'மீண்டும் செயல்படுத்த'} விரும்புகிறீர்களா?`
+                : `Are you sure you want to ${(operatorToToggle.isEnabled ?? operatorToToggle.isActive ?? true) ? 'suspend' : 're-enable'} ${operatorToToggle.name}?`}
             </p>
 
-            {operatorToToggle.isActive !== false && (
+            {(operatorToToggle.isEnabled ?? operatorToToggle.isActive ?? true) && (
               <div className="space-y-1.5 mb-4">
-                <label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                <label className={`text-sm font-semibold ${isLight ? 'text-gray-800' : 'text-gray-200'}`}>
                   {t.suspensionReason}
                 </label>
                 <input

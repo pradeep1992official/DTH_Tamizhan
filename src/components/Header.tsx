@@ -66,10 +66,12 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Main Navigation Bar */}
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
         {/* Brand Treatment: Official DTH Tamizhan Logo */}
-        <div 
+        <button
+          type="button"
           onClick={() => onTabChange('recharge')} 
-          className="flex items-center gap-3 cursor-pointer group"
+          className="flex items-center gap-3 text-left group focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current rounded-xl"
           id="brand-logo-btn"
+          aria-label="DTH Tamizhan home"
         >
           <div 
             className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg transition-all border ${
@@ -94,14 +96,15 @@ export const Header: React.FC<HeaderProps> = ({
               {t.brandTagline}
             </p>
           </div>
-        </div>
+        </button>
 
         {/* Center Navigation Links: Dynamic Token Styling */}
-        <nav className={`hidden md:flex items-center gap-1 p-1 rounded-xl border ${currentTheme.navContainerBg} ${currentTheme.navContainerBorder}`}>
+        <nav aria-label="Main navigation" className={`hidden lg:flex items-center gap-1 p-1 rounded-xl border ${currentTheme.navContainerBg} ${currentTheme.navContainerBorder}`}>
           <button
             id="nav-recharge-btn"
             onClick={() => onTabChange('recharge')}
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold tracking-wide transition-all ${
+            aria-current={activeTab === 'recharge' ? 'page' : undefined}
+            className={`px-4 py-1.5 rounded-lg text-xs font-bold tracking-wide transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current ${
               activeTab === 'recharge'
                 ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText} shadow-sm`
                 : `${currentTheme.navInactiveText} ${currentTheme.navInactiveHoverBg}`
@@ -112,7 +115,8 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             id="nav-plans-btn"
             onClick={() => onTabChange('plans')}
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold tracking-wide transition-all ${
+            aria-current={activeTab === 'plans' ? 'page' : undefined}
+            className={`px-4 py-1.5 rounded-lg text-xs font-bold tracking-wide transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current ${
               activeTab === 'plans'
                 ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText} shadow-sm`
                 : `${currentTheme.navInactiveText} ${currentTheme.navInactiveHoverBg}`
@@ -123,7 +127,8 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             id="nav-connections-btn"
             onClick={() => onTabChange('connections')}
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold tracking-wide transition-all ${
+            aria-current={activeTab === 'connections' ? 'page' : undefined}
+            className={`px-4 py-1.5 rounded-lg text-xs font-bold tracking-wide transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current ${
               activeTab === 'connections'
                 ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText} shadow-sm`
                 : `${currentTheme.navInactiveText} ${currentTheme.navInactiveHoverBg}`
@@ -135,7 +140,8 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               id="nav-admin-btn"
               onClick={() => onTabChange('admin-portal')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold tracking-wide transition-all flex items-center gap-1.5 ${
+              aria-current={activeTab === 'admin-portal' ? 'page' : undefined}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold tracking-wide transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current flex items-center gap-1.5 ${
                 activeTab === 'admin-portal'
                   ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText} shadow-sm`
                   : `${currentTheme.navInactiveText} ${currentTheme.navInactiveHoverBg}`
@@ -153,7 +159,9 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               id="profile-dropdown-trigger-btn"
               onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-              className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl border transition-all shadow-sm focus:outline-none ${
+              aria-expanded={isProfileDropdownOpen}
+              aria-controls="profile-settings-panel"
+              className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl border transition-all shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current ${
                 isLight
                   ? 'bg-[#FFFFFF] hover:bg-[#F5F5F5] border-[#D4D4D4] text-[#000000]'
                   : 'bg-[#0d172e] hover:bg-[#142244] border-[#1e2f54] text-[#f5f2eb]'
@@ -186,7 +194,7 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Floating Profile Dropdown Menu */}
             {isProfileDropdownOpen && (
-              <div className={`absolute right-0 mt-2 w-72 rounded-2xl shadow-2xl py-2 text-xs z-50 animate-in fade-in zoom-in-95 divide-y border ${
+              <div id="profile-settings-panel" className={`absolute right-0 mt-2 w-72 rounded-2xl shadow-2xl py-2 text-xs z-50 animate-in fade-in zoom-in-95 divide-y border ${
                 isLight 
                   ? 'bg-[#FFFFFF] border-[#E0E0E0] text-[#333333] divide-[#EBEBEB]' 
                   : 'bg-[#0a1226] border-[#1d2d52] text-[#c7d2e5] divide-[#162342]'
@@ -385,10 +393,11 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Mobile Navigation Tab Bar */}
-      <div className={`flex md:hidden overflow-x-auto py-2 px-3 gap-2 border-t no-scrollbar ${currentTheme.statusStripBg} ${currentTheme.statusStripBorder}`}>
+      <nav aria-label="Main navigation" className={`flex lg:hidden overflow-x-auto py-2 px-3 gap-2 border-t ${currentTheme.statusStripBg} ${currentTheme.statusStripBorder}`}>
         <button
           id="mobile-nav-recharge-btn"
           onClick={() => onTabChange('recharge')}
+          aria-current={activeTab === 'recharge' ? 'page' : undefined}
           className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold whitespace-nowrap text-center transition-all ${
             activeTab === 'recharge' 
               ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText}` 
@@ -400,6 +409,7 @@ export const Header: React.FC<HeaderProps> = ({
         <button
           id="mobile-nav-plans-btn"
           onClick={() => onTabChange('plans')}
+          aria-current={activeTab === 'plans' ? 'page' : undefined}
           className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold whitespace-nowrap text-center transition-all ${
             activeTab === 'plans' 
               ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText}` 
@@ -411,6 +421,7 @@ export const Header: React.FC<HeaderProps> = ({
         <button
           id="mobile-nav-connections-btn"
           onClick={() => onTabChange('connections')}
+          aria-current={activeTab === 'connections' ? 'page' : undefined}
           className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold whitespace-nowrap text-center transition-all ${
             activeTab === 'connections' 
               ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText}` 
@@ -423,6 +434,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             id="mobile-nav-admin-btn"
             onClick={() => onTabChange('admin-portal')}
+            aria-current={activeTab === 'admin-portal' ? 'page' : undefined}
             className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold whitespace-nowrap text-center transition-all flex items-center justify-center gap-1 ${
               activeTab === 'admin-portal' 
                 ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText}` 
@@ -433,7 +445,7 @@ export const Header: React.FC<HeaderProps> = ({
             <span>Admin</span>
           </button>
         )}
-      </div>
+      </nav>
     </header>
   );
 };

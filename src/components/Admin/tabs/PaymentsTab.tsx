@@ -42,23 +42,20 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
     return matchSearch && matchMethod;
   });
 
-  const totalVolume = filteredPayments.reduce((acc, p) => acc + p.amount, 0);
+  const settledPayments = filteredPayments.filter((payment) => payment.status === 'paid');
+  const totalVolume = settledPayments.reduce((acc, payment) => acc + payment.amount, 0);
 
   return (
     <div className="space-y-6">
       {/* Metrics Banner */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className={`p-4 rounded-2xl border ${isLight ? 'bg-white border-gray-200' : 'bg-white/[0.02] border-white/10'}`}>
-          <div className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase">{t.totalSettledVolume}</div>
+          <div className={`text-xs font-semibold ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>{t.totalSettledVolume} · Current filters</div>
           <div className="text-2xl font-mono font-bold mt-1 text-emerald-500">₹{totalVolume.toLocaleString()}</div>
         </div>
         <div className={`p-4 rounded-2xl border ${isLight ? 'bg-white border-gray-200' : 'bg-white/[0.02] border-white/10'}`}>
-          <div className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase">{t.settledTransactions}</div>
-          <div className="text-2xl font-mono font-bold mt-1">{filteredPayments.length}</div>
-        </div>
-        <div className={`p-4 rounded-2xl border ${isLight ? 'bg-white border-gray-200' : 'bg-white/[0.02] border-white/10'}`}>
-          <div className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase">{t.gatewaySuccessRate}</div>
-          <div className="text-2xl font-mono font-bold mt-1 text-indigo-400">99.8%</div>
+          <div className={`text-xs font-semibold ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>{t.settledTransactions} · Current filters</div>
+          <div className="text-2xl font-mono font-bold mt-1">{settledPayments.length}</div>
         </div>
       </div>
 
@@ -66,8 +63,8 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
       <div className={`p-4 rounded-2xl border flex flex-wrap items-center justify-between gap-3 ${
         isLight ? 'bg-white border-gray-200 shadow-sm' : 'bg-white/[0.02] border-white/10'
       }`}>
-        <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
-          <div className="relative flex-1 max-w-md">
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 flex-1 min-w-0">
+          <div className="relative w-full sm:flex-1 sm:max-w-md">
             <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
             <input
               type="text"
@@ -83,7 +80,7 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
           <select
             value={methodFilter}
             onChange={(e) => setMethodFilter(e.target.value)}
-            className={`border text-xs rounded-xl px-3 py-2 focus:outline-none ${
+            className={`w-full sm:w-auto border text-sm rounded-xl px-3 py-2 focus-visible:outline focus-visible:outline-2 ${
               isLight ? 'bg-gray-50 border-gray-300 text-gray-900' : 'bg-[#140029] border-white/20 text-white'
             }`}
           >
@@ -114,19 +111,19 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
           <table className="w-full text-left text-xs">
             <thead className={`border-b ${isLight ? 'bg-gray-50/80 text-gray-600 border-gray-200' : 'bg-white/[0.03] text-gray-400 border-white/10'}`}>
               <tr>
-                <th className="p-3.5 font-bold uppercase tracking-wider">{t.transactionId}</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">{t.customer}</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">{t.operatorLabel}</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">{t.paymentMethod}</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">{t.amount}</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">{t.status}</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider text-right">Gateway Ref</th>
+                <th className="p-3.5 font-semibold">{t.transactionId}</th>
+                <th className="p-3.5 font-semibold">{t.customer}</th>
+                <th className="hidden md:table-cell p-3.5 font-semibold">{t.operatorLabel}</th>
+                <th className="hidden sm:table-cell p-3.5 font-semibold">{t.paymentMethod}</th>
+                <th className="p-3.5 font-semibold">{t.amount}</th>
+                <th className="p-3.5 font-semibold">{t.status}</th>
+                <th className="hidden lg:table-cell p-3.5 font-semibold text-right">Gateway Ref</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-500/10">
               {filteredPayments.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-gray-500">
+                  <td colSpan={7} className="p-8 text-center text-gray-600 dark:text-gray-300">
                     {t.noPaymentsFound}
                   </td>
                 </tr>
@@ -135,15 +132,15 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
                   <tr key={p.id} className="hover:bg-white/[0.02] transition-colors">
                     <td className="p-3.5 font-mono font-bold">{p.id}</td>
                     <td className="p-3.5 font-medium">{p.customerName}</td>
-                    <td className="p-3.5 capitalize">{p.operator.replace('_', ' ')}</td>
-                    <td className="p-3.5 uppercase text-xs font-semibold text-gray-500 dark:text-gray-400">{p.paymentMethod}</td>
+                    <td className="hidden md:table-cell p-3.5 capitalize">{p.operator.replace('_', ' ')}</td>
+                    <td className="hidden sm:table-cell p-3.5 text-sm font-semibold text-gray-700 dark:text-gray-300">{p.paymentMethod}</td>
                     <td className="p-3.5 font-mono font-bold text-sm text-emerald-500">₹{p.amount}</td>
                     <td className="p-3.5">
                       <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-500 font-bold uppercase border border-emerald-500/30">
                         {p.status}
                       </span>
                     </td>
-                    <td className="p-3.5 text-right font-mono text-xs text-gray-500 dark:text-gray-400">{p.operatorRefId}</td>
+                    <td className="hidden lg:table-cell p-3.5 text-right font-mono text-xs text-gray-700 dark:text-gray-300">{p.operatorRefId}</td>
                   </tr>
                 ))
               )}

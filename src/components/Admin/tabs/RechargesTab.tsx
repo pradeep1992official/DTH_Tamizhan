@@ -17,6 +17,7 @@ import { translations } from '../../../lib/translations';
 interface RechargesTabProps {
   orders: RechargeOrder[];
   ordersLoading: boolean;
+  ordersError: string | null;
   onRefresh: () => void;
   getAuthHeaders: () => Promise<Record<string, string>>;
   currentTheme: OperatorTheme;
@@ -28,6 +29,7 @@ interface RechargesTabProps {
 export const RechargesTab: React.FC<RechargesTabProps> = ({
   orders,
   ordersLoading,
+  ordersError,
   onRefresh,
   getAuthHeaders,
   currentTheme,
@@ -79,8 +81,8 @@ export const RechargesTab: React.FC<RechargesTabProps> = ({
       <div className={`p-4 rounded-2xl border flex flex-wrap items-center justify-between gap-3 ${
         isLight ? 'bg-white border-gray-200 shadow-sm' : 'bg-white/[0.02] border-white/10'
       }`}>
-        <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
-          <div className="relative flex-1 max-w-md">
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 flex-1 min-w-0">
+          <div className="relative w-full sm:flex-1 sm:max-w-md">
             <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
             <input
               type="text"
@@ -96,7 +98,7 @@ export const RechargesTab: React.FC<RechargesTabProps> = ({
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className={`border text-xs rounded-xl px-3 py-2 focus:outline-none ${
+            className={`w-full sm:w-auto border text-sm rounded-xl px-3 py-2 focus-visible:outline focus-visible:outline-2 ${
               isLight ? 'bg-gray-50 border-gray-300 text-gray-900' : 'bg-[#140029] border-white/20 text-white'
             }`}
           >
@@ -110,7 +112,7 @@ export const RechargesTab: React.FC<RechargesTabProps> = ({
           <select
             value={opFilter}
             onChange={(e) => setOpFilter(e.target.value)}
-            className={`border text-xs rounded-xl px-3 py-2 focus:outline-none ${
+            className={`w-full sm:w-auto border text-sm rounded-xl px-3 py-2 focus-visible:outline focus-visible:outline-2 ${
               isLight ? 'bg-gray-50 border-gray-300 text-gray-900' : 'bg-[#140029] border-white/20 text-white'
             }`}
           >
@@ -141,16 +143,25 @@ export const RechargesTab: React.FC<RechargesTabProps> = ({
           <table className="w-full text-left text-xs">
             <thead className={`border-b ${isLight ? 'bg-gray-50/80 text-gray-600 border-gray-200' : 'bg-white/[0.03] text-gray-400 border-white/10'}`}>
               <tr>
-                <th className="p-3.5 font-bold uppercase tracking-wider">{t.orderIdAndDate}</th>
+                <th className="p-3.5 font-semibold">{t.orderIdAndDate}</th>
                 <th className="p-3.5 font-bold uppercase tracking-wider">{t.customerAndCard}</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">{t.packAndValidity}</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">{t.amountAndPayment}</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider">{t.status}</th>
-                <th className="p-3.5 font-bold uppercase tracking-wider text-right">{t.actions}</th>
+                <th className="hidden md:table-cell p-3.5 font-semibold">{t.packAndValidity}</th>
+                <th className="p-3.5 font-semibold">{t.amountAndPayment}</th>
+                <th className="p-3.5 font-semibold">{t.status}</th>
+                <th className="p-3.5 font-semibold text-right">{t.actions}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-500/10">
-              {filteredOrders.length === 0 ? (
+              {ordersError ? (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center">
+                    <p role="alert" className="text-sm font-semibold text-rose-600 dark:text-rose-300">{ordersError}</p>
+                    <button type="button" onClick={onRefresh} className="mt-3 rounded-lg border px-3 py-1.5 text-xs font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">
+                      Retry loading recharges
+                    </button>
+                  </td>
+                </tr>
+              ) : filteredOrders.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-gray-500">
                     {t.noOrdersFound}
@@ -161,7 +172,7 @@ export const RechargesTab: React.FC<RechargesTabProps> = ({
                   <tr key={ord.orderId} className="hover:bg-white/[0.02] transition-colors">
                     <td className="p-3.5 font-mono">
                       <div className="font-bold">{ord.orderId}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                      <div className="hidden sm:block text-xs text-gray-600 dark:text-gray-300">
                         {new Date(ord.createdAt).toLocaleString()}
                       </div>
                     </td>
@@ -169,7 +180,7 @@ export const RechargesTab: React.FC<RechargesTabProps> = ({
                       <div className="font-semibold">{ord.customerName || t.customer}</div>
                       <div className="text-xs font-mono text-gray-500 dark:text-gray-400">{ord.operatorName} • {ord.smartCardNumber}</div>
                     </td>
-                    <td className="p-3.5">
+                    <td className="hidden md:table-cell p-3.5">
                       <div className="font-medium">{ord.packName}</div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">{ord.packValidity}</div>
                     </td>

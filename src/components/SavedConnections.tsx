@@ -77,11 +77,7 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
       operatorName: opNames[selectedOperator] || 'Dish TV',
       smartCardNumber: cleanCard,
       nickname: nickname || 'Living Room DTH',
-      customerName: customerName || 'Account Holder',
-      balance: 45.0,
-      expiryDate: new Date(Date.now() + 86400000 * 14).toISOString().split('T')[0],
-      monthlyPackPrice: 219,
-      packName: operator === 'sun_direct' ? 'Tamil Super Pack' : 'Tamil Entertainment',
+      customerName: customerName.trim() || undefined,
     });
 
     setIsAddOpen(false);
@@ -139,14 +135,14 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
             return (
               <div
                 key={conn.id}
-                className={`${currentTheme.cardInactiveBg} ${currentTheme.cardInactiveBorder} border hover:border-[${opTheme.primaryColor}]/60 rounded-3xl p-5 shadow-lg space-y-4 relative group transition-all duration-200 flex flex-col justify-between`}
+                className={`${currentTheme.cardInactiveBg} ${currentTheme.cardInactiveBorder} border rounded-2xl p-5 space-y-4 relative group transition-colors flex flex-col justify-between`}
               >
                 <div>
                   {/* Card Header with Specific Operator Badge */}
                   <div className="flex items-start justify-between">
                     <div>
                       <span 
-                        className="text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border inline-flex items-center gap-1.5"
+                        className="text-xs font-semibold px-2.5 py-1 rounded-full border inline-flex items-center gap-1.5"
                         style={{
                           backgroundColor: `${opTheme.primaryColor}15`,
                           color: opTheme.primaryColor,
@@ -169,7 +165,8 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
 
                     <button
                       onClick={() => onDeleteConnection(conn.id)}
-                      className={`p-2 rounded-xl transition-colors text-rose-500 hover:bg-rose-500/10`}
+                      aria-label={`Remove ${conn.nickname}`}
+                      className="p-2 rounded-xl transition-colors text-rose-700 hover:bg-rose-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-600 dark:text-rose-300 dark:hover:bg-rose-500/15 dark:focus-visible:outline-rose-300"
                       title="Remove Connection"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -177,16 +174,16 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
                   </div>
 
                   {/* Account Meta Balance & Expiry */}
-                  <div className={`mt-4 ${currentTheme.inputBg} p-3.5 rounded-2xl border ${currentTheme.inputBorder} grid grid-cols-2 gap-2 text-xs`}>
+                  <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
                     <div>
                       <span className={`text-xs font-semibold block ${currentTheme.mutedText}`}>Balance</span>
-                      <span className="font-extrabold tabular-nums tracking-tight text-base" style={{ color: opTheme.primaryColor }}>
-                        ₹{conn.balance?.toFixed(2) || '0.00'}
+                      <span className="font-semibold text-sm">
+                        {typeof conn.balance === 'number' ? `₹${conn.balance.toFixed(2)}` : 'Not available'}
                       </span>
                     </div>
                     <div>
                       <span className={`text-xs font-semibold block ${currentTheme.mutedText}`}>Expiry</span>
-                      <span className={`font-mono font-medium text-xs block mt-1 ${currentTheme.subText}`}>
+                      <span className={`font-medium text-sm block mt-1 ${currentTheme.subText}`}>
                         {conn.expiryDate || 'N/A'}
                       </span>
                     </div>
@@ -195,7 +192,7 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
                   {conn.packName && (
                     <div className={`mt-3 text-xs flex items-center justify-between px-1`}>
                       <span className={currentTheme.mutedText}>Pack:</span>
-                      <span className="font-bold font-mono" style={{ color: opTheme.primaryColor }}>
+                      <span className="font-semibold text-right" style={{ color: opTheme.primaryColor }}>
                         {conn.packName}
                       </span>
                     </div>
