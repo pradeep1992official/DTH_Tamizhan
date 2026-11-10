@@ -1,5 +1,5 @@
-import { PlanCatalogItem, PlanAuditLog, DthOperatorId, BrowsePlan } from '../types';
-import { db, auth, isFirebaseLive, sanitizePayload } from './firebase';
+import { PlanCatalogItem, PlanAuditLog, DthOperatorId, BrowsePlan, isSameDthOperatorGroup } from '../types';
+import { db, auth, isFirebaseConfigured, sanitizePayload } from './firebase';
 import { 
   collection, 
   doc, 
@@ -800,7 +800,7 @@ export class PlanCatalogService {
     callback: (plans: PlanCatalogItem[]) => void,
     onError?: (err: Error) => void
   ): Unsubscribe {
-    if (isFirebaseLive && db) {
+    if (isFirebaseConfigured && db) {
       try {
         const catalogRef = collection(db, 'plan_catalog');
         return onSnapshot(
@@ -880,7 +880,7 @@ export class PlanCatalogService {
    * Helper to seed initial catalog into Cloud Firestore
    */
   static async seedInitialCatalogToFirestore(): Promise<PlanCatalogItem[]> {
-    if (isFirebaseLive && db) {
+    if (isFirebaseConfigured && db) {
       for (const item of INITIAL_PLAN_CATALOG) {
         try {
           const cleanPayload = sanitizePayload(item);
@@ -907,7 +907,7 @@ export class PlanCatalogService {
     const { allowFallback = false } = options;
 
     // 1. Primary Source: Cloud Firestore
-    if (isFirebaseLive && db) {
+    if (isFirebaseConfigured && db) {
       try {
         const catalogRef = collection(db, 'plan_catalog');
         const snapshot = await getDocs(catalogRef);
@@ -971,7 +971,7 @@ export class PlanCatalogService {
         }
       }
     } catch (err) {
-      if (!allowFallback && !isFirebaseLive) {
+      if (!allowFallback && !isFirebaseConfigured) {
         throw new Error('Failed to load plan catalog from backend server.');
       }
     }
@@ -998,7 +998,7 @@ export class PlanCatalogService {
   // Get plans for a specific operator
   static async getPlansByOperator(operator: DthOperatorId): Promise<PlanCatalogItem[]> {
     const all = await this.getAllPlans();
-    return all.filter((p) => p.operator === operator);
+    return all.filter((p) => isSameDthOperatorGroup(p.operator, operator));
   }
 
   // Get recommended pack for operator and pack_type
@@ -1010,7 +1010,7 @@ export class PlanCatalogService {
   ): PlanCatalogItem | undefined {
     return plans.find(
       (p) => 
-        p.operator === operator && 
+        isSameDthOperatorGroup(p.operator, operator) &&
         p.pack_type === pack_type && 
         p.duration_months === duration_months && 
         p.is_recommended === true
@@ -1027,7 +1027,7 @@ export class PlanCatalogService {
     duration_months: 1 | 3 | 6 | 12
   ): { savePerMonth: number; percentSave: number; oneMonthRate: number } {
     const plan1M = this.getRecommendedPlan(plans, operator, pack_type, 1) ||
-      plans.find((p) => p.operator === operator && p.pack_type === pack_type && p.duration_months === 1);
+      plans.find((p) => isSameDthOperatorGroup(p.operator, operator) && p.pack_type === pack_type && p.duration_months === 1);
 
     const oneMonthRate = plan1M ? plan1M.amount : 0;
 
@@ -1036,7 +1036,7 @@ export class PlanCatalogService {
     }
 
     const planSelected = this.getRecommendedPlan(plans, operator, pack_type, duration_months) ||
-      plans.find((p) => p.operator === operator && p.pack_type === pack_type && p.duration_months === duration_months);
+      plans.find((p) => isSameDthOperatorGroup(p.operator, operator) && p.pack_type === pack_type && p.duration_months === duration_months);
 
     if (!planSelected) {
       return { savePerMonth: 0, percentSave: 0, oneMonthRate };
@@ -1077,7 +1077,7 @@ export class PlanCatalogService {
     };
 
     // 1. Save to Cloud Firestore
-    if (isFirebaseLive && db) {
+    if (isFirebaseConfigured && db) {
       try {
         const cleanPayload = sanitizePayload(finalPlan);
         const planDocRef = doc(db, 'plan_catalog', finalPlan.id);
@@ -1140,7 +1140,7 @@ export class PlanCatalogService {
   // Permanently delete plan (admin only) from Cloud Firestore
   static async deletePlan(planId: string, adminUid: string): Promise<boolean> {
     // 1. Delete from Firebase Firestore
-    if (isFirebaseLive && db) {
+    if (isFirebaseConfigured && db) {
       try {
         const planDocRef = doc(db, 'plan_catalog', planId);
         await deleteDoc(planDocRef);
@@ -1199,7 +1199,7 @@ export class PlanCatalogService {
 
   // Get recent audit logs
   static async getRecentAuditLogs(): Promise<PlanAuditLog[]> {
-    if (isFirebaseLive && db) {
+    if (isFirebaseConfigured && db) {
       try {
         const auditRef = collection(db, 'plan_audit_logs');
         const q = query(auditRef, orderBy('updated_at', 'desc'), limit(20));
@@ -1226,7 +1226,7 @@ export class PlanCatalogService {
 
   // Record audit log
   static async recordAuditLog(log: PlanAuditLog): Promise<void> {
-    if (isFirebaseLive && db) {
+    if (isFirebaseConfigured && db) {
       try {
         const auditDocRef = doc(db, 'plan_audit_logs', log.id);
         await setDoc(auditDocRef, sanitizePayload(log));

@@ -11,7 +11,7 @@ import {
   CreditCard,
   Ban
 } from 'lucide-react';
-import { BrowsePlan, DthConnection, DthOperatorId, Language, UserProfile } from '../../types';
+import { BrowsePlan, DthConnection, DthOperatorId, isSameDthOperatorGroup, Language, UserProfile } from '../../types';
 import { OperatorTheme } from '../../lib/theme';
 import { translations } from '../../lib/translations';
 import { useAccessibleModal } from '../../lib/useAccessibleModal';
@@ -65,20 +65,20 @@ const OPERATOR_META: Record<string, {
     color: '#EF4444',
   },
   dish_tv: {
-    name: 'Dish TV',
-    tamil: 'டிஷ் டிவி',
-    cardName: 'VC Number (8-11 digits)',
-    pattern: /^[0-9]{8,11}$/,
-    hint: '8 to 11 digits (e.g. 02589412356)',
+    name: 'Dish TV & D2H',
+    tamil: 'டிஷ் டிவி & டி2எச்',
+    cardName: 'Viewing Card / Customer ID',
+    pattern: /^(?:0(?:15|25)[0-9]{8}|[0-9]{8,11})$/,
+    hint: 'Dish TV: 11 digits starting with 015/025; D2H: 8 to 11 digits',
     color: '#EB5B26',
   },
   d2h: {
-    name: 'D2H Videocon',
-    tamil: 'டி2எச்',
-    cardName: 'Customer ID / VC Number (8-11 digits)',
-    pattern: /^[0-9]{8,11}$/,
-    hint: '8 to 11 digits (e.g. 02589412356)',
-    color: '#8B5CF6',
+    name: 'Dish TV & D2H',
+    tamil: 'டிஷ் டிவி & டி2எச்',
+    cardName: 'Viewing Card / Customer ID',
+    pattern: /^(?:0(?:15|25)[0-9]{8}|[0-9]{8,11})$/,
+    hint: 'Dish TV: 11 digits starting with 015/025; D2H: 8 to 11 digits',
+    color: '#EB5B26',
   },
 };
 
@@ -116,7 +116,7 @@ export const ApplyPlanModal: React.FC<ApplyPlanModalProps> = ({
     color: currentTheme.primaryColor,
   };
 
-  const matchingBoxes = (connections || []).filter((c) => c.operator === plan.operator);
+  const matchingBoxes = (connections || []).filter((c) => isSameDthOperatorGroup(c.operator, plan.operator));
   const incompatibleCount = (connections || []).length - matchingBoxes.length;
 
   const handleApplyToExisting = () => {
@@ -126,7 +126,7 @@ export const ApplyPlanModal: React.FC<ApplyPlanModalProps> = ({
       setFormError(currentLang === 'ta' ? 'பொருத்தமான செட்-டாப் பாக்ஸைத் தேர்ந்தெடுக்கவும்' : 'Please select a compatible Set-Top Box.');
       return;
     }
-    if (box.operator !== plan.operator) {
+    if (!isSameDthOperatorGroup(box.operator, plan.operator)) {
       setFormError(`Cross-operator recharge blocked. Cannot apply ${opMeta.name} pack to a ${box.operatorName} box.`);
       return;
     }

@@ -2,24 +2,11 @@ import rateLimit from 'express-rate-limit';
 
 /**
  * Common configuration for express-rate-limit behind Cloud Run / Google Cloud Load Balancer proxies.
- * Disables unexpected X-Forwarded-For and Forwarded header validation warnings and provides a safe keyGenerator.
+ * The default key generator uses req.ip and normalizes IPv6 addresses safely.
  */
 const commonRateLimitOptions = {
   standardHeaders: true,
   legacyHeaders: false,
-  validate: {
-    trustProxy: false,
-    xForwardedForHeader: false,
-    forwardedHeader: false,
-  },
-  keyGenerator: (req: any): string => {
-    return (
-      req.ip ||
-      (req.headers['x-forwarded-for'] ? req.headers['x-forwarded-for'].toString().split(',')[0].trim() : '') ||
-      req.socket?.remoteAddress ||
-      '127.0.0.1'
-    );
-  },
 };
 
 /**

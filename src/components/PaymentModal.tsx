@@ -21,7 +21,7 @@ import {
   RechargeOrder 
 } from '../types';
 import { translations } from '../lib/translations';
-import { db, isFirebaseLive, sanitizePayload } from '../lib/firebase';
+import { db, sanitizePayload } from '../lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useAccessibleModal } from '../lib/useAccessibleModal';
 

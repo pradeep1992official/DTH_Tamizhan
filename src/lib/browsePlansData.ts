@@ -1,4 +1,4 @@
-import { BrowsePlan, DthOperatorId, PlanCatalogItem, PlanFilters } from '../types';
+import { BrowsePlan, DthOperatorId, isSameDthOperatorGroup, PlanCatalogItem, PlanFilters } from '../types';
 import { INITIAL_PLAN_CATALOG, calculateSavings } from './planCatalogService';
 
 export { calculateSavings };
@@ -20,6 +20,7 @@ export function catalogItemToBrowsePlan(p: PlanCatalogItem): BrowsePlan {
   return {
     id: p.id,
     operator: p.operator,
+    operatorName: isSameDthOperatorGroup(p.operator, 'dish_tv') ? 'Dish TV & D2H' : undefined,
     name: p.plan_name || (p as any).name || 'DTH Pack',
     tamilName: p.tamilName,
     type: isHd ? 'HD' : 'SD',
@@ -55,7 +56,8 @@ export function computePlanMetrics(plans: BrowsePlan[]): BrowsePlan[] {
   const oneMonthBaselineMap = new Map<string, number>();
   for (const plan of plans) {
     if (plan.duration_months === 1) {
-      const key = `${plan.operator}_${plan.type}`;
+      const operatorKey = isSameDthOperatorGroup(plan.operator, 'dish_tv') ? 'dish_tv' : plan.operator;
+      const key = `${operatorKey}_${plan.type}`;
       // Prefer recommended 1M pack if multiple exist, or set if not present
       if (!oneMonthBaselineMap.has(key) || plan.is_recommended) {
         oneMonthBaselineMap.set(key, plan.price);
@@ -69,7 +71,8 @@ export function computePlanMetrics(plans: BrowsePlan[]): BrowsePlan[] {
     const pricePerChannel = Math.round((plan.price / channelCount) * 100) / 100;
 
     // Resolve 1-month baseline rate for the same operator pack family
-    const familyKey = `${plan.operator}_${plan.type}`;
+    const operatorKey = isSameDthOperatorGroup(plan.operator, 'dish_tv') ? 'dish_tv' : plan.operator;
+    const familyKey = `${operatorKey}_${plan.type}`;
     const oneMonthBaseRate = oneMonthBaselineMap.get(familyKey);
 
     // Compute savings percentage against 1-month baseline (only if 1-month pack exists)
@@ -118,7 +121,7 @@ export function computePlanMetrics(plans: BrowsePlan[]): BrowsePlan[] {
 export function filterAndSortPlans(plans: BrowsePlan[], filters: PlanFilters): BrowsePlan[] {
   let filtered = plans.filter((p) => {
     // Operator multi-select
-    if (filters.operators.length > 0 && !filters.operators.includes(p.operator)) {
+    if (filters.operators.length > 0 && !filters.operators.some((operator) => isSameDthOperatorGroup(operator, p.operator))) {
       return false;
     }
 

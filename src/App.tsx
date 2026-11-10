@@ -30,11 +30,13 @@ import {
   DthOperatorId,
   BrowsePlan,
   AdminTabId,
-  isUserAdmin
+  isUserAdmin,
+  canonicalizeDthOperatorId,
+  resolveDishFamilyOperatorId,
 } from './types';
 import { translations } from './lib/translations';
 import { getOperatorTheme, OPERATOR_THEMES } from './lib/theme';
-import { db, isFirebaseLive, sanitizePayload } from './lib/firebase';
+import { db, isFirebaseConfigured, sanitizePayload } from './lib/firebase';
 import { collection, doc, getDocs, setDoc, deleteDoc, query, where, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import { 
   Tv, 
@@ -92,6 +94,8 @@ function AdminRouteWrapper({
   );
 }
 
+const demoConnectionsEnabled = import.meta.env.VITE_ENABLE_DEMO_CONNECTIONS === 'true';
+
 function MainApp() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -129,16 +133,17 @@ function MainApp() {
     try {
       const saved = localStorage.getItem('dth_selected_operator');
       if (saved && OPERATOR_THEMES[saved as DthOperatorId]) {
-        return saved as DthOperatorId;
+        return canonicalizeDthOperatorId(saved as DthOperatorId);
       }
     } catch {}
     return 'sun_direct';
   });
 
   const handleSelectOpId = (opId: DthOperatorId) => {
-    setSelectedOpId(opId);
+    const canonicalOpId = canonicalizeDthOperatorId(opId);
+    setSelectedOpId(canonicalOpId);
     try {
-      localStorage.setItem('dth_selected_operator', opId);
+      localStorage.setItem('dth_selected_operator', canonicalOpId);
     } catch {}
   };
 
@@ -148,8 +153,19 @@ function MainApp() {
   const [connections, setConnections] = useState<DthConnection[]>(() => {
     try {
       const saved = localStorage.getItem('dth_tamizhan_connections');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed: unknown = JSON.parse(saved);
+        if (!Array.isArray(parsed)) return [];
+        if (demoConnectionsEnabled) return parsed;
+
+        return (parsed as DthConnection[]).filter((connection) => !(
+          connection.user_id === 'default' &&
+          ((connection.id === 'conn-1' && connection.smartCardNumber === '41289456123') ||
+            (connection.id === 'conn-2' && connection.smartCardNumber === '1029384756'))
+        ));
+      }
     } catch {}
+    if (!demoConnectionsEnabled) return [];
     return [
       {
         id: 'conn-1',
@@ -205,7 +221,7 @@ function MainApp() {
   useEffect(() => {
     if (user) {
       localStorage.setItem('dth_tamizhan_user', JSON.stringify(user));
-      if (isFirebaseLive && db && user.uid) {
+      if (isFirebaseConfigured && db && user.uid) {
         const q = query(collection(db, 'dth_connections'), where('user_id', '==', user.uid));
         getDocs(q).then((snap) => {
           if (!snap.empty) {
@@ -312,7 +328,7 @@ function MainApp() {
         return [newConn, ...filtered];
       });
 
-      if (isFirebaseLive && db && user?.uid) {
+      if (isFirebaseConfigured && db && user?.uid) {
         try {
           const cleanDoc = sanitizePayload(newConn);
           await setDoc(doc(db, 'dth_connections', newConn.id), cleanDoc);
@@ -336,7 +352,7 @@ function MainApp() {
       createdAt: 'createdAt' in conn && conn.createdAt ? conn.createdAt : new Date().toISOString(),
     };
     setConnections((prev) => [fullConn, ...prev]);
-    if (isFirebaseLive && db && user?.uid) {
+    if (isFirebaseConfigured && db && user?.uid) {
       try {
         const cleanDoc = sanitizePayload({ ...fullConn, user_id: user.uid });
         await setDoc(doc(db, 'dth_connections', fullConn.id), cleanDoc);
@@ -348,7 +364,7 @@ function MainApp() {
 
   const handleDeleteConnection = async (id: string) => {
     setConnections((prev) => prev.filter((c) => c.id !== id));
-    if (isFirebaseLive && db) {
+    if (isFirebaseConfigured && db) {
       try {
         await deleteDoc(doc(db, 'dth_connections', id));
       } catch (err) {
@@ -367,11 +383,15 @@ function MainApp() {
     plan: BrowsePlan,
     newConnData: { smartCardNumber: string; nickname: string; customerName?: string }
   ) => {
+    const operator = canonicalizeDthOperatorId(plan.operator) === 'dish_tv'
+      ? resolveDishFamilyOperatorId(newConnData.smartCardNumber)
+      : plan.operator;
+    const operatorName = operator === 'dish_tv' ? 'Dish TV' : operator === 'd2h' ? 'D2H' : plan.operatorName || plan.operator;
     const newConn: DthConnection = {
       id: `conn-${Date.now()}`,
       user_id: user?.uid || 'guest_user',
-      operator: plan.operator,
-      operatorName: plan.operatorName || plan.operator,
+      operator,
+      operatorName,
       smartCardNumber: newConnData.smartCardNumber,
       nickname: newConnData.nickname || `${plan.name}`,
       customerName: newConnData.customerName || 'DTH Subscriber',

@@ -22,8 +22,7 @@ const ALL_OPERATORS: { id: DthOperatorId; name: string; tamilName: string; color
   { id: 'sun_direct', name: 'Sun Direct', tamilName: 'சன் டைரக்ட்', color: '#F97316' },
   { id: 'tata_play', name: 'Tata Play', tamilName: 'டாடா பிளே', color: '#EC4899' },
   { id: 'airtel_dth', name: 'Airtel Digital TV', tamilName: 'ஏர்டெல் டிவி', color: '#EF4444' },
-  { id: 'dish_tv', name: 'Dish TV', tamilName: 'டிஷ் டிவி', color: '#EB5B26' },
-  { id: 'd2h', name: 'D2H Videocon', tamilName: 'டி2எச்', color: '#8B5CF6' },
+  { id: 'dish_tv', name: 'Dish TV & D2H', tamilName: 'டிஷ் டிவி & டி2எச்', color: '#EB5B26' },
 ];
 
 export const PlanFilterSidebar: React.FC<PlanFilterSidebarProps> = ({

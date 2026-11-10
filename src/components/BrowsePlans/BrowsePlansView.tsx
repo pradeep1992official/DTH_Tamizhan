@@ -183,8 +183,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
     { id: 'sun_direct', label: 'Sun Direct', color: '#F97316' },
     { id: 'tata_play', label: 'Tata Play', color: '#EC4899' },
     { id: 'airtel_dth', label: 'Airtel', color: '#EF4444' },
-    { id: 'dish_tv', label: 'Dish TV', color: '#EB5B26' },
-    { id: 'd2h', label: 'D2H', color: '#8B5CF6' },
+    { id: 'dish_tv', label: 'Dish TV & D2H', color: '#EB5B26' },
   ];
 
   return (

@@ -10,7 +10,7 @@ import {
   UserProfile, 
   SUPER_ADMIN_EMAIL 
 } from '../../../types';
-import { auth, db, isFirebaseLive, sanitizePayload } from '../../../lib/firebase';
+import { auth, db, isFirebaseConfigured, sanitizePayload } from '../../../lib/firebase';
 import { collection, getDocs, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { PlanCatalogService } from '../../../lib/planCatalogService';
 
@@ -77,7 +77,7 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
   const fetchCustomers = useCallback(async () => {
     setCustLoading(true);
     try {
-      if (isFirebaseLive && db) {
+      if (isFirebaseConfigured && db) {
         try {
           const snapshot = await getDocs(collection(db, 'admin_customers'));
           if (!snapshot.empty) {
@@ -111,7 +111,7 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
   const fetchOrders = useCallback(async () => {
     setOrdersLoading(true);
     try {
-      if (isFirebaseLive && db) {
+      if (isFirebaseConfigured && db) {
         try {
           const snapshot = await getDocs(collection(db, 'recharge_orders'));
           if (!snapshot.empty) {

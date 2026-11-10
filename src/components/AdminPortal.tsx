@@ -108,6 +108,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
   // Fetch relevant tab data on tab switch or mount
   useEffect(() => {
+    if (!user) return;
+
     switch (activeTab) {
       case 'customers':
         fetchCustomers();
@@ -134,7 +136,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         fetchAccessList();
         break;
     }
-  }, [activeTab, fetchCustomers, fetchOrders, fetchPacks, fetchPayments, fetchReports, fetchOperators, fetchAccessList]);
+  }, [activeTab, user, fetchCustomers, fetchOrders, fetchPacks, fetchPayments, fetchReports, fetchOperators, fetchAccessList]);
 
   const isAdmin = isUserAdmin(user, approvedAdmins.map((a) => a.email));
 

@@ -11,7 +11,7 @@ import {
   MessageSquare,
   ShieldCheck
 } from 'lucide-react';
-import { DthOperatorId, Language } from '../types';
+import { DthOperatorId, Language, canonicalizeDthOperatorId, resolveDishFamilyOperatorId } from '../types';
 import { translations } from '../lib/translations';
 import { useAccessibleModal } from '../lib/useAccessibleModal';
 
@@ -43,7 +43,7 @@ export const SignalRefreshModal: React.FC<SignalRefreshModalProps> = ({
   const [instructions, setInstructions] = useState<string[]>([]);
 
   useEffect(() => {
-    if (initialOperator) setOperator(initialOperator);
+    if (initialOperator) setOperator(canonicalizeDthOperatorId(initialOperator));
     if (initialCard) setSmartCard(initialCard);
   }, [initialOperator, initialCard]);
 
@@ -64,10 +64,12 @@ export const SignalRefreshModal: React.FC<SignalRefreshModalProps> = ({
     setResultMessage(null);
 
     try {
+      const cleanCard = smartCard.trim().replace(/\s+/g, '');
+      const provider = operator === 'dish_tv' ? resolveDishFamilyOperatorId(cleanCard) : operator;
       const response = await fetch('/api/recharge/signal-refresh', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ operator, smartCardNumber: smartCard.trim() }),
+        body: JSON.stringify({ operator: provider, smartCardNumber: cleanCard }),
       });
       const data = await response.json();
 
@@ -150,8 +152,7 @@ export const SignalRefreshModal: React.FC<SignalRefreshModalProps> = ({
                     { id: 'sun_direct', label: 'Sun Direct' },
                     { id: 'tata_play', label: 'Tata Play' },
                     { id: 'airtel_dth', label: 'Airtel' },
-                    { id: 'dish_tv', label: 'Dish TV' },
-                    { id: 'd2h', label: 'D2H' },
+                    { id: 'dish_tv', label: 'Dish TV & D2H' },
                   ].map((op) => (
                     <button
                       key={op.id}

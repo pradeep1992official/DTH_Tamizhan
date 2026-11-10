@@ -1,5 +1,17 @@
 export type DthOperatorId = 'sun_direct' | 'tata_play' | 'airtel_dth' | 'dish_tv' | 'd2h';
 
+export function canonicalizeDthOperatorId(operatorId: DthOperatorId): DthOperatorId {
+  return operatorId === 'd2h' ? 'dish_tv' : operatorId;
+}
+
+export function isSameDthOperatorGroup(left: DthOperatorId, right: DthOperatorId): boolean {
+  return canonicalizeDthOperatorId(left) === canonicalizeDthOperatorId(right);
+}
+
+export function resolveDishFamilyOperatorId(subscriberId: string): 'dish_tv' | 'd2h' {
+  return /^0(?:15|25)/.test(subscriberId) ? 'dish_tv' : 'd2h';
+}
+
 export type OperatorDisableCondition = 'temporary_maintenance' | 'heavy_load' | 'server_outage' | 'operational';
 
 export interface DthOperator {

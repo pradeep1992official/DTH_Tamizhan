@@ -1,9 +1,9 @@
 import path from 'path';
 import fs from 'fs';
-import { DthOperator, DthPlan, CustomerRecord, RechargeOrder, PlanCatalogItem } from '../src/types';
-import { INITIAL_PLAN_CATALOG } from '../src/lib/planCatalogService';
-import { INITIAL_BROWSE_PLANS, catalogItemToBrowsePlan } from '../src/lib/browsePlansData';
-import { getSuperAdminEmail } from './middleware/auth';
+import { DthOperator, DthPlan, CustomerRecord, RechargeOrder, PlanCatalogItem } from '../../src/types';
+import { INITIAL_PLAN_CATALOG } from '../../src/lib/planCatalogService';
+import { INITIAL_BROWSE_PLANS, catalogItemToBrowsePlan } from '../../src/lib/browsePlansData';
+import { getSuperAdminEmail } from '../middleware/auth';
 
 export const DATA_DIR = path.join(process.cwd(), 'data');
 export const PLANS_FILE = path.join(DATA_DIR, 'plan_catalog.json');

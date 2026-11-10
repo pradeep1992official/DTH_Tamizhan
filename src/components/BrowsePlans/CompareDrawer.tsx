@@ -17,8 +17,8 @@ const OPERATOR_SHORT: Record<string, string> = {
   sun_direct: 'Sun Direct',
   tata_play: 'Tata Play',
   airtel_dth: 'Airtel TV',
-  dish_tv: 'Dish TV',
-  d2h: 'D2H Videocon',
+  dish_tv: 'Dish TV & D2H',
+  d2h: 'Dish TV & D2H',
 };
 
 export const CompareDrawer: React.FC<CompareDrawerProps> = ({

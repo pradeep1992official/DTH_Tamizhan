@@ -387,6 +387,7 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Mobile Navigation Tab Bar */}
       <div className={`flex md:hidden overflow-x-auto py-2 px-3 gap-2 border-t no-scrollbar ${currentTheme.statusStripBg} ${currentTheme.statusStripBorder}`}>
         <button
+          id="mobile-nav-recharge-btn"
           onClick={() => onTabChange('recharge')}
           className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold whitespace-nowrap text-center transition-all ${
             activeTab === 'recharge' 
@@ -397,6 +398,7 @@ export const Header: React.FC<HeaderProps> = ({
           {t.navRecharge}
         </button>
         <button
+          id="mobile-nav-plans-btn"
           onClick={() => onTabChange('plans')}
           className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold whitespace-nowrap text-center transition-all ${
             activeTab === 'plans' 
@@ -407,6 +409,7 @@ export const Header: React.FC<HeaderProps> = ({
           {t.navPlans}
         </button>
         <button
+          id="mobile-nav-connections-btn"
           onClick={() => onTabChange('connections')}
           className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold whitespace-nowrap text-center transition-all ${
             activeTab === 'connections' 

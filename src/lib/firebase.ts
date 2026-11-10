@@ -50,35 +50,31 @@ export interface FirestoreErrorInfo {
   };
 }
 
-let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
-let isFirebaseLive = true;
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
+let db: Firestore | null = null;
+let isFirebaseConfigured = false;
 
 try {
-  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-  // CRITICAL: Must use firestoreDatabaseId from firebase-applet-config.json
+  const requiredConfigValues = [
+    firebaseConfig.apiKey,
+    firebaseConfig.projectId,
+    firebaseConfig.appId,
+    firebaseConfig.firestoreDatabaseId,
+  ];
+  if (requiredConfigValues.some((value) => typeof value !== 'string' || value.trim() === '')) {
+    throw new Error('Firebase configuration is missing a required value.');
+  }
+
+  app = getApps().find((existingApp) => existingApp.name === '[DEFAULT]') ?? initializeApp(firebaseConfig);
   db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
   auth = getAuth(app);
-  isFirebaseLive = true;
-
-  // Test connection to Firestore on boot
-  async function testConnection() {
-    try {
-      await getDocFromServer(doc(db, 'test', 'connection'));
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('the client is offline')) {
-        console.error("Please check your Firebase configuration.");
-      }
-    }
-  }
-  testConnection();
+  isFirebaseConfigured = true;
 } catch (err) {
-  console.warn('[DTH Tamizhan] Firebase initialization fallback:', err);
-  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-  db = getFirestore(app);
-  auth = getAuth(app);
-  isFirebaseLive = true;
+  app = null;
+  auth = null;
+  db = null;
+  console.error('[DTH Tamizhan] Firebase initialization failed. Firebase-backed features are unavailable.', err);
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
@@ -120,4 +116,4 @@ export function sanitizePayload<T extends Record<string, any>>(obj: T): Partial<
   return clean as Partial<T>;
 }
 
-export { app, auth, db, isFirebaseLive };
+export { app, auth, db, isFirebaseConfigured };

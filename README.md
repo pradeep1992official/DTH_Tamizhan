@@ -3,6 +3,10 @@
 > **Tamil Nadu DTH Recharge, Plan Catalog & Dealer Terminal**
 > Supporting Sun Direct, Tata Play, Airtel Digital TV, Dish TV, and D2H Videocon with live catalog pricing and phone OTP authentication.
 
+## Local Demo Data
+
+Sample saved connections are disabled by default. To show them in a local demo, set `VITE_ENABLE_DEMO_CONNECTIONS="true"` in your environment before starting the development server.
+
 ---
 
 ## 1. Threat Model & Security Posture
@@ -212,15 +216,23 @@ firebase deploy --only firestore:rules
 
 ## 5. Local Development & Testing
 
+The application uses MVC-style separation: React components under `src/` provide the
+views, `server/models/` owns in-memory and disk-backed data, `server/controllers/`
+implements request behavior, and `server/routes/` maps HTTP endpoints to controllers.
+Shared authentication, validation, and rate limiting remain in `server/middleware/`.
+
 ```bash
 # Install dependencies
 npm install
 
-# Run unified full-stack dev server (Express backend + Vite on port 3000)
+# Run the full-stack development server (Express API + Vite on port 3000)
 npm run dev
 ```
 
 Visit `http://localhost:3000`.
+Set `PORT` to use another port if `3000` is already occupied (for example, `PORT=3001`).
+
+For production, build and start the server with `npm run build` and `npm start`.
 
 ---
 
@@ -375,4 +387,3 @@ The workflow in `.github/workflows/ci.yml` runs on push and pull requests to val
 - Unit tests (`npm run test:unit`)
 - Live Firestore emulator rules validation (`npx firebase emulators:exec --only firestore "npm run test:rules"`)
 - Production build output (`npm run build`)
-

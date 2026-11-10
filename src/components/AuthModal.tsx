@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { Language, UserProfile, isSuperAdminEmail } from '../types';
 import { translations } from '../lib/translations';
-import { auth, isFirebaseLive, db, sanitizePayload } from '../lib/firebase';
+import { auth, isFirebaseConfigured, db, sanitizePayload } from '../lib/firebase';
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { useAccessibleModal } from '../lib/useAccessibleModal';
@@ -54,7 +54,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setIsLoading(true);
 
     try {
-      if (isFirebaseLive && auth) {
+      if (isFirebaseConfigured && auth) {
         const provider = new GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
         const result = await signInWithPopup(auth, provider);
@@ -78,7 +78,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           authProviders: ['google.com'],
         };
 
-        if (isFirebaseLive && db) {
+        if (isFirebaseConfigured && db) {
           try {
             await setDoc(doc(db, 'users', profile.uid), sanitizePayload(profile), { merge: true });
             if (isSuperAdmin) {

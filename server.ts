@@ -6,12 +6,13 @@ import dotenv from 'dotenv';
 import helmet from 'helmet';
 import { getApps, initializeApp } from 'firebase-admin/app';
 import firebaseConfig from './firebase-applet-config.json' with { type: 'json' };
-import { initStoreFromDisk, OPERATORS } from './server/store';
+import { initStoreFromDisk } from './server/models/store';
 import { apiLimiter } from './server/middleware/rateLimiter';
 import { ordersRouter } from './server/routes/orders';
 import { plansRouter } from './server/routes/plans';
 import { adminRouter } from './server/routes/admin';
 import { aiRouter } from './server/routes/ai';
+import { coreRouter } from './server/routes/core';
 
 dotenv.config();
 
@@ -29,7 +30,7 @@ if (!getApps().length) {
 // Initialize server disk persistence
 initStoreFromDisk();
 
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 async function startServer() {
   const app = express();
@@ -52,29 +53,14 @@ async function startServer() {
   // 3. Global Rate Limiter for /api routes
   app.use('/api', apiLimiter);
 
-  // 4. Base Health & Operators Information Endpoints
-  app.get('/api/health', (_req: Request, res: Response) => {
-    res.json({
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      service: 'DTH Tamizhan Core Service',
-    });
-  });
-
-  app.get('/api/operators', (_req: Request, res: Response) => {
-    res.json({
-      success: true,
-      operators: OPERATORS,
-    });
-  });
-
-  // 5. Mount Modular API Routers
+  // 4. Mount MVC API routes
+  app.use(coreRouter);
   app.use(ordersRouter);
   app.use(plansRouter);
   app.use(adminRouter);
   app.use(aiRouter);
 
-  // 6. Vite middleware for development or Static Asset serving in Production
+  // 5. Vite middleware for development or Static Asset serving in Production
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },

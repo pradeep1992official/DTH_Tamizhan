@@ -29,8 +29,8 @@ const OPERATOR_DATA: Record<string, { name: string; color: string }> = {
   sun_direct: { name: 'Sun Direct', color: '#F97316' },
   tata_play: { name: 'Tata Play', color: '#EC4899' },
   airtel_dth: { name: 'Airtel Digital TV', color: '#EF4444' },
-  dish_tv: { name: 'Dish TV', color: '#EB5B26' },
-  d2h: { name: 'D2H Videocon', color: '#8B5CF6' },
+  dish_tv: { name: 'Dish TV & D2H', color: '#EB5B26' },
+  d2h: { name: 'Dish TV & D2H', color: '#EB5B26' },
 };
 
 export const ComparisonTable: React.FC<ComparisonTableProps> = ({

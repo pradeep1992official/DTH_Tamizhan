@@ -12,7 +12,7 @@ import {
   RefreshCw,
   AlertCircle
 } from 'lucide-react';
-import { PlanCatalogItem, DthOperatorId, Language, UserProfile } from '../../../types';
+import { PlanCatalogItem, DthOperatorId, Language, UserProfile, canonicalizeDthOperatorId, isSameDthOperatorGroup } from '../../../types';
 import { OperatorTheme } from '../../../lib/theme';
 import { PlanCatalogService } from '../../../lib/planCatalogService';
 import { ExcelPlanImportExportModal } from '../../ExcelPlanImportExportModal';
@@ -85,7 +85,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
   const [channelInput, setChannelInput] = useState('');
 
   const filteredPlans = plans.filter((p) => {
-    const matchOp = selectedPackOp === 'all' || p.operator === selectedPackOp;
+    const matchOp = selectedPackOp === 'all' || isSameDthOperatorGroup(p.operator, selectedPackOp);
     const matchSearch =
       p.plan_name.toLowerCase().includes(packSearch.toLowerCase()) ||
       p.operator.toLowerCase().includes(packSearch.toLowerCase());
@@ -110,7 +110,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
     setEditingPack(plan);
     setFormData({
       id: plan.id,
-      operator: plan.operator,
+      operator: canonicalizeDthOperatorId(plan.operator),
       pack_type: plan.pack_type,
       duration_months: plan.duration_months,
       plan_name: plan.plan_name,
@@ -216,8 +216,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
             <option value="sun_direct">Sun Direct</option>
             <option value="tata_play">Tata Play</option>
             <option value="airtel_dth">Airtel DTH</option>
-            <option value="dish_tv">Dish TV</option>
-            <option value="d2h">D2H</option>
+            <option value="dish_tv">Dish TV &amp; D2H</option>
           </select>
         </div>
 
@@ -407,8 +406,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
                     <option value="sun_direct">Sun Direct</option>
                     <option value="tata_play">Tata Play</option>
                     <option value="airtel_dth">Airtel DTH</option>
-                    <option value="dish_tv">Dish TV</option>
-                    <option value="d2h">D2H</option>
+                    <option value="dish_tv">Dish TV &amp; D2H</option>
                   </select>
                 </div>
 

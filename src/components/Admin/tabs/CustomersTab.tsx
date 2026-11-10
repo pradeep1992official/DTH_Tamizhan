@@ -14,9 +14,9 @@ import {
   RefreshCw,
   X
 } from 'lucide-react';
-import { CustomerRecord, DthOperatorId, Language } from '../../../types';
+import { CustomerRecord, DthOperatorId, Language, isSameDthOperatorGroup, resolveDishFamilyOperatorId } from '../../../types';
 import { OperatorTheme } from '../../../lib/theme';
-import { db, isFirebaseLive, sanitizePayload } from '../../../lib/firebase';
+import { db, isFirebaseConfigured, sanitizePayload } from '../../../lib/firebase';
 import { doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { translations } from '../../../lib/translations';
 import { useAccessibleModal } from '../../../lib/useAccessibleModal';
@@ -77,7 +77,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
       c.customerName.toLowerCase().includes(custSearch.toLowerCase()) ||
       c.smartCardNumber.includes(custSearch) ||
       c.registeredMobile.includes(custSearch);
-    const matchOp = custOpFilter === 'all' || c.operator === custOpFilter;
+    const matchOp = custOpFilter === 'all' || isSameDthOperatorGroup(c.operator, custOpFilter as DthOperatorId);
     return matchSearch && matchOp;
   });
 
@@ -102,8 +102,12 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
       customerName: formData.customerName,
       registeredMobile: formData.registeredMobile,
       smartCardNumber: formData.smartCardNumber,
-      operator: formData.operator,
-      operatorName: opNames[formData.operator],
+      operator: formData.operator === 'dish_tv' || formData.operator === 'd2h'
+        ? resolveDishFamilyOperatorId(formData.smartCardNumber)
+        : formData.operator,
+      operatorName: opNames[formData.operator === 'dish_tv' || formData.operator === 'd2h'
+        ? resolveDishFamilyOperatorId(formData.smartCardNumber)
+        : formData.operator],
       activePackName: formData.activePackName,
       currentBalance: Number(formData.currentBalance) || 0,
       expiryDate: formData.expiryDate,
@@ -117,7 +121,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
     };
 
     try {
-      if (isFirebaseLive && db) {
+      if (isFirebaseConfigured && db) {
         await setDoc(doc(db, 'customers', newId), sanitizePayload(newCust));
       }
 
@@ -151,7 +155,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
 
   const handleDeleteCustomer = async (id: string) => {
     try {
-      if (isFirebaseLive && db) {
+      if (isFirebaseConfigured && db) {
         await deleteDoc(doc(db, 'customers', id));
       }
 
@@ -198,8 +202,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
             <option value="sun_direct">Sun Direct</option>
             <option value="tata_play">Tata Play</option>
             <option value="airtel_dth">Airtel DTH</option>
-            <option value="dish_tv">Dish TV</option>
-            <option value="d2h">D2H</option>
+            <option value="dish_tv">Dish TV &amp; D2H</option>
           </select>
         </div>
 
@@ -379,8 +382,8 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
                         sun_direct: 'Sun Direct',
                         tata_play: 'Tata Play',
                         airtel_dth: 'Airtel Digital TV',
-                        dish_tv: 'Dish TV',
-                        d2h: 'D2H',
+                        dish_tv: 'Dish TV & D2H',
+                        d2h: 'Dish TV & D2H',
                       };
                       setFormData({ ...formData, operator: op, operatorName: opNames[op] });
                     }}
@@ -389,8 +392,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
                     <option value="sun_direct">Sun Direct</option>
                     <option value="tata_play">Tata Play</option>
                     <option value="airtel_dth">Airtel DTH</option>
-                    <option value="dish_tv">Dish TV</option>
-                    <option value="d2h">D2H</option>
+                    <option value="dish_tv">Dish TV &amp; D2H</option>
                   </select>
                 </div>
 

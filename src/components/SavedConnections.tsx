@@ -12,7 +12,7 @@ import {
   X,
   Sparkles
 } from 'lucide-react';
-import { DthConnection, DthOperatorId, Language, UserProfile } from '../types';
+import { DthConnection, DthOperatorId, Language, UserProfile, resolveDishFamilyOperatorId } from '../types';
 import { translations } from '../lib/translations';
 import { OperatorTheme, getOperatorTheme } from '../lib/theme';
 import { useAccessibleModal } from '../lib/useAccessibleModal';
@@ -64,14 +64,18 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
       tata_play: 'Tata Play',
       airtel_dth: 'Airtel Digital TV',
       dish_tv: 'Dish TV',
-      d2h: 'Dish TV', // Merged
+      d2h: 'D2H',
     };
+    const cleanCard = smartCard.trim().replace(/\s+/g, '');
+    const selectedOperator = operator === 'dish_tv' || operator === 'd2h'
+      ? resolveDishFamilyOperatorId(cleanCard)
+      : operator;
 
     onAddConnection({
       user_id: user?.uid || 'guest_user',
-      operator: operator === 'd2h' ? 'dish_tv' : operator,
-      operatorName: opNames[operator] || 'Dish TV',
-      smartCardNumber: smartCard.trim().replace(/\s+/g, ''),
+      operator: selectedOperator,
+      operatorName: opNames[selectedOperator] || 'Dish TV',
+      smartCardNumber: cleanCard,
       nickname: nickname || 'Living Room DTH',
       customerName: customerName || 'Account Holder',
       balance: 45.0,

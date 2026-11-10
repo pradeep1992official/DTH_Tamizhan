@@ -29,8 +29,8 @@ const OPERATOR_NAMES: Record<string, { name: string; tamil: string; color: strin
   sun_direct: { name: 'Sun Direct', tamil: 'சன் டைரக்ட்', color: '#F97316' },
   tata_play: { name: 'Tata Play', tamil: 'டாடா பிளே', color: '#EC4899' },
   airtel_dth: { name: 'Airtel Digital TV', tamil: 'ஏர்டெல் டிவி', color: '#EF4444' },
-  dish_tv: { name: 'Dish TV', tamil: 'டிஷ் டிவி', color: '#EB5B26' },
-  d2h: { name: 'D2H Videocon', tamil: 'டி2எச்', color: '#8B5CF6' },
+  dish_tv: { name: 'Dish TV & D2H', tamil: 'டிஷ் டிவி & டி2எச்', color: '#EB5B26' },
+  d2h: { name: 'Dish TV & D2H', tamil: 'டிஷ் டிவி & டி2எச்', color: '#EB5B26' },
 };
 
 export const PlanCard: React.FC<PlanCardProps> = ({

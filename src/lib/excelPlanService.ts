@@ -1,7 +1,7 @@
 import ExcelJS from 'exceljs';
-import { PlanCatalogItem, DthOperatorId } from '../types';
+import { PlanCatalogItem, DthOperatorId, isSameDthOperatorGroup } from '../types';
 import { PlanCatalogService } from './planCatalogService';
-import { db, auth, isFirebaseLive, sanitizePayload } from './firebase';
+import { db, auth, isFirebaseConfigured, sanitizePayload } from './firebase';
 import { doc, writeBatch } from 'firebase/firestore';
 
 export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB limit
@@ -68,8 +68,8 @@ export const OPERATOR_DISPLAY_NAMES: Record<DthOperatorId, string> = {
   sun_direct: 'Sun Direct',
   tata_play: 'Tata Play',
   airtel_dth: 'Airtel Digital TV',
-  dish_tv: 'Dish TV',
-  d2h: 'D2H',
+  dish_tv: 'Dish TV & D2H',
+  d2h: 'Dish TV & D2H',
 };
 
 /**
@@ -154,7 +154,7 @@ export async function exportPlansToExcel(
   operatorFilter?: DthOperatorId | 'all'
 ) {
   const filtered = (operatorFilter && operatorFilter !== 'all')
-    ? plans.filter((p) => p.operator === operatorFilter)
+    ? plans.filter((p) => isSameDthOperatorGroup(p.operator, operatorFilter))
     : plans;
 
   const workbook = new ExcelJS.Workbook();
@@ -661,7 +661,7 @@ export async function applyImportedPlans(
   });
 
   // 1. Single Batched Write to Cloud Firestore
-  if (isFirebaseLive && db) {
+  if (isFirebaseConfigured && db) {
     try {
       const batch = writeBatch(db);
       for (const item of finalItems) {

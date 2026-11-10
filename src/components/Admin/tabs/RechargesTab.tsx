@@ -10,7 +10,7 @@ import {
   Phone,
   Eye
 } from 'lucide-react';
-import { RechargeOrder, Language, DthOperatorId } from '../../../types';
+import { RechargeOrder, Language, DthOperatorId, isSameDthOperatorGroup } from '../../../types';
 import { OperatorTheme } from '../../../lib/theme';
 import { translations } from '../../../lib/translations';
 
@@ -47,7 +47,7 @@ export const RechargesTab: React.FC<RechargesTabProps> = ({
       o.smartCardNumber.includes(orderSearch) ||
       (o.customerName && o.customerName.toLowerCase().includes(orderSearch.toLowerCase()));
     const matchStatus = statusFilter === 'all' || o.rechargeStatus === statusFilter;
-    const matchOp = opFilter === 'all' || o.operator === opFilter;
+    const matchOp = opFilter === 'all' || isSameDthOperatorGroup(o.operator, opFilter as DthOperatorId);
     return matchSearch && matchStatus && matchOp;
   });
 
@@ -118,8 +118,7 @@ export const RechargesTab: React.FC<RechargesTabProps> = ({
             <option value="sun_direct">Sun Direct</option>
             <option value="tata_play">Tata Play</option>
             <option value="airtel_dth">Airtel DTH</option>
-            <option value="dish_tv">Dish TV</option>
-            <option value="d2h">D2H</option>
+            <option value="dish_tv">Dish TV &amp; D2H</option>
           </select>
         </div>
 
