@@ -173,6 +173,7 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
       await PlanCatalogService.seedAirtelPlansIntoLiveCatalog();
       await PlanCatalogService.applyAirtelRecommendationFlags();
       await PlanCatalogService.seedSunDirectPlansIntoLiveCatalog();
+      await PlanCatalogService.seedTataPlayPlansIntoLiveCatalog();
       const allPlans = await PlanCatalogService.getAllPlans({ allowFallback: false });
       setPlans(allPlans);
     } catch (err: any) {

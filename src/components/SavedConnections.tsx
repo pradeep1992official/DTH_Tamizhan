@@ -1,3 +1,4 @@
+import { getConnectionExpiry } from '../lib/connectionExpiry';
 import React, { useState } from 'react';
 import {
   Tv,
@@ -42,7 +43,7 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [operator, setOperator] = useState<DthOperatorId>('sun_direct');
   const [smartCard, setSmartCard] = useState('');
-  const [nickname, setNickname] = useState('Home Hall');
+  const [nickname, setNickname] = useState('');
   const [customerName, setCustomerName] = useState('');
 
   const isLight = currentTheme.isLightMode;
@@ -127,7 +128,12 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
         <div className="connection-list">
           {connections.map((conn) => {
             const normalizedOp = conn.operator === 'd2h' ? 'dish_tv' : conn.operator;
-            const opTheme = getOperatorTheme(normalizedOp);
+            const expiry = getConnectionExpiry(conn);
+            const expiryDate = expiry ? new Date(`${expiry.slice(0, 10)}T00:00:00+05:30`) : null;
+            const validExpiry = expiryDate && Number.isFinite(expiryDate.getTime());
+            const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+            const expired = validExpiry && expiry!.slice(0, 10) < today;
+            const operatorNames: Record<string, string> = { sun_direct: 'Sun Direct', tata_play: 'Tata Play', airtel_dth: 'Airtel Digital TV', dish_tv: 'Dish TV & D2H' };
 
             return (
               <div
@@ -139,18 +145,10 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
                   <div className="flex items-start justify-between">
                     <div>
                       <span
-                        className="text-xs font-medium px-2.5 py-1 rounded-full border inline-flex items-center gap-1.5"
-                        style={{
-                          backgroundColor: `color-mix(in oklab, ${opTheme.primaryColor} 8%, transparent)`,
-                          color: opTheme.primaryColor,
-                          borderColor: `color-mix(in oklab, ${opTheme.primaryColor} 19%, transparent)`,
-                        }}
+                        className="compact-plan-pill compact-plan-operator"
+                        data-operator={normalizedOp}
                       >
-                        <span
-                          className="w-1.5 h-1.5 rounded-full"
-                          style={{ backgroundColor: opTheme.primaryColor }}
-                        />
-                        {conn.operatorName}
+                        {operatorNames[normalizedOp] || conn.operatorName}
                       </span>
                       <h3 className={`font-bold text-base mt-2 ${currentTheme.headingText}`}>
                         {conn.nickname}
@@ -161,9 +159,11 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
                     </div>
 
                     <button
-                      onClick={() => onDeleteConnection(conn.id)}
+                      onClick={() => {
+                        if (window.confirm(`Remove \u201c${conn.nickname}\u201d from your saved boxes?`)) onDeleteConnection(conn.id);
+                      }}
                       aria-label={`Remove ${conn.nickname}`}
-                      className="p-2 rounded-xl transition-colors text-error hover:bg-error-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-error   "
+                      className="min-h-11 min-w-11 flex items-center justify-center p-2 rounded-xl transition-colors text-error hover:bg-error-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-error   "
                       title="Remove Connection"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -178,18 +178,21 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
                         {typeof conn.balance === 'number' ? `₹${conn.balance.toFixed(2)}` : 'Not available'}
                       </span>
                     </div>
-                    <div>
-                      <span className={`text-xs font-medium block ${currentTheme.mutedText}`}>Expiry</span>
-                      <span className={`font-medium text-sm block mt-1 ${currentTheme.subText}`}>
-                        {conn.expiryDate || 'N/A'}
-                      </span>
-                    </div>
+                    {validExpiry && (
+                      <div>
+                        <span className={`text-xs font-medium block ${currentTheme.mutedText}`}>Expiry</span>
+                        <span className="font-medium text-sm block">
+                          {expiryDate!.toLocaleDateString(currentLang === 'ta' ? 'ta-IN' : 'en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}
+                        </span>
+                        <span className={`text-xs font-semibold ${expired ? 'text-error' : 'text-success'}`}>{expired ? 'Expired' : 'Active'}</span>
+                      </div>
+                    )}
                   </div>
 
                   {conn.packName && (
-                    <div className={`mt-3 text-xs flex items-center justify-between px-1`}>
-                      <span className={currentTheme.mutedText}>Pack:</span>
-                      <span className="font-medium text-right" style={{ color: opTheme.primaryColor }}>
+                    <div className={`mt-3 text-sm space-y-1`}>
+                      <span className={currentTheme.mutedText}>Current pack</span>
+                      <span className="font-medium block break-words">
                         {conn.packName}
                       </span>
                     </div>

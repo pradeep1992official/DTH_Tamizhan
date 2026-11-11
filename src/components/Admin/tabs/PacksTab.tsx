@@ -19,6 +19,8 @@ import { ExcelPlanImportExportModal } from '../../ExcelPlanImportExportModal';
 import { translations } from '../../../lib/translations';
 import { useAccessibleModal } from '../../../lib/useAccessibleModal';
 
+type CatalogSortKey = 'plan_name' | 'operator' | 'pack_type' | 'duration_months' | 'amount' | 'is_recommended';
+
 interface PacksTabProps {
   plans: PlanCatalogItem[];
   plansLoading: boolean;
@@ -45,6 +47,17 @@ export const PacksTab: React.FC<PacksTabProps> = ({
   const t = translations[currentLang];
   const isLight = currentTheme.isLightMode;
   const [packSearch, setPackSearch] = useState('');
+  const [catalogSort, setCatalogSort] = useState<{ key: CatalogSortKey; direction: 'asc' | 'desc' } | null>(null);
+  const toggleCatalogSort = (key: CatalogSortKey) => {
+    setCatalogSort((previous) => ({ key, direction: previous?.key === key && previous.direction === 'asc' ? 'desc' : 'asc' }));
+  };
+  const sortHeading = (key: CatalogSortKey, label: string) => (
+    <button type="button" className="catalog-sort-heading" onClick={() => toggleCatalogSort(key)}
+      aria-label={`${label}: sort ${catalogSort?.key === key && catalogSort.direction === 'asc' ? 'descending' : 'ascending'}`}>
+      {label}<span aria-hidden="true">{catalogSort?.key === key ? (catalogSort.direction === 'asc' ? '\u2191' : '\u2193') : '\u2195'}</span>
+    </button>
+  );
+  const sortDirection = (key: CatalogSortKey): 'ascending' | 'descending' | undefined => catalogSort?.key === key ? (catalogSort.direction === 'asc' ? 'ascending' : 'descending') : undefined;
   const [selectedPackOp, setSelectedPackOp] = useState<DthOperatorId | 'all'>('all');
   const [editingPack, setEditingPack] = useState<PlanCatalogItem | null>(null);
   const [isPackModalOpen, setIsPackModalOpen] = useState(false);
@@ -84,12 +97,25 @@ export const PacksTab: React.FC<PacksTabProps> = ({
 
   const [channelInput, setChannelInput] = useState('');
 
+  const operatorNames: Record<string, string> = { sun_direct: 'Sun Direct', tata_play: 'Tata Play', airtel_dth: 'Airtel DTH', dish_tv: 'Dish TV & D2H', d2h: 'Dish TV & D2H' };
+
   const filteredPlans = plans.filter((p) => {
     const matchOp = selectedPackOp === 'all' || isSameDthOperatorGroup(p.operator, selectedPackOp);
     const matchSearch =
       p.plan_name.toLowerCase().includes(packSearch.toLowerCase()) ||
       p.operator.toLowerCase().includes(packSearch.toLowerCase());
     return matchOp && matchSearch;
+  }).sort((a, b) => {
+    if (catalogSort) {
+      const { key, direction } = catalogSort;
+      let comparison: number;
+      if (key === 'amount' || key === 'duration_months') comparison = Number(a[key]) - Number(b[key]);
+      else if (key === 'is_recommended') comparison = (a.is_recommended ? 'Recommended' : 'Standard').localeCompare(b.is_recommended ? 'Recommended' : 'Standard');
+      else if (key === 'operator') comparison = (operatorNames[a.operator] || a.operator).localeCompare(operatorNames[b.operator] || b.operator);
+      else comparison = a[key].localeCompare(b[key], undefined, { numeric: true, sensitivity: 'base' });
+      return (direction === 'asc' ? comparison : -comparison) || a.plan_name.localeCompare(b.plan_name) || a.duration_months - b.duration_months;
+    }
+    return a.operator.localeCompare(b.operator) || Number(b.is_recommended) - Number(a.is_recommended) || a.plan_name.localeCompare(b.plan_name) || a.duration_months - b.duration_months;
   });
 
   const handleOpenAdd = () => {
@@ -188,7 +214,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
   };
 
   return (
-    <div className="admin-tab space-y-6">
+    <div className="admin-tab plan-catalog-tab space-y-4">
       {/* Top Controls */}
       <div className="admin-toolbar flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3 flex-1">
@@ -239,6 +265,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
             className={`p-2.5 rounded-xl border transition-colors ${
               isLight ? 'bg-paper-2 hover:bg-paper-2 text-ink' : 'bg-paper-2 hover:bg-paper-2 text-accent-ink'
             }`}
+            aria-label="Refresh catalog"
             title="Refresh catalog"
           >
             <RefreshCw className={`w-4 h-4 ${plansLoading ? 'animate-spin' : ''}`} />
@@ -278,17 +305,17 @@ export const PacksTab: React.FC<PacksTabProps> = ({
       <div className={`border rounded-lg overflow-hidden shadow-none ${
         isLight ? 'bg-paper border-rule' : 'bg-paper-2 border-rule'
       }`}>
-        <div className="overflow-x-auto">
-          <table className="admin-responsive-table w-full text-left text-sm">
+        <div className="plan-catalog-scroll overflow-x-auto" tabIndex={0} role="region" aria-label="Plan catalog table">
+          <table className="admin-responsive-table plan-catalog-table w-full text-left text-sm">
             <thead className={`border-b ${isLight ? 'bg-paper-2 text-ink border-rule' : 'bg-paper-2 text-muted border-rule'}`}>
               <tr>
-                <th className="p-3.5 font-medium">{t.packNameLabel}</th>
-                <th className="hidden md:table-cell p-3.5 font-medium">{t.operatorLabel}</th>
-                <th className="p-3.5 font-medium">{t.qualityLabel}</th>
-                <th className="hidden md:table-cell p-3.5 font-medium">{t.durationMonthsLabel}</th>
-                <th className="p-3.5 font-medium">{t.priceInrLabel}</th>
-                <th className="hidden sm:table-cell p-3.5 font-medium">{t.status}</th>
-                <th className="p-3.5 font-medium text-right">{t.actions}</th>
+                <th scope="col" aria-sort={sortDirection('plan_name')} className="p-3.5 font-medium">{sortHeading('plan_name', t.packNameLabel)}</th>
+                <th scope="col" aria-sort={sortDirection('operator')} className="hidden md:table-cell p-3.5 font-medium">{sortHeading('operator', t.operatorLabel)}</th>
+                <th scope="col" aria-sort={sortDirection('pack_type')} className="p-3.5 font-medium">{sortHeading('pack_type', 'Quality')}</th>
+                <th scope="col" aria-sort={sortDirection('duration_months')} className="hidden md:table-cell p-3.5 font-medium">{sortHeading('duration_months', 'Duration')}</th>
+                <th scope="col" aria-sort={sortDirection('amount')} className="p-3.5 font-medium">{sortHeading('amount', 'Price (Rs.)')}</th>
+                <th scope="col" aria-sort={sortDirection('is_recommended')} className="hidden sm:table-cell p-3.5 font-medium">{sortHeading('is_recommended', t.status)}</th>
+                <th scope="col" className="catalog-actions-heading p-3.5 font-medium"><span>{t.actions}</span></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-rule">
@@ -312,29 +339,27 @@ export const PacksTab: React.FC<PacksTabProps> = ({
                   <tr key={plan.id} className="hover:bg-paper-2 transition-colors">
                     <td data-label={t.packNameLabel} className="p-3.5 font-medium">
                       <div className="font-bold text-sm text-ink ">{plan.plan_name}</div>
-                      <div className="hidden md:block text-sm text-muted">ID: {plan.id}</div>
+                      
                       <div className="md:hidden text-sm text-ink ">
-                        {plan.operator.replace('_', ' ')} · {plan.duration_months}M
+                        {operatorNames[plan.operator] || plan.operator} · {plan.duration_months}M
                       </div>
                     </td>
-                    <td data-label={t.operatorLabel} className="hidden md:table-cell p-3.5 capitalize font-medium text-ink ">{plan.operator.replace('_', ' ')}</td>
+                    <td data-label={t.operatorLabel} className="hidden md:table-cell p-3.5"><span className="compact-plan-pill compact-plan-operator" data-operator={plan.operator}>{operatorNames[plan.operator] || plan.operator}</span></td>
                     <td data-label={t.qualityLabel} className="p-3.5">
-                      <span className={`text-sm px-2.5 py-0.5 rounded-md font-bold  ${
-                        plan.pack_type === 'HD'
-                          ? `bg-warning/10 ${isLight ? 'text-warning' : 'text-warning'} border border-rule`
-                          : `bg-accent-soft ${isLight ? 'text-accent' : 'text-accent'} border border-rule`
-                      }`}>
+                      <span className="compact-plan-pill compact-plan-quality" data-quality={plan.pack_type}>
                         {plan.pack_type}
                       </span>
                     </td>
-                    <td data-label={t.durationMonthsLabel} className="hidden md:table-cell p-3.5 font-medium text-ink ">{plan.duration_months} Month{plan.duration_months > 1 ? 's' : ''}</td>
+                    <td data-label={t.durationMonthsLabel} className="hidden md:table-cell p-3.5">
+                      <span className="compact-plan-pill compact-plan-duration" data-duration={plan.duration_months}>{plan.duration_months} Month{plan.duration_months > 1 ? 's' : ''}</span>
+                    </td>
                     <td data-label={t.priceInrLabel} className="p-3.5">
-                      <div className="font-mono font-medium text-sm text-ink ">₹{plan.amount}</div>
-                      <div className="text-sm text-muted ">₹{Math.round(plan.amount / plan.duration_months)}/mo</div>
+                      <div className="font-medium text-sm text-ink">Rs. {plan.amount.toLocaleString('en-IN')}</div>
+                      {plan.duration_months > 1 && <div className="text-xs text-muted">Rs. {Math.round(plan.amount / plan.duration_months).toLocaleString('en-IN')}/mo</div>}
                     </td>
                     <td data-label={t.status} className="hidden sm:table-cell p-3.5">
                       {plan.is_recommended ? (
-                        <span className="text-sm px-2.5 py-0.5 rounded-full bg-success/10 text-success  font-bold border border-rule flex items-center gap-1 w-fit">
+                        <span className="catalog-recommended text-sm px-2.5 py-0.5 rounded-full bg-success/10 text-success  font-bold border border-rule inline-flex items-center gap-1 w-fit">
                           <Sparkles className="w-3.5 h-3.5" />
                           <span>Recommended</span>
                         </span>
@@ -347,7 +372,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
                         <button
                           type="button"
                           onClick={() => handleOpenEdit(plan)}
-                          className="admin-pack-action p-1.5 rounded-lg border hover:bg-paper-2 transition-colors"
+                          className="admin-pack-action p-1.5 rounded-lg hover:bg-paper-2 transition-colors"
                           title="Edit Pack"
                           aria-label={`Edit ${plan.plan_name}`}
                         >
@@ -356,7 +381,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
                         <button
                           type="button"
                           onClick={() => setPackToDelete(plan)}
-                          className="admin-pack-action p-1.5 rounded-lg border text-error hover:bg-error/10 transition-colors"
+                          className="admin-pack-action catalog-delete-action p-1.5 rounded-lg text-error hover:bg-error-soft transition-colors"
                           title="Delete Pack"
                           aria-label={`Delete ${plan.plan_name}`}
                         >
@@ -402,6 +427,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
             </div>
 
             <form onSubmit={handleSavePack} className="space-y-3 text-sm">
+              {editingPack && <p className="text-xs text-muted break-all">ID: {editingPack.id}</p>}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="font-medium block mb-1 text-ink ">DTH Operator</label>

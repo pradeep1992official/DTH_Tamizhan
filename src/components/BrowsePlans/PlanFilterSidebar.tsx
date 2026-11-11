@@ -69,7 +69,7 @@ export const PlanFilterSidebar: React.FC<PlanFilterSidebarProps> = ({
 
   return (
     <div
-      className={`filter-panel space-y-6 ${
+      className={`filter-panel space-y-4 ${
         isLight
           ? 'bg-paper border-rule text-ink'
           : `${currentTheme.mainContainerBg} ${currentTheme.mainContainerBorder} text-accent-ink`
@@ -115,8 +115,10 @@ export const PlanFilterSidebar: React.FC<PlanFilterSidebarProps> = ({
             return (
               <button
                 key={op.id}
+                data-operator={op.id}
                 type="button"
                 onClick={() => handleOperatorToggle(op.id)}
+                aria-pressed={isSelected}
                 className={`w-full px-3 py-2 rounded-xl text-left border text-xs font-medium flex items-center justify-between transition-colors ${
                   isSelected
                     ? isLight
@@ -137,7 +139,7 @@ export const PlanFilterSidebar: React.FC<PlanFilterSidebarProps> = ({
                       : 'border-rule-strong bg-transparent'
                   }`}
                   style={{
-                    backgroundColor: isSelected ? op.color : undefined,
+                    backgroundColor: isSelected ? 'rgba(0, 0, 0, 0.25)' : undefined,
                   }}
                 >
                   {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
@@ -159,8 +161,10 @@ export const PlanFilterSidebar: React.FC<PlanFilterSidebarProps> = ({
             return (
               <button
                 key={typeVal}
+                data-quality={typeVal}
                 type="button"
                 onClick={() => onChange({ ...filters, type: typeVal })}
+                aria-pressed={isSelected}
                 className={`py-1.5 rounded-lg text-xs font-bold transition-colors capitalize ${
                   isSelected
                     ? 'text-accent-ink shadow-md'
@@ -169,7 +173,7 @@ export const PlanFilterSidebar: React.FC<PlanFilterSidebarProps> = ({
                     : 'text-muted hover:text-accent-ink'
                 }`}
                 style={{
-                  backgroundColor: isSelected ? currentTheme.primaryColor : undefined,
+                  backgroundColor: typeVal === 'all' && isSelected ? currentTheme.primaryColor : undefined,
                 }}
               >
                 {typeVal === 'all' ? t.allQuality : typeVal}
@@ -191,8 +195,10 @@ export const PlanFilterSidebar: React.FC<PlanFilterSidebarProps> = ({
             return (
               <button
                 key={dur.value}
+                data-duration={dur.value}
                 type="button"
                 onClick={() => handleDurationToggle(dur.value)}
+                aria-pressed={isSelected}
                 className={`py-2 px-2.5 rounded-xl border text-xs font-medium text-center transition-colors flex items-center justify-center gap-1.5 ${
                   isSelected
                     ? 'text-accent-ink border-transparent shadow-sm'
@@ -200,9 +206,7 @@ export const PlanFilterSidebar: React.FC<PlanFilterSidebarProps> = ({
                     ? 'bg-paper-2 border-rule text-ink hover:bg-paper-2'
                     : 'bg-paper border-rule-strong text-muted hover:bg-paper'
                 }`}
-                style={{
-                  backgroundColor: isSelected ? currentTheme.primaryColor : undefined,
-                }}
+
               >
                 {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                 <span>{dur.label}</span>
@@ -212,6 +216,9 @@ export const PlanFilterSidebar: React.FC<PlanFilterSidebarProps> = ({
         </div>
       </div>
 
+      <details className="catalog-more-filters">
+        <summary className="cursor-pointer text-sm font-medium">{t.filterByPrice} &amp; {t.channels}</summary>
+        <div className="space-y-4 pt-4">
       {/* 4. Price Range Slider */}
       <div className="space-y-2.5">
         <div className="flex items-center justify-between text-xs font-bold">
@@ -224,6 +231,7 @@ export const PlanFilterSidebar: React.FC<PlanFilterSidebarProps> = ({
         </div>
         <input
           type="range"
+          aria-label={t.filterByPrice}
           min="100"
           max="5000"
           step="50"
@@ -250,6 +258,7 @@ export const PlanFilterSidebar: React.FC<PlanFilterSidebarProps> = ({
         </div>
         <input
           type="range"
+          aria-label={t.filterByChannels}
           min="0"
           max="300"
           step="10"
@@ -263,6 +272,8 @@ export const PlanFilterSidebar: React.FC<PlanFilterSidebarProps> = ({
           className="w-full accent-emerald-500 cursor-pointer"
         />
       </div>
+        </div>
+      </details>
     </div>
   );
 };

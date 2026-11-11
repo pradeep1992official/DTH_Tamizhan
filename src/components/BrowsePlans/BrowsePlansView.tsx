@@ -10,7 +10,7 @@ import {
 } from '../../lib/icons';
 import { BrowsePlan, DthConnection, Language, PlanFilters, UserProfile } from '../../types';
 import { OperatorTheme } from '../../lib/theme';
-import { INITIAL_BROWSE_PLANS, computePlanMetrics, filterAndSortPlans, catalogItemToBrowsePlan } from '../../lib/browsePlansData';
+import { filterAndSortPlans, catalogItemToBrowsePlan } from '../../lib/browsePlansData';
 import { PlanFilterSidebar } from './PlanFilterSidebar';
 import { PlanCard } from './PlanCard';
 import { CompareDrawer } from './CompareDrawer';
@@ -203,7 +203,8 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
         <div className="relative flex-1 min-w-0">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
           <input
-            type="text"
+            type="search"
+            aria-label={t.searchPacks}
             value={filters.searchQuery}
             onChange={(e) => setFilters((prev) => ({ ...prev, searchQuery: e.target.value }))}
             placeholder={t.searchPacks}
@@ -222,8 +223,9 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
             <ArrowUpDown className="w-3.5 h-3.5 text-muted shrink-0" />
             <span className={`font-bold hidden sm:inline ${isLight ? 'text-ink' : 'text-muted'}`}>{t.sortBy}:</span>
             <select
+              aria-label={t.sortBy}
               value={filters.sortBy}
-              onChange={(e) => setFilters((prev) => ({ ...prev, sortBy: e.target.value as any }))}
+              onChange={(e) => setFilters((prev) => ({ ...prev, sortBy: e.target.value as PlanFilters['sortBy'] }))}
               className={`py-2 px-3 rounded-xl text-xs font-medium border cursor-pointer ${
                 isLight
                   ? 'bg-paper-2 border-rule text-ink'
@@ -243,6 +245,8 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
           <button
             type="button"
             onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
+            aria-expanded={isMobileFilterOpen}
+            aria-controls="catalog-mobile-filters"
             className={`lg:hidden py-2 px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 ${
               isLight ? 'bg-paper-2 border-rule text-ink' : 'bg-paper border-rule-strong text-accent-ink'
             }`}
@@ -269,7 +273,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
 
         {/* Mobile Filter Drawer */}
         {isMobileFilterOpen && (
-          <div className="lg:hidden col-span-1">
+          <div id="catalog-mobile-filters" className="lg:hidden col-span-1">
             <PlanFilterSidebar
               filters={filters}
               onChange={(updated) => setFilters(updated)}
@@ -346,7 +350,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
               )}
 
               {/* Results count banner */}
-              <div className="flex items-center justify-between text-xs px-1">
+              <div aria-live="polite" className="flex items-center justify-between text-xs px-1">
                 <span className={`font-bold ${isLight ? 'text-ink' : 'text-muted'}`}>
                   {displayedPlans.length} {displayedPlans.length === 1 ? t.pack : t.packs}
                 </span>

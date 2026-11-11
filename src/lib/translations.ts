@@ -69,7 +69,7 @@ export const translations = {
     popularBadge: 'Popular',
     saveBadge: 'Best Value',
     bestSavings: 'Max Savings',
-    browsePacksTitle: 'Browse & Compare DTH Recharge Packs',
+    browsePacksTitle: 'Browse & Compare DTH Plans',
     browsePacksSubtitle: 'Find the best value packs across all operators with verified Tamil channels',
     filterByOperator: 'Filter by Operator',
     filterByQuality: 'Pack Quality',

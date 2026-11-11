@@ -90,6 +90,8 @@ export interface DthConnection {
   customerName?: string;
   balance?: number;
   expiryDate?: string;
+  lastRechargeDate?: string;
+  packDurationMonths?: number;
   monthlyPackPrice?: number;
   packName?: string;
   createdAt: string;
@@ -144,6 +146,7 @@ export interface PlanCatalogItem {
   is_recommended: boolean;
   channel_count?: number;
   hd_channel_count?: number;
+  channel_list_url?: string;
   channel_list: string[];
   channels?: string[];
   genre_tags?: string[];
@@ -175,6 +178,7 @@ export interface BrowsePlan {
   monthly_equivalent_rate: number;
   channel_count: number;
   hd_channel_count?: number;
+  channel_list_url?: string;
   channels: string[];
   genre_tags: string[];
   is_recommended: boolean;

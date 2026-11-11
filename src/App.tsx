@@ -1,3 +1,4 @@
+import { calculateConnectionExpiry, getPackDuration } from './lib/connectionExpiry';
 import React, { useState, useEffect } from 'react';
 import {
   BrowserRouter,
@@ -231,7 +232,9 @@ function MainApp() {
                   nickname: d.nickname || `${d.operatorName || 'DTH'} Box`,
                   customerName: d.customerName || 'Subscriber',
                   balance: typeof d.balance === 'number' ? d.balance : 0,
-                  expiryDate: d.expiryDate || new Date().toISOString().split('T')[0],
+                  expiryDate: d.expiryDate || undefined,
+                  lastRechargeDate: d.lastRechargeDate,
+                  packDurationMonths: d.packDurationMonths,
                   monthlyPackPrice: typeof d.monthlyPackPrice === 'number' ? d.monthlyPackPrice : 299,
                   packName: d.packName || 'Active Pack',
                   createdAt: d.createdAt || new Date().toISOString(),
@@ -302,17 +305,22 @@ function MainApp() {
     setLastCompletedOrder(completedOrder);
     setIsReceiptOpen(true);
 
-    if (activeSaveBox) {
+    const existingBox = connections.find((c) => c.operator === completedOrder.operator && c.smartCardNumber === completedOrder.smartCardNumber);
+    if (activeSaveBox || existingBox) {
+      const rechargeDate = completedOrder.createdAt;
+      const packDurationMonths = Number(activePaymentPlan?.duration_months) || getPackDuration(completedOrder.packValidity) || (Number(activePaymentPlan?.validityDays) / 30) || undefined;
       const newConn: DthConnection = {
-        id: `conn-${Date.now()}`,
+        id: existingBox?.id || `conn-${Date.now()}`,
         user_id: user?.uid || 'guest_user',
         operator: completedOrder.operator,
         operatorName: completedOrder.operatorName,
         smartCardNumber: completedOrder.smartCardNumber,
-        nickname: `${completedOrder.operatorName} Box`,
+        nickname: existingBox?.nickname || `${completedOrder.operatorName} Box`,
         customerName: completedOrder.customerName,
         balance: 150.00,
-        expiryDate: new Date(Date.now() + 86400000 * 30).toISOString().split('T')[0],
+        lastRechargeDate: rechargeDate,
+        packDurationMonths,
+        expiryDate: packDurationMonths ? calculateConnectionExpiry(rechargeDate, packDurationMonths) : undefined,
         monthlyPackPrice: completedOrder.amount,
         packName: completedOrder.packName,
         createdAt: new Date().toISOString(),

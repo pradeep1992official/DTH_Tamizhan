@@ -59,6 +59,31 @@ const SUN_DIRECT_TARIFF_PLANS: PlanCatalogItem[] = SUN_DIRECT_TARIFFS.flatMap((t
   }))
 );
 
+// Tata Play prices supplied by the owner: annual = 11 paid months + 1 free.
+const TATA_PLAY_TARIFFS = [
+  { name: 'Tamil Thalaiva', family: 'tata_sd_thalaiva', type: 'SD' as const, recommended: true, prices: [308, 1848, 3388] },
+  { name: 'Tamil Thalaiva HDs', family: 'tata_hd_thalaiva_hds', type: 'HD' as const, recommended: true, prices: [329, 1974, 3619] },
+  { name: 'Tamil Thalaiva HD New', family: 'tata_hd_thalaiva_new', type: 'HD' as const, recommended: false, prices: [399, 2394, 4389] },
+  { name: 'Tamil Thalaiva Sports Kids English', family: 'tata_sd_thalaiva_sports_kids_english', type: 'SD' as const, recommended: false, prices: [505, 3030, 5555] },
+  { name: 'Tamil Thalaiva Sports Kids English HD', family: 'tata_hd_thalaiva_sports_kids_english', type: 'HD' as const, recommended: false, prices: [745, 4470, 8195] },
+];
+const TATA_PLAY_TARIFF_PLANS: PlanCatalogItem[] = TATA_PLAY_TARIFFS.flatMap((tariff) =>
+  ([1, 6, 12] as const).map((duration, index) => ({
+    id: `${tariff.family}_${duration}m`,
+    operator: 'tata_play' as const,
+    pack_type: tariff.type,
+    plan_family: tariff.family,
+    duration_months: duration,
+    plan_name: tariff.name,
+    amount: tariff.prices[index],
+    is_recommended: tariff.recommended,
+    channel_list: [],
+    description: `Tata Play ${tariff.name}. ${duration === 6 ? '6 months + 15 days free.' : duration === 12 ? '11 months + 1 month free.' : '1 month.'}`,
+    updated_at: new Date().toISOString(),
+    updated_by: 'admin_sys_init',
+  }))
+);
+
 export const INITIAL_PLAN_CATALOG: PlanCatalogItem[] = ([
   // =========================================================================
   // 1. SUN DIRECT (சன் டைரக்ட்)
@@ -889,7 +914,7 @@ export const INITIAL_PLAN_CATALOG: PlanCatalogItem[] = ([
     updated_at: new Date(Date.now() - 86400000 * 4).toISOString(),
     updated_by: 'admin_sys_init',
   },
-] as PlanCatalogItem[]).filter((plan) => plan.operator !== 'sun_direct').concat(SUN_DIRECT_TARIFF_PLANS);
+] as PlanCatalogItem[]).filter((plan) => plan.operator !== 'sun_direct' && plan.operator !== 'tata_play').concat(SUN_DIRECT_TARIFF_PLANS, TATA_PLAY_TARIFF_PLANS);
 
 const LOCAL_STORAGE_CATALOG_KEY = 'dth_plan_catalog_cache_v2';
 const LOCAL_STORAGE_AUDIT_KEY = 'dth_plan_audit_logs_cache_v2';
@@ -1006,6 +1031,7 @@ export class PlanCatalogService {
                   is_recommended: Boolean(data.is_recommended),
                   channel_count: Number(data.channel_count) || (data.pack_type === 'HD' ? 210 : 145),
                   hd_channel_count: data.hd_channel_count !== undefined ? Number(data.hd_channel_count) : (data.pack_type === 'HD' ? 32 : 0),
+                  ...(typeof data.channel_list_url === 'string' ? { channel_list_url: data.channel_list_url } : {}),
                   channel_list: Array.isArray(data.channel_list) ? data.channel_list : (Array.isArray(data.channels) ? data.channels : []),
                   channels: Array.isArray(data.channel_list) ? data.channel_list : (Array.isArray(data.channels) ? data.channels : []),
                   genre_tags: Array.isArray(data.genre_tags) ? data.genre_tags : ['tamil', 'entertainment'],
@@ -1176,6 +1202,39 @@ export class PlanCatalogService {
     await batch.commit();
   }
 
+  static async seedTataPlayPlansIntoLiveCatalog(): Promise<void> {
+    if (!isFirebaseConfigured || !db) return;
+
+    const stateRef = PLAN_CATALOG_STATE_REF();
+    const state = await getDoc(stateRef);
+    if (Number(state.data()?.tataPlaySeedVersion) >= 1) return;
+
+    const catalogSnapshot = await getDocs(collection(db, 'plan_catalog'));
+    const hasPlanDocuments = catalogSnapshot.docs.some((catalogDoc) => catalogDoc.id !== PLAN_CATALOG_STATE_ID);
+    if (!hasPlanDocuments && state.data()?.initialized === true) {
+      await setDoc(stateRef, {
+        tataPlaySeedVersion: 1,
+        updated_at: new Date().toISOString(),
+      }, { merge: true });
+      return;
+    }
+
+    const batch = writeBatch(db);
+    for (const legacyId of ['tata_hd_1m_rec', 'tata_hd_3m_rec', 'tata_hd_6m_rec', 'tata_hd_12m_rec', 'tata_sd_1m_rec', 'tata_sd_3m_rec', 'tata_sd_6m_rec', 'tata_sd_12m_rec', 'tata_hd_mega_1m']) {
+      batch.delete(doc(db, 'plan_catalog', legacyId));
+    }
+    for (const plan of TATA_PLAY_TARIFF_PLANS) {
+      batch.set(doc(db, 'plan_catalog', plan.id), sanitizePayload(plan));
+    }
+    batch.set(stateRef, {
+      initialized: true,
+      tataPlaySeedVersion: 1,
+      updated_at: new Date().toISOString(),
+    }, { merge: true });
+
+    await batch.commit();
+  }
+
   /**
    * Get all plans from Cloud Firestore (authoritative source of truth)
    */
@@ -1206,6 +1265,7 @@ export class PlanCatalogService {
               is_recommended: Boolean(data.is_recommended),
               channel_count: Number(data.channel_count) || (data.pack_type === 'HD' ? 210 : 145),
               hd_channel_count: data.hd_channel_count !== undefined ? Number(data.hd_channel_count) : (data.pack_type === 'HD' ? 32 : 0),
+              ...(typeof data.channel_list_url === 'string' ? { channel_list_url: data.channel_list_url } : {}),
               channel_list: Array.isArray(data.channel_list) ? data.channel_list : (Array.isArray(data.channels) ? data.channels : []),
               channels: Array.isArray(data.channel_list) ? data.channel_list : (Array.isArray(data.channels) ? data.channels : []),
               genre_tags: Array.isArray(data.genre_tags) ? data.genre_tags : ['tamil', 'entertainment'],
@@ -1364,6 +1424,7 @@ export class PlanCatalogService {
       is_recommended: Boolean(plan.is_recommended),
       channel_count: Number(plan.channel_count) || (plan.pack_type === 'HD' ? 210 : 145),
       hd_channel_count: plan.hd_channel_count !== undefined ? Number(plan.hd_channel_count) : (plan.pack_type === 'HD' ? 32 : 0),
+      ...(typeof plan.channel_list_url === 'string' ? { channel_list_url: plan.channel_list_url } : {}),
       channel_list: Array.isArray(plan.channel_list) ? plan.channel_list : [],
       channels: Array.isArray(plan.channel_list) ? plan.channel_list : [],
       genre_tags: Array.isArray(plan.genre_tags) ? plan.genre_tags : ['tamil', 'entertainment'],

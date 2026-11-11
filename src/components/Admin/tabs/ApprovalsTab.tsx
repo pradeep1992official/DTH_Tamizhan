@@ -5,8 +5,6 @@ import {
   Trash2,
   RefreshCw,
   CheckCircle2,
-  Clock,
-  UserCheck,
   AlertCircle,
   X
 } from '../../../lib/icons';
@@ -29,7 +27,6 @@ interface ApprovalsTabProps {
 
 export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
   approvedAdmins,
-  pendingRequests,
   accessLoading,
   onRefresh,
   getAuthHeaders,
@@ -109,30 +106,6 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
       }
     } catch (err) {
       showToast('Error revoking access');
-    }
-  };
-
-  const handleApproveRequest = async (request: AdminAccessRequest) => {
-    try {
-      const headers = await getAuthHeaders();
-      const res = await fetch('/api/admin/approve-user', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          email: request.userEmail,
-          name: request.userName,
-          requestId: request.id,
-        }),
-      });
-
-      if (res.ok) {
-        showToast(`Request approved for ${request.userEmail}`);
-        onRefresh();
-      } else {
-        showToast('Failed to approve request');
-      }
-    } catch (err) {
-      showToast('Error approving request');
     }
   };
 
@@ -238,46 +211,6 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
               <span>{isSubmitting ? '...' : t.grantAccessBtn}</span>
             </button>
           </form>
-        </div>
-      )}
-
-      {/* Pending Access Requests */}
-      {pendingRequests.length > 0 && (
-        <div className={`p-5 rounded-lg border border-rule ${isLight ? 'bg-warning/10' : 'bg-warning/10'}`}>
-          <div className="mb-3">
-            <h4 className="text-sm font-bold flex items-center gap-2 text-warning ">
-              <Clock className="w-4 h-4" />
-              {t.pendingAccessRequests} ({pendingRequests.length})
-            </h4>
-          </div>
-
-          <div className="space-y-2">
-            {pendingRequests.map((req) => (
-              <div
-                key={req.id}
-                className={`p-3 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
-                  isLight ? 'bg-paper border-rule' : 'bg-ink/30 border-rule'
-                }`}
-              >
-                <div>
-                  <p className="text-sm font-bold">{req.userName || req.userEmail}</p>
-                  <p className="text-sm font-mono text-muted">{req.userEmail}</p>
-                  {req.notes && <p className="text-sm text-muted  mt-1">{req.notes}</p>}
-                </div>
-
-                {isSuperAdmin && (
-                  <button
-                    type="button"
-                    onClick={() => handleApproveRequest(req)}
-                    className="px-3 py-1.5 rounded-lg text-sm font-bold bg-accent hover:bg-accent text-accent-ink flex items-center gap-1"
-                  >
-                    <UserCheck className="w-3.5 h-3.5" />
-                    <span>Approve Access</span>
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
         </div>
       )}
 
