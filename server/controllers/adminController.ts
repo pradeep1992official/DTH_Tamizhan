@@ -1,3 +1,4 @@
+import { customersFromSuccessfulRecharges } from '../../src/lib/rechargeCustomers';
 import { Request, Response } from 'express';
 import {
   APPROVED_ADMIN_EMAILS,
@@ -48,7 +49,8 @@ export const adminController = {
   async listCustomers(req: Request, res: Response): Promise<void> {
     const auth = await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS);
     if (!auth.authorized) return forbidden(res);
-    res.json({ success: true, count: MEMORY_CUSTOMERS.length, customers: MEMORY_CUSTOMERS });
+    const customers = customersFromSuccessfulRecharges(MEMORY_RECHARGE_ORDERS);
+    res.json({ success: true, count: customers.length, customers });
   },
 
   async createCustomer(req: Request, res: Response): Promise<void> {
@@ -154,7 +156,7 @@ export const adminController = {
       res.json({
         success: true,
         superAdminEmail: getSuperAdminEmail(),
-        admins: MEMORY_ADMINS,
+        admins: MEMORY_ADMINS.filter((admin) => admin.status === 'approved'),
         requests: MEMORY_ADMIN_REQUESTS,
       });
       return;
@@ -162,7 +164,7 @@ export const adminController = {
     res.json({
       success: true,
       superAdminEmail: getSuperAdminEmail(),
-      admins: MEMORY_ADMINS.filter((admin) => admin.email.toLowerCase() === callerEmail),
+      admins: MEMORY_ADMINS.filter((admin) => admin.status === 'approved' && admin.email.toLowerCase() === callerEmail),
       requests: MEMORY_ADMIN_REQUESTS.filter((request) => request.userEmail.toLowerCase() === callerEmail),
       isApprovedAdmin: approved,
     });
@@ -206,13 +208,14 @@ export const adminController = {
     const existing = MEMORY_ADMINS.find((admin) => admin.email.toLowerCase() === cleanEmail);
     if (existing) {
       existing.status = 'approved';
+      if (req.body.name) existing.displayName = req.body.name;
       existing.approvedBy = auth.email || 'Super Admin';
       existing.approvedAt = new Date().toISOString();
     } else {
       MEMORY_ADMINS.push({
         uid: `admin_${Date.now().toString().slice(-6)}`,
         email: cleanEmail,
-        displayName: cleanEmail.split('@')[0],
+        displayName: req.body.name || cleanEmail.split('@')[0],
         role: 'admin',
         status: 'approved',
         approvedBy: auth.email || 'Super Admin',

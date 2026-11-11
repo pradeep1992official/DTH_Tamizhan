@@ -112,10 +112,10 @@ export const ordersController = {
         smartCardNumber,
         customerName: existing ? existing.customerName : 'K. Subramanian',
         registeredMobile: existing ? existing.registeredMobile : '9840123456',
-        currentBalance: existing ? existing.currentBalance : 145.50,
+        currentBalance: existing?.currentBalance ?? 145.50,
         packName: existing ? existing.activePackName : 'Tamil Super Pack',
         packMonthlyRent: existing ? (existing.lastRechargeAmount || 219) : 219,
-        expiryDate: existing ? existing.expiryDate : new Date(Date.now() + 86400000 * 12).toISOString().slice(0, 10),
+        expiryDate: existing?.expiryDate ?? new Date(Date.now() + 86400000 * 12).toISOString().slice(0, 10),
         isExpired: false,
         accountStatus: existing?.accountStatus || 'Active',
       };

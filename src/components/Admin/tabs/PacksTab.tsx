@@ -1,3 +1,4 @@
+import { AdminRefreshButton } from '../AdminRefreshButton';
 import React, { useState } from 'react';
 import {
   Plus,
@@ -259,17 +260,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
             <span>Excel Batch Tool</span>
           </button>
 
-          <button
-            type="button"
-            onClick={onRefresh}
-            className={`p-2.5 rounded-xl border transition-colors ${
-              isLight ? 'bg-paper-2 hover:bg-paper-2 text-ink' : 'bg-paper-2 hover:bg-paper-2 text-accent-ink'
-            }`}
-            aria-label="Refresh catalog"
-            title="Refresh catalog"
-          >
-            <RefreshCw className={`w-4 h-4 ${plansLoading ? 'animate-spin' : ''}`} />
-          </button>
+          <AdminRefreshButton onRefresh={onRefresh} loading={plansLoading} label={t.refresh} />
 
           <button
             type="button"

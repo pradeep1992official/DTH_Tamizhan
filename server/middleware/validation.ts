@@ -18,7 +18,7 @@ export const CreateOrderSchema = z.object({
 
 export const UpdateOrderStatusSchema = z.object({
   orderId: z.string().min(1, 'Order ID is required'),
-  rechargeStatus: z.enum(['pending', 'processing', 'completed', 'failed']),
+  rechargeStatus: z.enum(['pending', 'completed', 'failed']),
   workerNotes: z.string().max(500).optional(),
 });
 
@@ -63,7 +63,8 @@ export const RequestAccessSchema = z.object({
 });
 
 export const ApproveUserSchema = z.object({
-  userEmail: z.string().email('Valid email is required'),
+  userEmail: z.string().trim().toLowerCase().email('Valid email is required'),
+  name: z.string().trim().min(1).max(100).optional(),
 });
 
 export const RevokeUserSchema = z.object({

@@ -1,3 +1,5 @@
+import { customersFromSuccessfulRecharges } from '../../../lib/rechargeCustomers';
+import { seedDemoAdminData } from '../../../lib/seedDemoAdminData';
 import { useState, useCallback, useEffect } from 'react';
 import { 
   CustomerRecord, 
@@ -11,7 +13,7 @@ import {
   SUPER_ADMIN_EMAIL 
 } from '../../../types';
 import { auth, db, isFirebaseConfigured, sanitizePayload } from '../../../lib/firebase';
-import { collection, getDocs, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { PlanCatalogService } from '../../../lib/planCatalogService';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -101,10 +103,10 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
     try {
       if (isFirebaseConfigured && db) {
         try {
-          const snapshot = await getDocs(collection(db, 'customers'));
-          const firestoreCusts: CustomerRecord[] = [];
-          snapshot.forEach((d) => firestoreCusts.push({ ...d.data(), id: d.id } as CustomerRecord));
-          setCustomers(firestoreCusts);
+          const snapshot = await getDocs(collection(db, 'recharge_orders'));
+          const successfulOrders: RechargeOrder[] = [];
+          snapshot.forEach((d) => successfulOrders.push({ ...d.data(), orderId: d.id } as RechargeOrder));
+          setCustomers(customersFromSuccessfulRecharges(successfulOrders));
           return;
         } catch (fsErr) {
           console.warn('[AdminData] Firestore fetch customers fallback to server API:', fsErr);
@@ -128,6 +130,16 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
     }
   }, [getAuthHeaders]);
 
+  // Completed recharges automatically update the directory while the portal is open.
+  useEffect(() => {
+    if (!user || !isFirebaseConfigured || !db) return;
+    return onSnapshot(collection(db, 'recharge_orders'), (snapshot) => {
+      const records = snapshot.docs.map(d => ({ ...d.data(), orderId: d.id } as RechargeOrder));
+      setCustomers(customersFromSuccessfulRecharges(records));
+      setCustomersError(null);
+    }, () => { void fetchCustomers(); });
+  }, [user?.uid, fetchCustomers]);
+
   // Fetch Orders
   const fetchOrders = useCallback(async () => {
     setOrdersLoading(true);
@@ -135,6 +147,7 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
     try {
       if (isFirebaseConfigured && db) {
         try {
+          await seedDemoAdminData();
           const snapshot = await getDocs(collection(db, 'recharge_orders'));
           if (!snapshot.empty) {
             const firestoreOrders: RechargeOrder[] = [];
@@ -247,7 +260,7 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
       if (res.ok) {
         const data = await res.json();
         if (data.success) {
-          if (Array.isArray(data.admins)) setApprovedAdmins(data.admins);
+          if (Array.isArray(data.admins)) setApprovedAdmins(data.admins.filter((admin: AdminAccount) => admin.status === 'approved'));
           if (Array.isArray(data.requests)) setPendingRequests(data.requests);
         }
       }

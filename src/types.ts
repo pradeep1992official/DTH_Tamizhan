@@ -111,6 +111,7 @@ export interface RechargeOrder {
   packValidity: string;
   paymentMethod: 'upi' | 'qr_code' | 'card' | 'netbanking' | 'wallet';
   paymentStatus: 'paid' | 'initiated' | 'failed';
+  // 'processing' is accepted only for legacy saved orders; display it as pending.
   rechargeStatus: 'pending' | 'processing' | 'completed' | 'failed';
   operatorRefId: string;
   workerNotes?: string;
@@ -261,8 +262,8 @@ export interface CustomerRecord {
   operator: DthOperatorId;
   operatorName: string;
   activePackName: string;
-  currentBalance: number;
-  expiryDate: string;
+  currentBalance?: number;
+  expiryDate?: string;
   status?: 'active' | 'expired' | 'due_soon';
   accountStatus?: string;
   planQuality?: 'HD' | 'SD';

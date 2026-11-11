@@ -1,3 +1,4 @@
+import { AdminRefreshButton } from '../AdminRefreshButton';
 import React, { useState } from 'react';
 import {
   ShieldCheck,
@@ -56,6 +57,7 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
   const handleGrantAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!directEmail.trim()) return;
+    if (!window.confirm(`Grant administrator access to ${directEmail.trim().toLowerCase()}?`)) return;
 
     setIsSubmitting(true);
     try {
@@ -64,7 +66,7 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
         method: 'POST',
         headers,
         body: JSON.stringify({
-          email: directEmail.trim().toLowerCase(),
+          userEmail: directEmail.trim().toLowerCase(),
           name: directName.trim() || undefined,
         }),
       });
@@ -95,7 +97,7 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
       const res = await fetch('/api/admin/revoke-user', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ email: emailToRevoke }),
+        body: JSON.stringify({ userEmail: emailToRevoke }),
       });
 
       if (res.ok) {
@@ -110,7 +112,7 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
   };
 
   return (
-    <div className="admin-tab space-y-6   duration-200">
+    <div className="admin-tab admin-team-tab space-y-4   duration-200">
       {/* Header Banner */}
       <div
         className={`admin-section-heading flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${
@@ -133,38 +135,15 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-base font-bold">
-                Administrator Authorization & Team Management
+                Manage administrator access.
               </h3>
-              <span
-                className="text-sm font-medium px-2 py-1 rounded border"
-                style={{
-                  backgroundColor: 'var(--color-accent-soft)',
-                  color: currentTheme.primaryColor,
-                  borderColor: 'var(--color-accent-soft)',
-                }}
-              >
-                RBAC
-              </span>
+
             </div>
-            <p className={`text-sm mt-1 ${currentTheme.subText}`}>
-              Authorize administrative accounts to grant operations access across customer records, recharge orders, and catalog pricing.
-            </p>
+
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={onRefresh}
-          disabled={accessLoading}
-          className={`px-3.5 py-2 rounded-xl text-sm font-bold border flex items-center gap-1.5 transition-colors shadow-none ${
-            isLight
-              ? 'bg-paper-2 hover:bg-paper-2 text-ink border-rule'
-              : 'bg-paper-2 hover:bg-paper-2 text-accent-ink border-rule'
-          }`}
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${accessLoading ? 'animate-spin' : ''}`} />
-          <span>{t.refresh}</span>
-        </button>
+        <AdminRefreshButton onRefresh={onRefresh} loading={accessLoading} label={t.refresh} />
       </div>
 
       {/* Direct Authorization Form (Super Admin Only) */}
@@ -208,7 +187,7 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
               className="py-2 px-4 rounded-xl text-sm font-bold bg-accent hover:bg-accent disabled:opacity-50 text-accent-ink transition-colors flex items-center justify-center gap-1.5 shadow-none"
             >
               <ShieldCheck className="w-4 h-4" />
-              <span>{isSubmitting ? '...' : t.grantAccessBtn}</span>
+              <span>{isSubmitting ? 'Granting...' : 'Grant access'}</span>
             </button>
           </form>
         </div>
@@ -239,8 +218,8 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
                 return (
                   <tr key={admin.uid || admin.email} className="hover:bg-paper-2 ">
                     <td data-label="Admin Details" className="py-3 px-4">
-                      <p className="font-bold text-ink ">{admin.name || admin.email}</p>
-                      <p className="text-sm font-mono text-muted">{admin.email}</p>
+                      <p className="font-bold text-ink ">{admin.name || admin.displayName || admin.email}</p>
+                      {(admin.name || admin.displayName) && (admin.name || admin.displayName)!.toLowerCase() !== admin.email.toLowerCase() && <p className="text-sm font-mono text-muted">{admin.email}</p>}
                     </td>
                     <td data-label="Role" className="py-3 px-4">
                       <span
@@ -254,10 +233,11 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
                       </span>
                     </td>
                     <td data-label="Authorized Date" className="py-3 px-4 text-muted text-sm">
-                      {admin.approvedAt ? new Date(admin.approvedAt).toLocaleDateString() : 'Initial'}
+                      {admin.approvedAt ? new Date(admin.approvedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }) : 'Initial'}
                     </td>
                     {isSuperAdmin && (
                       <td data-label={t.actions} className="py-3 px-4 text-right">
+                        {isSuper && <span className="text-xs text-muted">Protected</span>}
                         {!isSuper && (
                           <button
                             type="button"

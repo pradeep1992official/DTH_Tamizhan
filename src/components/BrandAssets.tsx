@@ -194,16 +194,11 @@ export const OperatorHeroImage: React.FC<OperatorHeroImageProps> = ({
 export const SunDirectHeroBannerGraphic: React.FC = () => {
   return (
     <OperatorHeroImage
-      candidates={['/assets/sun_direct_hero.png', '/sun_direct_hero.png']}
+      candidates={['/assets/sun_direct_hero_clean.png', '/sun_direct_hero_clean.png']}
       alt="Sun Direct HD Dish, Set-Top Box & Remote"
       fallbackSvg={
         <svg aria-hidden="true" viewBox="0 0 320 260" className="w-full h-full drop-shadow-2xl" fill="none">
           <defs>
-            <radialGradient id="sun-hero-brush-grad" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="var(--asset-f5b289)" stopOpacity="0.85" />
-              <stop offset="60%" stopColor="var(--asset-edb087)" stopOpacity="0.45" />
-              <stop offset="100%" stopColor="var(--asset-e08b58)" stopOpacity="0" />
-            </radialGradient>
             <linearGradient id="dish-metallic-grad" x1="20%" y1="10%" x2="80%" y2="90%">
               <stop offset="0%" stopColor="var(--asset-2a2d34)" />
               <stop offset="50%" stopColor="var(--asset-181a1f)" />
@@ -219,10 +214,6 @@ export const SunDirectHeroBannerGraphic: React.FC = () => {
               <stop offset="100%" stopColor="var(--asset-101216)" />
             </linearGradient>
           </defs>
-          <path
-            d="M 40 120 C 20 70 80 30 160 25 C 240 20 300 65 295 130 C 290 195 245 235 160 240 C 75 245 50 170 40 120 Z"
-            fill="url(#sun-hero-brush-grad)"
-          />
           <g transform="translate(75, 40)">
             <ellipse cx="80" cy="80" rx="68" ry="68" fill="url(#dish-metallic-grad)" stroke="var(--asset-474c56)" strokeWidth="2" />
             <ellipse cx="80" cy="80" rx="65" ry="65" fill="var(--asset-15171c)" fillOpacity="0.85" />

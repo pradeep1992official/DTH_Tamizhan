@@ -1,3 +1,4 @@
+import { AdminRefreshButton } from '../AdminRefreshButton';
 import React, { useState } from 'react';
 import {
   AlertTriangle,
@@ -87,7 +88,7 @@ export const OperatorsTab: React.FC<OperatorsTabProps> = ({
   };
 
   return (
-    <div className="admin-tab space-y-6   duration-200">
+    <div className="admin-tab operators-tab space-y-4   duration-200">
       <div
         className="admin-section-heading flex items-center justify-between gap-3"
       >
@@ -98,20 +99,7 @@ export const OperatorsTab: React.FC<OperatorsTabProps> = ({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={onRefresh}
-          disabled={operatorsLoading}
-          aria-label={t.refreshStatus}
-          className={`px-3 py-2 rounded-xl text-sm font-semibold border flex items-center gap-1.5 transition-colors shadow-none ${
-            isLight
-              ? 'bg-paper-2 hover:bg-paper-2 text-ink border-rule'
-              : 'bg-paper-2 hover:bg-paper-2 text-accent-ink border-rule'
-          }`}
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${operatorsLoading ? 'animate-spin' : ''}`} />
-          <span className="hidden sm:inline">{t.refreshStatus}</span>
-        </button>
+        <AdminRefreshButton onRefresh={onRefresh} loading={operatorsLoading} label={t.refresh} />
       </div>
 
       {operatorsError && (
@@ -142,7 +130,7 @@ export const OperatorsTab: React.FC<OperatorsTabProps> = ({
               className="admin-operator-row"
             >
               <div className="admin-operator-info">
-                <h4 className="text-sm font-semibold">{op.name}</h4>
+                <h4 className="compact-plan-pill compact-plan-operator" data-operator={op.id}>{op.id === 'airtel_dth' ? 'Airtel DTH' : op.id === 'd2h' ? 'D2H' : op.name}</h4>
                 <span
                   className={`admin-operator-status ${
                     isActive
@@ -150,7 +138,7 @@ export const OperatorsTab: React.FC<OperatorsTabProps> = ({
                       : 'is-paused'
                   }`}
                 >
-                  {isActive ? t.operational : t.disabled}
+                  {isActive ? t.operational : 'Paused'}
                 </span>
               </div>
 

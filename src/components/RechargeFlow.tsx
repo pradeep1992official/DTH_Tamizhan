@@ -69,6 +69,10 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
   const [catalogDurationFilter, setCatalogDurationFilter] = useState<'all' | 1 | 3 | 6 | 12>('all');
   const [collapsedBouquetTypes, setCollapsedBouquetTypes] = useState<Partial<Record<'HD' | 'SD', boolean>>>({});
 
+  useEffect(() => {
+    setCollapsedBouquetTypes({ HD: false, SD: false });
+  }, [selectedOpId, planTab, catalogTypeFilter, catalogDurationFilter]);
+
   // Default view state: 6 Months default selection
   const [hdDuration, setHdDuration] = useState<1 | 3 | 6 | 12>(6);
   const [sdDuration, setSdDuration] = useState<1 | 3 | 6 | 12>(6);
@@ -511,35 +515,27 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
               <span>{t.selectPlan.replace(/^\d+\.\s*/, '')}</span>
             </h2>
 
-            {/* Tab switch */}
-            <div className={`inline-flex p-1 rounded-xl border self-start sm:self-auto ${currentTheme.durationPillContainerBg}`}>
+            {/* Pack view toggle */}
+            <div className="pack-view-toggle" role="group" aria-label={currentLang === 'ta' ? '???? ??????' : 'Pack view'}>
               <button
                 type="button"
                 id="recommended-packs-tab"
+                aria-pressed={planTab === 'recommended'}
                 onClick={() => setPlanTab('recommended')}
-                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-                  planTab === 'recommended'
-                    ? `${currentTheme.durationPillActive} shadow-sm`
-                    : `${currentTheme.durationPillInactive}`
-                }`}
               >
                 {t.recommendedPacks}
               </button>
               <button
                 type="button"
                 id="change-plan-tab"
+                aria-pressed={planTab === 'change_plan'}
                 onClick={() => {
                   setPlanTab('change_plan');
                   if (selectedPackType === 'CUSTOM') setSelectedPackType('HD');
                 }}
-                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${
-                  planTab === 'change_plan'
-                    ? `${currentTheme.durationPillActive} shadow-sm`
-                    : `${currentTheme.durationPillInactive}`
-                }`}
               >
-                <Layers className="w-3.5 h-3.5" />
-                <span>{t.changePacks} ({operatorCatalog.length})</span>
+                {t.changePacks.replace('{brand}', currentLang === 'ta' ? currentOp?.tamilName || '' : currentOp?.shortName || currentOp?.name || '')}
+                <span className="pack-view-count">{operatorCatalog.length}</span>
               </button>
             </div>
           </div>
@@ -1006,213 +1002,96 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
               </div>
             </div>
           ) : (
-            /* VIEW 2: "CHANGE PLAN" ALL PLANS LIST */
+            /* All packs for the selected operator. */
             <div className="bouquet-explore">
-              <div className={`bouquet-results-count ${currentTheme.subText}`}>
-                <span className="font-medium">
-                  <strong className={`font-bold ${currentTheme.headingText}`}>{visibleBouquets.length}</strong> {t.browsePacksTitle}
-                </span>
+              <div className="all-packs-results" role="status">
+                {catalogTypeFilter === 'all' && catalogDurationFilter === 'all'
+                  ? `${visibleBouquets.length} ${currentLang === 'ta' ? t.browsePacksTitle : 'packs'}`
+                  : currentLang === 'ta'
+                    ? `${visibleBouquets.length} / ${operatorCatalog.length} ${t.browsePacksTitle}`
+                    : `${visibleBouquets.length} of ${operatorCatalog.length} packs`}
               </div>
-
-              <div className="bouquet-filters" aria-label={currentLang === 'ta' ? 'திட்ட வடிப்பான்கள்' : 'Bouquet filters'}>
-                <div className="bouquet-filter-group" role="group" aria-label={currentLang === 'ta' ? 'திட்ட வகை' : 'Plan type'}>
-                  {([
-                    ['all', t.allQuality],
-                    ['HD', 'HD'],
-                    ['SD', 'SD'],
-                  ] as const).map(([value, label]) => (
-                    <button
-                      key={value}
-                      type="button"
-                      aria-pressed={catalogTypeFilter === value}
-                      onClick={() => setCatalogTypeFilter(value)}
-                      className="bouquet-filter-button"
-                    >
-                      {label}
-                    </button>
-                  ))}
+              <div className="bouquet-filters" aria-label="Pack filters">
+                <div className="all-packs-filter-field">
+                  <span className="all-packs-filter-label">{currentLang === 'ta' ? t.allQuality : 'Picture quality'}</span>
+                  <div className="bouquet-filter-group" role="group" aria-label="Picture quality">
+                    {([['all', currentLang === 'ta' ? '?????????' : 'All'], ['HD', 'HD'], ['SD', 'SD']] as const).map(([value, label]) => (
+                      <button key={value} type="button" aria-pressed={catalogTypeFilter === value} onClick={() => setCatalogTypeFilter(value)} className="bouquet-filter-button">{label}</button>
+                    ))}
+                  </div>
                 </div>
-                <div className="bouquet-filter-group" role="group" aria-label={t.filterByDuration}>
-                  {([
-                    ['all', t.allDurations],
-                    [1, `1 ${t.month}`],
-                    [3, `3 ${t.months}`],
-                    [6, `6 ${t.months}`],
-                    [12, `12 ${t.months}`],
-                  ] as const).map(([value, label]) => (
-                    <button
-                      key={value}
-                      type="button"
-                      aria-pressed={catalogDurationFilter === value}
-                      onClick={() => setCatalogDurationFilter(value)}
-                      className="bouquet-filter-button"
-                    >
-                      {label}
-                    </button>
-                  ))}
+                <div className="all-packs-filter-field">
+                  <span className="all-packs-filter-label">{t.filterByDuration}</span>
+                  <div className="bouquet-filter-group" role="group" aria-label={t.filterByDuration}>
+                    {([['all', t.allDurations], [1, `1 ${t.month}`], [3, `3 ${t.months}`], [6, `6 ${t.months}`], [12, `12 ${t.months}`]] as const).map(([value, label]) => (
+                      <button key={value} type="button" aria-pressed={catalogDurationFilter === value} onClick={() => setCatalogDurationFilter(value)} className="bouquet-filter-button">{label}</button>
+                    ))}
+                  </div>
                 </div>
               </div>
-
               {visibleBouquets.length === 0 ? (
-                <div className={`rounded-xl border p-4 text-sm ${currentTheme.inputBg} ${currentTheme.inputBorder} ${currentTheme.subText}`}>
-                  {t.noPlansMatch}
+                <div className="all-packs-empty">
+                  <Tv className="w-6 h-6" />
+                  <p>{t.noPlansMatch}</p>
+                  <button type="button" onClick={() => { setCatalogTypeFilter('all'); setCatalogDurationFilter('all'); }}>{currentLang === 'ta' ? t.allDurations : 'Clear filters'}</button>
                 </div>
               ) : (
-              <div className="bouquet-category-list">
-                {visibleBouquets.map((plan, index) => {
-                  const isSelected = activePlan?.id === plan.id && selectedPackType !== 'CUSTOM';
-                  const isExpanded = !!expandedPlanChannels[plan.id];
-
-                  return (
-                    <React.Fragment key={plan.id}>
-                      {(index === 0 || visibleBouquets[index - 1].pack_type !== plan.pack_type) && (
-                        <button
-                          type="button"
-                          className={`bouquet-category-heading bouquet-category-${plan.pack_type.toLowerCase()}`}
-                          aria-expanded={!collapsedBouquetTypes[plan.pack_type]}
-                          onClick={() => setCollapsedBouquetTypes((current) => ({
-                            ...current,
-                            [plan.pack_type]: !current[plan.pack_type],
-                          }))}
-                        >
-                          <span>{plan.pack_type} {currentLang === 'ta' ? 'பேக்குகள்' : 'Bouquets'}</span>
-                          <span>{visibleBouquets.filter((item) => item.pack_type === plan.pack_type).length}</span>
-                          {!collapsedBouquetTypes[plan.pack_type]
-                            ? <ChevronUp className="bouquet-category-chevron" aria-hidden="true" />
-                            : <ChevronDown className="bouquet-category-chevron" aria-hidden="true" />}
-                        </button>
-                      )}
-                      {!collapsedBouquetTypes[plan.pack_type] && (
-                      <div
-                        onClick={() => {
-                          setCustomSelectedPlan(plan);
-                          setSelectedPackType(plan.pack_type);
-                          setCustomAmount('');
-                        }}
-                        className={`bouquet-plan-card border transition-colors cursor-pointer flex flex-col justify-between ${
-                          isSelected
-                            ? `${currentTheme.cardActiveBg} ${currentTheme.cardActiveBorder} ${currentTheme.cardActiveRing}`
-                            : `${currentTheme.cardInactiveBg} ${currentTheme.cardInactiveBorder} ${currentTheme.cardInactiveHoverBorder}`
-                        }`}
-                      >
-                      <div>
-                        {/* Top Badges */}
-                        <div className="flex items-center justify-between gap-2 mb-1">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="bouquet-duration">
-                              {plan.duration_months} {plan.duration_months > 1 ? t.months : t.month}
-                            </span>
-                            {plan.is_recommended && (
-                              <span className="bouquet-recommended">
-                                <Crown className="w-3 h-3" />
-                                {t.popularBadge}
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="text-right">
-                            <span className="text-lg font-bold tabular-nums tracking-tight" style={{ color: currentTheme.primaryColor }}>
-                              ₹{plan.amount}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Plan Name */}
-                        <h4 className={`font-bold text-sm ${isSelected ? currentTheme.cardActiveText : currentTheme.cardInactiveText}`}>
-                          {plan.plan_name}
-                        </h4>
-
-                        {/* Expandable Channel List */}
-                        {(plan.channel_count || plan.hd_channel_count || plan.channel_list.length) > 0 && (
-                        <div className={`mt-2 pt-2 border-t ${currentTheme.surfaceBorder}`}>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleChannelExpand(plan.id);
-                            }}
-                            className={`w-full py-1.5 px-2 rounded-lg border text-xs font-medium flex items-center justify-between transition-colors ${currentTheme.inputBg} ${currentTheme.inputBorder} ${currentTheme.subText}`}
-                          >
-                            <span className="flex items-center gap-1.5 font-bold">
-                              <Tv className="w-4 h-4" style={{ color: currentTheme.primaryColor }} />
-                              <span>
-                                {plan.pack_type === 'HD'
-                                  ? `${plan.hd_channel_count || plan.channel_list.length} ${t.hdChannels}`
-                                  : `${plan.channel_count || plan.channel_list.length} ${t.channels}`}
-                              </span>
-                            </span>
-                            {isExpanded ? (
-                              <ChevronUp className="w-4 h-4" />
-                            ) : (
-                              <ChevronDown className="w-4 h-4" />
-                            )}
+                <div className="bouquet-category-list">
+                  {visibleBouquets.map((plan, index) => {
+                    const isSelected = activePlan?.id === plan.id && selectedPackType !== 'CUSTOM';
+                    const isExpanded = !!expandedPlanChannels[plan.id];
+                    const channelCount = plan.channel_count || plan.channel_list.length;
+                    return (
+                      <React.Fragment key={plan.id}>
+                        {(index === 0 || visibleBouquets[index - 1].pack_type !== plan.pack_type) && (
+                          <button type="button" className={`bouquet-category-heading bouquet-category-${plan.pack_type.toLowerCase()}`} aria-expanded={!collapsedBouquetTypes[plan.pack_type]}
+                            onClick={() => setCollapsedBouquetTypes(current => ({ ...current, [plan.pack_type]: !current[plan.pack_type] }))}>
+                            <span className="all-packs-quality-pill">{plan.pack_type}</span>
+                            <strong>{currentLang === 'ta' ? t.browsePacksTitle : plan.pack_type === 'HD' ? 'High Definition packs' : 'Standard Definition packs'}</strong>
+                            <span className="all-packs-category-count">{visibleBouquets.filter(item => item.pack_type === plan.pack_type).length}</span>
+                            {collapsedBouquetTypes[plan.pack_type] ? <ChevronDown className="bouquet-category-chevron" /> : <ChevronUp className="bouquet-category-chevron" />}
                           </button>
-
-                          {isExpanded && (
-                            <div className={`mt-2 p-3 rounded-xl border max-h-40 overflow-y-auto space-y-1.5   duration-200 ${currentTheme.inputBg} ${currentTheme.inputBorder}`}>
-                              <div className="flex flex-wrap gap-1.5">
-                                {plan.channel_list.map((ch, idx) => (
-                                  <span
-                                    key={idx}
-                                    className={`text-xs font-medium px-2.5 py-1 rounded-lg border ${isLight ? 'bg-paper text-ink border-rule' : 'bg-ink text-accent-ink border-accent'}`}
-                                  >
-                                    {ch}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
                         )}
-                      </div>
-
-                      {/* Select Plan Button */}
-                      <div className={`mt-2 pt-2 border-t ${currentTheme.surfaceBorder} flex justify-end`}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCustomSelectedPlan(plan);
-                            setSelectedPackType(plan.pack_type);
-                            setCustomAmount('');
-                          }}
-                          className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-colors ${
-                            isSelected
-                              ? `${currentTheme.cardButtonActive}`
-                              : `${currentTheme.cardButtonInactive}`
-                          }`}
-                        >
-                          {isSelected ? 'Selected' : t.selectThisPack}
-                        </button>
-                      </div>
-                      </div>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </div>
+                        {!collapsedBouquetTypes[plan.pack_type] && (
+                          <article data-quality={plan.pack_type} className={`bouquet-plan-card all-packs-card ${isSelected ? 'is-selected' : ''}`}>
+                            <div className="all-packs-card-top">
+                              <div className="all-packs-card-pills">
+                              <span className="all-packs-quality-pill">{plan.pack_type}</span>
+                              <span className="bouquet-duration compact-plan-pill compact-plan-duration" data-duration={plan.duration_months}>{plan.duration_months} {plan.duration_months > 1 ? t.months : t.month}</span>
+                              </div>
+                              {plan.is_recommended && <span className="bouquet-recommended"><Crown className="w-3 h-3" />{t.recommendedBadge}</span>}
+                            </div>
+                            <h4>{plan.plan_name}</h4>
+                            <div className="all-packs-channel-summary">
+                              <span className="all-packs-channel-pill"><Tv className="w-3 h-3" />{channelCount > 0 ? `${channelCount} ${t.channels}` : plan.pack_type}</span>
+                              {(plan.hd_channel_count || 0) > 0 && <span className="all-packs-hd-count">{plan.hd_channel_count} HD</span>}
+                            </div>
+                            <div className="all-packs-card-bottom">
+                              <div className="all-packs-price"><strong>Rs. {plan.amount.toLocaleString('en-IN')}</strong><span>{`Rs. ${Math.ceil(plan.amount / plan.duration_months).toLocaleString('en-IN')} ${t.perMonth}`}</span></div>
+                              <button type="button" className="all-packs-select" aria-pressed={isSelected} aria-label={`${isSelected ? 'Selected' : 'Select'} ${plan.plan_name}, ${plan.duration_months} months`}
+                                onClick={() => { setCustomSelectedPlan(plan); setSelectedPackType(plan.pack_type); setCustomAmount(''); }}>
+                                {isSelected && <CheckCircle2 className="w-4 h-4" />}{isSelected ? (currentLang === 'ta' ? t.selectThisPack : 'Selected') : t.selectThisPack}
+                              </button>
+                            </div>
+                            {plan.channel_list.length > 0 && (
+                              <div className="all-packs-channels">
+                                <button type="button" aria-expanded={isExpanded} aria-controls={`pack-channels-${plan.id}`} onClick={() => toggleChannelExpand(plan.id)}>
+                                  {currentLang === 'ta' ? t.channels : 'View channels'}{isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                </button>
+                                {isExpanded && <div id={`pack-channels-${plan.id}`} className="all-packs-channel-list">{plan.channel_list.map((channel, i) => <span key={i}>{channel}</span>)}</div>}
+                              </div>
+                            )}
+                          </article>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
               )}
             </div>
           )}
 
         </div>
-
-        {/* Save Connection Checkbox for Logged In User */}
-        {user && (
-          <div className={`pt-2 border-t ${currentTheme.surfaceBorder}`}>
-            <label className={`flex items-center gap-2.5 text-xs cursor-pointer ${currentTheme.subText}`}>
-              <input
-                type="checkbox"
-                checked={saveConnection}
-                onChange={(e) => setSaveConnection(e.target.checked)}
-                className="rounded border-rule-strong focus:ring-2"
-                style={{ accentColor: currentTheme.primaryColor }}
-              />
-              <span className="font-medium">
-                {t.saveBoxPrompt}
-              </span>
-            </label>
-          </div>
-        )}
 
         {/* Primary Checkout CTA */}
         <div className={`recharge-checkout`}>
@@ -1233,6 +1112,24 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
             <span className={`text-xs block mt-0.5 font-medium ${currentTheme.mutedText}`}>
               (Includes 18% GST • Zero Service Fee)
             </span>
+        {/* Save Connection Checkbox for Logged In User */}
+        {user && (
+          <div className="checkout-save-connection">
+            <label className={`flex items-center gap-2.5 text-xs cursor-pointer ${currentTheme.subText}`}>
+              <input
+                type="checkbox"
+                checked={saveConnection}
+                onChange={(e) => setSaveConnection(e.target.checked)}
+                className="rounded border-rule-strong focus:ring-2"
+                style={{ accentColor: currentTheme.primaryColor }}
+              />
+              <span className="font-medium">
+                {currentLang === 'ta' ? t.saveBoxPrompt : 'Save this connection for faster recharges'}
+              </span>
+            </label>
+          </div>
+        )}
+
           </div>
 
           <button

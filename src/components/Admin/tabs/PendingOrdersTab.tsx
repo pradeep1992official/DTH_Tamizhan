@@ -1,12 +1,7 @@
-import React from 'react';
-import {
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-  RefreshCw,
-  Sparkles,
-  ArrowRight
-} from '../../../lib/icons';
+import { AdminRefreshButton } from '../AdminRefreshButton';
+import React, { useState } from 'react';
+import { pendingPaidRecharges } from '../../../lib/pendingRechargeOrders';
+import { Clock, CheckCircle2 } from '../../../lib/icons';
 import { RechargeOrder, Language } from '../../../types';
 import { OperatorTheme } from '../../../lib/theme';
 import { translations } from '../../../lib/translations';
@@ -34,60 +29,45 @@ export const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
 }) => {
   const t = translations[currentLang];
   const isLight = currentTheme.isLightMode;
-  const pendingQueue = orders.filter((o) => o.rechargeStatus === 'pending' || o.rechargeStatus === 'processing');
+  const pendingQueue = pendingPaidRecharges(orders);
+  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
 
-  const handleProcessOrder = async (orderId: string, status: 'completed' | 'failed') => {
+  const handleProcessOrder = async (orderId: string) => {
+    if (processingIds.has(orderId)) return;
+    setProcessingIds(ids => new Set(ids).add(orderId));
     try {
       const headers = await getAuthHeaders();
       const res = await fetch('/api/admin/orders/update', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          orderId,
-          rechargeStatus: status,
-          workerNotes: `Processed via Worker Queue on ${new Date().toLocaleTimeString()}`,
-        }),
+        method: 'POST', headers,
+        body: JSON.stringify({ orderId, rechargeStatus: 'completed', workerNotes: 'Recharge confirmed successful by admin' }),
       });
-
-      if (res.ok) {
-        showToast(`Order ${orderId} marked as ${status}`);
-        onRefresh();
-      }
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Unable to update recharge');
+      showToast(`Order ${orderId} marked as successfully recharged`);
+      onRefresh();
     } catch (err) {
-      showToast('Error processing order');
+      showToast(err instanceof Error ? err.message : 'Error processing order');
+    } finally {
+      setProcessingIds(ids => { const next = new Set(ids); next.delete(orderId); return next; });
     }
   };
 
   return (
-    <div className="admin-tab space-y-6">
+    <div className="admin-tab pending-orders-tab space-y-4">
       {/* Queue Header Banner */}
       <div className={`admin-section-heading flex items-center justify-between gap-4 ${
         isLight ? 'bg-warning/10 border-rule text-ink' : 'bg-warning/10 border-rule text-accent-ink'
       }`}>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-warning/10 text-warning flex items-center justify-center font-bold">
-            <Clock className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="font-bold text-sm">{t.operatorQueueTitle}</h3>
-            <p className="text-sm text-muted ">
-              {pendingQueue.length} {pendingQueue.length === 1 ? t.order : t.orders} • {t.operatorQueueDesc}
-            </p>
-          </div>
+        <div className="pending-queue-heading">
+          <span className="pending-status pending-status-paid"><CheckCircle2 className="w-3 h-3" /> All paid</span>
+          <span className="text-sm text-muted">{pendingQueue.length} awaiting recharge</span>
         </div>
 
-        <button
-          type="button"
-          onClick={onRefresh}
-          className="p-2 rounded-xl bg-warning/10 hover:bg-warning/10 text-warning transition-colors"
-          title={t.refreshQueue}
-          aria-label={t.refreshQueue}
-        >
-          <RefreshCw className={`w-4 h-4 ${ordersLoading ? 'animate-spin' : ''}`} />
-        </button>
+        <AdminRefreshButton onRefresh={onRefresh} loading={ordersLoading} label={t.refresh} />
       </div>
 
-      {/* Pending Orders Cards Grid */}
+
+      {/* Paid orders awaiting fulfillment */}
       {ordersError ? (
         <div role="alert" className={`p-6 rounded-lg border text-center ${isLight ? 'bg-error/10 border-rule text-error' : 'bg-error/10 border-rule text-error'}`}>
           <p className="text-sm font-medium">{ordersError}</p>
@@ -95,56 +75,46 @@ export const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
             Retry loading queue
           </button>
         </div>
+      ) : ordersLoading ? (
+        <p role="status" className="text-sm text-muted">Loading paid orders...</p>
       ) : pendingQueue.length === 0 ? (
-        <div className={`p-12 text-center rounded-lg border ${
+        <div className={`p-6 text-center rounded-lg border ${
           isLight ? 'bg-paper border-rule text-ink' : 'bg-paper-2 border-rule text-muted'
         }`}>
           <CheckCircle2 className="w-10 h-10 mx-auto text-success mb-2" />
-          <h4 className="font-bold text-sm">{t.queueClear}</h4>
-          <p className="text-sm text-muted  mt-1 font-medium">{t.queueClearDesc}</p>
+          <h4 className="font-bold text-sm">No pending orders</h4>
         </div>
       ) : (
         <div className="admin-queue">
           {pendingQueue.map((order) => (
-            <div
-              key={order.orderId}
-              className={`admin-queue-order space-y-3 relative ${
-                isLight ? 'bg-paper border-rule text-ink shadow-none' : 'bg-paper-2 border-rule text-accent-ink'
-              }`}
-            >
-              <div className="flex items-center justify-between border-b pb-2.5 border-rule">
-                <div className="font-mono text-sm font-bold text-warning">{order.orderId}</div>
-                <span className="text-sm px-2.5 py-0.5 rounded-full bg-warning/10 text-warning  font-bold  border border-rule">
-                  {order.rechargeStatus}
-                </span>
-              </div>
-
-              <div className="space-y-1 text-sm">
-                <div className="font-bold text-sm">{order.customerName || t.customer}</div>
-                <div className="text-sm text-muted">{order.operatorName} • {order.smartCardNumber}</div>
-                <div className="font-medium text-ink ">{order.packName} ({order.packValidity})</div>
-              </div>
-
-              <div className="flex items-center justify-between pt-2 border-t border-rule text-sm">
-                <div className="font-mono font-bold text-base">₹{order.amount}</div>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => handleProcessOrder(order.orderId, 'failed')}
-                    className="px-2.5 py-1.5 rounded-lg font-bold text-error hover:bg-error/10 text-sm"
-                  >
-                    {t.reject}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleProcessOrder(order.orderId, 'completed')}
-                    className="px-3 py-1.5 rounded-lg font-bold text-accent-ink bg-accent hover:bg-success/10 text-sm shadow"
-                  >
-                    {t.confirmCredit}
-                  </button>
+            <article key={order.orderId} aria-label={`Order ${order.orderId}`} className="admin-queue-order pending-compact-order">
+              <div className="pending-order-details">
+                <div className="compact-plan-pills pending-order-highlights">
+                  <span className="compact-plan-pill compact-plan-operator" data-operator={order.operator}>{order.operatorName}</span>
+                  <span className="compact-plan-pill pending-customer-id"><span className="pending-pill-label">ID</span> {order.smartCardNumber}</span>
+                  <span className="compact-plan-pill pending-order-price">Rs. {order.amount.toLocaleString('en-IN')}</span>
                 </div>
+                <div className="pending-order-summary text-sm">
+                  <strong title={`Order ${order.orderId}`}>{order.customerName || t.customer}</strong>
+                  <span className="text-muted">{order.packName} ({order.packValidity})</span>
+                </div>
+
               </div>
-            </div>
+              <div className="pending-order-actions">
+                <div className="pending-order-statuses text-sm">
+                  
+                  
+                  <span className={`pending-status pending-status-${order.rechargeStatus}`}>
+                    <Clock className="w-3 h-3" />
+                    Pending
+                  </span>
+                </div>
+                <button type="button" disabled={processingIds.has(order.orderId)} aria-label={`Mark recharge successful for ${order.smartCardNumber}`} onClick={() => handleProcessOrder(order.orderId)}
+                  className="px-3 py-2 rounded-lg font-bold text-accent-ink bg-accent text-sm disabled:opacity-50 disabled:cursor-wait">
+                  {processingIds.has(order.orderId) ? 'Saving...' : 'Mark Successful'}
+                </button>
+              </div>
+            </article>
           ))}
         </div>
       )}
