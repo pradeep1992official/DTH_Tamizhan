@@ -1,3 +1,5 @@
+import { missingCatalogOperators } from '../../lib/catalogAvailability';
+import { OperatorCatalogNotice } from '../OperatorCatalogNotice';
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Search,
@@ -8,9 +10,9 @@ import {
   AlertCircle,
   RefreshCw,
 } from '../../lib/icons';
-import { BrowsePlan, DthConnection, Language, PlanFilters, UserProfile } from '../../types';
+import { BrowsePlan, DthConnection, Language, PlanFilters, UserProfile, isSameDthOperatorGroup } from '../../types';
 import { OperatorTheme } from '../../lib/theme';
-import { filterAndSortPlans, catalogItemToBrowsePlan } from '../../lib/browsePlansData';
+import { filterAndSortPlans, catalogItemToBrowsePlan, catalogPriceMaximum } from '../../lib/browsePlansData';
 import { PlanFilterSidebar } from './PlanFilterSidebar';
 import { PlanCard } from './PlanCard';
 import { CompareDrawer } from './CompareDrawer';
@@ -36,7 +38,7 @@ const DEFAULT_FILTERS: PlanFilters = {
   operators: [],
   type: 'all',
   durations: [],
-  priceRange: [100, 5000],
+  priceRange: [100, Infinity],
   channelRange: [0, 500],
   genreTags: [],
   sortBy: 'recommended',
@@ -60,6 +62,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [filters, setFilters] = useState<PlanFilters>(DEFAULT_FILTERS);
+  const priceMaximum = catalogPriceMaximum(allPlans);
 
   // Compare tool state
   const [selectedForCompare, setSelectedForCompare] = useState<BrowsePlan[]>([]);
@@ -77,6 +80,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
 
     PlanCatalogService.getAllPlans({ allowFallback: false })
       .then((items) => {
+        setAllPlans((items || []).map(catalogItemToBrowsePlan));
         if (items && items.length > 0) {
           setAllPlans(items.map(catalogItemToBrowsePlan));
           setFetchError(null);
@@ -99,7 +103,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
     setIsLoading(false);
   };
 
-  // Authoritative live subscription to Firestore plan_catalog
+  // Subscribe to the same server catalog used by recharge and admin.
   useEffect(() => {
     let isMounted = true;
     setIsLoading(true);
@@ -107,6 +111,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
     const unsubscribe = PlanCatalogService.subscribeToPlans(
       (catalogItems) => {
         if (!isMounted) return;
+        setAllPlans((catalogItems || []).map(catalogItemToBrowsePlan));
         if (catalogItems && catalogItems.length > 0) {
           const mapped = catalogItems.map(catalogItemToBrowsePlan);
           setAllPlans(mapped);
@@ -122,16 +127,9 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
       }
     );
 
-    const handleUpdateEvent = () => {
-      fetchLivePlans();
-    };
-
-    window.addEventListener('plan_catalog_updated', handleUpdateEvent);
-
     return () => {
       isMounted = false;
       unsubscribe();
-      window.removeEventListener('plan_catalog_updated', handleUpdateEvent);
     };
   }, []);
 
@@ -139,6 +137,9 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
   const displayedPlans = useMemo(() => {
     return filterAndSortPlans(allPlans, filters);
   }, [allPlans, filters]);
+
+  const missingOperators = missingCatalogOperators(allPlans, filters.operators);
+  const hasSelectedCatalog = filters.operators.some(operator => allPlans.some(plan => isSameDthOperatorGroup(plan.operator, operator)));
 
   // Compare handlers
   const handleToggleCompare = (plan: BrowsePlan) => {
@@ -262,6 +263,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
         {/* Desktop Filter Sidebar */}
         <div className="hidden lg:block catalog-filters">
           <PlanFilterSidebar
+            priceMaximum={priceMaximum}
             filters={filters}
             onChange={(updated) => setFilters(updated)}
             onReset={handleResetFilters}
@@ -275,6 +277,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
         {isMobileFilterOpen && (
           <div id="catalog-mobile-filters" className="lg:hidden col-span-1">
             <PlanFilterSidebar
+              priceMaximum={priceMaximum}
               filters={filters}
               onChange={(updated) => setFilters(updated)}
               onReset={handleResetFilters}
@@ -349,6 +352,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
                 </div>
               )}
 
+              {!isLoading && missingOperators.map(operator => <OperatorCatalogNotice key={operator} operator={operator} currentLang={currentLang} />)}
               {/* Results count banner */}
               <div aria-live="polite" className="flex items-center justify-between text-xs px-1">
                 <span className={`font-bold ${isLight ? 'text-ink' : 'text-muted'}`}>
@@ -407,7 +411,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
                     );
                   })}
                 </div>
-              ) : (
+              ) : missingOperators.length > 0 && !hasSelectedCatalog ? null : (
                 /* Empty State */
                 <div
                   className={`rounded-3xl border p-8 sm:p-12 text-center space-y-5 shadow-lg ${
@@ -423,12 +427,12 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
 
                   <div className="space-y-1.5 max-w-md mx-auto">
                     <h3 className="font-bold text-lg">
-                      {t.noPlansMatch}
+                      {currentLang === 'ta' ? '\u0baa\u0bca\u0bb0\u0bc1\u0ba8\u0bcd\u0ba4\u0bc1\u0bae\u0bcd \u0baa\u0bc7\u0b95\u0bcd\u0b95\u0bc1\u0b95\u0bb3\u0bcd \u0b87\u0bb2\u0bcd\u0bb2\u0bc8.' : 'No matching packs.'}
                     </h3>
                     <p className="text-xs text-ink-2  leading-relaxed">
                       {currentLang === 'ta'
                         ? 'விலை வரம்பை மாற்றவும் அல்லது அனைத்து வடிகட்டல்களையும் நீக்கி மீண்டும் முயற்சிக்கவும்.'
-                        : 'Try expanding your price range, clearing specific filters, or resetting all options.'}
+                        : 'Try another search or clear your filters.'}
                     </p>
                   </div>
 
@@ -440,7 +444,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
                       style={{ backgroundColor: currentTheme.primaryColor }}
                     >
                       <RotateCcw className="w-4 h-4" />
-                      <span>{t.resetFilters}</span>
+                      <span>{currentLang === 'ta' ? t.resetFilters : 'Clear filters'}</span>
                     </button>
                   </div>
                 </div>

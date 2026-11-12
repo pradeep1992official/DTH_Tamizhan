@@ -18,6 +18,7 @@ service cloud.firestore {
     // Super Admin: Strictly and exclusively professorpradeeps@gmail.com
     function isSuperAdmin() {
       return isSignedIn() && 
+        request.auth.token.email_verified == true &&
         request.auth.token.email.lower() == 'professorpradeeps@gmail.com';
     }
 
@@ -25,8 +26,10 @@ service cloud.firestore {
     function isAdmin() {
       return isSuperAdmin() || (
         isSignedIn() &&
+        request.auth.token.email_verified == true &&
         exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.status == 'approved'
+        get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.status == 'approved' &&
+        get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.email.lower() == request.auth.token.email.lower()
       );
     }
 
@@ -59,7 +62,7 @@ service cloud.firestore {
     // Approved Admins collection (Managed ONLY by professorpradeeps@gmail.com, readable ONLY by authorized admins)
     match /admins/{adminId} {
       allow read: if isAdmin();
-      allow create, update, delete: if isSuperAdmin();
+      allow create, update, delete: if false; // Registry managed by authenticated server approval actions.
     }
 
     // Admin Access Requests (Customer submits, reviewable only by professorpradeeps@gmail.com)
@@ -86,18 +89,18 @@ service cloud.firestore {
         resource.data.user_id == request.auth.uid;
     }
 
-    // Pending Recharges collection (Customer places order, admin processes fulfillment)
+    // Financial orders may only be written by a verified-payment server integration.
     match /pending_recharges/{orderId} {
-      allow create: if isValidId(orderId);
+      allow create: if false;
       allow read: if (isSignedIn() && (resource.data.user_id == request.auth.uid || isAdmin())) || isAdmin();
-      allow update, delete: if isAdmin();
+      allow update, delete: if false;
     }
 
     // Recharge Orders collection (Completed & historical orders for receipts and payment reports)
     match /recharge_orders/{orderId} {
-      allow create: if isValidId(orderId);
+      allow create: if false;
       allow read: if (isSignedIn() && (resource.data.user_id == request.auth.uid || isAdmin())) || isAdmin();
-      allow update: if isAdmin();
+      allow update: if false;
       allow delete: if false; // Audit trail: recharges must not be deleted
     }
 

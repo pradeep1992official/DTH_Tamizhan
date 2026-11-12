@@ -1,3 +1,4 @@
+import { formatPrice, formatMonthlyEquivalent, formatDuration, formatChannelCounts, validateCatalogPack } from '../../lib/catalog';
 import React from 'react';
 import {
   X,
@@ -122,16 +123,16 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
                       </button>
                     )}
                   </div>
-                  <p className="mt-3 text-2xl font-bold" style={{ color: currentTheme.primaryColor }}>₹{plan.price}</p>
+                  <p className="mt-3 text-2xl font-bold" style={{ color: currentTheme.primaryColor }}>{formatPrice(plan.price, currentLang)}</p>
                   <dl className={`mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t pt-3 text-sm ${isLight ? 'border-rule' : 'border-rule'}`}>
                     <dt className={isLight ? 'text-muted' : 'text-muted'}>{t.qualityLabel}</dt>
                     <dd className="text-right font-medium">{plan.type} {t.clarity}</dd>
                     <dt className={isLight ? 'text-muted' : 'text-muted'}>{t.channels}</dt>
-                    <dd className="text-right font-medium">{plan.channel_count} {t.total}</dd>
+                    <dd className="text-right font-medium">{formatChannelCounts(plan, currentLang)}</dd>
                     <dt className={isLight ? 'text-muted' : 'text-muted'}>{t.validity}</dt>
-                    <dd className="text-right font-medium">{plan.duration_months === 1 ? `1 ${t.month}` : `${plan.duration_months} ${t.months}`}</dd>
+                    <dd className="text-right font-medium">{formatDuration(plan.duration_months, currentLang)}</dd>
                     <dt className={isLight ? 'text-muted' : 'text-muted'}>{t.monthlyEquivalent}</dt>
-                    <dd className="text-right font-medium">₹{plan.monthly_equivalent_rate || Math.round(plan.price / plan.duration_months)} {t.perMonth}</dd>
+                    <dd className="text-right font-medium">{formatMonthlyEquivalent(plan.price, plan.duration_months, currentLang)}</dd>
                     <dt className={isLight ? 'text-muted' : 'text-muted'}>{t.savingsPercent}</dt>
                     <dd className="text-right font-medium">{(plan.savings_pct || 0) > 0 ? `${plan.savings_pct}% ${t.saved}` : t.standardRate}</dd>
                   </dl>
@@ -181,7 +182,7 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
                           </div>
                           <h4 className="font-bold text-sm break-words">{p.name}</h4>
                           <span className="text-xl font-bold block" style={{ color: currentTheme.primaryColor }}>
-                            ₹{p.price}
+                            {formatPrice(p.price, currentLang)}
                           </span>
                         </div>
                       </th>
@@ -208,7 +209,7 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
                   <td className={`p-3 font-medium ${isLight ? 'text-muted' : 'text-muted'}`}>{t.channels}</td>
                   {plans.map((p) => (
                     <td key={p.id} className="p-3 font-bold">
-                      {p.channel_count} {t.total} {p.hd_channel_count ? `(${p.hd_channel_count} HD)` : ''}
+                      {formatChannelCounts(p, currentLang)}
                     </td>
                   ))}
                 </tr>
@@ -216,7 +217,7 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
                   <td className={`p-3 font-medium ${isLight ? 'text-muted' : 'text-muted'}`}>{t.validity}</td>
                   {plans.map((p) => (
                     <td key={p.id} className="p-3 font-bold">
-                      {p.duration_months === 1 ? `1 ${t.month}` : `${p.duration_months} ${t.months}`}
+                      {formatDuration(p.duration_months, currentLang)}
                     </td>
                   ))}
                 </tr>
@@ -224,7 +225,7 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
                   <td className={`p-3 font-medium ${isLight ? 'text-muted' : 'text-muted'}`}>{t.monthlyEquivalent}</td>
                   {plans.map((p) => (
                     <td key={p.id} className="p-3 tabular-nums font-bold text-accent">
-                      ₹{p.monthly_equivalent_rate || Math.round(p.price / p.duration_months)} {t.perMonth}
+                      {formatMonthlyEquivalent(p.price, p.duration_months, currentLang)}
                     </td>
                   ))}
                 </tr>

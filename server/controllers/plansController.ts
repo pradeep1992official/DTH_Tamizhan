@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { isCallerAdminAuthorized } from '../middleware/auth';
-import { APPROVED_ADMIN_EMAILS, SAMPLE_PLANS } from '../models/store';
+import { APPROVED_ADMIN_EMAILS } from '../models/store';
 import { filterAndSortPlans, catalogItemToBrowsePlan } from '../../src/lib/browsePlansData';
 import { PlanCatalogItem } from '../../src/types';
 import { planModel } from '../models/planModel';
@@ -15,7 +15,7 @@ export const plansController = {
       const isLegacyQuery = operatorId && !operators && !type && !durations && !genres && !minPrice && !maxPrice;
 
       if (isLegacyQuery) {
-        let legacyPlans = [...SAMPLE_PLANS];
+        let legacyPlans = planModel.getAll().map(plan => ({ ...catalogItemToBrowsePlan(plan), operatorId: plan.operator, category: 'tamil_base' }));
         if (operatorId) legacyPlans = legacyPlans.filter((plan) => plan.operatorId === operatorId);
         if (category && category !== 'all') legacyPlans = legacyPlans.filter((plan) => plan.category === category);
         res.json({ success: true, count: legacyPlans.length, plans: legacyPlans });
@@ -66,12 +66,15 @@ export const plansController = {
     }
   },
 
-  listAdmin(_req: Request, res: Response): void {
+  listCatalog(_req: Request, res: Response): void { res.json({ success: true, plans: planModel.getAll() }); },
+  async listAdmin(req: Request, res: Response): Promise<void> {
+    if (!(await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS)).authorized) { res.status(403).json({ success: false, error: 'Forbidden' }); return; }
     const plans = planModel.getAll();
     res.json({ success: true, count: plans.length, plans });
   },
 
-  listDeleted(_req: Request, res: Response): void {
+  async listDeleted(req: Request, res: Response): Promise<void> {
+    if (!(await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS)).authorized) { res.status(403).json({ success: false, error: 'Forbidden' }); return; }
     res.json({ success: true, deletedIds: planModel.getDeletedIds() });
   },
 
@@ -114,7 +117,7 @@ export const plansController = {
       return;
     }
     const { plans } = req.body;
-    if (Array.isArray(plans) && plans.length > 0) planModel.sync(plans);
+    if (Array.isArray(plans) && plans.length > 0) planModel.sync(plans.map(plan => ({ ...plan, price: plan.amount, is_recommended: Boolean(plan.is_recommended), channel_list: plan.channel_list || [], updated_at: new Date().toISOString(), updated_by: adminCheck.email })));
     res.json({ success: true, count: planModel.getAll().length });
   },
 };

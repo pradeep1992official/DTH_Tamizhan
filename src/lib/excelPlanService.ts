@@ -1,3 +1,4 @@
+import { validateCatalogPack, assertValidCatalogPack } from './catalog';
 import ExcelJS from 'exceljs';
 import { PlanCatalogItem, DthOperatorId, isSameDthOperatorGroup } from '../types';
 import { PlanCatalogService } from './planCatalogService';
@@ -17,6 +18,8 @@ export interface PlanImportRow {
   amount: number;
   is_recommended: boolean;
   channel_list: string[];
+  channel_count?: number;
+  hd_channel_count?: number;
   isValid: boolean;
   errors: string[];
   warnings: string[];
@@ -179,6 +182,7 @@ export async function exportPlansToExcel(
     { header: 'Is Recommended (TRUE/FALSE)', key: 'is_recommended', width: 24 },
     { header: 'Channels List (Comma Separated)', key: 'channel_list', width: 65 },
     { header: 'Channels Count', key: 'channel_count', width: 16 },
+    { header: 'HD Channels Count', key: 'hd_channel_count', width: 18 },
     { header: 'Last Updated (ISO)', key: 'updated_at', width: 24 },
     { header: 'Updated By', key: 'updated_by', width: 24 },
   ];
@@ -204,7 +208,8 @@ export async function exportPlansToExcel(
       amount: p.amount,
       is_recommended: p.is_recommended ? 'TRUE' : 'FALSE',
       channel_list: (p.channel_list || []).join(', '),
-      channel_count: p.channel_count || (p.channel_list || []).length,
+      channel_count: p.channel_count,
+      hd_channel_count: p.hd_channel_count,
       updated_at: p.updated_at,
       updated_by: p.updated_by,
     });
@@ -270,6 +275,8 @@ export async function downloadPlanTemplateExcel() {
     { header: 'Price (INR)', key: 'amount', width: 14 },
     { header: 'Is Recommended (TRUE/FALSE)', key: 'is_recommended', width: 24 },
     { header: 'Channels List (Comma Separated)', key: 'channel_list', width: 70 },
+    { header: 'Channels Count', key: 'channel_count', width: 16 },
+    { header: 'HD Channels Count', key: 'hd_channel_count', width: 18 },
   ];
 
   const headerRow = ws.getRow(1);
@@ -339,7 +346,7 @@ export async function downloadPlanTemplateExcel() {
     },
   ];
 
-  sampleRows.forEach((r) => ws.addRow(r));
+  sampleRows.forEach((r) => ws.addRow({ ...r, channel_count: r.channel_list.split(',').length, hd_channel_count: r.channel_list.split(',').filter(channel => /\bHD\b/.test(channel)).length }));
 
   // Guide sheet
   const wsGuide = workbook.addWorksheet('Field Guidelines');
@@ -364,6 +371,8 @@ export async function downloadPlanTemplateExcel() {
     { field: 'Plan Name', required: 'Mandatory', desc: 'Readable name of the recharge bouquet' },
     { field: 'Price (INR)', required: 'Mandatory', desc: 'Positive price amount in rupees (e.g. 299, 1650)' },
     { field: 'Is Recommended', required: 'Optional', desc: 'TRUE or FALSE. Recommended packs appear in high priority cards.' },
+    { field: 'Channels Count', required: 'Mandatory for new packs', desc: 'Declared total channel count, greater than zero. Highlights may be a subset.' },
+    { field: 'HD Channels Count', required: 'Mandatory for new packs', desc: 'Explicit HD count, zero or greater and no greater than total. Must agree with HD numbers in the name.' },
     { field: 'Channels List', required: 'Optional', desc: 'Comma-separated channel list e.g. "Sun TV HD, Star Vijay HD"' },
   ];
   guidelines.forEach((g) => wsGuide.addRow(g));
@@ -489,7 +498,7 @@ export async function parseAndValidatePlanExcel(
         amount = -1; // Explicit negative value trigger
       } else {
         const cleanAmountStr = trimmed.replace(/^₹\s*/, '').replace(/,/g, '');
-        amount = parseFloat(cleanAmountStr);
+        amount = Number(cleanAmountStr);
       }
     }
     if (isNaN(amount) || amount <= 0) {
@@ -510,7 +519,7 @@ export async function parseAndValidatePlanExcel(
     }
 
     if (channel_list.length === 0) {
-      warnings.push('No channels specified for this pack (default channels will be used if left empty).');
+      warnings.push('No channel highlights specified; explicit channel totals are still required.');
     }
 
     const opSafe = operator || 'sun_direct';
@@ -531,11 +540,21 @@ export async function parseAndValidatePlanExcel(
       );
     }
 
+    const countValue = normalizedRow['channel_count'] ?? normalizedRow['channels_count'] ?? normalizedRow['total_channels'];
+    const hdValue = normalizedRow['hd_channel_count'] ?? normalizedRow['hd_channels_count'] ?? normalizedRow['hd_channels'];
+    const channel_count = countValue === undefined || countValue === '' ? originalPlan?.channel_count : Number(countValue);
+    const hd_channel_count = hdValue === undefined || hdValue === '' ? originalPlan?.hd_channel_count : Number(hdValue);
+    errors.push(...validateCatalogPack({ plan_name, amount, duration_months: duration_months ?? NaN,
+      channel_count, hd_channel_count, channel_list }).map(issue => `${issue.field}: ${issue.message}`));
+
     let action: 'create' | 'update' | 'no_change' = 'create';
     const diffs: { field: string; label: string; oldVal: any; newVal: any }[] = [];
 
     if (originalPlan) {
       let hasChanges = false;
+      for (const [field, value] of [['channel_count', channel_count], ['hd_channel_count', hd_channel_count]] as const) {
+        if (originalPlan[field] !== value) { hasChanges = true; diffs.push({ field, label: field, oldVal: originalPlan[field], newVal: value }); }
+      }
       if (originalPlan.amount !== amount) {
         hasChanges = true;
         diffs.push({ field: 'amount', label: 'Price (INR)', oldVal: `₹${originalPlan.amount}`, newVal: `₹${amount}` });
@@ -597,6 +616,8 @@ export async function parseAndValidatePlanExcel(
       amount,
       is_recommended,
       channel_list,
+      channel_count,
+      hd_channel_count,
       isValid,
       errors,
       warnings,
@@ -639,7 +660,7 @@ export async function applyImportedPlans(
   const now = new Date().toISOString();
   const finalItems: PlanCatalogItem[] = selectedValid.map((row) => {
     const isHd = row.pack_type === 'HD';
-    const channelCount = row.channel_list.length > 20 ? row.channel_list.length : (isHd ? 210 : 145);
+
     return {
       id: row.id,
       operator: row.operator,
@@ -649,8 +670,8 @@ export async function applyImportedPlans(
       amount: row.amount,
       price: row.amount,
       is_recommended: row.is_recommended,
-      channel_count: channelCount,
-      hd_channel_count: isHd ? 32 : 0,
+      channel_count: row.channel_count,
+      hd_channel_count: row.hd_channel_count,
       channel_list: row.channel_list,
       channels: row.channel_list,
       genre_tags: ['tamil', 'entertainment'],
@@ -660,50 +681,13 @@ export async function applyImportedPlans(
     };
   });
 
-  // 1. Single Batched Write to Cloud Firestore
-  if (isFirebaseConfigured && db) {
-    try {
-      const batch = writeBatch(db);
-      for (const item of finalItems) {
-        const cleanPayload = sanitizePayload(item);
-        const planDocRef = doc(db, 'plan_catalog', item.id);
-        batch.set(planDocRef, cleanPayload, { merge: true });
-      }
-      await batch.commit();
-    } catch (batchErr) {
-      console.error('[applyImportedPlans] Firestore batched write error:', batchErr);
-    }
-  }
-
-  // 2. Record single consolidated audit log entry
-  await PlanCatalogService.recordAuditLog({
-    id: `audit-batch-excel-${Date.now()}`,
-    plan_id: 'batch_import',
-    plan_name: `Excel Batch Import (${finalItems.length} packs)`,
-    operator: finalItems[0]?.operator || 'sun_direct',
-    action: 'update',
-    updated_at: now,
-    updated_by: adminEmailOrUid || 'excel_import_admin',
-    details: `Imported and updated ${finalItems.length} pack records in a single batch operation via Excel.`,
-  });
-
-  // 3. Sync all items to Backend Server in a single POST
-  try {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (auth && auth.currentUser) {
-      try {
-        const token = await auth.currentUser.getIdToken();
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-      } catch {}
-    }
-    await fetch('/api/admin/plans/sync-seed', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ plans: finalItems }),
-    });
-  } catch (srvErr) {
-    console.warn('[applyImportedPlans] Backend server sync error:', srvErr);
-  }
+  // Validate the selected payload again; preview flags are not a trust boundary.
+  finalItems.forEach(assertValidCatalogPack);
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (auth?.currentUser) headers.Authorization = `Bearer ${await auth.currentUser.getIdToken()}`;
+  const response = await fetch('/api/admin/plans/sync-seed', { method: 'POST', headers, body: JSON.stringify({ plans: finalItems }) });
+  const result = await response.json();
+  if (!response.ok || !result.success) throw new Error(result.error || 'Import rejected by catalog API.');
 
   // 4. Dispatch single reactive update event
   if (typeof window !== 'undefined') {

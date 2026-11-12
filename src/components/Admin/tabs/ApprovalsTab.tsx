@@ -1,9 +1,8 @@
 import { AdminRefreshButton } from '../AdminRefreshButton';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   ShieldCheck,
   Plus,
-  Trash2,
   RefreshCw,
   CheckCircle2,
   AlertCircle,
@@ -41,25 +40,33 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
   const [directEmail, setDirectEmail] = useState('');
   const [directName, setDirectName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [grantError, setGrantError] = useState<string | null>(null);
+  const grantInFlight = useRef(false);
   const [adminToRevoke, setAdminToRevoke] = useState<AdminAccount | null>(null);
+  const [isRevoking, setIsRevoking] = useState(false);
+  const [revokeError, setRevokeError] = useState<string | null>(null);
+  const revokeInFlight = useRef(false);
 
   const { modalRef: revokeModalRef } = useAccessibleModal({
     isOpen: Boolean(adminToRevoke),
-    onClose: () => setAdminToRevoke(null),
+    onClose: () => { if (!revokeInFlight.current) setAdminToRevoke(null); },
   });
 
   const isSuperAdmin = isSuperAdminEmail(user?.email);
 
   const handleRevokeAdmin = (admin: AdminAccount) => {
+    setRevokeError(null);
     setAdminToRevoke(admin);
   };
 
   const handleGrantAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!directEmail.trim()) return;
+    if (!directEmail.trim() || grantInFlight.current) return;
     if (!window.confirm(`Grant administrator access to ${directEmail.trim().toLowerCase()}?`)) return;
 
+    grantInFlight.current = true;
     setIsSubmitting(true);
+    setGrantError(null);
     try {
       const headers = await getAuthHeaders();
       const res = await fetch('/api/admin/approve-user', {
@@ -71,43 +78,55 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
         }),
       });
 
-      if (res.ok) {
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.success === true) {
         showToast(`Administrator privileges granted to ${directEmail}`);
         setDirectEmail('');
         setDirectName('');
         onRefresh();
       } else {
-        const data = await res.json().catch(() => ({}));
-        showToast(data.error || 'Failed to authorize administrator');
+        const tamilErrors: Record<string, string> = {
+          ADMIN_ACCOUNT_NOT_REGISTERED: 'இந்த மின்னஞ்சல் இந்தச் செயலியில் பதிவு செய்யப்படவில்லை. முதலில் Google மூலம் ஒருமுறை உள்நுழையச் சொல்லி, பின்னர் அணுகலை வழங்கவும்.',
+          ADMIN_AUTH_UNAVAILABLE: 'Firebase கணக்கைச் சரிபார்க்க முடியவில்லை. சேவையகச் சான்றுகளையும் Authentication அனுமதிகளையும் சரிபார்க்கவும்.',
+          ADMIN_REGISTRY_UNAVAILABLE: 'நிர்வாக அணுகலைச் சேமிக்க முடியவில்லை. சேவையகத்தின் Firestore அனுமதிகளைச் சரிபார்க்கவும்.',
+        };
+        setGrantError((currentLang === 'ta' && tamilErrors[data?.code]) || (typeof data?.error === 'string' ? data.error : `Unable to grant access (HTTP ${res.status}). Please retry.`));
       }
     } catch (err) {
-      showToast('Network error authorizing admin');
+      setGrantError(currentLang === 'ta' ? 'அணுகலை வழங்க முடியவில்லை. இணைப்பையும் உள்நுழைவையும் சரிபார்த்து மீண்டும் முயற்சிக்கவும்.' : 'Unable to grant access. Check your connection and sign-in, then retry.');
     } finally {
+      grantInFlight.current = false;
       setIsSubmitting(false);
     }
   };
 
   const handleConfirmRevoke = async () => {
-    if (!adminToRevoke) return;
+    if (!adminToRevoke || revokeInFlight.current) return;
     const emailToRevoke = adminToRevoke.email;
-    setAdminToRevoke(null);
+    revokeInFlight.current = true;
+    setIsRevoking(true);
+    setRevokeError(null);
 
     try {
       const headers = await getAuthHeaders();
       const res = await fetch('/api/admin/revoke-user', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ userEmail: emailToRevoke }),
+        body: JSON.stringify({ userEmail: emailToRevoke, uid: adminToRevoke.uid }),
       });
-
-      if (res.ok) {
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.success === true) {
         showToast(`Access revoked for ${emailToRevoke}`);
+        setAdminToRevoke(null);
         onRefresh();
       } else {
-        showToast('Failed to revoke admin access');
+        setRevokeError(typeof data?.error === 'string' ? data.error : `Unable to revoke access (HTTP ${res.status}). Please retry.`);
       }
     } catch (err) {
-      showToast('Error revoking access');
+      setRevokeError(currentLang === 'ta' ? 'அணுகலை ரத்து செய்ய முடியவில்லை. இணைப்பைச் சரிபார்த்து மீண்டும் முயற்சிக்கவும்.' : 'Unable to revoke access. Check your connection and sign-in, then retry.');
+    } finally {
+      revokeInFlight.current = false;
+      setIsRevoking(false);
     }
   };
 
@@ -154,8 +173,8 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
               <Plus className="w-4 h-4 text-success" />
               {t.grantAdminAccess}
             </h4>
-            <p className={`text-sm ${currentTheme.subText}`}>
-              Add a new administrator by email to instantly grant operational access.
+            <p id="grant-admin-help" className={`text-sm ${currentTheme.subText}`}>
+              {currentLang === 'ta' ? 'முதலில் இந்தச் செயலியில் Google மூலம் ஒருமுறை உள்நுழைந்தவரின் மின்னஞ்சலுக்கு நிர்வாக அணுகலை வழங்கவும்.' : 'The person must sign in to this app with Google once before you can grant administrator access to their email.'}
             </p>
           </div>
 
@@ -163,6 +182,8 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
             <input
               type="email"
               required
+              disabled={isSubmitting}
+              aria-describedby={grantError ? 'grant-admin-help grant-admin-error' : 'grant-admin-help'}
               value={directEmail}
               onChange={(e) => setDirectEmail(e.target.value)}
               placeholder={t.emailAddressLabel}
@@ -173,6 +194,7 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
             />
             <input
               type="text"
+              disabled={isSubmitting}
               value={directName}
               onChange={(e) => setDirectName(e.target.value)}
               placeholder={t.nameOptionalLabel}
@@ -190,6 +212,7 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
               <span>{isSubmitting ? 'Granting...' : 'Grant access'}</span>
             </button>
           </form>
+          {grantError && <p id="grant-admin-error" role="alert" className="mt-3 text-sm text-error">{grantError}</p>}
         </div>
       )}
 
@@ -246,7 +269,7 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
                             className="p-1.5 rounded-lg text-error hover:bg-error/10 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-error   "
                             title={t.revokeAccess}
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <ShieldCheck className="w-4 h-4" />
                           </button>
                         )}
                       </td>
@@ -283,11 +306,14 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
               {t.confirmRevokeDesc}
               <span className="font-mono font-bold text-ink  block mt-1">{adminToRevoke.email}</span>
             </p>
+            <p className="text-sm text-muted mt-2">{currentLang === 'ta' ? 'நிர்வாக அணுகல் மட்டும் ரத்து செய்யப்படும். பயனர் கணக்கும் தரவும் நீக்கப்படாது.' : 'This removes admin access. The user account and data are kept.'}</p>
+            {revokeError && <p role="alert" className="text-sm text-error mt-3">{revokeError}</p>}
 
             <div className="flex items-center justify-end gap-3 mt-6">
               <button
                 type="button"
                 onClick={() => setAdminToRevoke(null)}
+                disabled={isRevoking}
                 className={`px-4 py-2 rounded-xl text-sm font-medium border ${
                   isLight ? 'bg-paper-2 hover:bg-paper-2 border-rule' : 'bg-paper-2 hover:bg-paper-2 border-rule'
                 }`}
@@ -297,10 +323,11 @@ export const ApprovalsTab: React.FC<ApprovalsTabProps> = ({
               <button
                 type="button"
                 onClick={handleConfirmRevoke}
+                disabled={isRevoking}
                 className="px-4 py-2 rounded-xl text-sm font-bold bg-accent hover:bg-accent text-accent-ink shadow-none flex items-center gap-1.5"
               >
-                <Trash2 className="w-4 h-4" />
-                <span>{t.revokeAccess}</span>
+                <ShieldCheck className="w-4 h-4" />
+                <span>{isRevoking ? (currentLang === 'ta' ? 'ரத்து செய்கிறது…' : 'Revoking…') : t.revokeAccess}</span>
               </button>
             </div>
           </div>

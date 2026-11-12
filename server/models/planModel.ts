@@ -1,10 +1,10 @@
+import { assertValidCatalogPack } from '../../src/lib/catalog';
 import fs from 'fs';
 import {
   DATA_DIR,
   DELETED_PLANS_FILE,
   PLANS_FILE,
 } from './store';
-import { INITIAL_PLAN_CATALOG } from '../../src/lib/planCatalogService';
 import { PlanCatalogItem } from '../../src/types';
 
 function loadPlans(): { plans: PlanCatalogItem[]; deletedIds: string[] } {
@@ -30,19 +30,14 @@ function loadPlans(): { plans: PlanCatalogItem[]; deletedIds: string[] } {
         plans = [];
       }
     } else {
-      plans = [...INITIAL_PLAN_CATALOG];
-      try {
-        fs.writeFileSync(PLANS_FILE, JSON.stringify(plans, null, 2), 'utf-8');
-      } catch {
-        // The in-memory seed remains usable when local persistence is unavailable.
-      }
+      plans = [];
     }
 
     const deletedSet = new Set(deletedIds);
     return { plans: plans.filter((plan) => !deletedSet.has(plan.id)), deletedIds };
   } catch (error) {
     console.error('[Server Persistence] Error loading disk plans:', error);
-    return { plans: [...INITIAL_PLAN_CATALOG], deletedIds: [] };
+    return { plans: [], deletedIds: [] };
   }
 }
 
@@ -68,6 +63,7 @@ export const planModel = {
   },
 
   save(plan: PlanCatalogItem): void {
+    assertValidCatalogPack(plan);
     const index = plans.findIndex((item) => item.id === plan.id);
     if (index >= 0) plans[index] = plan;
     else plans.unshift(plan);
@@ -81,7 +77,10 @@ export const planModel = {
   },
 
   sync(seedPlans: PlanCatalogItem[]): void {
-    plans = seedPlans;
+    seedPlans.forEach(assertValidCatalogPack);
+    const merged = new Map(plans.map(plan => [plan.id, plan]));
+    seedPlans.forEach(plan => merged.set(plan.id, plan));
+    plans = [...merged.values()];
     persistPlans();
   },
 };

@@ -8,7 +8,8 @@ import {
   UserCheck,
   Sliders
 } from '../lib/icons';
-import { Language, UserProfile, isUserAdmin } from '../types';
+import { Language, UserProfile } from '../types';
+import { verifyAdminNavigationAccess } from '../lib/adminNavigationAccess';
 import { translations } from '../lib/translations';
 import { OperatorTheme } from '../lib/theme';
 import { useAccessibleModal } from '../lib/useAccessibleModal';
@@ -43,16 +44,32 @@ export const Header: React.FC<HeaderProps> = ({
   const [profilePhone, setProfilePhone] = useState('');
   const [profileError, setProfileError] = useState<string | null>(null);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [adminAccess, setAdminAccess] = useState<{ uid: string; status: 'checking' | 'allowed' | 'denied' | 'error' } | null>(null);
+  const [adminAccessRetry, setAdminAccessRetry] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { modalRef: profileModalRef } = useAccessibleModal({
     isOpen: isEditProfileOpen,
     onClose: () => setIsEditProfileOpen(false),
   });
 
-  const isAdmin = isUserAdmin(user);
+  const isAdmin = !!user && adminAccess?.uid === user.uid && adminAccess.status === 'allowed';
+
+  useEffect(() => {
+    if (!user || !isProfileDropdownOpen) { setAdminAccess(null); return; }
+    let active = true;
+    const controller = new AbortController();
+    setAdminAccess({ uid: user.uid, status: 'checking' });
+    verifyAdminNavigationAccess(user.uid, controller.signal).then(allowed => {
+      if (active) setAdminAccess({ uid: user.uid, status: allowed ? 'allowed' : 'denied' });
+    }).catch(() => {
+      if (active) setAdminAccess({ uid: user.uid, status: 'error' });
+    });
+    return () => { active = false; controller.abort(); };
+  }, [user?.uid, isProfileDropdownOpen, adminAccessRetry]);
 
   useEffect(() => {
     if (!isProfileDropdownOpen) return;
+    dropdownRef.current?.querySelector<HTMLButtonElement>('#profile-settings-panel button')?.focus();
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       setIsProfileDropdownOpen(false);
@@ -171,29 +188,26 @@ export const Header: React.FC<HeaderProps> = ({
           >
             {t.navConnections}
           </button>
-          {isAdmin && (
-            <button
-              id="nav-admin-btn"
-              onClick={() => onTabChange('admin-portal')}
-              aria-current={activeTab === 'admin-portal' ? 'page' : undefined}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold  transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current flex items-center gap-1.5 ${
-                activeTab === 'admin-portal'
-                  ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText} shadow-sm`
-                  : `${currentTheme.navInactiveText} ${currentTheme.navInactiveHoverBg}`
-              }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Admin Portal</span>
-            </button>
-          )}
+
         </nav>
 
         {/* Right Action: Unified Profile & Settings Dropdown */}
-        <div className="flex items-center gap-3" ref={dropdownRef}>
+        <div className="flex items-center gap-3" ref={dropdownRef} onBlur={event => {
+          if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget as Node)) setIsProfileDropdownOpen(false);
+        }}>
           <div className="relative">
             <button
               id="profile-dropdown-trigger-btn"
+              type="button"
+              aria-label={currentLang === 'ta' ? (user ? `கணக்கு: ${user.displayName || user.email || ''}` : 'கணக்கு') : (user ? `Account: ${user.displayName || user.email || ''}` : 'Account')}
               onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+              onKeyDown={event => {
+                if (event.key === 'ArrowDown') {
+                  event.preventDefault();
+                  setIsProfileDropdownOpen(true);
+                  dropdownRef.current?.querySelector<HTMLButtonElement>('#profile-settings-panel button')?.focus();
+                }
+              }}
               aria-expanded={isProfileDropdownOpen}
               aria-controls="profile-settings-panel"
               className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl border transition-colors shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current ${
@@ -254,6 +268,9 @@ export const Header: React.FC<HeaderProps> = ({
 
                 {/* Primary Menu Actions */}
                 <div className="py-1">
+                  <button type="button" onClick={() => { setIsProfileDropdownOpen(false); onTabChange('account'); }} className="w-full px-4 py-2 text-left flex items-center gap-2.5">
+                    <User className="w-4 h-4" aria-hidden="true" /><span>{currentLang === 'ta' ? 'உங்கள் கணக்கு' : 'Your account'}</span>
+                  </button>
                   <button
                     id="dropdown-view-profile-btn"
                     onClick={() => {
@@ -301,15 +318,21 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
 
                 {/* Admin Operations Console - Restricted to authenticated admins */}
+                {user && adminAccess?.uid === user.uid && adminAccess.status === 'checking' && (
+                  <p role="status" className="px-4 py-2 text-muted">{currentLang === 'ta' ? 'நிர்வாக அணுகலைச் சரிபார்க்கிறது…' : 'Checking admin access…'}</p>
+                )}
+                {user && adminAccess?.uid === user.uid && adminAccess.status === 'error' && (
+                  <div className="px-4 py-2 space-y-2">
+                    <p role="alert">{currentLang === 'ta' ? 'நிர்வாக அணுகலைச் சரிபார்க்க முடியவில்லை.' : 'Unable to verify admin access.'}</p>
+                    <button type="button" onClick={() => setAdminAccessRetry(value => value + 1)}>{currentLang === 'ta' ? 'மீண்டும் முயற்சிக்கவும்' : 'Retry access check'}</button>
+                  </div>
+                )}
                 {isAdmin && (
                   <div className="py-1 border-t border-b border-rule-strong">
                     <button
                       id="dropdown-admin-portal-btn"
                       onClick={() => {
                         setIsProfileDropdownOpen(false);
-                        if (typeof window !== 'undefined') {
-                          window.history.pushState(null, '', '/admin/customers');
-                        }
                         onTabChange('admin-portal');
                       }}
                       className={`w-full px-4 py-2.5 text-left flex items-center justify-between transition-colors ${
@@ -318,7 +341,7 @@ export const Header: React.FC<HeaderProps> = ({
                     >
                       <span className="flex items-center gap-2.5">
                         <ShieldCheck className="w-4 h-4" style={{ color: currentTheme.primaryColor }} />
-                        <span className="font-bold text-xs">Admin Console</span>
+                        <span className="font-bold text-xs">{t.adminConsole}</span>
                       </span>
                       <span
                         className="text-xs font-bold  font-mono px-1.5 py-0.5 rounded border"
@@ -393,21 +416,7 @@ export const Header: React.FC<HeaderProps> = ({
         >
           {t.navConnections}
         </button>
-        {isAdmin && (
-          <button
-            id="mobile-nav-admin-btn"
-            onClick={() => onTabChange('admin-portal')}
-            aria-current={activeTab === 'admin-portal' ? 'page' : undefined}
-            className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold whitespace-nowrap text-center transition-colors flex items-center justify-center gap-1 ${
-              activeTab === 'admin-portal'
-                ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText}`
-                : `${currentTheme.navContainerBg} ${currentTheme.navInactiveText}`
-            }`}
-          >
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Admin</span>
-          </button>
-        )}
+
       </nav>
       {isEditProfileOpen && user && (
         <div

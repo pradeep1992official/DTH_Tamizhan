@@ -144,9 +144,14 @@ describe('Excel Parser & Normalizers', () => {
         'Price (INR)',
         'Is Recommended (TRUE/FALSE)',
         'Channels List (Comma Separated)',
+        'Channels Count',
+        'HD Channels Count',
       ];
       sheet.addRow(headerRow);
-      rows.forEach((r) => sheet.addRow(r));
+      rows.forEach((r) => {
+        const nonempty = r.some((value: unknown) => value !== '' && value !== undefined);
+        sheet.addRow(!headers && nonempty ? [...r, 210, r[2] === 'HD' ? 32 : 0] : r);
+      });
       return (await workbook.xlsx.writeBuffer()) as ArrayBuffer;
     }
 

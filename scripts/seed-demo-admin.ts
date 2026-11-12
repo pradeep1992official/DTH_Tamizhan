@@ -1,10 +1,16 @@
-import { createDemoAdminData } from '../src/lib/demoAdminData';
-import { initStoreFromDisk, MEMORY_CUSTOMERS, MEMORY_RECHARGE_ORDERS, saveCustomersToDisk, saveOrdersToDisk } from '../server/models/store';
+// Explicit local fixture export only. Never imports Firebase or the application store.
+import { createInterface } from 'node:readline/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import { createDemoAdminData } from '../tests/fixtures/demoAdminData';
 
-initStoreFromDisk();
-const { customers, orders } = createDemoAdminData();
-for (const customer of customers) if (!MEMORY_CUSTOMERS.some((record) => record.id === customer.id)) MEMORY_CUSTOMERS.push(customer);
-for (const order of orders) if (!MEMORY_RECHARGE_ORDERS.some((record) => record.orderId === order.orderId)) MEMORY_RECHARGE_ORDERS.push(order);
-saveCustomersToDisk();
-saveOrdersToDisk();
-console.log(`Saved ${customers.length} demo customers and ${orders.length} demo pending/processing orders. Existing records preserved.`);
+if (process.env.NODE_ENV !== 'development') throw new Error('Fixture export is development-only.');
+const prompt = createInterface({ input: process.stdin, output: process.stdout });
+try {
+  const answer = await prompt.question('Type EXPORT LOCAL FIXTURES to create isolated fixture files (no database writes): ');
+  if (answer !== 'EXPORT LOCAL FIXTURES') throw new Error('Fixture export cancelled.');
+  const directory = new URL('../.local-fixtures/', import.meta.url);
+  await mkdir(directory, { recursive: true });
+  await writeFile(new URL('admin-demo.json', directory), JSON.stringify(createDemoAdminData(), null, 2), { flag: 'wx' });
+  console.log(`Exported fixtures to ${fileURLToPath(directory)}. No application data changed.`);
+} finally { prompt.close(); }

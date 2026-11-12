@@ -1,0 +1,148 @@
+﻿{
+  "source": "data/plan_catalog.json",
+  "scanned": 19,
+  "invalid": 6,
+  "manualReview": 1,
+  "findings": [
+    {
+      "id": "airtel_hd_superstar_12m",
+      "operator": "airtel_dth",
+      "name": "Tamil Super Star HD Pack (20 HD)",
+      "duration_months": 12,
+      "amount": 2791,
+      "total_channels": 9,
+      "hd_channels": 32,
+      "highlight_count": 9,
+      "errors": [
+        {
+          "field": "hd_channel_count",
+          "message": "HD channels (32) exceed total channels (9)."
+        },
+        {
+          "field": "plan_name",
+          "message": "Name claims 20 HD channels but hd_channel_count is 32."
+        }
+      ],
+      "review": []
+    },
+    {
+      "id": "airtel_hd_superstar_6m",
+      "operator": "airtel_dth",
+      "name": "Tamil Super Star HD Pack (20 HD)",
+      "duration_months": 6,
+      "amount": 1396,
+      "total_channels": 7,
+      "hd_channels": 32,
+      "highlight_count": 7,
+      "errors": [
+        {
+          "field": "hd_channel_count",
+          "message": "HD channels (32) exceed total channels (7)."
+        },
+        {
+          "field": "plan_name",
+          "message": "Name claims 20 HD channels but hd_channel_count is 32."
+        }
+      ],
+      "review": []
+    },
+    {
+      "id": "airtel_hd_superstar_1m",
+      "operator": "airtel_dth",
+      "name": "Tamil Super Star HD Pack (20 HD)",
+      "duration_months": 1,
+      "amount": 279,
+      "total_channels": 9,
+      "hd_channels": 32,
+      "highlight_count": 9,
+      "errors": [
+        {
+          "field": "hd_channel_count",
+          "message": "HD channels (32) exceed total channels (9)."
+        },
+        {
+          "field": "plan_name",
+          "message": "Name claims 20 HD channels but hd_channel_count is 32."
+        }
+      ],
+      "review": []
+    },
+    {
+      "id": "airtel_sd_superstar_6m",
+      "operator": "airtel_dth",
+      "name": "Tamil Super Star Pack",
+      "duration_months": 6,
+      "amount": 1289,
+      "total_channels": 10,
+      "hd_channels": 0,
+      "highlight_count": 10,
+      "errors": [],
+      "review": [
+        "QA-08: reported 10 vs 140 channels. Stored total is structurally valid, but must be confirmed by the owner; highlights are not proof of the total."
+      ]
+    },
+    {
+      "id": "airtel_hd_superstar_plus_6m",
+      "operator": "airtel_dth",
+      "name": "Tamil Super Star Plus HD Pack (29 HD)",
+      "duration_months": 6,
+      "amount": 1546,
+      "total_channels": 9,
+      "hd_channels": 32,
+      "highlight_count": 9,
+      "errors": [
+        {
+          "field": "hd_channel_count",
+          "message": "HD channels (32) exceed total channels (9)."
+        },
+        {
+          "field": "plan_name",
+          "message": "Name claims 29 HD channels but hd_channel_count is 32."
+        }
+      ],
+      "review": []
+    },
+    {
+      "id": "airtel_hd_superstar_plus_1m",
+      "operator": "airtel_dth",
+      "name": "Tamil Super Star Plus HD Pack (29 HD)",
+      "duration_months": 1,
+      "amount": 309,
+      "total_channels": 9,
+      "hd_channels": 32,
+      "highlight_count": 9,
+      "errors": [
+        {
+          "field": "hd_channel_count",
+          "message": "HD channels (32) exceed total channels (9)."
+        },
+        {
+          "field": "plan_name",
+          "message": "Name claims 29 HD channels but hd_channel_count is 32."
+        }
+      ],
+      "review": []
+    },
+    {
+      "id": "airtel_hd_superstar_plus_12m",
+      "operator": "airtel_dth",
+      "name": "Tamil Super Star Plus HD Pack (29 HD)",
+      "duration_months": 12,
+      "amount": 3091,
+      "total_channels": 9,
+      "hd_channels": 32,
+      "highlight_count": 9,
+      "errors": [
+        {
+          "field": "hd_channel_count",
+          "message": "HD channels (32) exceed total channels (9)."
+        },
+        {
+          "field": "plan_name",
+          "message": "Name claims 29 HD channels but hd_channel_count is 32."
+        }
+      ],
+      "review": []
+    }
+  ]
+}

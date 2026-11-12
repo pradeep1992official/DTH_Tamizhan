@@ -1,4 +1,4 @@
-import { CustomerRecord, RechargeOrder, DthOperatorId } from '../types';
+import { CustomerRecord, RechargeOrder, DthOperatorId } from '../../src/types';
 
 const scenarios: Array<{ operator: DthOperatorId; name: string; card: string; pack: string; price: number; months: 1 | 6 | 12; quality: 'HD' | 'SD' }> = [
   { operator: 'sun_direct', name: 'Sun Direct', card: '40000000001', pack: 'Economy HD', price: 1399, months: 6, quality: 'HD' },
@@ -26,7 +26,7 @@ export function createDemoAdminData(now = new Date()) {
     orderId: `DEMO-ORDER-${index + 1}`, user_id: `demo-customer-${index + 1}`, operator: item.operator, operatorName: item.name,
     smartCardNumber: item.card, customerName: names[index], registeredMobile: customers[index].registeredMobile,
     amount: item.price, packId: `demo-pack-${index + 1}`, packName: item.pack, packValidity: `${item.months * 30} Days`,
-    paymentMethod: (['upi', 'qr_code', 'card', 'netbanking', 'wallet'] as const)[index], paymentStatus: 'paid',
+    paymentMethod: (['upi', 'qr_code', 'card', 'netbanking', 'wallet'] as const)[index], paymentStatus: 'initiated',
     rechargeStatus: 'pending', operatorRefId: '', workerNotes: 'DEMO DATA - synthetic order; do not dispatch a real recharge.',
     createdAt: new Date(now.getTime() - (index + 1) * 600000).toISOString(), updatedAt: now.toISOString(),
   }));

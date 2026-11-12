@@ -1,3 +1,8 @@
+import { OperatorCatalogNotice } from './OperatorCatalogNotice';
+import { TOP_UP_LIMITS, parseTopUpAmount, validateTopUpAmount } from '../lib/topUpAmount';
+import { BUSINESS_DETAILS } from '../lib/trustContent';
+import { formatPrice, formatMonthlyEquivalent, formatDuration, formatChannelCounts, validateCatalogPack } from '../lib/catalog';
+import { subscriberError, subscriberHelp, subscriberRule, normalizeSubscriberId } from '../lib/subscriberValidation';
 import React, { useState, useEffect } from 'react';
 import {
   Tv,
@@ -40,6 +45,7 @@ interface RechargeFlowProps {
   user: UserProfile | null;
   onInitiatePayment: (plan: DthPlan | { name: string; price: number; validityDays: number; pack_type?: string; duration_months?: number }, subscriber: SubscriberDetails | null, operator: DthOperator, smartCard: string, saveBox: boolean) => void;
   prefillConnection?: DthConnection | null;
+  requestCustomTopUp?: boolean;
   selectedOpId: DthOperatorId;
   onSelectOpId: (opId: DthOperatorId) => void;
   currentTheme: OperatorTheme;
@@ -50,6 +56,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
   user,
   onInitiatePayment,
   prefillConnection,
+  requestCustomTopUp = false,
   selectedOpId,
   onSelectOpId,
   currentTheme,
@@ -77,6 +84,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
   const [hdDuration, setHdDuration] = useState<1 | 3 | 6 | 12>(6);
   const [sdDuration, setSdDuration] = useState<1 | 3 | 6 | 12>(6);
   const [selectedPackType, setSelectedPackType] = useState<'HD' | 'SD' | 'CUSTOM'>('HD');
+  useEffect(() => { if (requestCustomTopUp) { setPlanTab('recommended'); setSelectedPackType('CUSTOM'); } }, [requestCustomTopUp]);
 
   // Change Plan tab state
   const [customSelectedPlan, setCustomSelectedPlan] = useState<PlanCatalogItem | null>(null);
@@ -84,6 +92,10 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
 
   // Custom amount support
   const [customAmount, setCustomAmount] = useState('');
+  const [amountTouched, setAmountTouched] = useState(false);
+  const amountError = validateTopUpAmount(customAmount, currentLang);
+  const validCustomAmount = parseTopUpAmount(customAmount);
+  const showAmountError = amountTouched && !!amountError;
   const [saveConnection, setSaveConnection] = useState(true);
 
   const visibleOperators = operators
@@ -98,8 +110,6 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
         shortName: 'Dish TV & D2H',
         tamilName: 'டிஷ் டிவி & டி2எச்',
         cardName: 'Viewing Card / Customer ID',
-        cardLengthDesc: 'Dish TV: 11 digits (015/025); D2H: 8–11 digits',
-        cardPattern: '^(?:0(?:15|25)[0-9]{8}|[0-9]{8,11})$',
         isEnabled: [operator, d2hOperator].some((candidate) => candidate && candidate.isEnabled !== false),
         maintenanceMessage: [operator, d2hOperator].find((candidate) => candidate?.isEnabled !== false)?.maintenanceMessage,
       };
@@ -129,6 +139,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
 
     PlanCatalogService.getAllPlans({ allowFallback: false })
       .then((all) => {
+        setCatalogPlans(all || []);
         if (all && all.length > 0) {
           setCatalogPlans(all);
           setCatalogError(null);
@@ -159,6 +170,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
     const unsubscribe = PlanCatalogService.subscribeToPlans(
       (items) => {
         if (!isMounted) return;
+        setCatalogPlans(items || []);
         if (items && items.length > 0) {
           setCatalogPlans(items);
           setCatalogError(null);
@@ -173,13 +185,10 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
       }
     );
 
-    const handleUpdate = () => fetchCatalog();
-    window.addEventListener('plan_catalog_updated', handleUpdate);
 
     return () => {
       isMounted = false;
       unsubscribe();
-      window.removeEventListener('plan_catalog_updated', handleUpdate);
     };
   }, []);
 
@@ -188,6 +197,9 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
     if (prefillConnection) {
       onSelectOpId(canonicalizeDthOperatorId(prefillConnection.operator));
       setSmartCardNumber(prefillConnection.smartCardNumber);
+      const error = subscriberError(prefillConnection.operator, prefillConnection.smartCardNumber, false, currentLang);
+      setValidationError(error);
+      if (error) document.getElementById('smart-card-input')?.focus();
     }
   }, [prefillConnection]);
 
@@ -227,19 +239,26 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
   const activePlan = planTab === 'recommended'
     ? (selectedPackType === 'HD' ? (recHDPlan || null) : selectedPackType === 'SD' ? (recSDPlan || null) : null)
     : (customSelectedPlan && isSameDthOperatorGroup(customSelectedPlan.operator, selectedOpId)
-      ? customSelectedPlan
+      ? operatorCatalog.find(plan => plan.id === customSelectedPlan.id) || null
       : recHDPlan || null);
 
   const payablePrice = selectedPackType === 'CUSTOM'
-    ? (Number(customAmount) || 0)
+    ? (validCustomAmount ?? NaN)
     : (activePlan?.amount ?? 0);
-  const canProceed = selectedPackType === 'CUSTOM' || activePlan !== null;
+  const canProceed = selectedPackType === 'CUSTOM' ? validCustomAmount !== null : activePlan !== null;
 
   const handlePayClick = () => {
+    if (selectedPackType === 'CUSTOM' && amountError) {
+      setAmountTouched(true);
+      document.getElementById('custom-amount-input')?.focus();
+      return;
+    }
     if (!currentOp) return;
-    const cleanCard = smartCardNumber.trim().replace(/\s+/g, '');
-    if (!cleanCard) {
-      setValidationError(currentLang === 'ta' ? 'ஸ்மார்ட் கார்டு எண்ணை உள்ளிடவும்' : 'Please enter your Smart Card or Subscriber ID');
+    const cleanCard = normalizeSubscriberId(smartCardNumber);
+    const idError = subscriberError(selectedOpId, cleanCard, true, currentLang);
+    if (idError) {
+      setValidationError(idError);
+      document.getElementById('smart-card-input')?.focus();
       return;
     }
     if (selectedPackType !== 'CUSTOM' && !activePlan) {
@@ -268,11 +287,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
     }
 
     if (selectedPackType === 'CUSTOM') {
-      const amountNum = Number(customAmount);
-      if (!amountNum || amountNum < 10) {
-        setValidationError(currentLang === 'ta' ? 'குறைந்தபட்ச தொகை ₹10 உள்ளிடவும்' : 'Please enter a valid amount of at least ₹10');
-        return;
-      }
+      const amountNum = validCustomAmount!;
       onInitiatePayment(
         {
           name: `${provider.name} Custom Top-Up ₹${amountNum}`,
@@ -296,8 +311,8 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
           operatorId: activePlan.operator,
           category: 'tamil_base',
           tamilName: activePlan.plan_name,
-          channelsCount: activePlan.channel_list.length,
-          hdChannelsCount: activePlan.pack_type === 'HD' ? 25 : 0,
+          channelsCount: activePlan.channel_count ?? 0,
+          hdChannelsCount: activePlan.hd_channel_count ?? 0,
           description: `${activePlan.pack_type} pack for ${activePlan.duration_months} Month(s)`,
           tamilChannelsHighlight: activePlan.channel_list.slice(0, 5),
         } as any,
@@ -339,18 +354,18 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
 
           <p className={`text-sm sm:text-base font-normal leading-relaxed max-w-2xl ${currentTheme.heroSubtitleColor}`}>
             {currentLang === 'ta'
-              ? 'சன் டைரக்ட், டாடா பிளே, ஏர்டெல், டிஷ் டிவி, டி2எச் உள்ளிட்ட அனைத்து இணைப்புகளுக்கும் விரைவான, பாதுகாப்பான ரீசார்ஜ்.'
-              : 'Recharge any DTH connection — Sun Direct, Tata Play, Airtel DTH, Dish TV, D2H — instantly, securely, with zero hidden fees.'}
+              ? 'சன் டைரக்ட், டாடா பிளே, ஏர்டெல், டிஷ் டிவி மற்றும் டி2எச் பேக்குகளையும் சந்தாதாரர் விவரங்களையும் சரிபார்த்து கோரிக்கையைத் தொடருங்கள்.'
+              : 'Review operator packs and subscriber details before submitting a DTH recharge request.'}
           </p>
 
           <div className="recharge-assurances">
             <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border ${currentTheme.heroBadgeItemBg} ${currentTheme.heroBadgeItemText} ${currentTheme.heroBadgeItemBorder}`}>
               <Zap className="w-4 h-4 text-warning" />
-              <span className="font-medium">{currentLang === 'ta' ? 'விரைவு பரிவர்த்தனை' : 'Instant Activation'}</span>
+              <span className="font-medium">{currentLang === 'ta' ? 'பேக் விவரங்கள்' : 'Pack details'}</span>
             </div>
             <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border ${currentTheme.heroBadgeItemBg} ${currentTheme.heroBadgeItemText} ${currentTheme.heroBadgeItemBorder}`}>
               <ShieldCheck className="w-4 h-4 text-success" />
-              <span className="font-medium">{currentLang === 'ta' ? 'பாதுகாப்பான கட்டணம்' : 'Secure Encryption'}</span>
+              <span className="font-medium">{currentLang === 'ta' ? 'எண் வடிவச் சரிபார்ப்பு' : 'ID format checks'}</span>
             </div>
           </div>
         </div>
@@ -457,7 +472,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                 <span>{t.enterCardNumber.replace(/^\d+\.\s*/, '')}</span>
               </h2>
               <span className={`text-xs font-medium sm:text-right ${currentTheme.subText}`}>
-                {currentOp.cardName} ({currentOp.cardLengthDesc})
+                {subscriberHelp(selectedOpId, true, currentLang)}
               </span>
             </div>
 
@@ -471,7 +486,9 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                     setSmartCardNumber(e.target.value.replace(/[^0-9]/g, ''));
                     setValidationError(null);
                   }}
-                  placeholder={`e.g. ${currentOp.sampleId || currentOp.sampleSmartCard || ''}`}
+                  placeholder={subscriberRule(selectedOpId, true).placeholder}
+                  aria-invalid={!!validationError}
+                  aria-describedby={validationError ? 'subscriber-error' : undefined}
                   aria-label={`${currentOp.name} ${currentOp.cardName}`}
                   className={`w-full ${currentTheme.inputBg} ${currentTheme.inputBorder} ${currentTheme.inputFocusBorder} ${currentTheme.inputText} ${currentTheme.inputPlaceholder} ${currentTheme.inputStyleClass} font-mono text-base focus:outline-none transition-colors`}
                 />
@@ -496,7 +513,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
               {validationError && (
                 <div className="p-3 rounded-xl bg-error-soft border border-rule text-error  text-xs flex items-center gap-2  ">
                   <AlertCircle className="w-4 h-4 shrink-0 text-error" />
-                  <span className="font-medium">{validationError}</span>
+                  <span id="subscriber-error" role="alert" className="font-medium">{validationError}</span>
                 </div>
               )}
             </div>
@@ -570,24 +587,10 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
           )}
 
           {!isCatalogLoading && !catalogError && operatorCatalog.length === 0 && (
-            <div
-              role="status"
-              className={`p-4 rounded-2xl border flex flex-wrap items-center justify-between gap-3 text-xs ${currentTheme.inputBg} ${currentTheme.inputBorder} ${currentTheme.subText}`}
-            >
-              <span>
-                {currentLang === 'ta'
-                  ? `${currentOp?.name || 'இந்த இயக்குநர்'}-க்கான திட்டங்கள் தற்போது இல்லை.`
-                  : `No catalog packs are currently available for ${currentOp?.name || 'this operator'}.`}
-              </span>
-              <button
-                type="button"
-                onClick={() => setSelectedPackType('CUSTOM')}
-                className="px-3 py-1.5 rounded-lg font-bold text-xs"
-                style={{ backgroundColor: currentTheme.packFlexibleBandBg, color: currentTheme.packFlexibleBandText }}
-              >
-                {currentLang === 'ta' ? 'விருப்பத் தொகை ரீசார்ஜ்' : 'Choose custom top-up'}
-              </button>
-            </div>
+            <OperatorCatalogNotice operator={selectedOpId} currentLang={currentLang} onChoose={() => {
+              setPlanTab('recommended'); setSelectedPackType('CUSTOM');
+              requestAnimationFrame(() => { document.getElementById('custom-recharge-card')?.scrollIntoView({ block: 'start' }); document.getElementById('custom-amount-input')?.focus({ preventScroll: true }); });
+            }} />
           )}
 
           {/* Loading Skeleton */}
@@ -637,6 +640,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                             (currentLang === 'ta' ? 'எச்டி பேக் கிடைக்கவில்லை' : 'HD pack unavailable'))}
                         </span>
                       </h3>
+                      {recHDPlan && validateCatalogPack(recHDPlan).length > 0 && <p className="text-error text-xs">Catalog details need review: {validateCatalogPack(recHDPlan).map(issue => issue.message).join(" ")}</p>}
                     </div>
 
                     {/* Duration Toggle */}
@@ -675,13 +679,11 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                       </div>
                       <div className={`px-2.5 py-1.5 rounded-xl border text-xs flex items-center justify-between ${currentTheme.inputBg} ${currentTheme.inputBorder}`}>
                         <span className={`font-medium ${currentTheme.subText}`}>
-                          {recHDPlan ? `${hdDuration * 30} ${t.days} ${t.validity}` : (currentLang === 'ta' ? 'இந்த காலத்திற்கு திட்டம் இல்லை' : `No ${hdDuration}-month plan available`)}
+                          {recHDPlan ? formatDuration(recHDPlan.duration_months, currentLang) : (currentLang === 'ta' ? 'இந்த காலத்திற்கு திட்டம் இல்லை' : `No ${hdDuration}-month plan available`)}
                         </span>
                         <span className={`text-xs font-bold ${currentTheme.mutedText}`}>
                           {recHDPlan
-                            ? (recHDPlan.hd_channel_count || recHDPlan.channel_list.length) > 0
-                              ? `${recHDPlan.hd_channel_count || recHDPlan.channel_list.length} ${t.hdChannels}`
-                              : ''
+                            ? formatChannelCounts(recHDPlan, currentLang)
                             : hasHDOptions ? '' : (currentLang === 'ta' ? 'கிடைக்கவில்லை' : 'Unavailable')}
                         </span>
                       </div>
@@ -697,11 +699,11 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                             className="text-2xl sm:text-3xl font-bold tabular-nums tracking-tight"
                             style={{ color: currentTheme.packHdBandBg }}
                           >
-                            {recHDPlan ? `₹${recHDPlan.amount}` : '—'}
+                            {recHDPlan ? formatPrice(recHDPlan.amount, currentLang) : '—'}
                           </span>
                           {recHDPlan && (
                             <span className={`text-xs font-medium ${currentTheme.subText}`}>
-                              / {hdDuration}M
+                              / {formatDuration(recHDPlan.duration_months, currentLang)}
                             </span>
                           )}
                         </div>
@@ -712,8 +714,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                         {recHDPlan && (
                           <span className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-md border ${currentTheme.savingsBadgeBg} ${currentTheme.savingsBadgeText} ${currentTheme.savingsBadgeBorder}`}>
                             <span>
-                              ₹{new Intl.NumberFormat(currentLang === 'ta' ? 'ta-IN' : 'en-IN')
-                                .format(Math.ceil(recHDPlan.amount / hdDuration))} {t.perMonth}
+                              {formatMonthlyEquivalent(recHDPlan.amount, recHDPlan.duration_months, currentLang)}
                             </span>
                           </span>
                         )}
@@ -770,6 +771,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                             (currentLang === 'ta' ? 'எஸ்டி பேக் கிடைக்கவில்லை' : 'SD pack unavailable'))}
                         </span>
                       </h3>
+                      {recSDPlan && validateCatalogPack(recSDPlan).length > 0 && <p className="text-error text-xs">Catalog details need review: {validateCatalogPack(recSDPlan).map(issue => issue.message).join(" ")}</p>}
                     </div>
 
                     {/* Duration Toggle */}
@@ -811,11 +813,11 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                       </div>
                       <div className={`px-2.5 py-1.5 rounded-xl border text-xs flex items-center justify-between ${currentTheme.inputBg} ${currentTheme.inputBorder}`}>
                         <span className={`font-medium ${currentTheme.subText}`}>
-                          {recSDPlan ? `${sdDuration * 30} ${t.days} ${t.validity}` : (currentLang === 'ta' ? 'இந்த காலத்திற்கு திட்டம் இல்லை' : `No ${sdDuration}-month plan available`)}
+                          {recSDPlan ? formatDuration(recSDPlan.duration_months, currentLang) : (currentLang === 'ta' ? 'இந்த காலத்திற்கு திட்டம் இல்லை' : `No ${sdDuration}-month plan available`)}
                         </span>
                         <span className={`text-xs font-bold ${currentTheme.mutedText}`}>
                           {recSDPlan
-                            ? recSDPlan.channel_list.length > 0 ? `${recSDPlan.channel_list.length} ${t.channels}` : ''
+                            ? formatChannelCounts(recSDPlan, currentLang)
                             : hasSDOptions ? '' : (currentLang === 'ta' ? 'கிடைக்கவில்லை' : 'Unavailable')}
                         </span>
                       </div>
@@ -831,11 +833,11 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                             className="text-2xl sm:text-3xl font-bold tabular-nums tracking-tight"
                             style={{ color: currentTheme.packSdBandBg }}
                           >
-                            {recSDPlan ? `₹${recSDPlan.amount}` : '—'}
+                            {recSDPlan ? formatPrice(recSDPlan.amount, currentLang) : '—'}
                           </span>
                           {recSDPlan && (
                             <span className={`text-xs font-medium ${currentTheme.subText}`}>
-                              / {sdDuration}M
+                              / {formatDuration(recSDPlan.duration_months, currentLang)}
                             </span>
                           )}
                         </div>
@@ -846,8 +848,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                         {recSDPlan && (
                           <span className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-md border ${currentTheme.savingsBadgeBg} ${currentTheme.savingsBadgeText} ${currentTheme.savingsBadgeBorder}`}>
                             <span>
-                              ₹{new Intl.NumberFormat(currentLang === 'ta' ? 'ta-IN' : 'en-IN')
-                                .format(Math.ceil(recSDPlan.amount / sdDuration))} {t.perMonth}
+                              {formatMonthlyEquivalent(recSDPlan.amount, recSDPlan.duration_months, currentLang)}
                             </span>
                           </span>
                         )}
@@ -909,17 +910,21 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                         <span className="absolute left-3.5 top-2.5 font-bold text-base" style={{ color: currentTheme.packFlexibleBandBg }}>₹</span>
                         <input
                           id="custom-amount-input"
-                          type="number"
-                          min={10}
-                          max={20000}
+                          type="text"
+                          inputMode="decimal"
                           placeholder={t.enterAmount}
-                          aria-label="Recharge amount"
+                          aria-label={t.enterAmount}
+                          aria-invalid={showAmountError || undefined}
+                          aria-describedby={showAmountError ? "custom-amount-help custom-amount-error" : "custom-amount-help"}
                           value={customAmount}
                           onChange={(e) => {
                             setCustomAmount(e.target.value);
+                            setAmountTouched(true);
                             setSelectedPackType('CUSTOM');
                           }}
                           onFocus={() => setSelectedPackType('CUSTOM')}
+                          onBlur={() => setAmountTouched(true)}
+                          onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); handlePayClick(); } }}
                           className={`w-full ${currentTheme.inputBg} ${currentTheme.inputText} ${currentTheme.inputPlaceholder} rounded-xl pl-9 pr-3 py-2 font-mono text-base font-bold border-2 focus:outline-none transition-colors shadow-inner`}
                           style={{
                             borderColor: selectedPackType === 'CUSTOM' ? currentTheme.packFlexibleBandBg : undefined,
@@ -927,6 +932,8 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                         />
                       </div>
 
+                      <p id="custom-amount-help" className="text-xs">{TOP_UP_LIMITS.min}–{TOP_UP_LIMITS.max.toLocaleString('en-IN')} INR; {TOP_UP_LIMITS.decimalPlaces} decimal places maximum.</p>
+                      {showAmountError && <p id="custom-amount-error" role="alert" className="text-error text-sm">{amountError}</p>}
                       {/* Quick select pills */}
                       <div className="grid grid-cols-5 gap-1.5" aria-label="Quick amount choices">
                         {[100, 200, 350, 500, 1000].map((quick) => (
@@ -936,6 +943,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                             aria-pressed={customAmount === String(quick) && selectedPackType === 'CUSTOM'}
                             onClick={() => {
                               setCustomAmount(String(quick));
+                              setAmountTouched(true);
                               setSelectedPackType('CUSTOM');
                             }}
                             className={`py-1.5 px-1 rounded-lg text-xs font-mono font-bold transition-colors border ${
@@ -964,7 +972,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                             className="text-2xl sm:text-3xl font-bold tabular-nums tracking-tight"
                             style={{ color: currentTheme.packFlexibleBandBg }}
                           >
-                            ₹{Number(customAmount) || 0}
+                            {validCustomAmount !== null ? formatPrice(validCustomAmount, currentLang) : '\u2014'}
                           </span>
                           <span className={`text-xs font-medium ${currentTheme.subText}`}>
                             / Top-up
@@ -1040,7 +1048,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                   {visibleBouquets.map((plan, index) => {
                     const isSelected = activePlan?.id === plan.id && selectedPackType !== 'CUSTOM';
                     const isExpanded = !!expandedPlanChannels[plan.id];
-                    const channelCount = plan.channel_count || plan.channel_list.length;
+                    const channelSummary = formatChannelCounts(plan, currentLang);
                     return (
                       <React.Fragment key={plan.id}>
                         {(index === 0 || visibleBouquets[index - 1].pack_type !== plan.pack_type) && (
@@ -1057,17 +1065,18 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                             <div className="all-packs-card-top">
                               <div className="all-packs-card-pills">
                               <span className="all-packs-quality-pill">{plan.pack_type}</span>
-                              <span className="bouquet-duration compact-plan-pill compact-plan-duration" data-duration={plan.duration_months}>{plan.duration_months} {plan.duration_months > 1 ? t.months : t.month}</span>
+                              <span className="bouquet-duration compact-plan-pill compact-plan-duration" data-duration={plan.duration_months}>{formatDuration(plan.duration_months, currentLang)}</span>
                               </div>
                               {plan.is_recommended && <span className="bouquet-recommended"><Crown className="w-3 h-3" />{t.recommendedBadge}</span>}
                             </div>
                             <h4>{plan.plan_name}</h4>
+                            {validateCatalogPack(plan).length > 0 && <p className="text-error text-xs">Catalog details need review: {validateCatalogPack(plan).map(issue => issue.message).join(" ")}</p>}
                             <div className="all-packs-channel-summary">
-                              <span className="all-packs-channel-pill"><Tv className="w-3 h-3" />{channelCount > 0 ? `${channelCount} ${t.channels}` : plan.pack_type}</span>
-                              {(plan.hd_channel_count || 0) > 0 && <span className="all-packs-hd-count">{plan.hd_channel_count} HD</span>}
+                              <span className="all-packs-channel-pill"><Tv className="w-3 h-3" />{channelSummary}</span>
+
                             </div>
                             <div className="all-packs-card-bottom">
-                              <div className="all-packs-price"><strong>Rs. {plan.amount.toLocaleString('en-IN')}</strong><span>{`Rs. ${Math.ceil(plan.amount / plan.duration_months).toLocaleString('en-IN')} ${t.perMonth}`}</span></div>
+                              <div className="all-packs-price"><strong>{formatPrice(plan.amount, currentLang)}</strong><span>{formatMonthlyEquivalent(plan.amount, plan.duration_months, currentLang)}</span></div>
                               <button type="button" className="all-packs-select" aria-pressed={isSelected} aria-label={`${isSelected ? 'Selected' : 'Select'} ${plan.plan_name}, ${plan.duration_months} months`}
                                 onClick={() => { setCustomSelectedPlan(plan); setSelectedPackType(plan.pack_type); setCustomAmount(''); }}>
                                 {isSelected && <CheckCircle2 className="w-4 h-4" />}{isSelected ? (currentLang === 'ta' ? t.selectThisPack : 'Selected') : t.selectThisPack}
@@ -1102,15 +1111,15 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
             </h2>
             <span className={`text-xs block font-medium ${currentTheme.subText}`}>{t.totalPayable}</span>
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold tabular-nums tracking-tight" style={{ color: currentTheme.primaryColor }}>
-                {selectedPackType === 'CUSTOM' || activePlan ? `₹${payablePrice}` : '—'}
+              <span id="total-payable" aria-live="polite" className="text-3xl font-bold tabular-nums tracking-tight" style={{ color: currentTheme.primaryColor }}>
+                {canProceed && Number.isFinite(payablePrice) && payablePrice > 0 ? formatPrice(payablePrice, currentLang) : '\u2014'}
               </span>
               <span className={`text-xs font-medium ${currentTheme.headingText}`}>
                 ({selectedPackType === 'CUSTOM' ? t.customPack : `${activePlan?.pack_type || selectedPackType} Pack • ${activePlan?.duration_months || (selectedPackType === 'HD' ? hdDuration : sdDuration)}M`})
               </span>
             </div>
             <span className={`text-xs block mt-0.5 font-medium ${currentTheme.mutedText}`}>
-              (Includes 18% GST • Zero Service Fee)
+              {BUSINESS_DETAILS.feesAndTaxes}
             </span>
         {/* Save Connection Checkbox for Logged In User */}
         {user && (

@@ -1,5 +1,3 @@
-import { customersFromSuccessfulRecharges } from '../../../lib/rechargeCustomers';
-import { seedDemoAdminData } from '../../../lib/seedDemoAdminData';
 import { useState, useCallback, useEffect } from 'react';
 import { 
   CustomerRecord, 
@@ -12,9 +10,7 @@ import {
   UserProfile, 
   SUPER_ADMIN_EMAIL 
 } from '../../../types';
-import { auth, db, isFirebaseConfigured, sanitizePayload } from '../../../lib/firebase';
-import { collection, getDocs, doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
-import { PlanCatalogService } from '../../../lib/planCatalogService';
+import { auth } from '../../../lib/firebase';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -46,6 +42,9 @@ export interface PaymentReportItem {
 }
 
 export function useAdminData(user: UserProfile | null, showToast: (msg: string) => void) {
+  const [authorizedUid, setAuthorizedUid] = useState<string | null>(null);
+  const adminAuthorized = !!user && authorizedUid === user.uid;
+  const [adminError, setAdminError] = useState<string | null>(null);
   // 1. Customer State
   const [customers, setCustomers] = useState<CustomerRecord[]>([]);
   const [custLoading, setCustLoading] = useState(false);
@@ -85,34 +84,34 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
       'Accept': 'application/json',
       'Content-Type': 'application/json',
     };
-    if (auth && auth.currentUser) {
-      try {
-        const token = await auth.currentUser.getIdToken();
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-      } catch (err) {
-        console.warn('[Admin] Failed to get current ID token:', err);
-      }
-    }
+    await auth?.authStateReady?.();
+    if (!user || !auth?.currentUser || auth.currentUser.uid !== user.uid) throw new Error('Sign in to access admin data.');
+    headers.Authorization = `Bearer ${await auth.currentUser.getIdToken()}`;
     return headers;
-  }, []);
+  }, [user?.uid]);
+
+  useEffect(() => {
+    let active = true;
+    setAuthorizedUid(null); setAdminError(null);
+    setCustomers([]); setOrders([]); setPlans([]); setAuditLogs([]); setPayments([]);
+    setOperators([]); setApprovedAdmins([]); setPendingRequests([]);
+    if (user) {
+      getAuthHeaders().then(headers => fetch('/api/admin/verify-token', { headers }))
+        .then(async response => {
+          const data = await response.json();
+          if (active && response.ok && data.isApprovedAdmin === true && data.uid === user.uid) setAuthorizedUid(user.uid);
+        }).catch(() => { if (active) setAdminError('Unable to verify administrator access. Please sign in again.'); });
+    }
+    return () => { active = false; };
+  }, [user?.uid, getAuthHeaders]);
 
   // Fetch Customers
   const fetchCustomers = useCallback(async () => {
+    if (!adminAuthorized) return;
     setCustLoading(true);
     setCustomersError(null);
+    setCustomers([]);
     try {
-      if (isFirebaseConfigured && db) {
-        try {
-          const snapshot = await getDocs(collection(db, 'recharge_orders'));
-          const successfulOrders: RechargeOrder[] = [];
-          snapshot.forEach((d) => successfulOrders.push({ ...d.data(), orderId: d.id } as RechargeOrder));
-          setCustomers(customersFromSuccessfulRecharges(successfulOrders));
-          return;
-        } catch (fsErr) {
-          console.warn('[AdminData] Firestore fetch customers fallback to server API:', fsErr);
-        }
-      }
-
       const headers = await getAuthHeaders();
       const endpoint = '/api/admin/customers';
       const res = await fetch(endpoint, { headers });
@@ -121,46 +120,23 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
         const error = isRecord(data) && typeof data.error === 'string' ? data.error : null;
         throw new Error(error || `Unable to load customers (${res.status})`);
       }
+      if (auth?.currentUser?.uid !== user?.uid) return;
       setCustomers(data.customers as CustomerRecord[]);
     } catch (err) {
-      console.error('[AdminData] Error fetching customers:', err);
+
       setCustomersError(err instanceof Error ? err.message : 'Unable to load customers. Please try again.');
     } finally {
       setCustLoading(false);
     }
-  }, [getAuthHeaders]);
-
-  // Completed recharges automatically update the directory while the portal is open.
-  useEffect(() => {
-    if (!user || !isFirebaseConfigured || !db) return;
-    return onSnapshot(collection(db, 'recharge_orders'), (snapshot) => {
-      const records = snapshot.docs.map(d => ({ ...d.data(), orderId: d.id } as RechargeOrder));
-      setCustomers(customersFromSuccessfulRecharges(records));
-      setCustomersError(null);
-    }, () => { void fetchCustomers(); });
-  }, [user?.uid, fetchCustomers]);
+  }, [getAuthHeaders, adminAuthorized]);
 
   // Fetch Orders
   const fetchOrders = useCallback(async () => {
+    if (!adminAuthorized) return;
     setOrdersLoading(true);
     setOrdersError(null);
+    setOrders([]);
     try {
-      if (isFirebaseConfigured && db) {
-        try {
-          await seedDemoAdminData();
-          const snapshot = await getDocs(collection(db, 'recharge_orders'));
-          if (!snapshot.empty) {
-            const firestoreOrders: RechargeOrder[] = [];
-            snapshot.forEach((d) => firestoreOrders.push({ ...d.data(), orderId: d.id } as RechargeOrder));
-            setOrders(firestoreOrders);
-            setOrdersLoading(false);
-            return;
-          }
-        } catch (fsErr) {
-          console.warn('[AdminData] Firestore orders fallback to server:', fsErr);
-        }
-      }
-
       const headers = await getAuthHeaders();
       const endpoint = '/api/admin/orders';
       const res = await fetch(endpoint, { headers });
@@ -169,68 +145,81 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
         const error = isRecord(data) && typeof data.error === 'string' ? data.error : null;
         throw new Error(error || `Unable to load orders (${res.status})`);
       }
+      if (auth?.currentUser?.uid !== user?.uid) return;
       setOrders(data.orders as RechargeOrder[]);
     } catch (err) {
-      console.error('[AdminData] Error fetching orders:', err);
+
       setOrdersError(err instanceof Error ? err.message : 'Unable to load orders. Please try again.');
     } finally {
       setOrdersLoading(false);
     }
-  }, [getAuthHeaders]);
+  }, [getAuthHeaders, adminAuthorized]);
 
   // Fetch Plans
   const fetchPacks = useCallback(async () => {
+    if (!adminAuthorized) return;
     setPlansLoading(true);
     setPlansError(null);
     try {
-      await PlanCatalogService.seedAirtelPlansIntoLiveCatalog();
-      await PlanCatalogService.applyAirtelRecommendationFlags();
-      await PlanCatalogService.seedSunDirectPlansIntoLiveCatalog();
-      await PlanCatalogService.seedTataPlayPlansIntoLiveCatalog();
-      const allPlans = await PlanCatalogService.getAllPlans({ allowFallback: false });
+      const headers = await getAuthHeaders();
+      const res = await fetch('/api/admin/plans', { headers });
+      const data = await res.json();
+      if (!res.ok || !data.success || !Array.isArray(data.plans)) throw new Error(data.error || 'Unable to load plans.');
+      const allPlans = data.plans;
+      if (auth?.currentUser?.uid !== user?.uid) return;
       setPlans(allPlans);
     } catch (err: any) {
-      console.error('[AdminData] Error loading packs:', err);
+
       setPlansError(err?.message || 'Failed to load plan catalog');
     } finally {
       setPlansLoading(false);
     }
-  }, []);
+  }, [getAuthHeaders, adminAuthorized]);
 
   // Fetch Reports
   const fetchReports = useCallback(async () => {
+    if (!adminAuthorized) return;
     setReportsLoading(true);
     try {
-      const logs = await PlanCatalogService.getRecentAuditLogs();
+      const headers = await getAuthHeaders();
+      const res = await fetch('/api/admin/audit-logs', { headers });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Unable to load audit logs.');
+      const logs = data.logs;
+      if (auth?.currentUser?.uid !== user?.uid) return;
       setAuditLogs(logs);
     } catch (err) {
-      console.error('[AdminData] Error loading reports:', err);
+      setAdminError(err instanceof Error ? err.message : 'Unable to load admin data.');
     } finally {
       setReportsLoading(false);
     }
-  }, []);
+  }, [getAuthHeaders, adminAuthorized]);
 
   // Fetch Payments
   const fetchPayments = useCallback(async () => {
+    if (!adminAuthorized) return;
     setPaymentsLoading(true);
     try {
       const headers = await getAuthHeaders();
       const res = await fetch('/api/admin/payments', { headers });
+      if (!res.ok) { setPayments([]); throw new Error(`Unable to load payments (${res.status}).`); }
       if (res.ok) {
         const data = await res.json();
+        if (auth?.currentUser?.uid !== user?.uid) return;
         if (data.success && Array.isArray(data.payments)) {
           setPayments(data.payments);
         }
       }
     } catch (err) {
-      console.error('[AdminData] Error fetching payments:', err);
+      setAdminError(err instanceof Error ? err.message : 'Unable to load admin data.');
     } finally {
       setPaymentsLoading(false);
     }
-  }, [getAuthHeaders]);
+  }, [getAuthHeaders, adminAuthorized]);
 
   // Fetch Operators
   const fetchOperators = useCallback(async () => {
+    if (!adminAuthorized) return;
     setOperatorsLoading(true);
     setOperatorsError(null);
     try {
@@ -242,50 +231,42 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
         const error = isRecord(data) && typeof data.error === 'string' ? data.error : null;
         throw new Error(error || `Unable to load operators (${res.status})`);
       }
+      if (auth?.currentUser?.uid !== user?.uid) return;
       setOperators(data.operators as DthOperator[]);
     } catch (err) {
-      console.error('[AdminData] Error fetching operators:', err);
+
       setOperatorsError(err instanceof Error ? err.message : 'Unable to load operators. Please try again.');
     } finally {
       setOperatorsLoading(false);
     }
-  }, [getAuthHeaders]);
+  }, [getAuthHeaders, adminAuthorized]);
 
   // Fetch Access List & Approvals
   const fetchAccessList = useCallback(async () => {
+    if (!adminAuthorized) return;
     setAccessLoading(true);
     try {
       const headers = await getAuthHeaders();
       const res = await fetch('/api/admin/access-list', { headers });
+      if (!res.ok) { setApprovedAdmins([]); setPendingRequests([]); throw new Error(`Unable to load admin registry (${res.status}).`); }
       if (res.ok) {
         const data = await res.json();
+        if (auth?.currentUser?.uid !== user?.uid) return;
         if (data.success) {
           if (Array.isArray(data.admins)) setApprovedAdmins(data.admins.filter((admin: AdminAccount) => admin.status === 'approved'));
           if (Array.isArray(data.requests)) setPendingRequests(data.requests);
         }
       }
     } catch (err) {
-      console.error('[AdminData] Error fetching access list:', err);
+      setAdminError(err instanceof Error ? err.message : 'Unable to load admin data.');
     } finally {
       setAccessLoading(false);
     }
-  }, [getAuthHeaders]);
-
-  // Subscribe to live plan catalog updates
-  useEffect(() => {
-    const unsub = PlanCatalogService.subscribeToPlans(
-      (newPlans: PlanCatalogItem[]) => {
-        setPlans(newPlans);
-        setPlansError(null);
-      },
-      (err: Error) => {
-        setPlansError(err.message || 'Failed to sync plan catalog');
-      }
-    );
-    return () => unsub();
-  }, []);
+  }, [getAuthHeaders, adminAuthorized]);
 
   return {
+    adminAuthorized,
+    adminError,
     getAuthHeaders,
     customers,
     custLoading,

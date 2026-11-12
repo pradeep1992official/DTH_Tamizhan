@@ -80,19 +80,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         if (isFirebaseConfigured && db) {
           try {
-            await setDoc(doc(db, 'users', profile.uid), sanitizePayload(profile), { merge: true });
-            if (isSuperAdmin) {
-              await setDoc(doc(db, 'admins', profile.uid), {
-                uid: profile.uid,
-                email: userEmail,
-                displayName: finalDisplayName,
-                role: 'admin',
-                status: 'approved',
-                approvedBy: userEmail,
-                approvedAt: new Date().toISOString(),
-                notes: 'Root Administrator',
-              }, { merge: true });
-            }
+            const { is_plan_admin, is_worker, ...publicProfile } = profile;
+            await setDoc(doc(db, 'users', profile.uid), sanitizePayload(publicProfile), { merge: true });
+
           } catch (e) {
             console.warn('Firestore user profile save error:', e);
           }

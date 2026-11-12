@@ -161,7 +161,7 @@ describe('filterAndSortPlans', () => {
     });
     // Expected: sun_hd_1m (200), sun_hd_6m (200), airtel_hd_12m (300)
     expect(highChannels).toHaveLength(3);
-    expect(highChannels.every((p) => p.channel_count >= 150 && p.channel_count <= 350)).toBe(true);
+    expect(highChannels.every((p) => p.channel_count !== undefined && p.channel_count >= 150 && p.channel_count <= 350)).toBe(true);
   });
 
   it('filters by genre tags', () => {

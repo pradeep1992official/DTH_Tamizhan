@@ -1,3 +1,4 @@
+import { normalizeCatalogRecord, assertValidCatalogPack } from './catalog';
 import { PlanCatalogItem, PlanAuditLog, DthOperatorId, BrowsePlan, isSameDthOperatorGroup } from '../types';
 import { db, auth, isFirebaseConfigured, sanitizePayload } from './firebase';
 import { 
@@ -988,356 +989,26 @@ export class PlanCatalogService {
    * Realtime Live Subscription to Firestore (Single Source of Truth)
    * Automatically synchronizes across all tabs and UI components via onSnapshot.
    */
-  static subscribeToPlans(
-    callback: (plans: PlanCatalogItem[]) => void,
-    onError?: (err: Error) => void
-  ): Unsubscribe {
-    if (isFirebaseConfigured && db) {
-      try {
-        const catalogRef = collection(db, 'plan_catalog');
-        return onSnapshot(
-          catalogRef,
-          (snapshot) => {
-            if (snapshot.empty) {
-              getDoc(PLAN_CATALOG_STATE_REF())
-                .then((state) => {
-                  if (state.data()?.initialized === true) {
-                    try {
-                      localStorage.setItem(LOCAL_STORAGE_CATALOG_KEY, JSON.stringify([]));
-                    } catch {}
-                    callback([]);
-                    return;
-                  }
-                  return this.seedInitialCatalogToFirestore().then(callback);
-                })
-                .catch((err) => {
-                  onError?.(err instanceof Error ? err : new Error(String(err)));
-                });
-            } else {
-              const plans: PlanCatalogItem[] = [];
-              snapshot.forEach((docSnap) => {
-                if (docSnap.id === PLAN_CATALOG_STATE_ID) return;
-                const data = docSnap.data();
-                plans.push({
-                  id: docSnap.id,
-                  operator: data.operator,
-                  pack_type: data.pack_type || data.type || 'HD',
-                  plan_family: data.plan_family,
-                  duration_months: (Number(data.duration_months) || 1) as 1 | 3 | 6 | 12,
-                  plan_name: data.plan_name || data.name || 'DTH Pack',
-                  tamilName: data.tamilName,
-                  amount: Number(data.amount || data.price) || 299,
-                  price: Number(data.amount || data.price) || 299,
-                  is_recommended: Boolean(data.is_recommended),
-                  channel_count: Number(data.channel_count) || (data.pack_type === 'HD' ? 210 : 145),
-                  hd_channel_count: data.hd_channel_count !== undefined ? Number(data.hd_channel_count) : (data.pack_type === 'HD' ? 32 : 0),
-                  ...(typeof data.channel_list_url === 'string' ? { channel_list_url: data.channel_list_url } : {}),
-                  channel_list: Array.isArray(data.channel_list) ? data.channel_list : (Array.isArray(data.channels) ? data.channels : []),
-                  channels: Array.isArray(data.channel_list) ? data.channel_list : (Array.isArray(data.channels) ? data.channels : []),
-                  genre_tags: Array.isArray(data.genre_tags) ? data.genre_tags : ['tamil', 'entertainment'],
-                  description: data.description,
-                  updated_at: data.updated_at || new Date().toISOString(),
-                  updated_by: data.updated_by || 'system',
-                });
-              });
-
-              try {
-                localStorage.setItem(LOCAL_STORAGE_CATALOG_KEY, JSON.stringify(plans));
-              } catch {}
-
-              callback(plans);
-            }
-          },
-          (err) => {
-            console.error('[PlanCatalogService] onSnapshot listener error:', err);
-            if (onError) {
-              onError(err instanceof Error ? err : new Error(String(err)));
-            }
-          }
-        );
-      } catch (err) {
-        console.error('[PlanCatalogService] Failed to establish onSnapshot listener:', err);
-        if (onError) {
-          onError(err instanceof Error ? err : new Error(String(err)));
-        }
-      }
-    } else {
-      // Primary/Secondary fetch from authoritative server API without silent fallback to seed data
-      this.getAllPlans({ allowFallback: false })
-        .then((plans) => {
-          if (plans && plans.length > 0) {
-            callback(plans);
-          } else {
-            onError?.(new Error('No recharge packs found in catalog.'));
-          }
-        })
-        .catch((err) => {
-          onError?.(err instanceof Error ? err : new Error(String(err)));
-        });
-    }
-
-    return () => {};
+  static subscribeToPlans(callback: (plans: PlanCatalogItem[]) => void, onError?: (err: Error) => void): Unsubscribe {
+    let active = true;
+    const refresh = () => { void this.getAllPlans().then(items => { if (active) callback(items); })
+      .catch(error => { if (active) onError?.(error instanceof Error ? error : new Error(String(error))); }); };
+    refresh();
+    if (typeof window !== 'undefined') window.addEventListener('plan_catalog_updated', refresh);
+    return () => { active = false; if (typeof window !== 'undefined') window.removeEventListener('plan_catalog_updated', refresh); };
   }
 
-  /**
-   * Helper to seed initial catalog into Cloud Firestore
-   */
-  static async seedInitialCatalogToFirestore(): Promise<PlanCatalogItem[]> {
-    if (isFirebaseConfigured && db) {
-      let allWritesSucceeded = true;
-      for (const item of INITIAL_PLAN_CATALOG) {
-        try {
-          const cleanPayload = sanitizePayload(item);
-          await setDoc(doc(db, 'plan_catalog', item.id), cleanPayload);
-        } catch (seedErr) {
-          allWritesSucceeded = false;
-          console.warn('[PlanCatalogService] Seeding plan to Firestore:', item.id, seedErr);
-        }
-      }
-      if (allWritesSucceeded) {
-        try {
-          await setDoc(PLAN_CATALOG_STATE_REF(), {
-            initialized: true,
-            updated_at: new Date().toISOString(),
-          }, { merge: true });
-        } catch (stateErr) {
-          console.warn('[PlanCatalogService] Failed to mark plan catalog initialized:', stateErr);
-        }
-      }
-    }
-    return INITIAL_PLAN_CATALOG;
-  }
-
-  /**
-   * Synchronously return the offline seed catalog when explicitly requested by user
-   */
   static getOfflineSeedCatalog(): PlanCatalogItem[] {
+    if (!import.meta.env?.DEV || !window.confirm('Show development fixture plans locally? No database writes will occur.')) return [];
     return INITIAL_PLAN_CATALOG;
   }
 
-  static async seedAirtelPlansIntoLiveCatalog(): Promise<void> {
-    if (!isFirebaseConfigured || !db) return;
-
-    const stateRef = PLAN_CATALOG_STATE_REF();
-    const state = await getDoc(stateRef);
-    if (Number(state.data()?.airtelSeedVersion) >= AIRTEL_CATALOG_SEED_VERSION) return;
-
-    const airtelPlans = INITIAL_PLAN_CATALOG.filter((plan) => plan.operator === 'airtel_dth');
-    const batch = writeBatch(db);
-    for (const legacyId of LEGACY_AIRTEL_PLAN_IDS) {
-      batch.delete(doc(db, 'plan_catalog', legacyId));
-    }
-    for (const plan of airtelPlans) {
-      batch.set(doc(db, 'plan_catalog', plan.id), sanitizePayload(plan));
-    }
-    batch.set(stateRef, {
-      initialized: true,
-      airtelSeedVersion: AIRTEL_CATALOG_SEED_VERSION,
-      updated_at: new Date().toISOString(),
-    }, { merge: true });
-
-    await batch.commit();
-  }
-
-  static async applyAirtelRecommendationFlags(): Promise<void> {
-    if (!isFirebaseConfigured || !db) return;
-
-    const stateRef = PLAN_CATALOG_STATE_REF();
-    const state = await getDoc(stateRef);
-    if (Number(state.data()?.airtelRecommendationVersion) >= AIRTEL_RECOMMENDATION_VERSION) return;
-
-    const snapshot = await getDocs(collection(db, 'plan_catalog'));
-    const availableIds = new Set(snapshot.docs.map((catalogDoc) => catalogDoc.id));
-    const recommendationEntries = Object.entries(AIRTEL_RECOMMENDATION_FLAGS)
-      .filter(([id]) => availableIds.has(id));
-    if (recommendationEntries.length === 0) return;
-
-    const batch = writeBatch(db);
-    const updatedAt = new Date().toISOString();
-    for (const [id, isRecommended] of recommendationEntries) {
-      batch.update(doc(db, 'plan_catalog', id), {
-        is_recommended: isRecommended,
-        updated_at: updatedAt,
-        updated_by: 'admin_sys_migration',
-      });
-    }
-    batch.set(stateRef, {
-      airtelRecommendationVersion: AIRTEL_RECOMMENDATION_VERSION,
-      updated_at: updatedAt,
-    }, { merge: true });
-
-    await batch.commit();
-  }
-
-  static async seedSunDirectPlansIntoLiveCatalog(): Promise<void> {
-    if (!isFirebaseConfigured || !db) return;
-
-    const stateRef = PLAN_CATALOG_STATE_REF();
-    const state = await getDoc(stateRef);
-    if (Number(state.data()?.sunDirectSeedVersion) >= SUN_DIRECT_CATALOG_SEED_VERSION) return;
-
-    const catalogSnapshot = await getDocs(collection(db, 'plan_catalog'));
-    const hasPlanDocuments = catalogSnapshot.docs.some((catalogDoc) => catalogDoc.id !== PLAN_CATALOG_STATE_ID);
-    if (!hasPlanDocuments && state.data()?.initialized === true) {
-      await setDoc(stateRef, {
-        sunDirectSeedVersion: SUN_DIRECT_CATALOG_SEED_VERSION,
-        updated_at: new Date().toISOString(),
-      }, { merge: true });
-      return;
-    }
-
-    const batch = writeBatch(db);
-    for (const legacyId of LEGACY_SUN_DIRECT_PLAN_IDS) {
-      batch.delete(doc(db, 'plan_catalog', legacyId));
-    }
-    for (const plan of SUN_DIRECT_TARIFF_PLANS) {
-      batch.set(doc(db, 'plan_catalog', plan.id), sanitizePayload(plan));
-    }
-    batch.set(stateRef, {
-      initialized: true,
-      sunDirectSeedVersion: SUN_DIRECT_CATALOG_SEED_VERSION,
-      updated_at: new Date().toISOString(),
-    }, { merge: true });
-
-    await batch.commit();
-  }
-
-  static async seedTataPlayPlansIntoLiveCatalog(): Promise<void> {
-    if (!isFirebaseConfigured || !db) return;
-
-    const stateRef = PLAN_CATALOG_STATE_REF();
-    const state = await getDoc(stateRef);
-    if (Number(state.data()?.tataPlaySeedVersion) >= 1) return;
-
-    const catalogSnapshot = await getDocs(collection(db, 'plan_catalog'));
-    const hasPlanDocuments = catalogSnapshot.docs.some((catalogDoc) => catalogDoc.id !== PLAN_CATALOG_STATE_ID);
-    if (!hasPlanDocuments && state.data()?.initialized === true) {
-      await setDoc(stateRef, {
-        tataPlaySeedVersion: 1,
-        updated_at: new Date().toISOString(),
-      }, { merge: true });
-      return;
-    }
-
-    const batch = writeBatch(db);
-    for (const legacyId of ['tata_hd_1m_rec', 'tata_hd_3m_rec', 'tata_hd_6m_rec', 'tata_hd_12m_rec', 'tata_sd_1m_rec', 'tata_sd_3m_rec', 'tata_sd_6m_rec', 'tata_sd_12m_rec', 'tata_hd_mega_1m']) {
-      batch.delete(doc(db, 'plan_catalog', legacyId));
-    }
-    for (const plan of TATA_PLAY_TARIFF_PLANS) {
-      batch.set(doc(db, 'plan_catalog', plan.id), sanitizePayload(plan));
-    }
-    batch.set(stateRef, {
-      initialized: true,
-      tataPlaySeedVersion: 1,
-      updated_at: new Date().toISOString(),
-    }, { merge: true });
-
-    await batch.commit();
-  }
-
-  /**
-   * Get all plans from Cloud Firestore (authoritative source of truth)
-   */
-  static async getAllPlans(options: { allowFallback?: boolean } = {}): Promise<PlanCatalogItem[]> {
-    const { allowFallback = false } = options;
-
-    // 1. Primary Source: Cloud Firestore
-    if (isFirebaseConfigured && db) {
-      try {
-        const catalogRef = collection(db, 'plan_catalog');
-        const snapshot = await getDocs(catalogRef);
-
-        if (!snapshot.empty) {
-          const remotePlans: PlanCatalogItem[] = [];
-          snapshot.forEach((docSnap) => {
-            if (docSnap.id === PLAN_CATALOG_STATE_ID) return;
-            const data = docSnap.data();
-            remotePlans.push({
-              id: docSnap.id,
-              operator: data.operator,
-              pack_type: data.pack_type || data.type || 'HD',
-              plan_family: data.plan_family,
-              duration_months: (Number(data.duration_months) || 1) as 1 | 3 | 6 | 12,
-              plan_name: data.plan_name || data.name || 'DTH Pack',
-              tamilName: data.tamilName,
-              amount: Number(data.amount || data.price) || 299,
-              price: Number(data.amount || data.price) || 299,
-              is_recommended: Boolean(data.is_recommended),
-              channel_count: Number(data.channel_count) || (data.pack_type === 'HD' ? 210 : 145),
-              hd_channel_count: data.hd_channel_count !== undefined ? Number(data.hd_channel_count) : (data.pack_type === 'HD' ? 32 : 0),
-              ...(typeof data.channel_list_url === 'string' ? { channel_list_url: data.channel_list_url } : {}),
-              channel_list: Array.isArray(data.channel_list) ? data.channel_list : (Array.isArray(data.channels) ? data.channels : []),
-              channels: Array.isArray(data.channel_list) ? data.channel_list : (Array.isArray(data.channels) ? data.channels : []),
-              genre_tags: Array.isArray(data.genre_tags) ? data.genre_tags : ['tamil', 'entertainment'],
-              description: data.description,
-              updated_at: data.updated_at || new Date().toISOString(),
-              updated_by: data.updated_by || 'system',
-            });
-          });
-
-          try {
-            localStorage.setItem(LOCAL_STORAGE_CATALOG_KEY, JSON.stringify(remotePlans));
-          } catch {}
-
-          return remotePlans;
-        } else {
-          const state = await getDoc(PLAN_CATALOG_STATE_REF());
-          if (state.data()?.initialized === true) {
-            try {
-              localStorage.setItem(LOCAL_STORAGE_CATALOG_KEY, JSON.stringify([]));
-            } catch {}
-            return [];
-          }
-
-          const seeded = await this.seedInitialCatalogToFirestore();
-          try {
-            localStorage.setItem(LOCAL_STORAGE_CATALOG_KEY, JSON.stringify(seeded));
-          } catch {}
-          return seeded;
-        }
-      } catch (err) {
-        console.error('[PlanCatalogService] Firestore fetch error:', err);
-        if (!allowFallback) {
-          throw new Error('Failed to load plan catalog from Cloud Firestore. Please check your network connection.');
-        }
-      }
-    }
-
-    // 2. Secondary Source: Backend Server REST API (/api/admin/plans)
-    try {
-      const srvRes = await fetch('/api/admin/plans');
-      if (srvRes.ok) {
-        const srvData = await srvRes.json();
-        if (srvData.success && Array.isArray(srvData.plans)) {
-          try {
-            localStorage.setItem(LOCAL_STORAGE_CATALOG_KEY, JSON.stringify(srvData.plans));
-          } catch {}
-          return srvData.plans;
-        }
-      }
-    } catch (err) {
-      if (!allowFallback && !isFirebaseConfigured) {
-        throw new Error('Failed to load plan catalog from backend server.');
-      }
-    }
-
-    // 3. Fallback: Local storage cache (if explicitly allowed)
-    if (allowFallback) {
-      try {
-        const stored = localStorage.getItem(LOCAL_STORAGE_CATALOG_KEY);
-        if (stored) {
-          const parsed: PlanCatalogItem[] = JSON.parse(stored);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            return parsed;
-          }
-        }
-      } catch {}
-
-      // 4. Fallback: Unified Seed Catalog
-      return INITIAL_PLAN_CATALOG;
-    }
-
-    throw new Error('Unable to connect to live plan catalog. Please check your network connection.');
+  // Public views, admin listing and payment quotes use the same server catalog.
+  static async getAllPlans(_options: { allowFallback?: boolean } = {}): Promise<PlanCatalogItem[]> {
+    const response = await fetch('/api/catalog');
+    const data = await response.json();
+    if (!response.ok || !data.success || !Array.isArray(data.plans)) throw new Error(data.error || 'Unable to load catalog.');
+    return data.plans.map(normalizeCatalogRecord);
   }
 
   // Get plans for a specific operator
@@ -1422,8 +1093,8 @@ export class PlanCatalogService {
       price: Number(plan.amount),
       duration_months: Number(plan.duration_months) as 1 | 3 | 6 | 12,
       is_recommended: Boolean(plan.is_recommended),
-      channel_count: Number(plan.channel_count) || (plan.pack_type === 'HD' ? 210 : 145),
-      hd_channel_count: plan.hd_channel_count !== undefined ? Number(plan.hd_channel_count) : (plan.pack_type === 'HD' ? 32 : 0),
+      channel_count: plan.channel_count,
+      hd_channel_count: plan.hd_channel_count,
       ...(typeof plan.channel_list_url === 'string' ? { channel_list_url: plan.channel_list_url } : {}),
       channel_list: Array.isArray(plan.channel_list) ? plan.channel_list : [],
       channels: Array.isArray(plan.channel_list) ? plan.channel_list : [],
@@ -1433,34 +1104,12 @@ export class PlanCatalogService {
       updated_by: adminUid || 'admin_user',
     };
 
-    // 1. Save to Cloud Firestore
-    if (isFirebaseConfigured && db) {
-      try {
-        const cleanPayload = sanitizePayload(finalPlan);
-        const planDocRef = doc(db, 'plan_catalog', finalPlan.id);
-        await setDoc(planDocRef, cleanPayload, { merge: true });
-      } catch (err) {
-        console.error('[PlanCatalogService] Firestore save error:', err);
-      }
-    }
-
-    // 2. Save to Backend Server API
-    try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (auth && auth.currentUser) {
-        try {
-          const token = await auth.currentUser.getIdToken();
-          if (token) headers['Authorization'] = `Bearer ${token}`;
-        } catch {}
-      }
-      await fetch('/api/admin/plans/save', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ plan: finalPlan, callerEmail: adminUid }),
-      });
-    } catch (e) {
-      console.warn('[PlanCatalogService] Backend save error:', e);
-    }
+    assertValidCatalogPack(finalPlan);
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (auth?.currentUser) headers.Authorization = `Bearer ${await auth.currentUser.getIdToken()}`;
+    const response = await fetch('/api/admin/plans/save', { method: 'POST', headers, body: JSON.stringify({ plan: finalPlan }) });
+    const result = await response.json();
+    if (!response.ok || !result.success) throw new Error(result.error || 'Unable to save catalog pack.');
 
     // 3. Save to local storage
     try {
@@ -1484,7 +1133,7 @@ export class PlanCatalogService {
       action: 'update',
       updated_at: now,
       updated_by: adminUid || 'admin_user',
-      details: `Saved ${finalPlan.pack_type} pack for ${finalPlan.duration_months}M (₹${finalPlan.amount}) in Firestore`,
+      details: `Saved ${finalPlan.pack_type} pack for ${finalPlan.duration_months}M (₹${finalPlan.amount}) in the server catalog`,
     });
 
     if (typeof window !== 'undefined') {

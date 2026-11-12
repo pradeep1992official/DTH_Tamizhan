@@ -1,21 +1,21 @@
+import { monthlyEquivalent } from './catalog';
 import { BrowsePlan, DthOperatorId, isSameDthOperatorGroup, PlanCatalogItem, PlanFilters } from '../types';
 import { INITIAL_PLAN_CATALOG, calculateSavings } from './planCatalogService';
 
 export { calculateSavings };
+export function catalogPriceMaximum(plans: Pick<BrowsePlan, 'price'>[]): number {
+  return plans.reduce((maximum, plan) => Number.isFinite(plan.price) && plan.price > 0 ? Math.max(maximum, Math.ceil(plan.price / 50) * 50) : maximum, 5000);
+}
 
 /**
  * Converts a PlanCatalogItem from Firestore / Admin Catalog to a BrowsePlan
  */
 export function catalogItemToBrowsePlan(p: PlanCatalogItem): BrowsePlan {
   const isHd = p.pack_type === 'HD' || (p as any).type === 'HD';
-  const defaultChannelCount = isHd ? 210 : 145;
-  const channelCount = Number(p.channel_count) || (Array.isArray(p.channel_list) && p.channel_list.length > 20 ? p.channel_list.length : defaultChannelCount);
-  const hdChannelCount = p.hd_channel_count !== undefined 
-    ? Number(p.hd_channel_count) 
-    : (isHd ? 32 : 0);
-
-  const price = Number(p.amount || p.price) || 299;
-  const durationMonths = (Number(p.duration_months) || 1) as 1 | 3 | 6 | 12;
+  const channelCount = p.channel_counts_unavailable ? undefined : p.channel_count ?? NaN;
+  const hdChannelCount = p.channel_counts_unavailable ? undefined : p.hd_channel_count ?? NaN;
+  const price = p.amount;
+  const durationMonths = p.duration_months;
 
   return {
     id: p.id,
@@ -27,9 +27,10 @@ export function catalogItemToBrowsePlan(p: PlanCatalogItem): BrowsePlan {
     type: isHd ? 'HD' : 'SD',
     duration_months: durationMonths,
     price: price,
-    monthly_equivalent_rate: Math.round(price / durationMonths),
+    monthly_equivalent_rate: monthlyEquivalent(price, durationMonths),
     channel_count: channelCount,
     hd_channel_count: hdChannelCount,
+    channel_counts_unavailable: p.channel_counts_unavailable,
     channels: Array.isArray(p.channel_list) ? p.channel_list : (Array.isArray(p.channels) ? p.channels : []),
     genre_tags: Array.isArray(p.genre_tags) && p.genre_tags.length > 0 ? p.genre_tags : ['tamil', 'entertainment'],
     is_recommended: Boolean(p.is_recommended),
@@ -68,8 +69,8 @@ export function computePlanMetrics(plans: BrowsePlan[]): BrowsePlan[] {
 
   // 1. Calculate basic metrics
   const enriched = plans.map((plan) => {
-    const channelCount = Math.max(1, plan.channel_count || 1);
-    const pricePerChannel = Math.round((plan.price / channelCount) * 100) / 100;
+    const channelCount = plan.channel_count;
+    const pricePerChannel = channelCount && Number.isFinite(channelCount) && channelCount > 0 ? Math.round((plan.price / channelCount) * 100) / 100 : undefined;
 
     // Resolve 1-month baseline rate for the same operator pack family
     const operatorKey = isSameDthOperatorGroup(plan.operator, 'dish_tv') ? 'dish_tv' : plan.operator;
@@ -85,7 +86,7 @@ export function computePlanMetrics(plans: BrowsePlan[]): BrowsePlan[] {
       }
     }
 
-    const monthlyRate = Math.round(plan.price / (plan.duration_months || 1));
+    const monthlyRate = monthlyEquivalent(plan.price, plan.duration_months);
 
     return {
       ...plan,
@@ -142,8 +143,9 @@ export function filterAndSortPlans(plans: BrowsePlan[], filters: PlanFilters): B
     }
 
     // Channel count range
-    const count = p.channel_count || 100;
-    if (count < filters.channelRange[0] || count > filters.channelRange[1]) {
+    const count = p.channel_count;
+    if ((!Number.isFinite(count) && (filters.channelRange[0] > 0 || filters.channelRange[1] < 500)) ||
+        (Number.isFinite(count) && (count! < filters.channelRange[0] || count! > filters.channelRange[1]))) {
       return false;
     }
 
@@ -188,13 +190,13 @@ export function filterAndSortPlans(plans: BrowsePlan[], filters: PlanFilters): B
         return b.price - a.price;
 
       case 'price_per_channel_asc':
-        return (a.price_per_channel || 0) - (b.price_per_channel || 0);
+        return (a.price_per_channel ?? Infinity) - (b.price_per_channel ?? Infinity);
 
       case 'savings_pct_desc':
         return (b.savings_pct || 0) - (a.savings_pct || 0);
 
       case 'channels_desc':
-        return b.channel_count - a.channel_count;
+        return (b.channel_count || 0) - (a.channel_count || 0);
 
       default:
         return 0;

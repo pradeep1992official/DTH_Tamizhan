@@ -1,3 +1,5 @@
+import { formatPrice, formatDuration, formatChannelCounts } from '../../lib/catalog';
+import { subscriberError, subscriberHelp, subscriberRule, normalizeSubscriberId } from '../../lib/subscriberValidation';
 import React, { useState } from 'react';
 import {
   X,
@@ -35,49 +37,31 @@ interface ApplyPlanModalProps {
 const OPERATOR_META: Record<string, {
   name: string;
   tamil: string;
-  cardName: string;
-  pattern: RegExp;
-  hint: string;
   color: string;
 }> = {
   sun_direct: {
     name: 'Sun Direct',
     tamil: 'சன் டைரக்ட்',
-    cardName: 'Smart Card / CDSN (11-12 digits)',
-    pattern: /^[0-9]{11,12}$/,
-    hint: '11 or 12 digits starting with 4 or 7 (e.g. 41289456123)',
     color: 'var(--operator-sun-direct)',
   },
   tata_play: {
     name: 'Tata Play',
     tamil: 'டாடா பிளே',
-    cardName: 'Subscriber ID (10 digits)',
-    pattern: /^[0-9]{10}$/,
-    hint: '10 digits starting with 1 (e.g. 1029384756)',
     color: 'var(--operator-tata-play)',
   },
   airtel_dth: {
     name: 'Airtel Digital TV',
     tamil: 'ஏர்டெல் டிவி',
-    cardName: 'Customer ID (10 digits)',
-    pattern: /^[0-9]{10}$/,
-    hint: '10 digits starting with 3 (e.g. 3009482715)',
     color: 'var(--operator-airtel-dth)',
   },
   dish_tv: {
     name: 'Dish TV & D2H',
     tamil: 'டிஷ் டிவி & டி2எச்',
-    cardName: 'Viewing Card / Customer ID',
-    pattern: /^(?:0(?:15|25)[0-9]{8}|[0-9]{8,11})$/,
-    hint: 'Dish TV: 11 digits starting with 015/025; D2H: 8 to 11 digits',
     color: 'var(--operator-dish-tv)',
   },
   d2h: {
     name: 'Dish TV & D2H',
     tamil: 'டிஷ் டிவி & டி2எச்',
-    cardName: 'Viewing Card / Customer ID',
-    pattern: /^(?:0(?:15|25)[0-9]{8}|[0-9]{8,11})$/,
-    hint: 'Dish TV: 11 digits starting with 015/025; D2H: 8 to 11 digits',
     color: 'var(--operator-dish-tv)',
   },
 };
@@ -107,14 +91,11 @@ export const ApplyPlanModal: React.FC<ApplyPlanModalProps> = ({
   if (!isOpen || !plan) return null;
 
   const isLight = currentTheme.isLightMode;
-  const opMeta = OPERATOR_META[plan.operator] || {
+  const opMeta = { ...(OPERATOR_META[plan.operator] || {
     name: plan.operator,
     tamil: '',
-    cardName: 'Smart Card Number',
-    pattern: /^[0-9]{8,12}$/,
-    hint: '8 to 12 digits',
     color: currentTheme.primaryColor,
-  };
+  }), cardName: subscriberRule(plan.operator, true).label, hint: subscriberHelp(plan.operator, true, currentLang) };
 
   const matchingBoxes = (connections || []).filter((c) => isSameDthOperatorGroup(c.operator, plan.operator));
   const incompatibleCount = (connections || []).length - matchingBoxes.length;
@@ -130,23 +111,21 @@ export const ApplyPlanModal: React.FC<ApplyPlanModalProps> = ({
       setFormError(`Cross-operator recharge blocked. Cannot apply ${opMeta.name} pack to a ${box.operatorName} box.`);
       return;
     }
+    const error = subscriberError(box.operator, box.smartCardNumber, false, currentLang);
+    if (error) { setFormError(error); return; }
     onApplyPlanToBox(plan, box);
   };
 
   const handleCreateAndApply = (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanCard = smartCardInput.trim().replace(/\s+/g, '');
+    const cleanCard = normalizeSubscriberId(smartCardInput);
 
-    if (!cleanCard) {
-      setFormError(`Please enter your ${opMeta.name} ${opMeta.cardName}`);
+    const error = subscriberError(plan.operator, cleanCard, true, currentLang);
+    if (error) {
+      setFormError(error);
+      document.getElementById('applyplanmodal-field-1')?.focus();
       return;
     }
-
-    if (!opMeta.pattern.test(cleanCard)) {
-      setFormError(`Invalid format for ${opMeta.name}. Expected: ${opMeta.hint}`);
-      return;
-    }
-
     setFormError(null);
     onAddNewConnectionAndApply(plan, {
       smartCardNumber: cleanCard,
@@ -214,18 +193,18 @@ export const ApplyPlanModal: React.FC<ApplyPlanModalProps> = ({
                   {opMeta.name} • {plan.type}
                 </span>
                 <span className="text-sm tabular-nums font-bold px-2 py-0.5 rounded bg-accent-soft text-accent">
-                  {plan.duration_months === 1 ? `1 ${t.month}` : `${plan.duration_months} ${t.months}`}
+                  {formatDuration(plan.duration_months, currentLang)}
                 </span>
               </div>
               <h4 className="font-bold text-sm sm:text-base mt-0.5">{plan.name}</h4>
               <p className="text-sm opacity-90 font-medium">
-                {plan.channel_count} {t.channels} {plan.hd_channel_count ? `(${plan.hd_channel_count} HD)` : ''}
+                {formatChannelCounts(plan, currentLang)}
               </p>
             </div>
 
             <div className="text-right shrink-0">
               <span className="text-2xl font-bold tabular-nums tracking-tight block" style={{ color: currentTheme.primaryColor }}>
-                ₹{plan.price}
+                {formatPrice(plan.price, currentLang)}
               </span>
               {(plan.savings_pct || 0) > 0 && (
                 <span className="text-sm font-bold text-success block">
@@ -307,6 +286,7 @@ export const ApplyPlanModal: React.FC<ApplyPlanModalProps> = ({
                           <div>
                             <p className="font-bold text-sm">{box.nickname || box.customerName}</p>
                             <p className="tabular-nums text-sm text-accent">{box.smartCardNumber}</p>
+                            {subscriberError(box.operator, box.smartCardNumber, false, currentLang) && <p className="text-error text-xs">{subscriberError(box.operator, box.smartCardNumber, false, currentLang)}</p>}
                           </div>
                           {isSelected && <CheckCircle2 className="w-4 h-4 text-accent" />}
                         </button>
@@ -348,12 +328,14 @@ export const ApplyPlanModal: React.FC<ApplyPlanModalProps> = ({
                     </label>
                     <input id="applyplanmodal-field-1"
                       type="text"
-                      required
-                      placeholder={opMeta.hint}
+                      aria-invalid={!!formError}
+                      aria-describedby="apply-id-help"
+                      placeholder={subscriberRule(plan.operator, true).placeholder}
                       value={smartCardInput}
                       onChange={(e) => setSmartCardInput(e.target.value.replace(/\D/g, ''))}
                       className="w-full p-2.5 rounded-xl border text-sm tabular-nums bg-transparent focus:outline-none focus:border-rule"
                     />
+                    <p id="apply-id-help" role={formError ? "alert" : undefined} className={formError ? "text-error" : ""}>{formError || opMeta.hint}</p>
                   </div>
 
                   <div>

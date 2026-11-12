@@ -13,3 +13,7 @@ it('requires a valid userEmail for approval and revocation', () => {
     expect(schema.safeParse({ userEmail: 'admin@example.com' }).success).toBe(true);
   }
 });
+it('normalizes revocation email and validates an optional registry UID', () => {
+  expect(RevokeUserSchema.parse({ userEmail: ' Admin@Example.com ', uid: 'firebase-uid' })).toEqual({ userEmail: 'admin@example.com', uid: 'firebase-uid' });
+  for (const uid of ['', 'admins/other', 'x'.repeat(129)]) expect(RevokeUserSchema.safeParse({ userEmail: 'admin@example.com', uid }).success).toBe(false);
+});

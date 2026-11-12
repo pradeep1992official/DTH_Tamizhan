@@ -1,3 +1,4 @@
+import { BUSINESS_DETAILS } from '../lib/trustContent';
 import React, { useState } from 'react';
 import {
   X,
@@ -93,7 +94,7 @@ export const NewConnectionModal: React.FC<NewConnectionModalProps> = ({
                 {t.newDishTitle}
               </h2>
               <p className="text-sm text-muted">
-                {currentLang === 'ta' ? 'தமிழ்நாடு முழுவதும் வீட்டு வாசலில் பொருத்தும் சேவை' : 'Doorstep Installation across Tamil Nadu'}
+                {t.doorstepInstall}
               </p>
             </div>
           </div>
@@ -118,9 +119,9 @@ export const NewConnectionModal: React.FC<NewConnectionModalProps> = ({
                 </label>
                 <fieldset className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {[
-                    { id: 'sun_direct', name: 'Sun Direct HD', price: '₹1,399', highlight: '1 Month Tamil Pack' },
-                    { id: 'tata_play', name: 'Tata Play HD', price: '₹1,499', highlight: 'Free Binge App' },
-                    { id: 'airtel_dth', name: 'Airtel HD', price: '₹1,449', highlight: 'Dolby Sound STB' },
+                    { id: 'sun_direct', name: 'Sun Direct', price: BUSINESS_DETAILS.installation, highlight: 'Quotation required' },
+                    { id: 'tata_play', name: 'Tata Play', price: BUSINESS_DETAILS.installation, highlight: 'Quotation required' },
+                    { id: 'airtel_dth', name: 'Airtel DTH', price: BUSINESS_DETAILS.installation, highlight: 'Quotation required' },
                   ].map((item) => (
                     <label
                       key={item.id}
@@ -151,15 +152,15 @@ export const NewConnectionModal: React.FC<NewConnectionModalProps> = ({
               <div className="dialog-section py-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-left text-muted">
                 <div className="flex items-center gap-2">
                   <Tv className="w-4 h-4 text-accent" />
-                  <span className="text-sm block font-medium">HD STB + Remote</span>
+                  <span className="text-sm block font-medium">Equipment to be confirmed</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Wrench className="w-4 h-4 text-success" />
-                  <span className="text-sm block font-medium">10m Cable + Dish</span>
+                  <span className="text-sm block font-medium">Cabling to be confirmed</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Truck className="w-4 h-4 text-accent" />
-                  <span className="text-sm block font-medium">Technician Setup</span>
+                  <span className="text-sm block font-medium">Availability to be confirmed</span>
                 </div>
               </div>
 

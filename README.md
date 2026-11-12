@@ -5,7 +5,7 @@
 
 ## Local Demo Data
 
-Sample saved connections are disabled by default. To show them in a local demo, set `VITE_ENABLE_DEMO_CONNECTIONS="true"` in your environment before starting the development server.
+Runtime reads never create demo customers, orders, connections or catalog records. For isolated local fixture export, set `NODE_ENV=development`, run `npx tsx scripts/seed-demo-admin.ts`, and enter the exact confirmation phrase. Files are exported only to `.local-fixtures/`; no database is contacted.
 
 ---
 

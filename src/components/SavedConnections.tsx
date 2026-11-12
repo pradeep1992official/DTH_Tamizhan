@@ -1,3 +1,4 @@
+import { subscriberError, subscriberHelp, subscriberRule, normalizeSubscriberId } from '../lib/subscriberValidation';
 import { getConnectionExpiry } from '../lib/connectionExpiry';
 import React, { useState } from 'react';
 import {
@@ -22,7 +23,7 @@ interface SavedConnectionsProps {
   currentLang: Language;
   user: UserProfile | null;
   onQuickRecharge: (conn: DthConnection) => void;
-  onAddConnection: (conn: Omit<DthConnection, 'id' | 'createdAt'>) => void;
+  onAddConnection: (conn: Omit<DthConnection, 'id' | 'createdAt'> | DthConnection) => void;
   onDeleteConnection: (id: string) => void;
   onOpenAuth: () => void;
   currentTheme: OperatorTheme;
@@ -41,8 +42,10 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
   const t = translations[currentLang];
 
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editing, setEditing] = useState<DthConnection | null>(null);
   const [operator, setOperator] = useState<DthOperatorId>('sun_direct');
   const [smartCard, setSmartCard] = useState('');
+  const [idError, setIdError] = useState<string | null>(null);
   const [nickname, setNickname] = useState('');
   const [customerName, setCustomerName] = useState('');
 
@@ -55,7 +58,9 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
 
   const handleSubmitNew = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!smartCard) return;
+    const error = subscriberError(operator, smartCard, true, currentLang);
+    setIdError(error);
+    if (error) { document.getElementById('saved-box-id')?.focus(); return; }
 
     const opNames: Record<DthOperatorId, string> = {
       sun_direct: 'Sun Direct',
@@ -64,12 +69,13 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
       dish_tv: 'Dish TV',
       d2h: 'D2H',
     };
-    const cleanCard = smartCard.trim().replace(/\s+/g, '');
+    const cleanCard = normalizeSubscriberId(smartCard);
     const selectedOperator = operator === 'dish_tv' || operator === 'd2h'
       ? resolveDishFamilyOperatorId(cleanCard)
       : operator;
 
     onAddConnection({
+      ...(editing || {}),
       user_id: user?.uid || 'guest_user',
       operator: selectedOperator,
       operatorName: opNames[selectedOperator] || 'Dish TV',
@@ -80,6 +86,7 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
 
     setIsAddOpen(false);
     setSmartCard('');
+    setEditing(null);
   };
 
   return (
@@ -113,6 +120,9 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
             if (!user) {
               onOpenAuth();
             } else {
+              setEditing(null);
+              setSmartCard('');
+              setIdError(null);
               setIsAddOpen(true);
             }
           }}
@@ -189,6 +199,7 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
                     )}
                   </div>
 
+                  {subscriberError(conn.operator, conn.smartCardNumber, false, currentLang) && <p role="alert" className="text-error text-xs">{subscriberError(conn.operator, conn.smartCardNumber, false, currentLang)}</p>}
                   {conn.packName && (
                     <div className={`mt-3 text-sm space-y-1`}>
                       <span className={currentTheme.mutedText}>Current pack</span>
@@ -200,6 +211,11 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
                 </div>
 
                 <div className={`flex items-center pt-3 border-t ${currentTheme.surfaceBorder}`}>
+                  <button type="button" className="text-xs px-3" onClick={() => {
+                    setEditing(conn); setOperator(conn.operator === 'd2h' ? 'dish_tv' : conn.operator); setSmartCard(conn.smartCardNumber);
+                    setNickname(conn.nickname); setCustomerName(conn.customerName || '');
+                    setIdError(subscriberError(conn.operator, conn.smartCardNumber, false, currentLang)); setIsAddOpen(true);
+                  }}>Edit</button>
                   <button
                     onClick={() => onQuickRecharge(conn)}
                     className={`flex-1 py-2.5 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-sm ${currentTheme.cardButtonActive}`}
@@ -237,7 +253,10 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
               if (!user) {
                 onOpenAuth();
               } else {
-                setIsAddOpen(true);
+                setEditing(null);
+              setSmartCard('');
+              setIdError(null);
+              setIsAddOpen(true);
               }
             }}
             className={`inline-flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-xs transition-colors shadow-md ${currentTheme.ctaButtonClass}`}
@@ -267,7 +286,7 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
             <div className={`flex items-center justify-between border-b ${currentTheme.surfaceBorder} pb-3.5`}>
               <h3 id="add-box-modal-title" className={`font-bold text-base flex items-center gap-2 ${currentTheme.headingText}`}>
                 <Plus className="w-4 h-4" style={{ color: currentTheme.primaryColor }} />
-                <span>{t.addSetTopBox}</span>
+                <span>{editing ? "Edit Box" : t.addSetTopBox}</span>
               </h3>
               <button
                 type="button"
@@ -279,7 +298,7 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
               </button>
             </div>
 
-            <form onSubmit={handleSubmitNew} className="space-y-4 text-xs">
+            <form noValidate onSubmit={handleSubmitNew} className="space-y-4 text-xs">
               <div>
                 <label className={`block font-medium mb-1.5 ${currentTheme.subText}`}>
                   {t.dthOperatorLabel}
@@ -298,18 +317,21 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
 
               <div>
                 <label className={`block font-medium mb-1.5 ${currentTheme.subText}`}>
-                  {t.smartCardNumberLabel}
+                  {subscriberRule(operator, true).label}
                 </label>
                 <input
                   type="text"
-                  required
+                  id="saved-box-id"
+                  aria-invalid={!!idError}
+                  aria-describedby="saved-box-help"
                   value={smartCard}
                   onChange={(e) => setSmartCard(e.target.value.replace(/[^0-9]/g, ''))}
-                  placeholder="Enter 10 to 12 digit viewing card number"
+                  placeholder={subscriberRule(operator, true).placeholder}
                   className={`w-full ${currentTheme.inputBg} ${currentTheme.inputBorder} ${currentTheme.inputFocusBorder} ${currentTheme.inputText} ${currentTheme.inputPlaceholder} rounded-xl px-3.5 py-2.5 font-mono font-bold focus:outline-none border transition-colors`}
                 />
               </div>
 
+              <p id="saved-box-help" role={idError ? "alert" : undefined} className={idError ? "text-error" : ""}>{(idError && subscriberError(operator, smartCard, true, currentLang)) || subscriberHelp(operator, true, currentLang)}</p>
               <div>
                 <label className={`block font-medium mb-1.5 ${currentTheme.subText}`}>
                   {t.boxNickname}

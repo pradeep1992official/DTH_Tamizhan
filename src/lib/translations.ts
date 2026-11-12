@@ -3,7 +3,7 @@ import { Language } from '../types';
 export const translations = {
   en: {
     brandTitle: 'DTH Tamizhan',
-    brandTagline: "Tamil Nadu's #1 Instant DTH Recharge & Service Portal",
+    brandTagline: 'DTH recharge requests and support',
     navRecharge: 'Quick Recharge',
     navPlans: 'Browse Packs',
     navConnections: 'My Set-Top Boxes',
@@ -15,7 +15,7 @@ export const translations = {
     
     // Auth
     loginTitle: 'Sign In to DTH Tamizhan',
-    loginSubtitle: 'Sign in with Google to access saved set-top boxes & instant recharge receipts',
+    loginSubtitle: 'Sign in with Google to access saved set-top boxes',
     phoneOption: 'Phone Number Sign In',
     phonePlaceholder: 'Enter mobile number',
     sendOtp: 'Sign In',
@@ -24,7 +24,7 @@ export const translations = {
     resendOtp: 'Resend Code',
     googleOption: 'Sign in with Google',
     orDivider: 'AUTHENTICATION',
-    linkedNotice: 'Fast and secure account verification.',
+    linkedNotice: 'Account sign-in is handled by Google and Firebase.',
     signOut: 'Sign Out',
     loggedInAs: 'Logged in as',
     workerMode: 'Worker / Dealer Mode',
@@ -71,7 +71,7 @@ export const translations = {
     saveBadge: 'Best Value',
     bestSavings: 'Max Savings',
     browsePacksTitle: 'Browse & Compare DTH Plans',
-    browsePacksSubtitle: 'Find the best value packs across all operators with verified Tamil channels',
+    browsePacksSubtitle: 'Compare the packs and channel details listed in the catalog',
     filterByOperator: 'Filter by Operator',
     filterByQuality: 'Pack Quality',
     allQuality: 'All Packs',
@@ -106,29 +106,29 @@ export const translations = {
     operatorDisabledAlert: 'This operator is temporarily unavailable due to maintenance.',
 
     // Payment Modal
-    proceedToPay: 'Proceed to Secure Recharge',
+    proceedToPay: 'Review checkout',
     paymentTitle: 'Complete DTH Recharge',
     totalPayable: 'Total Payable',
-    secureEncryption: '256-Bit Encrypted Secure Transaction',
+    secureEncryption: 'Review the payment provider and order details before paying',
     payViaUpi: 'UPI / QR Code',
     payViaCard: 'Debit / Credit Card',
     payViaNetbanking: 'Net Banking',
     scanToPay: 'Scan QR with any UPI App (GPay, PhonePe, Paytm)',
     payNow: 'Pay & Recharge Now',
-    processingPayment: 'Processing secure recharge...',
+    processingPayment: 'Checking payment status...',
     rechargeSuccess: 'Recharge Successful!',
     paymentFailed: 'Payment verification failed. Please try again.',
     saveBoxPrompt: 'Save this Viewing Card for fast one-click recharges',
     subscriberName: 'Subscriber Name',
     viewingCardLabel: 'Viewing Card No',
     receiptConfirmation: 'Receipt & SMS Confirmation',
-    instantActivation: 'Instant Activation',
+    instantActivation: 'Activation requires operator confirmation',
     mobileNumberSms: 'Mobile Number (SMS Receipt) *',
     enterValid10Digit: 'Please enter a valid 10-digit mobile number for receipt dispatch',
 
     // Receipt Modal
-    receiptTitle: 'Official Recharge Receipt',
-    receiptSubtitle: 'Your DTH recharge has been successfully dispatched to the satellite transponder.',
+    receiptTitle: "Recharge record",
+    receiptSubtitle: "Check the recorded payment and operator status.",
     orderIdLabel: 'Transaction ID',
     operatorRefLabel: 'Operator Reference',
     rechargeAmountLabel: 'Amount Paid',
@@ -137,13 +137,13 @@ export const translations = {
     printReceipt: 'Print Receipt',
     shareWhatsApp: 'Share on WhatsApp',
     downloadReceipt: 'Download Receipt',
-    channelsActiveNotice: 'Channels may take 5 to 10 minutes to appear after recharge. If they remain unavailable, contact your DTH operator.',
+    channelsActiveNotice: "Activation timing depends on the operator. Contact support if channels remain unavailable.",
     rechargeSuccessSubtitle: 'Recharge Processed Successfully',
-    officialTaxInvoice: 'Official DTH Recharge Tax Invoice',
+    officialTaxInvoice: "Recharge record; tax invoice details require confirmation",
 
     // New Connection Modal
     newDishTitle: 'Book a New DTH Dish Connection',
-    newDishSubtitle: 'Get next-day doorstep installation with dish antenna, HD set-top box, remote and free Tamil pack.',
+    newDishSubtitle: "Ask about installation availability, equipment and a quotation before booking.",
     selectDishOperator: 'Select DTH Service Provider',
     fullNameLabel: 'Full Name',
     contactNumberLabel: 'Contact Mobile Number',
@@ -152,12 +152,12 @@ export const translations = {
     pincodeLabel: 'PIN Code',
     preferredTimeLabel: 'Preferred Installation Slot',
     bookConnectionBtn: 'Request Doorstep Installation',
-    bookingSuccess: 'Booking Received! Our authorized technician in your area will contact you shortly.',
-    doorstepInstall: 'Doorstep Installation across Tamil Nadu',
+    bookingSuccess: 'Request received. Installation availability and charges need confirmation.',
+    doorstepInstall: 'Ask about installation availability',
 
     // Saved Connections
     myConnectionsTitle: 'Saved Set-Top Boxes',
-    myConnectionsSubtitle: 'Manage home and family DTH connections with live balances and quick pay',
+    myConnectionsSubtitle: "Manage your saved DTH connections and recorded account details",
     addConnection: 'Add New Box',
     rechargeAgain: 'Quick Recharge',
     noConnections: 'No saved set-top boxes yet. Add your home or office DTH box for one-click recharges.',
@@ -294,8 +294,8 @@ export const translations = {
     useOfflineCatalog: 'Load Offline Seed Catalog',
 
     // Footer
-    footerDisclaimer: 'Authorized DTH Service Partner. All trademarks (Sun Direct, Tata Play, Airtel DTH, Dish TV, D2H) belong to their respective brand owners.',
-    tollFreeSupport: '24x7 DTH Helpline',
+    footerDisclaimer: 'Operator names and trademarks belong to their respective owners. Their use does not imply a partnership or endorsement.',
+    tollFreeSupport: 'Customer support',
     madeWithLove: 'Made with love for DTH Viewers Across Tamil Nadu',
 
     // Extended Admin, Tables & Accessibility
@@ -363,7 +363,7 @@ export const translations = {
   },
   ta: {
     brandTitle: 'டிடிஎச் தமிழன்',
-    brandTagline: 'தமிழ்நாட்டின் #1 உடனடி டிடிஎச் ரீசார்ஜ் மற்றும் சேவை தளம்',
+    brandTagline: 'டிடிஎச் ரீசார்ஜ் கோரிக்கைகள் மற்றும் உதவி',
     navRecharge: 'உடனடி ரீசார்ஜ்',
     navPlans: 'பேக்குகளை காண்க',
     navConnections: 'என் செட்-டாப் பாக்ஸ்கள்',
@@ -384,7 +384,7 @@ export const translations = {
     resendOtp: 'மீண்டும் குறியீடு அனுப்பு',
     googleOption: 'கூகிள் மூலம் உள்நுழைக',
     orDivider: 'அங்கீகாரம்',
-    linkedNotice: 'பாதுகாப்பான மற்றும் விரைவான கணக்கு சரிபார்ப்பு.',
+    linkedNotice: 'Google மற்றும் Firebase மூலம் கணக்கில் உள்நுழையலாம்.',
     signOut: 'வெளியேறு',
     loggedInAs: 'உள்நுழைந்துள்ள கணக்கு',
     workerMode: 'டீலர் முறை',
@@ -431,7 +431,7 @@ export const translations = {
     saveBadge: 'அதிக சேமிப்பு',
     bestSavings: 'அதிகபட்ச சேமிப்பு',
     browsePacksTitle: 'டிடிஎச் ரீசார்ஜ் பேக்குகளை ஒப்பிட்டு தேர்வு செய்க',
-    browsePacksSubtitle: 'அனைத்து ஆபரேட்டர்களின் சிறந்த தமிழ் பேக்குகள் மற்றும் சலுகைகள்',
+    browsePacksSubtitle: 'பட்டியலில் உள்ள பேக்குகளையும் சேனல் விவரங்களையும் ஒப்பிடுங்கள்',
     filterByOperator: 'ஆபரேட்டர் வாரியாக',
     filterByQuality: 'பேக் தரம்',
     allQuality: 'அனைத்து பேக்குகள்',
@@ -466,29 +466,29 @@ export const translations = {
     operatorDisabledAlert: 'பராமரிப்பு பணி காரணமாக இந்த ஆபரேட்டர் தற்காலிகமாக நிறுத்தப்பட்டுள்ளது.',
 
     // Payment Modal
-    proceedToPay: 'பாதுகாப்பான ரீசார்ஜ் தொடர்க',
+    proceedToPay: 'கட்டண விவரங்களைப் பார்க்கவும்',
     paymentTitle: 'ரீசார்ஜ் கட்டணம் செலுத்துதல்',
     totalPayable: 'செலுத்த வேண்டிய தொகை',
-    secureEncryption: '256-பிட் குறியாக்கப்பட்ட பாதுகாப்பான பரிவர்த்தனை',
+    secureEncryption: 'பணம் செலுத்தும் முன் கட்டணச் சேவை மற்றும் ஆர்டர் விவரங்களைப் பார்க்கவும்',
     payViaUpi: 'UPI / QR குறியீடு',
     payViaCard: 'டெபிட் / கிரெடிட் கார்டு',
     payViaNetbanking: 'நெட் பேங்கிங்',
     scanToPay: 'எந்தவொரு UPI செயலியிலும் QR-ஐ ஸ்கேன் செய்யவும் (GPay, PhonePe, Paytm)',
     payNow: 'இப்போதே ரீசார்ஜ் செய்',
-    processingPayment: 'பாதுகாப்பான ரீசார்ஜ் செயலாக்கப்படுகிறது...',
+    processingPayment: 'கட்டண நிலை சரிபார்க்கப்படுகிறது...',
     rechargeSuccess: 'ரீசார்ஜ் வெற்றிகரமாக முடிந்தது!',
     paymentFailed: 'கட்டணம் செலுத்துவதில் தோல்வி. மீண்டும் முயற்சிக்கவும்.',
     saveBoxPrompt: 'விரைவு ரீசார்ஜிற்கு இந்த ஸ்மார்ட் கார்டு எண்ணை சேமிக்கவும்',
     subscriberName: 'வாடிக்கையாளர் பெயர்',
     viewingCardLabel: 'ஸ்மார்ட் கார்டு எண்',
     receiptConfirmation: 'ரசீது மற்றும் SMS உறுதிப்படுத்தல்',
-    instantActivation: 'உடனடி உறுதிப்படுத்தல்',
+    instantActivation: 'செயல்படுத்த ஆபரேட்டரின் உறுதிப்படுத்தல் தேவை',
     mobileNumberSms: 'மொபைல் எண் (SMS ரசீது) *',
     enterValid10Digit: 'சரியான 10 இலக்க மொபைல் எண்ணை உள்ளிடவும்',
 
     // Receipt Modal
-    receiptTitle: 'அதிகாரப்பூர்வ ரீசார்ஜ் ரசீது',
-    receiptSubtitle: 'உங்கள் டிடிஎச் ரீசார்ஜ் கோரிக்கை வெற்றிகரமாக நிறைவேற்றப்பட்டது.',
+    receiptTitle: "\u0bb0\u0bc0\u0b9a\u0bbe\u0bb0\u0bcd\u0b9c\u0bcd \u0baa\u0ba4\u0bbf\u0bb5\u0bc1",
+    receiptSubtitle: "\u0baa\u0ba4\u0bbf\u0bb5\u0bbe\u0ba9 \u0b95\u0b9f\u0bcd\u0b9f\u0ba3 \u0bae\u0bb1\u0bcd\u0bb1\u0bc1\u0bae\u0bcd \u0b86\u0baa\u0bb0\u0bc7\u0b9f\u0bcd\u0b9f\u0bb0\u0bcd \u0ba8\u0bbf\u0bb2\u0bc8\u0baf\u0bc8\u0b9a\u0bcd \u0b9a\u0bb0\u0bbf\u0baa\u0bbe\u0bb0\u0bcd\u0b95\u0bcd\u0b95\u0bb5\u0bc1\u0bae\u0bcd.",
     orderIdLabel: 'பரிவர்த்தனை எண்',
     operatorRefLabel: 'ஆபரேட்டர் ரெஃபரன்ஸ்',
     rechargeAmountLabel: 'செலுத்திய தொகை',
@@ -497,13 +497,13 @@ export const translations = {
     printReceipt: 'ரசீதை அச்சிடுக',
     shareWhatsApp: 'வாட்ஸ்அப்பில் பகிர்க',
     downloadReceipt: 'ரசீதை பதிவிறக்குக',
-    channelsActiveNotice: 'ரீசார்ஜுக்குப் பிறகு சேனல்கள் வர 5 முதல் 10 நிமிடங்கள் ஆகலாம். தொடர்ந்து வரவில்லை என்றால் உங்கள் டிடிஎச் நிறுவனத்தைத் தொடர்பு கொள்ளவும்.',
+    channelsActiveNotice: "\u0b9a\u0bc6\u0baf\u0bb2\u0bcd\u0baa\u0b9f\u0bc1\u0ba4\u0bcd\u0ba4\u0bc1\u0bae\u0bcd \u0ba8\u0bc7\u0bb0\u0bae\u0bcd \u0b86\u0baa\u0bb0\u0bc7\u0b9f\u0bcd\u0b9f\u0bb0\u0bc8\u0baa\u0bcd \u0baa\u0bca\u0bb1\u0bc1\u0ba4\u0bcd\u0ba4\u0ba4\u0bc1. \u0b9a\u0bc7\u0ba9\u0bb2\u0bcd\u0b95\u0bb3\u0bcd \u0b95\u0bbf\u0b9f\u0bc8\u0b95\u0bcd\u0b95\u0bbe\u0bb5\u0bbf\u0b9f\u0bcd\u0b9f\u0bbe\u0bb2\u0bcd \u0b89\u0ba4\u0bb5\u0bbf\u0baf\u0bc8\u0ba4\u0bcd \u0ba4\u0bca\u0b9f\u0bb0\u0bcd\u0baa\u0bc1\u0b95\u0bca\u0bb3\u0bcd\u0bb3\u0bc1\u0b99\u0bcd\u0b95\u0bb3\u0bcd.",
     rechargeSuccessSubtitle: 'ரீசார்ஜ் வெற்றிகரமாக முடிந்தது',
-    officialTaxInvoice: 'அதிகாரப்பூர்வ டிடிஎச் ரீசார்ஜ் ரசீது',
+    officialTaxInvoice: "\u0bb0\u0bc0\u0b9a\u0bbe\u0bb0\u0bcd\u0b9c\u0bcd \u0baa\u0ba4\u0bbf\u0bb5\u0bc1; \u0bb5\u0bb0\u0bbf \u0bb0\u0b9a\u0bc0\u0ba4\u0bc1 \u0bb5\u0bbf\u0bb5\u0bb0\u0b99\u0bcd\u0b95\u0bb3\u0bcd \u0b89\u0bb1\u0bc1\u0ba4\u0bbf\u0baa\u0bcd\u0baa\u0b9f\u0bc1\u0ba4\u0bcd\u0ba4\u0baa\u0bcd\u0baa\u0b9f \u0bb5\u0bc7\u0ba3\u0bcd\u0b9f\u0bc1\u0bae\u0bcd",
 
     // New Connection Modal
     newDishTitle: 'புதிய டிடிஎச் டிஷ் இணைப்பு பதிவு',
-    newDishSubtitle: 'டிஷ் ஆண்டெனா, எச்டி செட்-டாப் பாக்ஸ், ரிமோட் மற்றும் இலவச தமிழ் பேக்குடன் நேரடி பொருத்துதல் சேவை.',
+    newDishSubtitle: "\u0bae\u0bc1\u0ba9\u0bcd\u0baa\u0ba4\u0bbf\u0bb5\u0bc1 \u0b9a\u0bc6\u0baf\u0bcd\u0baf\u0bc1\u0bae\u0bcd \u0bae\u0bc1\u0ba9\u0bcd \u0ba8\u0bbf\u0bb1\u0bc1\u0bb5\u0bb2\u0bcd \u0bb5\u0b9a\u0ba4\u0bbf, \u0b89\u0baa\u0b95\u0bb0\u0ba3\u0b99\u0bcd\u0b95\u0bb3\u0bcd \u0bae\u0bb1\u0bcd\u0bb1\u0bc1\u0bae\u0bcd \u0b95\u0b9f\u0bcd\u0b9f\u0ba3\u0ba4\u0bcd\u0ba4\u0bc8\u0baa\u0bcd \u0baa\u0bb1\u0bcd\u0bb1\u0bbf\u0b95\u0bcd \u0b95\u0bc7\u0bb3\u0bc1\u0b99\u0bcd\u0b95\u0bb3\u0bcd.",
     selectDishOperator: 'டிடிஎச் நிறுவனத்தைத் தேர்ந்தெடுக்கவும்',
     fullNameLabel: 'முழு பெயர்',
     contactNumberLabel: 'தொடர்பு மொபைல் எண்',
@@ -512,12 +512,12 @@ export const translations = {
     pincodeLabel: 'அஞ்சல் குறியீட்டு எண்',
     preferredTimeLabel: 'விருப்பமான நேரம்',
     bookConnectionBtn: 'இணைப்பு முன்பதிவு செய்க',
-    bookingSuccess: 'முன்பதிவு பெறப்பட்டது! எங்கள் வாடிக்கையாளர் சேவை மைய அதிகாரி விரைவில் தொடர்பு கொள்வார்.',
-    doorstepInstall: 'தமிழ்நாடு முழுவதும் வீட்டு வாசலில் பொருத்தும் சேவை',
+    bookingSuccess: 'கோரிக்கை பெறப்பட்டது. நிறுவல் வசதியும் கட்டணமும் உறுதிப்படுத்தப்பட வேண்டும்.',
+    doorstepInstall: 'நிறுவல் வசதி பற்றிக் கேளுங்கள்',
 
     // Saved Connections
     myConnectionsTitle: 'சேமிக்கப்பட்ட செட்-டாப் பாக்ஸ்கள்',
-    myConnectionsSubtitle: 'குடும்பத்தினரின் செட்-டாப் பாக்ஸ்களை எளிதாக நிர்வகித்து உடனடி ரீசார்ஜ் செய்திடுங்கள்',
+    myConnectionsSubtitle: "\u0b9a\u0bc7\u0bae\u0bbf\u0ba4\u0bcd\u0ba4 \u0b9f\u0bbf\u0b9f\u0bbf\u0b8e\u0b9a\u0bcd \u0b87\u0ba3\u0bc8\u0baa\u0bcd\u0baa\u0bc1\u0b95\u0bb3\u0bc8\u0baf\u0bc1\u0bae\u0bcd \u0baa\u0ba4\u0bbf\u0bb5\u0bbe\u0ba9 \u0b95\u0ba3\u0b95\u0bcd\u0b95\u0bc1 \u0bb5\u0bbf\u0bb5\u0bb0\u0b99\u0bcd\u0b95\u0bb3\u0bc8\u0baf\u0bc1\u0bae\u0bcd \u0ba8\u0bbf\u0bb0\u0bcd\u0bb5\u0b95\u0bbf\u0b95\u0bcd\u0b95\u0bb5\u0bc1\u0bae\u0bcd",
     addConnection: 'புதிய பாக்ஸ் சேர்க்கவும்',
     rechargeAgain: 'விரைவு ரீசார்ஜ்',
     noConnections: 'சேமிக்கப்பட்ட பாக்ஸ்கள் இல்லை. ஒரு கிளிக்கில் ரீசார்ஜ் செய்ய உங்கள் டிடிஎச் எண்ணைச் சேர்க்கவும்.',
@@ -654,8 +654,8 @@ export const translations = {
     useOfflineCatalog: 'ஆஃப்லைன் பேக்குகளை ஏற்று',
 
     // Footer
-    footerDisclaimer: 'அங்கீகரிக்கப்பட்ட டிடிஎச் சேவை மையம். அனைத்து வணிக முத்திரைகளும் அந்தந்த நிறுவனங்களுக்கு உரியவை.',
-    tollFreeSupport: '24x7 வாடிக்கையாளர் உதவி எண்',
+    footerDisclaimer: 'ஆபரேட்டர் பெயர்களும் வணிக முத்திரைகளும் அவற்றின் உரிமையாளர்களுக்குச் சொந்தமானவை. அவற்றைப் பயன்படுத்துவது கூட்டாண்மையையோ அங்கீகாரத்தையோ குறிக்காது.',
+    tollFreeSupport: 'வாடிக்கையாளர் உதவி',
     madeWithLove: 'தமிழ்நாடு டிடிஎச் வாடிக்கையாளர்களுக்காக உருவாக்கப்பட்டது',
 
     // Extended Admin, Tables & Accessibility

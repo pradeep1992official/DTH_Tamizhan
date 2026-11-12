@@ -1,3 +1,4 @@
+import { BUSINESS_DETAILS } from '../lib/trustContent';
 import React from 'react';
 import {
   X,
@@ -26,8 +27,6 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
 
   if (!order) return null;
 
-  const basePrice = (order.amount / 1.18).toFixed(2);
-  const gstAmount = (order.amount - Number(basePrice)).toFixed(2);
 
   const handlePrint = () => {
     window.print();
@@ -64,14 +63,14 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
         <div className="bg-paper px-6 py-5 text-ink border-b border-rule flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-paper flex items-center justify-center">
-              <CheckCircle2 className="w-6 h-6 text-ink" />
+              <Tv className="w-6 h-6 text-ink" />
             </div>
             <div>
               <h2 id="receipt-modal-title" className="text-base font-bold tracking-tight">
-                {t.rechargeSuccess}
+                {t.receiptTitle}
               </h2>
               <p className="text-sm text-success font-medium">
-                {currentLang === 'ta' ? 'ரீசார்ஜ் வெற்றிகரமாக முடிந்தது' : 'Recharge Processed Successfully'}
+                {currentLang === 'ta' ? 'பதிவான நிலை' : 'Recorded status'}: {order.paymentStatus} / {order.rechargeStatus}
               </p>
             </div>
           </div>
@@ -94,7 +93,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                 DTH <span className="text-accent">தமிழன்</span>
               </span>
               <p className="text-sm text-muted">
-                {currentLang === 'ta' ? 'அதிகாரப்பூர்வ டிடிஎச் ரீசார்ஜ் ரசீது' : 'Official DTH Recharge Tax Invoice'}
+                {t.officialTaxInvoice}
               </p>
             </div>
             <div className="text-right">
@@ -153,14 +152,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
 
           {/* Price Calculation Breakdown */}
           <div className="dialog-section py-4 space-y-2 text-sm">
-            <div className="flex justify-between text-muted">
-              <span>Base Recharge Value</span>
-              <span className="tabular-nums">₹{basePrice}</span>
-            </div>
-            <div className="flex justify-between text-muted">
-              <span>GST (18%)</span>
-              <span className="tabular-nums">₹{gstAmount}</span>
-            </div>
+            <p className="text-muted">GSTIN: {BUSINESS_DETAILS.gstin}</p>
+            <p className="text-muted">{BUSINESS_DETAILS.feesAndTaxes}</p>
             <div className="flex justify-between pt-2 border-t border-rule font-bold text-sm text-ink">
               <span>{t.totalPayable}</span>
               <span className="tabular-nums text-accent">₹{order.amount}</span>

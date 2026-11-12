@@ -147,6 +147,7 @@ export interface PlanCatalogItem {
   is_recommended: boolean;
   channel_count?: number;
   hd_channel_count?: number;
+  channel_counts_unavailable?: boolean;
   channel_list_url?: string;
   channel_list: string[];
   channels?: string[];
@@ -177,8 +178,9 @@ export interface BrowsePlan {
   duration_months: 1 | 3 | 6 | 12;
   price: number;
   monthly_equivalent_rate: number;
-  channel_count: number;
+  channel_count?: number;
   hd_channel_count?: number;
+  channel_counts_unavailable?: boolean;
   channel_list_url?: string;
   channels: string[];
   genre_tags: string[];
@@ -202,13 +204,9 @@ export interface PlanFilters {
   searchQuery: string;
 }
 
-// Configurable Super Admin email via environment variable
-export const SUPER_ADMIN_EMAIL = 
-  (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SUPER_ADMIN_EMAIL)
-    ? String(import.meta.env.VITE_SUPER_ADMIN_EMAIL).trim()
-    : (typeof process !== 'undefined' && process.env && process.env.SUPER_ADMIN_EMAIL)
-      ? String(process.env.SUPER_ADMIN_EMAIL).trim()
-      : 'professorpradeeps@gmail.com';
+export { ROOT_ADMIN_EMAIL } from './lib/adminPolicy';
+import { ROOT_ADMIN_EMAIL } from './lib/adminPolicy';
+export const SUPER_ADMIN_EMAIL = ROOT_ADMIN_EMAIL;
 
 export function isSuperAdminEmail(email?: string | null): boolean {
   if (!email) return false;

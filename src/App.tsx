@@ -1,3 +1,11 @@
+import { RouteEffects } from './components/RouteEffects';
+import { AccountPage } from './components/AccountPage';
+import { ErrorPage } from './components/ErrorPages';
+import { pageMetadata } from './lib/pageMetadata';
+import { PolicyPage } from './components/PolicyPage';
+import { PolicyLinks } from './components/TrustContent';
+import { POLICY_ROUTES } from './lib/trustContent';
+import { subscriberError } from './lib/subscriberValidation';
 import { calculateConnectionExpiry, getPackDuration } from './lib/connectionExpiry';
 import React, { useState, useEffect } from 'react';
 import {
@@ -30,7 +38,6 @@ import {
   DthOperatorId,
   BrowsePlan,
   AdminTabId,
-  isUserAdmin,
   canonicalizeDthOperatorId,
   resolveDishFamilyOperatorId,
 } from './types';
@@ -40,8 +47,6 @@ import { db, isFirebaseConfigured, sanitizePayload } from './lib/firebase';
 import { collection, doc, getDocs, setDoc, deleteDoc, query, where, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import {
   Tv,
-  ShieldCheck,
-  Heart,
 } from './lib/icons';
 
 function AdminRouteWrapper({
@@ -58,6 +63,7 @@ function AdminRouteWrapper({
   currentTheme: any;
 }) {
   const { tab } = useParams<{ tab?: string }>();
+  const routeLocation = useLocation();
   const navigate = useNavigate();
 
   const mapSubTab = (param?: string): AdminTabId => {
@@ -74,6 +80,7 @@ function AdminRouteWrapper({
   };
 
   const currentTab = mapSubTab(tab);
+  if (pageMetadata(routeLocation.pathname).status === 404) return <ErrorPage status={404} currentLang={currentLang} />;
 
   return (
     <AdminPortal
@@ -91,11 +98,15 @@ function AdminRouteWrapper({
   );
 }
 
-const demoConnectionsEnabled = import.meta.env.VITE_ENABLE_DEMO_CONNECTIONS === 'true';
 
 function MainApp() {
   const navigate = useNavigate();
   const location = useLocation();
+  const requestCustomTopUp = new URLSearchParams(location.search).get('topup') === '1';
+  useEffect(() => {
+    const operator = new URLSearchParams(location.search).get('operator');
+    if (['sun_direct', 'tata_play', 'airtel_dth', 'dish_tv', 'd2h'].includes(operator || '')) handleSelectOpId(operator as DthOperatorId);
+  }, [location.search]);
 
   // Language state
   const [currentLang, setCurrentLang] = useState<Language>(() => {
@@ -123,7 +134,6 @@ function MainApp() {
     }
   });
 
-  const isUserAdminRole = isUserAdmin(user);
 
   // Selected Operator / Theme
   const [selectedOpId, setSelectedOpId] = useState<DthOperatorId>(() => {
@@ -153,46 +163,10 @@ function MainApp() {
       if (saved) {
         const parsed: unknown = JSON.parse(saved);
         if (!Array.isArray(parsed)) return [];
-        if (demoConnectionsEnabled) return parsed;
-
-        return (parsed as DthConnection[]).filter((connection) => !(
-          connection.user_id === 'default' &&
-          ((connection.id === 'conn-1' && connection.smartCardNumber === '41289456123') ||
-            (connection.id === 'conn-2' && connection.smartCardNumber === '1029384756'))
-        ));
+        return parsed as DthConnection[];
       }
     } catch {}
-    if (!demoConnectionsEnabled) return [];
-    return [
-      {
-        id: 'conn-1',
-        user_id: 'default',
-        operator: 'sun_direct',
-        operatorName: 'Sun Direct',
-        smartCardNumber: '41289456123',
-        nickname: 'Living Room TV (Sun Direct)',
-        customerName: 'Ramesh K',
-        balance: 42.50,
-        expiryDate: new Date(Date.now() + 86400000 * 5).toISOString().split('T')[0],
-        monthlyPackPrice: 219,
-        packName: 'Tamil Value Pack',
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: 'conn-2',
-        user_id: 'default',
-        operator: 'tata_play',
-        operatorName: 'Tata Play',
-        smartCardNumber: '1029384756',
-        nickname: 'Bedroom TV (Tata Play)',
-        customerName: 'Priya R',
-        balance: 110.00,
-        expiryDate: new Date(Date.now() + 86400000 * 22).toISOString().split('T')[0],
-        monthlyPackPrice: 360,
-        packName: 'South Special HD Premium',
-        createdAt: new Date().toISOString(),
-      }
-    ];
+    return [];
   });
 
   // Modals
@@ -292,6 +266,11 @@ function MainApp() {
     smartCard: string,
     saveBox: boolean
   ) => {
+    if (subscriberError(operator.id, smartCard)) {
+      setPrefillConn({ operator: operator.id, smartCardNumber: smartCard } as DthConnection);
+      navigate('/recharge');
+      return;
+    }
     setActivePaymentPlan(plan);
     setActiveSubscriber(subscriber);
     setActiveOperator(operator);
@@ -317,7 +296,7 @@ function MainApp() {
         smartCardNumber: completedOrder.smartCardNumber,
         nickname: existingBox?.nickname || `${completedOrder.operatorName} Box`,
         customerName: completedOrder.customerName,
-        balance: 150.00,
+        balance: existingBox?.balance,
         lastRechargeDate: rechargeDate,
         packDurationMonths,
         expiryDate: packDurationMonths ? calculateConnectionExpiry(rechargeDate, packDurationMonths) : undefined,
@@ -356,7 +335,8 @@ function MainApp() {
       id: 'id' in conn && conn.id ? conn.id : `conn-${Date.now()}`,
       createdAt: 'createdAt' in conn && conn.createdAt ? conn.createdAt : new Date().toISOString(),
     };
-    setConnections((prev) => [fullConn, ...prev]);
+    if (subscriberError(fullConn.operator, fullConn.smartCardNumber)) return;
+    setConnections((prev) => [fullConn, ...prev.filter(c => c.id !== fullConn.id)]);
     if (isFirebaseConfigured && db && user?.uid) {
       try {
         const cleanDoc = sanitizePayload({ ...fullConn, user_id: user.uid });
@@ -413,9 +393,12 @@ function MainApp() {
   // Determine active tab name for header navigation highlighting
   const getActiveNavTab = () => {
     const path = location.pathname;
+    if (pageMetadata(path).status !== 200) return 'error';
+    if (POLICY_ROUTES.some(route => route.path === path)) return 'policies';
     if (path.startsWith('/admin') || path === '/worker' || path === '/dealer') return 'admin-portal';
     if (path.startsWith('/plans')) return 'plans';
     if (path.startsWith('/connections')) return 'connections';
+    if (path === '/account') return 'account';
     if (path.startsWith('/security')) return 'security';
     return 'recharge';
   };
@@ -424,6 +407,7 @@ function MainApp() {
     if (tab === 'recharge') navigate('/recharge');
     else if (tab === 'plans') navigate('/plans');
     else if (tab === 'connections') navigate('/connections');
+    else if (tab === 'account') navigate('/account');
     else if (tab === 'security') navigate('/security');
     else if (tab === 'admin-portal') navigate('/admin/customers');
     else if (tab === 'new-dish') setIsNewDishOpen(true);
@@ -434,6 +418,7 @@ function MainApp() {
 
   return (
     <div className={`app-shell min-h-screen flex flex-col ${currentTheme.pageBg} ${currentTheme.pageText}`}>
+      <RouteEffects currentLang={currentLang} />
       <a href="#main-content" className="skip-link">{currentLang === 'ta' ? 'உள்ளடக்கத்திற்குச் செல்' : 'Skip to content'}</a>
       <Header
         currentLang={currentLang}
@@ -457,6 +442,7 @@ function MainApp() {
                 currentLang={currentLang}
                 user={user}
                 onInitiatePayment={handleInitiatePayment}
+                requestCustomTopUp={requestCustomTopUp}
                 prefillConnection={prefillConn}
                 selectedOpId={selectedOpId}
                 onSelectOpId={handleSelectOpId}
@@ -471,6 +457,7 @@ function MainApp() {
                 currentLang={currentLang}
                 user={user}
                 onInitiatePayment={handleInitiatePayment}
+                requestCustomTopUp={requestCustomTopUp}
                 prefillConnection={prefillConn}
                 selectedOpId={selectedOpId}
                 onSelectOpId={handleSelectOpId}
@@ -507,6 +494,9 @@ function MainApp() {
               />
             }
           />
+          {POLICY_ROUTES.map(route => <Route key={route.key} path={route.path} element={<PolicyPage policy={route.key} currentLang={currentLang} />} />)}
+          <Route path="/account" element={<AccountPage user={user} currentLang={currentLang} onOpenAuth={() => setIsAuthOpen(true)} />} />
+          <Route path="/500" element={<ErrorPage status={500} currentLang={currentLang} />} />
           <Route path="/security" element={<SecurityNotice currentTheme={currentTheme} />} />
 
           {/* Admin Routes with react-router parameterization */}
@@ -532,58 +522,23 @@ function MainApp() {
           {/* Legacy route redirects */}
           <Route path="/worker" element={<Navigate to="/admin/pending" replace />} />
           <Route path="/dealer" element={<Navigate to="/admin/pending" replace />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<ErrorPage status={404} currentLang={currentLang} />} />
         </Routes>
       </main>
 
       {/* Footer */}
       <footer className={`app-footer ${currentTheme.footerBg} ${currentTheme.footerText}`}>
         <div className="app-footer-inner">
-          <div className={`flex flex-wrap items-center justify-between gap-4 border-b ${currentTheme.footerBorder} pb-6`}>
+          <div className="footer-overview">
             <div className="footer-brand">
-              <div className="footer-brand-icon">
-                <Tv className="w-5 h-5" aria-hidden="true" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                <span className={`font-sans font-bold text-base tracking-tight ${isLight ? 'text-ink' : 'text-accent-ink'}`}>
-                  DTH <span style={{ color: currentTheme.primaryColor }}>தமிழன்</span>
-                </span>
-                <span className="text-xs opacity-75 border px-1.5 py-0.5 rounded font-mono ml-1">
-                  v2.0
-                </span>
-                </div>
-              <p className="text-xs opacity-80 max-w-md">
-                {t.brandTagline}
-              </p>
-              </div>
-            </div>
-
-            {/* Admin Portal Link */}
-            {isUserAdminRole && (
-              <div className="flex flex-wrap items-center gap-4 text-xs font-medium">
-                <button
-                  id="footer-admin-dealer-portal-link"
-                  onClick={() => navigate('/admin/customers')}
-                  className={`transition-colors flex items-center gap-1.5 font-bold ${currentTheme.footerLinkHover}`}
-                  style={{ color: currentTheme.primaryColor }}
-                >
-                  <ShieldCheck className="w-4 h-4" />
-                  <span>{t.adminConsole}</span>
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-4 text-xs opacity-75">
-            <p>
-              {t.footerDisclaimer}
-            </p>
-            <div className="flex items-center gap-1">
-              <span>{t.madeWithLove}</span>
-              <Heart className="w-3.5 h-3.5 text-error fill-error" />
+              <div className="footer-brand-icon"><Tv className="w-5 h-5" aria-hidden="true" /></div>
+              <span className="font-sans font-bold text-base tracking-tight">
+                DTH <span style={{ color: currentTheme.primaryColor }}>தமிழன்</span>
+              </span>
             </div>
           </div>
+          <PolicyLinks currentLang={currentLang} />
+          <p className="footer-disclaimer">{t.footerDisclaimer}</p>
         </div>
       </footer>
 

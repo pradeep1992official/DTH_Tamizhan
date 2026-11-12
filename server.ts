@@ -1,3 +1,5 @@
+import { pageHandler, globalErrorHandler } from './server/pages';
+import { paymentsRouter } from './server/routes/payments';
 import express, { Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
@@ -57,26 +59,27 @@ async function startServer() {
   // 4. Mount MVC API routes
   app.use(coreRouter);
   app.use(ordersRouter);
+  app.use(paymentsRouter);
   app.use(plansRouter);
   app.use(adminRouter);
   app.use(aiRouter);
+
+  app.use('/api', (_req, res) => { res.status(404).json({ success: false, error: 'API route not found.' }); });
 
   // 5. Vite middleware for development or Static Asset serving in Production
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },
-      appType: 'spa',
+      appType: 'custom',
     });
     app.use(vite.middlewares);
+    app.use(pageHandler(async req => vite.transformIndexHtml(req.originalUrl, fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8'))));
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    if (fs.existsSync(distPath)) {
-      app.use(express.static(distPath));
-      app.get('*', (_req: Request, res: Response) => {
-        res.sendFile(path.join(distPath, 'index.html'));
-      });
-    }
+    app.use(express.static(distPath, { index: false }));
+    app.use(pageHandler(() => fs.readFileSync(path.join(distPath, 'index.html'), 'utf8')));
   }
+  app.use(globalErrorHandler);
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`[DTH Tamizhan] Unified Server listening on http://0.0.0.0:${PORT}`);

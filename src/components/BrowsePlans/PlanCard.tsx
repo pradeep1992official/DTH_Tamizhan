@@ -1,3 +1,4 @@
+import { formatPrice, formatMonthlyEquivalent, formatDuration, formatChannelCounts, validateCatalogPack } from '../../lib/catalog';
 import React from 'react';
 import { BrowsePlan, Language } from '../../types';
 import { OperatorTheme } from '../../lib/theme';
@@ -38,9 +39,8 @@ export const PlanCard: React.FC<PlanCardProps> = ({
     color: currentTheme.primaryColor,
   };
 
-  const monthlyRate = plan.monthly_equivalent_rate || Math.round(plan.price / plan.duration_months);
 
-  const duration = `${plan.duration_months} ${plan.duration_months === 1 ? t.month : t.months}`;
+  const duration = formatDuration(plan.duration_months, currentLang);
   const planName = currentLang === 'ta' && plan.tamilName ? plan.tamilName : plan.name;
 
   const channelListUrl = (() => {
@@ -85,8 +85,9 @@ export const PlanCard: React.FC<PlanCardProps> = ({
 
       <h3 className="font-bold break-words">{planName}</h3>
       <p className="compact-plan-summary text-sm text-muted">
-        <span>{plan.channel_count} {t.channels}{plan.hd_channel_count ? (currentLang === 'ta' ? ` (${plan.hd_channel_count} HD)` : `, including ${plan.hd_channel_count} HD`) : ''}</span>
+        <span>{formatChannelCounts(plan, currentLang)}</span>
       </p>
+      {validateCatalogPack(plan).length > 0 && <p role="status" className="text-error text-xs">Catalog details need review: {validateCatalogPack(plan).map(issue => issue.message).join(" ")}</p>}
       {channelListUrl && (
         <a className="compact-plan-channel-link" href={channelListUrl} target="_blank" rel="noopener noreferrer" aria-label={`${channelListLabel}: ${planName}`}>
           {channelListLabel} <span aria-hidden="true">&rarr;</span>
@@ -95,13 +96,13 @@ export const PlanCard: React.FC<PlanCardProps> = ({
 
       <footer className="compact-plan-footer">
         <div className="compact-plan-price">
-          <span className="text-2xl font-bold tabular-nums tracking-tight">Rs. {plan.price}</span>
+          <span className="text-2xl font-bold tabular-nums tracking-tight">{formatPrice(plan.price, currentLang)}</span>
           <span className="compact-plan-total block text-xs text-muted">
             {currentLang === 'ta' ? `${duration} \u0bae\u0bca\u0ba4\u0bcd\u0ba4\u0bae\u0bcd` : `Total for ${duration.toLowerCase()}`}
           </span>
           {plan.duration_months > 1 && (
             <span className="compact-plan-monthly block text-xs text-muted">
-              Rs. {monthlyRate} {t.perMonth}
+              {formatMonthlyEquivalent(plan.price, plan.duration_months, currentLang)}
             </span>
           )}
         </div>

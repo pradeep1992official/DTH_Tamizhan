@@ -16,6 +16,7 @@ interface PlanFilterSidebarProps {
   currentTheme: OperatorTheme;
   currentLang: Language;
   totalResults: number;
+  priceMaximum?: number;
 }
 
 const ALL_OPERATORS: { id: DthOperatorId; name: string; tamilName: string; color: string }[] = [
@@ -32,6 +33,7 @@ export const PlanFilterSidebar: React.FC<PlanFilterSidebarProps> = ({
   currentTheme,
   currentLang,
   totalResults,
+  priceMaximum = 5000,
 }) => {
   const t = translations[currentLang];
   const isLight = currentTheme.isLightMode;
@@ -64,7 +66,7 @@ export const PlanFilterSidebar: React.FC<PlanFilterSidebarProps> = ({
     (filters.type !== 'all' ? 1 : 0) +
     filters.durations.length +
     filters.genreTags.length +
-    (filters.priceRange[1] < 5000 || filters.priceRange[0] > 100 ? 1 : 0) +
+    (filters.priceRange[1] < priceMaximum || filters.priceRange[0] > 100 ? 1 : 0) +
     (filters.channelRange[0] > 0 || filters.channelRange[1] < 500 ? 1 : 0);
 
   return (
@@ -226,20 +228,20 @@ export const PlanFilterSidebar: React.FC<PlanFilterSidebarProps> = ({
             {t.filterByPrice}
           </label>
           <span className="font-mono" style={{ color: currentTheme.primaryColor }}>
-            ₹{filters.priceRange[0]} - ₹{filters.priceRange[1]}
+            ₹{filters.priceRange[0]} - ₹{Math.min(filters.priceRange[1], priceMaximum)}
           </span>
         </div>
         <input
           type="range"
           aria-label={t.filterByPrice}
           min="100"
-          max="5000"
+          max={priceMaximum}
           step="50"
-          value={filters.priceRange[1]}
+          value={Math.min(filters.priceRange[1], priceMaximum)}
           onChange={(e) =>
             onChange({
               ...filters,
-              priceRange: [filters.priceRange[0], parseInt(e.target.value, 10)],
+              priceRange: [filters.priceRange[0], Number(e.target.value) === priceMaximum ? Infinity : Number(e.target.value)],
             })
           }
           className="w-full accent-amber-500 cursor-pointer"

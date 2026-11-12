@@ -76,6 +76,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   // Unified Admin Data Hook
   const adminData = useAdminData(user, showToast);
   const {
+    adminAuthorized,
+    adminError,
     getAuthHeaders,
     customers,
     custLoading,
@@ -108,7 +110,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
   // Fetch relevant tab data on tab switch or mount
   useEffect(() => {
-    if (!user) return;
+    if (!user || !adminAuthorized) return;
 
     switch (activeTab) {
       case 'customers':
@@ -136,13 +138,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         fetchAccessList();
         break;
     }
-  }, [activeTab, user, fetchCustomers, fetchOrders, fetchPacks, fetchPayments, fetchReports, fetchOperators, fetchAccessList]);
+  }, [activeTab, user, adminAuthorized, fetchCustomers, fetchOrders, fetchPacks, fetchPayments, fetchReports, fetchOperators, fetchAccessList]);
 
-  const isAdmin = isUserAdmin(user, approvedAdmins.map((a) => a.email));
+  const isAdmin = adminAuthorized;
 
   if (!user || !isAdmin) {
     return (
       <div className="admin-access">
+        {adminError && <p role="alert" className="text-error">{adminError}</p>}
         <div className="admin-access-icon">
           <ShieldCheck className="w-7 h-7" />
         </div>
@@ -187,6 +190,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
   return (
     <div className="admin-shell">
+      {adminError && <p role="alert" className="text-error">{adminError}</p>}
       {/* Toast */}
       {toastMsg && (
         <div role="status" className="admin-toast">

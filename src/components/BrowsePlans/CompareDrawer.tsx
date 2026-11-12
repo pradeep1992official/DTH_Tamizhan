@@ -1,3 +1,4 @@
+import { formatPrice, formatDuration } from '../../lib/catalog';
 import React from 'react';
 import { X, Scale, ArrowRight, Trash2, CheckCircle2 } from '../../lib/icons';
 import { BrowsePlan, Language } from '../../types';
@@ -78,7 +79,7 @@ export const CompareDrawer: React.FC<CompareDrawerProps> = ({
                     {plan.name}
                   </span>
                   <span className="text-sm text-muted tabular-nums">
-                    ₹{plan.price} • {plan.type}
+                    {formatPrice(plan.price, currentLang)} • {plan.type}
                   </span>
                 </div>
                 <button

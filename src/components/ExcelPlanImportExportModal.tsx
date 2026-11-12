@@ -18,7 +18,7 @@ import {
   ArrowUpRight,
   Database
 } from '../lib/icons';
-import { PlanCatalogItem, DthOperatorId, UserProfile, isSameDthOperatorGroup } from '../types';
+import { PlanCatalogItem, DthOperatorId, UserProfile, Language, isSameDthOperatorGroup } from '../types';
 import { OperatorTheme } from '../lib/theme';
 import {
   exportPlansToExcel,
@@ -37,6 +37,7 @@ interface ExcelPlanImportExportModalProps {
   onClose: () => void;
   plans: PlanCatalogItem[];
   currentTheme: OperatorTheme;
+  currentLang?: Language;
   user: UserProfile | null;
   onPlansUpdated: (newPlans: PlanCatalogItem[]) => void;
   defaultTab?: 'import' | 'export';
@@ -47,6 +48,7 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
   onClose,
   plans,
   currentTheme,
+  currentLang = 'en',
   user,
   onPlansUpdated,
   defaultTab = 'import',
@@ -256,6 +258,8 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
 
           <button
             onClick={onClose}
+            type="button"
+            aria-label={currentLang === 'ta' ? 'மூடு' : 'Close'}
             className={`p-2 rounded-xl transition-colors border ${
               isLight ? 'bg-paper hover:bg-paper-2 text-muted border-rule' : 'bg-paper hover:bg-paper text-muted border-rule'
             }`}

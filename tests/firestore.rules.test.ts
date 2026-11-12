@@ -146,13 +146,13 @@ describe('Firestore Security Rules', () => {
     });
 
     describe('/admins/{adminId}', () => {
-      it('allows Super Admin (professorpradeeps@gmail.com) to create and manage admins', async () => {
+      it('denies browser registry writes even for the super admin', async () => {
         if (!testEnv) return;
         const superAdminDb = testEnv
-          .authenticatedContext('super_admin_uid', { email: 'professorpradeeps@gmail.com' })
+          .authenticatedContext('super_admin_uid', { email: 'professorpradeeps@gmail.com', email_verified: true })
           .firestore();
 
-        await assertSucceeds(
+        await assertFails(
           superAdminDb.doc('admins/admin_sub1').set({
             email: 'subadmin@example.com',
             status: 'approved',
@@ -206,7 +206,7 @@ describe('Firestore Security Rules', () => {
       it('allows super admin to create and update plans in plan catalog', async () => {
         if (!testEnv) return;
         const superAdminDb = testEnv
-          .authenticatedContext('admin_uid', { email: 'professorpradeeps@gmail.com' })
+          .authenticatedContext('admin_uid', { email: 'professorpradeeps@gmail.com', email_verified: true })
           .firestore();
 
         await assertSucceeds(
@@ -255,11 +255,31 @@ describe('Firestore Security Rules', () => {
     });
 
     describe('/recharge_orders/{orderId}', () => {
-      it('allows order creation and prevents order deletion (immutable audit trail)', async () => {
+      it('allows approved admin list reads and denies ordinary users, revoked admins and logged-out users', async () => {
+        if (!testEnv) return;
+        await testEnv.withSecurityRulesDisabled(async context => {
+          await context.firestore().doc('admins/approved_uid').set({ email: 'admin@example.com', status: 'approved' });
+          await context.firestore().doc('admins/revoked_uid').set({ email: 'revoked@example.com', status: 'revoked' });
+          await context.firestore().doc('recharge_orders/fixture').set({ user_id: 'owner', paymentStatus: 'initiated' });
+        });
+        const admin = testEnv.authenticatedContext('approved_uid', { email: 'admin@example.com', email_verified: true }).firestore();
+        await assertSucceeds(admin.collection('recharge_orders').get());
+        const ordinary = testEnv.authenticatedContext('customer', { email: 'customer@example.com', email_verified: true }).firestore();
+        const revoked = testEnv.authenticatedContext('revoked_uid', { email: 'revoked@example.com', email_verified: true }).firestore();
+        await assertFails(ordinary.collection('recharge_orders').get());
+        await assertFails(revoked.collection('recharge_orders').get());
+        await assertFails(testEnv.unauthenticatedContext().firestore().collection('recharge_orders').get());
+        for (const db of [admin, ordinary, testEnv.unauthenticatedContext().firestore()]) {
+          await assertFails(db.doc('recharge_orders/forged').set({ paymentStatus: 'paid' }));
+          await assertFails(db.doc('pending_recharges/forged').set({ paymentStatus: 'paid' }));
+          await assertFails(db.doc('recharge_orders/fixture').update({ paymentStatus: 'paid' }));
+        }
+      });
+      it('denies client order creation and deletion (server payment verification required)', async () => {
         if (!testEnv) return;
         const customerDb = testEnv.authenticatedContext('cust_1', { email: 'cust@example.com' }).firestore();
 
-        await assertSucceeds(
+        await assertFails(
           customerDb.doc('recharge_orders/order_1001').set({
             order_id: 'order_1001',
             user_id: 'cust_1',
@@ -270,7 +290,7 @@ describe('Firestore Security Rules', () => {
 
         // Deletion is strictly forbidden for anyone to preserve financial audit trail
         const superAdminDb = testEnv
-          .authenticatedContext('admin_uid', { email: 'professorpradeeps@gmail.com' })
+          .authenticatedContext('admin_uid', { email: 'professorpradeeps@gmail.com', email_verified: true })
           .firestore();
         await assertFails(superAdminDb.doc('recharge_orders/order_1001').delete());
         await assertFails(customerDb.doc('recharge_orders/order_1001').delete());

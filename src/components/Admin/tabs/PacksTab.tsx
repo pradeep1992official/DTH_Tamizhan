@@ -1,3 +1,4 @@
+import { formatPrice, formatMonthlyEquivalent, formatDuration, validateCatalogPack } from '../../../lib/catalog';
 import { AdminRefreshButton } from '../AdminRefreshButton';
 import React, { useState } from 'react';
 import {
@@ -86,12 +87,17 @@ export const PacksTab: React.FC<PacksTabProps> = ({
     amount: number | string;
     is_recommended: boolean;
     channel_list: string[];
+    channel_count: number | string;
+    hd_channel_count: number | string;
+    channel_counts_unavailable?: boolean;
   }>({
     operator: 'sun_direct',
     pack_type: 'HD',
     duration_months: 6,
     plan_name: '',
     amount: '',
+    channel_count: '',
+    hd_channel_count: '',
     is_recommended: true,
     channel_list: ['Sun TV HD', 'KTV HD', 'Sun Music HD', 'Star Vijay HD', 'Zee Tamil HD'],
   });
@@ -127,6 +133,8 @@ export const PacksTab: React.FC<PacksTabProps> = ({
       duration_months: 1,
       plan_name: '',
       amount: '',
+    channel_count: '',
+    hd_channel_count: '',
       is_recommended: true,
       channel_list: ['Sun TV HD', 'KTV HD', 'Star Vijay HD', 'Zee Tamil HD'],
     });
@@ -142,6 +150,9 @@ export const PacksTab: React.FC<PacksTabProps> = ({
       duration_months: plan.duration_months,
       plan_name: plan.plan_name,
       amount: plan.amount,
+      channel_count: plan.channel_count ?? '',
+      hd_channel_count: plan.hd_channel_count ?? '',
+      channel_counts_unavailable: plan.channel_counts_unavailable,
       is_recommended: plan.is_recommended,
       channel_list: [...plan.channel_list],
     });
@@ -168,15 +179,16 @@ export const PacksTab: React.FC<PacksTabProps> = ({
         amount: Number(formData.amount),
         price: Number(formData.amount),
         is_recommended: formData.is_recommended,
-        channel_count: formData.channel_list.length || (formData.pack_type === 'HD' ? 210 : 145),
-        hd_channel_count: formData.pack_type === 'HD' ? 32 : 0,
+        channel_counts_unavailable: formData.channel_counts_unavailable,
+        channel_count: formData.channel_counts_unavailable ? undefined : formData.channel_count === '' ? NaN : Number(formData.channel_count),
+        hd_channel_count: formData.channel_counts_unavailable ? undefined : formData.hd_channel_count === '' ? NaN : Number(formData.hd_channel_count),
         channel_list: formData.channel_list,
         channels: formData.channel_list,
         genre_tags: ['tamil', 'entertainment'],
         description: `${formData.pack_type} pack for ${formData.duration_months} Month(s)`,
       }, adminUid);
 
-      showToast(`Pack "${saved.plan_name}" saved to Firestore.`);
+      showToast(`Pack "${saved.plan_name}" saved to the catalog.`);
       setIsPackModalOpen(false);
       onRefresh();
     } catch (err: any) {
@@ -330,6 +342,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
                   <tr key={plan.id} className="hover:bg-paper-2 transition-colors">
                     <td data-label={t.packNameLabel} className="p-3.5 font-medium">
                       <div className="font-bold text-sm text-ink ">{plan.plan_name}</div>
+                      {validateCatalogPack(plan).length > 0 && <p className="text-error text-xs">{validateCatalogPack(plan).map(issue => issue.message).join(" ")}</p>}
                       
                       <div className="md:hidden text-sm text-ink ">
                         {operatorNames[plan.operator] || plan.operator} · {plan.duration_months}M
@@ -342,11 +355,11 @@ export const PacksTab: React.FC<PacksTabProps> = ({
                       </span>
                     </td>
                     <td data-label={t.durationMonthsLabel} className="hidden md:table-cell p-3.5">
-                      <span className="compact-plan-pill compact-plan-duration" data-duration={plan.duration_months}>{plan.duration_months} Month{plan.duration_months > 1 ? 's' : ''}</span>
+                      <span className="compact-plan-pill compact-plan-duration" data-duration={plan.duration_months}>{formatDuration(plan.duration_months, currentLang)}</span>
                     </td>
                     <td data-label={t.priceInrLabel} className="p-3.5">
-                      <div className="font-medium text-sm text-ink">Rs. {plan.amount.toLocaleString('en-IN')}</div>
-                      {plan.duration_months > 1 && <div className="text-xs text-muted">Rs. {Math.round(plan.amount / plan.duration_months).toLocaleString('en-IN')}/mo</div>}
+                      <div className="font-medium text-sm text-ink">{formatPrice(plan.amount, currentLang)}</div>
+                      {plan.duration_months > 1 && <div className="text-xs text-muted">{formatMonthlyEquivalent(plan.amount, plan.duration_months, currentLang)}</div>}
                     </td>
                     <td data-label={t.status} className="hidden sm:table-cell p-3.5">
                       {plan.is_recommended ? (
@@ -487,7 +500,8 @@ export const PacksTab: React.FC<PacksTabProps> = ({
                 <input
                   type="number"
                   required
-                  min={10}
+                  min={0.01}
+                  step={0.01}
                   value={formData.amount}
                   onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                   placeholder="1650"
@@ -507,6 +521,15 @@ export const PacksTab: React.FC<PacksTabProps> = ({
                 </label>
               </div>
 
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={!!formData.channel_counts_unavailable} onChange={event => setFormData({ ...formData, channel_counts_unavailable: event.target.checked })} />
+                {currentLang === 'ta' ? 'சேனல் எண்ணிக்கை வழங்கப்படவில்லை' : 'Channel counts not provided'}
+              </label>
+              {!formData.channel_counts_unavailable && <div className="grid grid-cols-2 gap-3">
+                <label className="font-medium">Total channels<input type="number" min="1" required value={formData.channel_count} onChange={event => setFormData({ ...formData, channel_count: event.target.value })} className="w-full rounded-xl px-3 py-2 border bg-ink/20" /></label>
+                <label className="font-medium">HD channels<input type="number" min="0" required value={formData.hd_channel_count} onChange={event => setFormData({ ...formData, hd_channel_count: event.target.value })} className="w-full rounded-xl px-3 py-2 border bg-ink/20" /></label>
+              </div>
+              }
               {/* Channels List Editor */}
               <div className="space-y-2">
                 <label className="font-medium block text-ink ">Channel Highlights</label>
@@ -620,6 +643,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
         onClose={() => setIsExcelModalOpen(false)}
         plans={plans}
         currentTheme={currentTheme}
+          currentLang={currentLang}
         user={user}
         onPlansUpdated={(newPlans) => {
           onPlansUpdated(newPlans);

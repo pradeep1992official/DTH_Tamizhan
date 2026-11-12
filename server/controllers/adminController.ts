@@ -1,3 +1,4 @@
+import { getAuth } from 'firebase-admin/auth';
 import { customersFromSuccessfulRecharges } from '../../src/lib/rechargeCustomers';
 import { Request, Response } from 'express';
 import {
@@ -13,6 +14,7 @@ import {
   saveOperatorSettingsToDisk,
 } from '../models/store';
 import {
+  getAdminFirestore,
   getSuperAdminEmail,
   isCallerAdminAuthorized,
   isSuperAdmin,
@@ -25,6 +27,14 @@ function forbidden(res: Response): void {
 }
 
 export const adminController = {
+  async auditLogs(req: Request, res: Response): Promise<void> {
+    const verdict = await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS);
+    if (!verdict.authorized) return forbidden(res);
+    try {
+      const records = await getAdminFirestore().collection('plan_audit_logs').orderBy('updated_at', 'desc').limit(20).get();
+      res.json({ success: true, logs: records.docs.map(record => ({ ...record.data(), id: record.id })) });
+    } catch { res.status(503).json({ success: false, error: 'Unable to load audit logs.' }); }
+  },
   async verifyToken(req: Request, res: Response): Promise<void> {
     const auth = await verifyAuthToken(req);
     if (!auth) {
@@ -33,8 +43,9 @@ export const adminController = {
     }
     const superAdminEmail = getSuperAdminEmail();
     const callerEmail = auth.email || '';
-    const isSuper = callerEmail === superAdminEmail;
-    const isApproved = APPROVED_ADMIN_EMAILS.has(callerEmail) || isSuper;
+    const verdict = await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS);
+    const isSuper = verdict.isSuperAdmin;
+    const isApproved = verdict.authorized;
     res.json({
       success: true,
       authenticated: true,
@@ -149,25 +160,19 @@ export const adminController = {
       res.status(401).json({ success: false, error: 'Authentication required.' });
       return;
     }
-    const callerEmail = auth.email || '';
-    const superAdmin = isSuperAdmin(callerEmail);
-    const approved = APPROVED_ADMIN_EMAILS.has(callerEmail) || superAdmin;
-    if (superAdmin) {
-      res.json({
-        success: true,
-        superAdminEmail: getSuperAdminEmail(),
-        admins: MEMORY_ADMINS.filter((admin) => admin.status === 'approved'),
-        requests: MEMORY_ADMIN_REQUESTS,
-      });
-      return;
-    }
-    res.json({
-      success: true,
-      superAdminEmail: getSuperAdminEmail(),
-      admins: MEMORY_ADMINS.filter((admin) => admin.status === 'approved' && admin.email.toLowerCase() === callerEmail),
-      requests: MEMORY_ADMIN_REQUESTS.filter((request) => request.userEmail.toLowerCase() === callerEmail),
-      isApprovedAdmin: approved,
-    });
+    const verdict = await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS);
+    if (!verdict.authorized) return forbidden(res);
+    try {
+      const records = await getAdminFirestore().collection('admins').get();
+      const listedAdmins = records.docs.map(record => ({ ...record.data(), uid: record.id } as any))
+        .filter(record => record.status === 'approved' && (verdict.isSuperAdmin || record.uid === auth.uid));
+      // Legacy root-email documents are duplicate directory entries, not extra
+      // root identities. Prefer the verified caller's canonical UID record.
+      const rootEntries = listedAdmins.filter(record => isSuperAdmin(record.email));
+      const rootEntry = rootEntries.find(record => record.uid === auth.uid) || rootEntries[0];
+      const admins = listedAdmins.filter(record => !isSuperAdmin(record.email) || record === rootEntry);
+      res.json({ success: true, admins, requests: verdict.isSuperAdmin ? MEMORY_ADMIN_REQUESTS : [], isApprovedAdmin: true });
+    } catch { res.status(503).json({ success: false, error: 'Administrator registry unavailable.' }); }
   },
 
   async requestAccess(req: Request, res: Response): Promise<void> {
@@ -200,11 +205,26 @@ export const adminController = {
 
   async approveUser(req: Request, res: Response): Promise<void> {
     const auth = await verifyAuthToken(req);
-    if (!auth || !isSuperAdmin(auth.email)) {
+    if (!auth || !auth.emailVerified || !isSuperAdmin(auth.email)) {
       res.status(403).json({ success: false, error: 'Forbidden. Only the Super Administrator can grant administrative privileges.' });
       return;
     }
     const cleanEmail = req.body.userEmail.trim().toLowerCase();
+    let target;
+    try {
+      target = await getAuth().getUserByEmail(cleanEmail);
+    } catch (error: any) {
+      if (error?.code === 'auth/user-not-found') {
+        res.status(404).json({ success: false, code: 'ADMIN_ACCOUNT_NOT_REGISTERED', error: 'This email has not registered with this app. Ask the person to sign in with Google once, then grant access again.' }); return;
+      }
+      res.status(503).json({ success: false, code: 'ADMIN_AUTH_UNAVAILABLE', error: 'Unable to look up the Firebase account. Check the server Firebase credentials and Authentication permissions, then retry.' }); return;
+    }
+    const targetUid = target.uid;
+    try {
+      await getAdminFirestore().collection('admins').doc(targetUid).set({ uid: targetUid, email: cleanEmail,
+        displayName: req.body.name || target.displayName || cleanEmail, role: 'admin', status: 'approved',
+        approvedBy: auth.email, approvedAt: new Date().toISOString() }, { merge: true });
+    } catch { res.status(503).json({ success: false, code: 'ADMIN_REGISTRY_UNAVAILABLE', error: 'Unable to save administrator access. Check the server Firestore permissions, then retry.' }); return; }
     const existing = MEMORY_ADMINS.find((admin) => admin.email.toLowerCase() === cleanEmail);
     if (existing) {
       existing.status = 'approved';
@@ -213,7 +233,7 @@ export const adminController = {
       existing.approvedAt = new Date().toISOString();
     } else {
       MEMORY_ADMINS.push({
-        uid: `admin_${Date.now().toString().slice(-6)}`,
+        uid: targetUid,
         email: cleanEmail,
         displayName: req.body.name || cleanEmail.split('@')[0],
         role: 'admin',
@@ -235,14 +255,41 @@ export const adminController = {
 
   async revokeUser(req: Request, res: Response): Promise<void> {
     const auth = await verifyAuthToken(req);
-    if (!auth || !isSuperAdmin(auth.email)) {
+    if (!auth || !auth.emailVerified || !isSuperAdmin(auth.email)) {
       res.status(403).json({ success: false, error: 'Forbidden. Only the Super Administrator can revoke administrative privileges.' });
       return;
     }
     const cleanEmail = req.body.userEmail.trim().toLowerCase();
-    if (cleanEmail === getSuperAdminEmail()) {
+    if (cleanEmail === getSuperAdminEmail() || req.body.uid === auth.uid) {
       res.status(400).json({ success: false, error: 'Root Super Administrator privileges cannot be revoked.' });
       return;
+    }
+    try {
+      // The listed registry ID is authoritative, even if the Auth account was deleted
+      // or its email changed. Bind it to the listed email before changing access.
+      const targetUid = req.body.uid || (await getAuth().getUserByEmail(cleanEmail)).uid;
+      if (targetUid === auth.uid) {
+        res.status(400).json({ success: false, error: 'Root Super Administrator privileges cannot be revoked.' }); return;
+      }
+      const db = getAdminFirestore();
+      const reference = db.collection('admins').doc(targetUid);
+      const failure = await db.runTransaction(async transaction => {
+        const record = await transaction.get(reference);
+        const data = record.data();
+        if (!record.exists) return { status: 404, error: 'Administrator record no longer exists. Refresh the admin list.' };
+        if (typeof data?.email !== 'string' || data.email.trim().toLowerCase() !== cleanEmail) {
+          return { status: 409, error: 'Administrator details changed. Refresh the admin list before revoking access.' };
+        }
+        if (isSuperAdmin(data.email)) return { status: 400, error: 'Root Super Administrator privileges cannot be revoked.' };
+        if (data.status !== 'revoked') transaction.update(reference, { status: 'revoked', revokedBy: auth.email, revokedAt: new Date().toISOString() });
+        return null;
+      });
+      if (failure) { res.status(failure.status).json({ success: false, error: failure.error }); return; }
+    } catch (error: any) {
+      if (error?.code === 'auth/user-not-found') {
+        res.status(404).json({ success: false, error: 'Firebase account not found. Refresh the admin list and revoke the listed record.' }); return;
+      }
+      res.status(503).json({ success: false, error: 'Unable to update the administrator registry. Check the server Firebase credentials and permissions, then retry.' }); return;
     }
     const admin = MEMORY_ADMINS.find((item) => item.email.toLowerCase() === cleanEmail);
     if (admin) {
@@ -252,35 +299,6 @@ export const adminController = {
     refreshApprovedAdminEmails();
     saveAdminsToDisk();
     res.json({ success: true, message: `Administrator privileges revoked for ${cleanEmail}.` });
-  },
-
-  async syncAdmins(req: Request, res: Response): Promise<void> {
-    const auth = await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS);
-    if (!auth.authorized) return forbidden(res);
-    const { admins } = req.body;
-    if (Array.isArray(admins) && admins.length > 0) {
-      admins.forEach((admin: any) => {
-        if (!admin?.email) return;
-        const email = String(admin.email).trim().toLowerCase();
-        const existing = MEMORY_ADMINS.find((item) => item.email.toLowerCase() === email);
-        const status = admin.status === 'revoked' ? 'revoked' : 'approved';
-        if (existing) existing.status = status;
-        else {
-          MEMORY_ADMINS.push({
-            uid: admin.uid || `admin_${Date.now().toString().slice(-6)}`,
-            email,
-            displayName: admin.displayName || email.split('@')[0],
-            role: admin.role || 'admin',
-            status,
-            approvedBy: admin.approvedBy || 'Firestore Sync',
-            approvedAt: admin.approvedAt || new Date().toISOString(),
-          });
-        }
-      });
-      refreshApprovedAdminEmails();
-      saveAdminsToDisk();
-    }
-    res.json({ success: true, count: MEMORY_ADMINS.length });
   },
 
   async operators(req: Request, res: Response): Promise<void> {
