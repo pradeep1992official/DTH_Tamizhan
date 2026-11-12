@@ -1,3 +1,4 @@
+import { connectionCacheKey, ownedConnections, readConnectionCache } from './lib/connectionCache';
 import { RouteEffects } from './components/RouteEffects';
 import { AccountPage } from './components/AccountPage';
 import { ErrorPage } from './components/ErrorPages';
@@ -158,17 +159,14 @@ function MainApp() {
   const currentTheme = getOperatorTheme(selectedOpId);
 
   // Saved Connections
-  const [connections, setConnections] = useState<DthConnection[]>(() => {
-    try {
-      const saved = localStorage.getItem('dth_tamizhan_connections');
-      if (saved) {
-        const parsed: unknown = JSON.parse(saved);
-        if (!Array.isArray(parsed)) return [];
-        return parsed as DthConnection[];
-      }
-    } catch {}
-    return [];
-  });
+  const [connectionOwner, setConnectionOwner] = useState(user?.uid || null);
+  const [storedConnections, setConnections] = useState<DthConnection[]>(() => readConnectionCache(localStorage, user?.uid));
+  const connections = ownedConnections(storedConnections, user?.uid);
+  useEffect(() => {
+    setConnections(readConnectionCache(localStorage, user?.uid));
+    setConnectionOwner(user?.uid || null);
+    setPrefillConn(null);
+  }, [user?.uid]);
 
   // Modals
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -188,11 +186,13 @@ function MainApp() {
 
   // Persist User
   useEffect(() => {
+    let cancelled = false;
     if (user) {
       localStorage.setItem('dth_tamizhan_user', JSON.stringify(user));
       if (isFirebaseConfigured && db && user.uid) {
         const q = query(collection(db, 'dth_connections'), where('user_id', '==', user.uid));
         getDocs(q).then((snap) => {
+          if (cancelled) return;
           if (!snap.empty) {
             const remoteConns: DthConnection[] = [];
             snap.forEach((docSnap: QueryDocumentSnapshot<DocumentData>) => {
@@ -219,7 +219,7 @@ function MainApp() {
             if (remoteConns.length > 0) {
               setConnections((prev) => {
                 const map = new Map<string, DthConnection>();
-                prev.forEach((c) => map.set(`${c.operator}_${c.smartCardNumber}`, c));
+                ownedConnections(prev, user.uid).forEach((c) => map.set(`${c.operator}_${c.smartCardNumber}`, c));
                 remoteConns.forEach((c) => map.set(`${c.operator}_${c.smartCardNumber}`, c));
                 return Array.from(map.values());
               });
@@ -232,12 +232,14 @@ function MainApp() {
     } else {
       localStorage.removeItem('dth_tamizhan_user');
     }
+    return () => { cancelled = true; };
   }, [user]);
 
   // Persist Connections
   useEffect(() => {
-    localStorage.setItem('dth_tamizhan_connections', JSON.stringify(connections));
-  }, [connections]);
+    if (!user?.uid || connectionOwner !== user.uid) return;
+    localStorage.setItem(connectionCacheKey(user.uid), JSON.stringify(ownedConnections(storedConnections, user.uid)));
+  }, [storedConnections, connectionOwner, user?.uid]);
 
   const handleAuthSuccess = (profile: UserProfile) => {
     setUser(profile);
@@ -255,6 +257,12 @@ function MainApp() {
   };
 
   const handleSignOut = () => {
+    setConnections([]);
+    setConnectionOwner(null);
+    setPrefillConn(null);
+    setIsPaymentOpen(false);
+    setIsReceiptOpen(false);
+    setLastCompletedOrder(null);
     setUser(null);
     localStorage.removeItem('dth_tamizhan_user');
     navigate('/');
@@ -286,7 +294,7 @@ function MainApp() {
     setIsReceiptOpen(true);
 
     const existingBox = connections.find((c) => c.operator === completedOrder.operator && c.smartCardNumber === completedOrder.smartCardNumber);
-    if (activeSaveBox || existingBox) {
+    if (user && completedOrder.user_id === user.uid && (activeSaveBox || existingBox)) {
       const rechargeDate = completedOrder.createdAt;
       const packDurationMonths = Number(activePaymentPlan?.duration_months) || getPackDuration(completedOrder.packValidity) || (Number(activePaymentPlan?.validityDays) / 30) || undefined;
       const newConn: DthConnection = {
@@ -325,14 +333,17 @@ function MainApp() {
   };
 
   const handleQuickRechargeFromSaved = (conn: DthConnection) => {
+    if (!user || conn.user_id !== user.uid) return;
     setPrefillConn(conn);
     handleSelectOpId(conn.operator);
     navigate('/recharge');
   };
 
   const handleAddConnection = async (conn: Omit<DthConnection, 'id' | 'createdAt'> | DthConnection) => {
+    if (!user || conn.user_id !== user.uid) return;
     const fullConn: DthConnection = {
       ...conn,
+      user_id: user.uid,
       id: 'id' in conn && conn.id ? conn.id : `conn-${Date.now()}`,
       createdAt: 'createdAt' in conn && conn.createdAt ? conn.createdAt : new Date().toISOString(),
     };
@@ -349,6 +360,7 @@ function MainApp() {
   };
 
   const handleDeleteConnection = async (id: string) => {
+    if (!user || !connections.some(conn => conn.id === id && conn.user_id === user.uid)) return;
     setConnections((prev) => prev.filter((c) => c.id !== id));
     if (isFirebaseConfigured && db) {
       try {
@@ -360,6 +372,7 @@ function MainApp() {
   };
 
   const handleApplyPlanFromBrowse = (plan: BrowsePlan, connection: DthConnection) => {
+    if (!user || connection.user_id !== user.uid) return;
     setPrefillConn(connection);
     handleSelectOpId(plan.operator);
     navigate('/recharge');
