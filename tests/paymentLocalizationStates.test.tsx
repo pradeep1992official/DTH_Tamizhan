@@ -3,7 +3,6 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 const cells = vi.hoisted(() => ({ values: [] as unknown[], index: 0 }));
 vi.mock('react', async original => ({ ...(await original<any>()), useState: (initial: any) => [cells.values[cells.index++] ?? initial, vi.fn()] }));
-vi.mock('../src/components/TrustContent', () => ({ CheckoutPolicies: () => null }));
 import { PaymentModal } from '../src/components/PaymentModal';
 const now = 1000000;
 const ready = { id: 'TEST-fixture', mode: 'sandbox', status: 'ready', provider: 'Local sandbox simulator', packName: 'Fixture', validity: '6 months', amountPaise: 139900, expiresAt: now + 180000 };

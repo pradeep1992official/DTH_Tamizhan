@@ -4,7 +4,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { BUSINESS_DETAILS, POLICY_CONTENT, POLICY_ROUTES } from '../src/lib/trustContent';
-import { CheckoutPolicies, PolicyLinks, SupportDetails } from '../src/components/TrustContent';
+import { PolicyLinks, SupportDetails } from '../src/components/TrustContent';
+import { PaymentModal } from '../src/components/PaymentModal';
 import { PolicyPage, policyPageTitle } from '../src/components/PolicyPage';
 import { translations } from '../src/lib/translations';
 import { ReceiptModal } from '../src/components/ReceiptModal';
@@ -36,13 +37,14 @@ describe('trust and legal routes (QA-07)', () => {
       expect(html).toContain(route.ta);
     }
   });
-  it.each(['en', 'ta'] as const)('shows policies and the same support placeholders beside checkout in %s', currentLang => {
-    const html = renderToStaticMarkup(<MemoryRouter><CheckoutPolicies currentLang={currentLang} onNavigate={() => {}} /></MemoryRouter>);
-    for (const route of POLICY_ROUTES) expect(html).toContain(`href="${route.path}"`);
-    expect(html).toContain(businessDetails(currentLang).phone);
-    expect(html).toContain(businessDetails(currentLang).email);
-    expect(html).toContain(businessDetails(currentLang).supportHours);
-    expect(html).toContain(currentLang === 'en' ? 'By paying you agree' : 'பணம் செலுத்துவதன் மூலம்');
+  it.each(['en', 'ta'] as const)('omits policy links and business/support placeholders from checkout in %s', currentLang => {
+    const html = renderToStaticMarkup(<PaymentModal isOpen onClose={() => {}} currentLang={currentLang} currentTheme={{} as any} user={null} plan={{ name: 'Fixture', price: 200, validityDays: 30 }} subscriber={null} operator={{ id: 'sun_direct', name: 'Sun Direct' } as any} smartCard="41289456123" saveBox={false} onPaymentSuccess={() => {}} />);
+    for (const route of POLICY_ROUTES) expect(html).not.toContain(`href="${route.path}"`);
+    expect(html).not.toContain('[FILL IN]');
+    expect(html).not.toContain(businessDetails(currentLang).phone);
+    expect(html).not.toContain(businessDetails(currentLang).email);
+    expect(html).not.toContain(businessDetails(currentLang).supportHours);
+    expect(html).not.toContain(currentLang === 'en' ? 'By paying you agree' : 'பணம் செலுத்துவதன் மூலம்');
   });
   it('keeps refund timelines unresolved and preserves statutory remedies', () => {
     const text = JSON.stringify(POLICY_CONTENT.refund);

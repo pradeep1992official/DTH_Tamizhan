@@ -314,17 +314,8 @@ export const DishTvHeroBannerGraphic: React.FC<{ currentLang?: Language }> = ({ 
 };
 
 export const HeroIllustrativeGraphic: React.FC<{ theme: OperatorTheme; currentLang?: Language }> = ({ theme, currentLang = 'en' }) => {
-  if (theme.id === 'airtel_dth') {
-    return <AirtelHeroBannerGraphic currentLang={currentLang} />;
-  }
-
-  if (theme.id === 'tata_play') {
-    return <TataPlayHeroBannerGraphic currentLang={currentLang} />;
-  }
-
-  if (theme.id === 'dish_tv' || theme.id === 'd2h') {
-    return <DishTvHeroBannerGraphic currentLang={currentLang} />;
-  }
-
+  if (theme.id === 'airtel_dth') return <AirtelHeroBannerGraphic currentLang={currentLang} />;
+  if (theme.id === 'tata_play') return <TataPlayHeroBannerGraphic currentLang={currentLang} />;
+  if (theme.id === 'dish_tv' || theme.id === 'd2h') return <DishTvHeroBannerGraphic currentLang={currentLang} />;
   return <SunDirectHeroBannerGraphic currentLang={currentLang} />;
 };

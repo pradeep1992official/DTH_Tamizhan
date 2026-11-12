@@ -23,7 +23,7 @@ describe('checkout instrument presentation', () => {
   });
   it('sandbox explicitly labels the mock QR and card', () => {
     const upi = renderToStaticMarkup(<PaymentInstrument method="upi" mode="sandbox" session={session} expired={false} seconds={179} />);
-    expect(upi).toContain('Mock QR illustration - cannot be scanned or paid');
+    expect(upi).toContain('UPI test session. No scannable QR or real payment is available.');
     expect(upi).toContain('2:59');
     const card = renderToStaticMarkup(<PaymentInstrument method="card" mode="sandbox" session={session} expired={false} seconds={179} />);
     expect(card).toContain('Mock card payment');

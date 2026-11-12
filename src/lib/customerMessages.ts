@@ -1,5 +1,20 @@
 // Customer copy. All Tamil values below are drafts requiring native-speaker review.
 const pairs = {
+  uiCatalogOperator: ['Operator', 'ஆபரேட்டர்'], // Native Tamil review required.
+  uiCatalogPack: ['Pack', 'பேக்'], // Native Tamil review required.
+  uiCatalogDuration: ['Duration', 'காலம்'], // Native Tamil review required.
+  uiCatalogTotal: ['Total', 'மொத்தம்'], // Native Tamil review required.
+  uiCatalogAction: ['Action', 'செயல்'], // Native Tamil review required.
+  uiNetworkError: ['We could not load the details. Check your connection, then try again.', 'விவரங்களை ஏற்ற முடியவில்லை. இணைய இணைப்பைச் சரிபார்த்து மீண்டும் முயற்சிக்கவும்.'], // Native Tamil review required.
+  uiTaskLanguage: ['Language for this recharge', 'ரீசார்ஜ் செய்யும் மொழி'], // Native Tamil review required.
+  uiOperatorChanged: ['Operator selected: {operator}. Check the ID below before continuing.', '{operator} தேர்ந்தெடுக்கப்பட்டது. கீழே உள்ள எண்ணைச் சரிபார்த்து தொடருங்கள்.'], // Native Tamil review required.
+  uiBoxIllustration: ['A remote and set-top box for DTH connections', 'DTH இணைப்புக்கான ரிமோட்டும் செட்-டாப் பாக்ஸும்'], // Native Tamil review required.
+  uiFindYourId: ['Where is my connection ID?', 'என் இணைப்பு எண்ணை எங்கே பார்ப்பது?'], // Native Tamil review required.
+  uiIdGuide: ['Look for the smart card or connection label on your box, or check your operator account. The label and location vary by operator. Match the number to the operator you selected.', 'உங்கள் செட்-டாப் பாக்ஸில் உள்ள ஸ்மார்ட் கார்டு அல்லது இணைப்பு விவரச் சீட்டைப் பாருங்கள். ஆபரேட்டரின் கணக்கிலும் எண்ணைக் காணலாம். ஒவ்வொரு ஆபரேட்டருக்கும் இடமும் பெயரும் மாறலாம். நீங்கள் தேர்ந்தெடுத்த ஆபரேட்டருக்கான எண்ணை உள்ளிடுங்கள்.'], // Native Tamil review required.
+  uiIdPhotoSlot: ['[FILL IN] Add a real annotated photo showing the ID label. Illustration only; not an operator-specific guide.', '[FILL IN] எண் இருக்கும் இடத்தைக் குறித்துக் காட்டும் உண்மையான படத்தைச் சேர்க்கவும். இது விளக்கப் படம் மட்டுமே; குறிப்பிட்ட ஆபரேட்டருக்கான வழிகாட்டி அல்ல.'], // Native Tamil review required.
+  uiBusinessSupport: ['Who to contact', 'உதவிக்கு யாரைத் தொடர்புகொள்வது'], // Native Tamil review required.
+  uiSupportDraft: ['Contact details marked [FILL IN] are awaiting confirmation and are not working support channels.', '[FILL IN] எனக் குறித்துள்ள தொடர்பு விவரங்கள் இன்னும் உறுதிப்படுத்தப்படவில்லை. அவை தற்போது பயன்படுத்தக்கூடிய உதவி எண்கள் அல்ல.'], // Native Tamil review required.
+  uiPaymentFacts: ['Checkout shows the provider, order reference and total. After payment, check the recharge status before paying again.', 'கட்டணப் பக்கத்தில் சேவை நிறுவனம், ஆர்டர் எண், மொத்தத் தொகை ஆகியவற்றைப் பார்க்கலாம். பணம் செலுத்திய பிறகு மீண்டும் செலுத்துவதற்கு முன் ரீசார்ஜ் நிலையைச் சரிபாருங்கள்.'], // Native Tamil review required.
   uiPackView: ["Pack view", "பேக்குகளைக் காணும் முறை"], // Native Tamil review required.
   uiAll: ["All", "அனைத்தும்"], // Native Tamil review required.
   uiSelectHDDuration: ["Select HD duration", "HD பேக்கின் காலத்தைத் தேர்ந்தெடுக்கவும்"], // Native Tamil review required.
@@ -19,7 +34,7 @@ const pairs = {
   uiRemoveFromComparison: ["Remove from comparison", "ஒப்பீட்டிலிருந்து நீக்கவும்"], // Native Tamil review required.
   uiPleaseSelectACompatibleSetTopBox: ["Please select a compatible Set-Top Box.", "இந்த ஆபரேட்டருக்கான செட்-டாப் பாக்ஸைத் தேர்ந்தெடுக்கவும்."], // Native Tamil review required.
   uiSelectSavedBox: ["Select Saved Box:", "சேமித்த பெட்டியைத் தேர்ந்தெடுக்கவும்:"], // Native Tamil review required.
-  uiMockQRIllustrationCannotBeScannedOrPaid: ["Mock QR illustration - cannot be scanned or paid", "இது சோதனை QR படம் மட்டுமே. இதை ஸ்கேன் செய்து பணம் செலுத்த முடியாது."], // Native Tamil review required.
+  uiMockQRIllustrationCannotBeScannedOrPaid: ["UPI test session. No scannable QR or real payment is available.", "இது UPI சோதனை அமர்வு மட்டுமே. ஸ்கேன் செய்யக்கூடிய QR அல்லது உண்மையான கட்டணம் இங்கு இல்லை."], // Native Tamil review required.
   uiProviderQRIsUnavailableRetryCheckoutToRequestAProviderOrder: ["Provider QR is unavailable. Retry checkout to request a provider order.", "கட்டணச் சேவையின் QR தற்போது கிடைக்கவில்லை. மீண்டும் முயற்சிக்கவும்."], // Native Tamil review required.
   uiMockCardPaymentNoCardNumberExpiryOrCVVIsRequiredUseTheTestControlsBelo: ["Mock card payment. No card number, expiry or CVV is required. Use the test controls below.", "இது சோதனைக் கார்டு கட்டணம் மட்டுமே. கார்டு எண், காலாவதி தேதி அல்லது CVV தேவையில்லை. கீழே உள்ள சோதனை வசதிகளைப் பயன்படுத்தவும்."], // Native Tamil review required.
   uiCardPaymentsRequireTheProviderHostedCheckoutProviderUnavailableNoCardD: ["Card payments require the provider hosted checkout. Provider unavailable; no card details are collected.", "கார்டு கட்டணம் கட்டணச் சேவையின் பக்கத்தில் மட்டுமே நடைபெறும். அந்தச் சேவை தற்போது கிடைக்கவில்லை; கார்டு விவரங்கள் எதுவும் பெறப்படாது."], // Native Tamil review required.
@@ -235,6 +250,7 @@ const byEnglish = new Map<string, string>(Object.values(pairs).map(([en, ta]) =>
 const byTamil = new Map<string, string>(Object.values(pairs).map(([en, ta]) => [ta, en]));
 export function localizeCustomerText(text: string, lang: 'en' | 'ta'): string { return (lang === 'ta' ? byEnglish : byTamil).get(text) || text; }
 export function localizeCustomerError(text: string, lang: 'en' | 'ta'): string {
+  if (/failed to fetch|network\s*(error|request)|networkerror|load failed/i.test(text)) return customerMessages[lang].uiNetworkError;
   if (lang === 'en') return byTamil.get(text) || text;
   return /[\u0b80-\u0bff]/.test(text) ? text : byEnglish.get(text) || customerMessages.ta.uiSomethingWentWrongPleaseTryAgain;
 }

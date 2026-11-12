@@ -17,6 +17,7 @@
 @import "./admin.css";
 @import "./dialogs.css";
 @import "./colorful.css";
+@import "./service.css";
 
 @layer base {
   html,

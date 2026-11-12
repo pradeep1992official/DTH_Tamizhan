@@ -26,11 +26,3 @@ export function SupportDetails({ currentLang, full = false }: { currentLang: Lan
   ];
   return <dl className="space-y-2 text-sm break-words">{rows.map(([label, value]) => <div key={label}><dt className="font-medium inline">{label}: </dt><dd className="inline">{value}</dd></div>)}</dl>;
 }
-
-export function CheckoutPolicies({ currentLang, onNavigate }: { currentLang: Language; onNavigate: () => void }) {
-  return <section aria-label={translations[currentLang].uiPaymentTermsAndSupport} className="space-y-3 border-t border-rule pt-4 text-sm">
-    <p>{translations[currentLang].uiByPayingYouAgreeToTheTermsOfUseAndRefundCancellationPolicyPleaseAlsoRe}</p>
-    <PolicyLinks currentLang={currentLang} onNavigate={onNavigate} />
-    <SupportDetails currentLang={currentLang} />
-  </section>;
-}

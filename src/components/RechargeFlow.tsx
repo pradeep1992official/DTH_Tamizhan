@@ -1,18 +1,16 @@
 import { formatMessage, localizeCustomerError } from '../lib/customerMessages';
 import { OperatorCatalogNotice } from './OperatorCatalogNotice';
 import { TOP_UP_LIMITS, parseTopUpAmount, validateTopUpAmount } from '../lib/topUpAmount';
-import { BUSINESS_DETAILS } from '../lib/trustContent';
+import { RechargeHelp } from './RechargeHelp';
 import { formatPrice, formatMonthlyEquivalent, formatDuration, formatChannelCounts, formatCatalogIssues, validateCatalogPack } from '../lib/catalog';
 import { subscriberError, subscriberHelp, subscriberRule, subscriberLabel, subscriberPlaceholder, normalizeSubscriberId } from '../lib/subscriberValidation';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Tv,
   CheckCircle2,
   AlertCircle,
-  Zap,
   Sparkles,
   CreditCard,
-  ShieldCheck,
   Crown,
   ChevronRight,
   ChevronDown,
@@ -43,6 +41,7 @@ import { HeroIllustrativeGraphic, OperatorCardLogo } from './BrandAssets';
 
 interface RechargeFlowProps {
   currentLang: Language;
+  onLanguageChange?: (lang: Language) => void;
   user: UserProfile | null;
   onInitiatePayment: (plan: DthPlan | { name: string; price: number; validityDays: number; pack_type?: string; duration_months?: number }, subscriber: SubscriberDetails | null, operator: DthOperator, smartCard: string, saveBox: boolean) => void;
   prefillConnection?: DthConnection | null;
@@ -54,6 +53,7 @@ interface RechargeFlowProps {
 
 export const RechargeFlow: React.FC<RechargeFlowProps> = ({
   currentLang,
+  onLanguageChange,
   user,
   onInitiatePayment,
   prefillConnection,
@@ -63,6 +63,15 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
   currentTheme,
 }) => {
   const t = translations[currentLang];
+  const plansRef = useRef<HTMLDivElement>(null);
+  const [packsReached, setPacksReached] = useState(false);
+  useEffect(() => {
+    // Keep the ID field unobstructed. Pin the total only after pack choices enter view.
+    if (!plansRef.current || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(([entry]) => setPacksReached(entry.isIntersecting), { rootMargin: '0px 0px -140px 0px' });
+    observer.observe(plansRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   const [operators, setOperators] = useState<DthOperator[]>([]);
   const [smartCardNumber, setSmartCardNumber] = useState('');
@@ -344,16 +353,6 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
             {t.heroDescription}
           </p>
 
-          <div className="recharge-assurances">
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border ${currentTheme.heroBadgeItemBg} ${currentTheme.heroBadgeItemText} ${currentTheme.heroBadgeItemBorder}`}>
-              <Zap className="w-4 h-4 text-warning" />
-              <span className="font-medium">{t.instantActivation}</span>
-            </div>
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border ${currentTheme.heroBadgeItemBg} ${currentTheme.heroBadgeItemText} ${currentTheme.heroBadgeItemBorder}`}>
-              <ShieldCheck className="w-4 h-4 text-success" />
-              <span className="font-medium">{t.secureEncryption}</span>
-            </div>
-          </div>
         </div>
 
         {/* Dynamic Illustrator Graphic per Operator */}
@@ -378,6 +377,8 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
             </h2>
           </div>
 
+          <p className="visually-hidden" role="status" aria-live="polite" aria-atomic="true">{currentOp ? formatMessage(t.uiOperatorChanged, { operator: currentOp.name }) : ''}</p>
+
           <div className="operator-options">
             {visibleOperators.map((op) => {
               const isSelected = op.id === selectedOpId;
@@ -388,6 +389,8 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                   key={op.id}
                   id={`operator-${op.id}-btn`}
                   type="button"
+                  aria-pressed={isSelected}
+                  data-operator={op.id}
                   onClick={() => {
                     onSelectOpId(op.id);
                     setValidationError(null);
@@ -448,6 +451,9 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
         {/* Step 2: Enter Smart Card / Customer ID */}
         {currentOp && (
           <div className={`recharge-subscriber`}>
+            {onLanguageChange && <div className="task-language" role="group" aria-label={t.uiTaskLanguage}>
+              {(['en', 'ta'] as const).map(lang => <button key={lang} type="button" lang={lang} aria-pressed={currentLang === lang} onClick={() => onLanguageChange(lang)}>{lang === 'en' ? 'English' : 'தமிழ்'}</button>)}
+            </div>}
             <div className="flex flex-col items-start gap-2">
               <h2 className={`text-base font-bold flex items-center gap-2 ${currentTheme.headingText}`}>
                 <span
@@ -467,6 +473,8 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                 <input
                   id="smart-card-input"
                   type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
                   value={smartCardNumber}
                   onChange={(e) => {
                     setSmartCardNumber(e.target.value.replace(/[^0-9]/g, ''));
@@ -491,7 +499,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
         )}
 
         {/* Step 3: Select Plan or Enter Amount */}
-        <div className={`recharge-plans`}>
+        <div ref={plansRef} className={`recharge-plans`}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <h2 className={`text-base font-bold flex items-center gap-2 ${currentTheme.headingText}`}>
               <span
@@ -1076,7 +1084,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
         </div>
 
         {/* Primary Checkout CTA */}
-        <div className={`recharge-checkout`}>
+        <div className={`recharge-checkout ${packsReached ? 'is-sticky' : ''}`}>
           <div>
             <h2 className={`mb-2 flex items-center gap-2 text-base font-bold ${currentTheme.headingText}`}>
               <span className="recharge-step-number">4</span>
@@ -1085,15 +1093,12 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
             <span className={`text-xs block font-medium ${currentTheme.subText}`}>{t.totalPayable}</span>
             <div className="flex items-baseline gap-2">
               <span id="total-payable" aria-live="polite" className="text-3xl font-bold tabular-nums tracking-tight" style={{ color: currentTheme.primaryColor }}>
-                {canProceed && Number.isFinite(payablePrice) && payablePrice > 0 ? formatPrice(payablePrice, currentLang) : '\u2014'}
+                <span key={`${payablePrice}-${canProceed}`}>{canProceed && Number.isFinite(payablePrice) && payablePrice > 0 ? formatPrice(payablePrice, currentLang) : '\u2014'}</span>
               </span>
               <span className={`text-xs font-medium ${currentTheme.headingText}`}>
-                ({selectedPackType === 'CUSTOM' ? t.customPack : `${activePlan?.pack_type || selectedPackType} Pack • ${formatDuration(activePlan?.duration_months || (selectedPackType === 'HD' ? hdDuration : sdDuration), currentLang)}`})
+                ({selectedPackType === 'CUSTOM' ? t.customPack : `${activePlan?.pack_type || selectedPackType} ${t.pack} • ${formatDuration(activePlan?.duration_months || (selectedPackType === 'HD' ? hdDuration : sdDuration), currentLang)}`})
               </span>
             </div>
-            <span className={`text-xs block mt-0.5 font-medium ${currentTheme.mutedText}`}>
-              {BUSINESS_DETAILS.feesAndTaxes}
-            </span>
         {/* Save Connection Checkbox for Logged In User */}
         {user && (
           <div className="checkout-save-connection">
@@ -1142,6 +1147,8 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
           </button>
         </div>
       </div>
+      <p className="payment-facts">{t.uiPaymentFacts}</p>
+      <RechargeHelp currentLang={currentLang} />
     </div>
   );
 };

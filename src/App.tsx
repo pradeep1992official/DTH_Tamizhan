@@ -440,6 +440,7 @@ function MainApp() {
             element={
               <RechargeFlow
                 currentLang={currentLang}
+                onLanguageChange={handleLanguageChange}
                 user={user}
                 onInitiatePayment={handleInitiatePayment}
                 requestCustomTopUp={requestCustomTopUp}
@@ -455,6 +456,7 @@ function MainApp() {
             element={
               <RechargeFlow
                 currentLang={currentLang}
+                onLanguageChange={handleLanguageChange}
                 user={user}
                 onInitiatePayment={handleInitiatePayment}
                 requestCustomTopUp={requestCustomTopUp}

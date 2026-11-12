@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, Circle, Monitor, Tv, Wallet, Ban } from '../lib/icons';
+import { CheckCircle2, Circle, Ban } from '../lib/icons';
 import { OperatorTheme } from '../lib/theme';
 import { Language } from '../types';
 import { translations } from '../lib/translations';
@@ -90,7 +90,6 @@ export const PackCard: React.FC<PackCardProps> = ({
         className="pack-label flex items-center justify-between relative select-none"
       >
         <span className="pack-kind text-sm font-medium flex items-center gap-2">
-          {type === 'HD' ? <Monitor aria-hidden="true" className="w-4 h-4" /> : type === 'SD' ? <Tv aria-hidden="true" className="w-4 h-4" /> : <Wallet aria-hidden="true" className="w-4 h-4" />}
           {bandConfig.label}
         </span>
         <span className="pack-choice-marker" aria-hidden="true">

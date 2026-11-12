@@ -1,0 +1,13 @@
+{
+  "scenarios": [
+    "failed",
+    "pending",
+    "success",
+    "expired",
+    "network",
+    "production"
+  ],
+  "passed": true,
+  "paymentPosts": 0,
+  "source": "Intercepted browser fixtures; no server session or provider request."
+}

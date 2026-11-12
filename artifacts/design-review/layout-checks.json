@@ -1,0 +1,97 @@
+{
+  "checks": [
+    {
+      "route": "recharge",
+      "width": 360,
+      "lang": "en",
+      "viewport": 360,
+      "document": 360
+    },
+    {
+      "route": "plans",
+      "width": 360,
+      "lang": "en",
+      "viewport": 360,
+      "document": 360
+    },
+    {
+      "route": "recharge",
+      "width": 768,
+      "lang": "en",
+      "viewport": 768,
+      "document": 768
+    },
+    {
+      "route": "plans",
+      "width": 768,
+      "lang": "en",
+      "viewport": 768,
+      "document": 768
+    },
+    {
+      "route": "recharge",
+      "width": 1440,
+      "lang": "en",
+      "viewport": 1440,
+      "document": 1440
+    },
+    {
+      "route": "plans",
+      "width": 1440,
+      "lang": "en",
+      "viewport": 1440,
+      "document": 1440
+    },
+    {
+      "route": "recharge",
+      "width": 360,
+      "lang": "ta",
+      "viewport": 360,
+      "document": 360
+    },
+    {
+      "route": "plans",
+      "width": 360,
+      "lang": "ta",
+      "viewport": 360,
+      "document": 360
+    },
+    {
+      "route": "recharge",
+      "width": 768,
+      "lang": "ta",
+      "viewport": 768,
+      "document": 768
+    },
+    {
+      "route": "plans",
+      "width": 768,
+      "lang": "ta",
+      "viewport": 768,
+      "document": 768
+    },
+    {
+      "route": "recharge",
+      "width": 1440,
+      "lang": "ta",
+      "viewport": 1440,
+      "document": 1440
+    },
+    {
+      "route": "plans",
+      "width": 1440,
+      "lang": "ta",
+      "viewport": 1440,
+      "document": 1440
+    }
+  ],
+  "invalidIdFocus": true,
+  "operatorAnnouncement": true,
+  "reducedMotion": true,
+  "paymentPostCount": 0,
+  "paymentSession": "Browser-intercepted fixture; no server payment session created.",
+  "keyboardTaskOrder": true,
+  "visibleInputFocus": true,
+  "reducedMotionAnimatedAmount": true,
+  "stickyTotalDoesNotObscureId": true
+}

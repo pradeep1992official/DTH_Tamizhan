@@ -152,19 +152,14 @@
 
 .compact-plan-pills { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
 .compact-plan-pill { display: inline-flex; align-items: center; border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 600; line-height: 1.5; }
-.compact-plan-operator { background: #475569; color: #ffffff; }
-.compact-plan-operator[data-operator="sun_direct"], .filter-panel button[data-operator="sun_direct"] { background: #facc15; color: #422006; }
-.compact-plan-operator[data-operator="tata_play"], .filter-panel button[data-operator="tata_play"] { background: #6d28d9; color: #ffffff; }
-.compact-plan-operator[data-operator="airtel_dth"], .filter-panel button[data-operator="airtel_dth"] { background: #dc2626; color: #ffffff; }
-.compact-plan-operator:is([data-operator="dish_tv"], [data-operator="d2h"]), .filter-panel button[data-operator="dish_tv"] { background: #047857; color: #ffffff; }
-.compact-plan-pill.compact-plan-quality { margin-left: 0; background: #475569; color: #ffffff; }
-.compact-plan-pill.compact-plan-quality[data-quality="HD"] { background: #1d4ed8; color: #ffffff; }
-.compact-plan-duration { background: #fbbf24; color: #422006; }
-
-.compact-plan-duration[data-duration="1"], .filter-panel button[data-duration="1"] { background: #0f766e; color: #ffffff; }
-.compact-plan-duration[data-duration="3"], .filter-panel button[data-duration="3"] { background: #c2410c; color: #ffffff; }
-.compact-plan-duration[data-duration="6"], .filter-panel button[data-duration="6"] { background: #c026d3; color: #ffffff; }
-.compact-plan-duration[data-duration="12"], .filter-panel button[data-duration="12"] { background: #4338ca; color: #ffffff; }
+/* Operator colours identify the operator only. Quality and duration use neutral ink. */
+.compact-plan-operator { color: var(--color-ink); background: var(--color-paper-3); }
+.compact-plan-operator[data-operator="sun_direct"] { border-left: 3px solid var(--operator-sun-direct); }
+.compact-plan-operator[data-operator="tata_play"] { border-left: 3px solid var(--operator-tata-play); }
+.compact-plan-operator[data-operator="airtel_dth"] { border-left: 3px solid var(--operator-airtel-dth); }
+.compact-plan-operator:is([data-operator="dish_tv"],[data-operator="d2h"]) { border-left: 3px solid var(--operator-dish-tv); }
+.compact-plan-pill.compact-plan-quality, .compact-plan-duration { background: transparent; color: var(--color-ink-2); }
+.filter-panel button[data-duration], .filter-panel button[data-operator] { background: var(--color-paper); color: var(--color-ink); }
 .compact-plan-channel-link { align-self: flex-start; color: var(--color-accent); font-size: 12px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; padding-block: 6px; }
 .compact-plan-channel-link:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
 
@@ -175,8 +170,6 @@
 .compact-plan-monthly { min-height: 18px; line-height: 18px; }
 .compact-plan-footer { align-items: flex-start; }
 
-.filter-panel button[data-quality="SD"] { background: #475569; color: #ffffff; }
-.filter-panel button[data-quality="HD"] { background: #1d4ed8; color: #ffffff; }
 
 .filter-panel button:is([data-operator], [data-quality], [data-duration]) { border-color: transparent; }
 .filter-panel button:is([data-operator], [data-quality], [data-duration])[aria-pressed="true"] { outline: 2px solid var(--color-ink); outline-offset: 2px; }
@@ -184,16 +177,6 @@
 .filter-panel button[data-operator] > div:last-child { border-color: currentColor; }
 
 /* Keep unselected filters quiet while retaining each pill's color identity. */
-.filter-panel button[data-operator="sun_direct"][aria-pressed="false"] { background: #fef9c3; color: #713f12; }
-.filter-panel button[data-operator="tata_play"][aria-pressed="false"] { background: #ede9fe; color: #5b21b6; }
-.filter-panel button[data-operator="airtel_dth"][aria-pressed="false"] { background: #fee2e2; color: #991b1b; }
-.filter-panel button[data-operator="dish_tv"][aria-pressed="false"] { background: #d1fae5; color: #065f46; }
-.filter-panel button[data-quality="HD"][aria-pressed="false"] { background: #dbeafe; color: #1e40af; }
-.filter-panel button[data-quality="SD"][aria-pressed="false"] { background: #e2e8f0; color: #334155; }
-.filter-panel button[data-duration="1"][aria-pressed="false"] { background: #ccfbf1; color: #115e59; }
-.filter-panel button[data-duration="3"][aria-pressed="false"] { background: #ffedd5; color: #9a3412; }
-.filter-panel button[data-duration="6"][aria-pressed="false"] { background: #fae8ff; color: #86198f; }
-.filter-panel button[data-duration="12"][aria-pressed="false"] { background: #e0e7ff; color: #3730a3; }
 .plans-page .compact-plan { padding-bottom: 12px; }
 .connections-page .connection-list > div { border-top: 1px solid var(--color-rule); }
 .connections-page .connection-list button { box-shadow: none; }
@@ -453,9 +436,9 @@
 .bouquet-explore .bouquet-category-heading { border-bottom: 1px solid var(--color-rule); padding-block: 10px; }
 
 /* Quality is visible in section bands and on every card. */
-.bouquet-explore .bouquet-category-hd, .bouquet-explore .all-packs-card[data-quality="HD"] { --pack-quality: #1e3a8a; --pack-quality-soft: #dbeafe; }
-.bouquet-explore .bouquet-category-sd, .bouquet-explore .all-packs-card[data-quality="SD"] { --pack-quality: #064e3b; --pack-quality-soft: #d1fae5; }
-.bouquet-explore .bouquet-category-heading { padding: 10px 12px; border: 1px solid var(--color-rule); border-left: 4px solid var(--pack-quality); border-radius: 10px; background: var(--pack-quality-soft); color: #1f2937; gap: 9px; }
+.bouquet-explore .bouquet-category-hd, .bouquet-explore .all-packs-card[data-quality="HD"] { --pack-quality: var(--color-brand); --pack-quality-soft: var(--color-paper-2); }
+.bouquet-explore .bouquet-category-sd, .bouquet-explore .all-packs-card[data-quality="SD"] { --pack-quality: var(--color-brand); --pack-quality-soft: var(--color-paper-2); }
+.bouquet-explore .bouquet-category-heading { padding: 10px 12px; border: 1px solid var(--color-rule); border-left: 4px solid var(--pack-quality); border-radius: 10px; background: var(--pack-quality-soft); color: var(--color-ink); gap: 9px; }
 .bouquet-explore .bouquet-category-heading strong { font-size: 13px; font-weight: 600; }
 .bouquet-explore .all-packs-quality-pill { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; padding: 4px 9px; border-radius: 999px; background: var(--pack-quality); color: white; font-size: 11px; font-weight: 700; line-height: 1.4; }
 .bouquet-explore .all-packs-category-count { min-width: 25px; padding: 3px 7px; border-radius: 999px; background: white; color: var(--pack-quality); font-size: 11px; font-weight: 700; }

@@ -2,9 +2,8 @@ import { formatPrice, formatStoredDuration } from '../lib/catalog';
 import { localizeCustomerText, localizeCustomerError } from '../lib/customerMessages';
 import { subscriberLabel } from '../lib/subscriberValidation';
 import { translations } from '../lib/translations';
-import { CheckoutPolicies } from './TrustContent';
 import React, { useEffect, useRef, useState } from 'react';
-import { X, CreditCard, QrCode, RefreshCw, AlertCircle } from '../lib/icons';
+import { X, CreditCard, RefreshCw, AlertCircle } from '../lib/icons';
 import type { DthOperator, DthPlan, SubscriberDetails, Language, UserProfile, RechargeOrder } from '../types';
 import { subscriberError } from '../lib/subscriberValidation';
 import { useAccessibleModal } from '../lib/useAccessibleModal';
@@ -31,7 +30,7 @@ export function PaymentInstrument({ method, mode, session, expired, seconds, cur
 }) {
   return <>
           {method === 'upi' && <div className="text-center space-y-3">
-            {mode === 'sandbox' && session && session.status === 'ready' && !expired && <><QrCode aria-hidden="true" className="w-20 h-20 mx-auto text-muted" /><p className="text-sm font-medium">{translations[currentLang].uiMockQRIllustrationCannotBeScannedOrPaid}</p><p className="text-sm tabular-nums">{translations[currentLang].uiTestSession}: {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, '0')}</p></>}
+            {mode === 'sandbox' && session && session.status === 'ready' && !expired && <><p className="text-sm font-medium">{translations[currentLang].uiMockQRIllustrationCannotBeScannedOrPaid}</p><p className="text-sm tabular-nums">{translations[currentLang].uiTestSession}: {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, '0')}</p></>}
             {mode === 'production' && <p role="alert" className="text-error text-sm">{translations[currentLang].uiProviderQRIsUnavailableRetryCheckoutToRequestAProviderOrder}</p>}
           </div>}
           {method === 'card' && <div className="p-4 rounded-lg border border-rule text-sm space-y-2"><CreditCard className="w-5 h-5" /><p>{mode === 'sandbox' ? translations[currentLang].uiMockCardPaymentNoCardNumberExpiryOrCVVIsRequiredUseTheTestControlsBelo : translations[currentLang].uiCardPaymentsRequireTheProviderHostedCheckoutProviderUnavailableNoCardD}</p></div>}
@@ -134,7 +133,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, pla
   const formatAmount = (paise: number) => formatPrice(paise / 100, currentLang);
   return (
     <div className="dialog-backdrop fixed inset-0 z-50 flex items-center justify-center p-4" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
-      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="payment-modal-title" className="hm-dialog rounded-xl border border-rule bg-paper text-ink w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto shadow-lg text-left">
+      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="payment-modal-title" className="hm-dialog payment-checkout rounded-xl border border-rule bg-paper text-ink w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto shadow-lg text-left">
         <div className="px-6 py-4 border-b border-rule bg-paper-2 flex items-center justify-between">
           <div><h2 id="payment-modal-title" className="text-base font-bold">{translations[currentLang].uiCompleteDTHRecharge}</h2><p className="text-sm text-muted">{operator.name} / {subscriberLabel(operator.id, false, currentLang)}: {smartCard}</p></div>
           <button type="button" onClick={onClose} aria-label={translations[currentLang].uiCloseCheckout} className="p-2 rounded-xl"><X className="w-5 h-5" /></button>
@@ -145,7 +144,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, pla
           <div className="text-right"><span className="text-sm text-muted block">{translations[currentLang].uiTotalPayable}</span><strong className="text-2xl tabular-nums">{session ? formatAmount(session.amountPaise) : translations[currentLang].uiUnavailable}</strong></div>
         </div>
         <div className="p-6 space-y-5">
-          <dl className="text-sm space-y-2">
+          <dl className="payment-reference text-sm space-y-2">
             <div><dt className="text-muted">{translations[currentLang].uiPaymentProvider}</dt><dd>{session ? localizeCustomerText(session.provider, currentLang) : mode === 'production' ? translations[currentLang].uiNotConfigured : translations[currentLang].uiCheckingConfiguration}</dd></div>
             <div><dt className="text-muted">{translations[currentLang].uiOrderReference}</dt><dd className="break-all tabular-nums">{session?.id || translations[currentLang].uiNoProviderOrder}</dd></div>
           </dl>
@@ -160,7 +159,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, pla
           {expired && <div role="status" className="space-y-3"><p>{translations[currentLang].uiSessionExpiredGenerateANewQR}</p><button type="button" disabled={busy} onClick={() => void prepare(true)} className="dialog-primary w-full py-3 rounded-lg">{mode === 'sandbox' ? translations[currentLang].uiGenerateANewMockQR : translations[currentLang].uiGenerateANewQR}</button></div>}
           <p className="text-sm">{translations[currentLang].instantActivation}</p>
           <p className="text-sm">{translations[currentLang].secureEncryption}</p>
-          <CheckoutPolicies currentLang={currentLang} onNavigate={onClose} />
           {mode === 'sandbox' && session?.status === 'ready' && !expired && <div className="space-y-3">
             <label className="text-sm block" htmlFor="sandbox-result">{translations[currentLang].uiTestResult}</label>
             <select id="sandbox-result" value={outcome} disabled={busy} onChange={event => setOutcome(event.target.value as SandboxOutcome)} className="w-full p-2 border border-rule bg-paper rounded-lg"><option value="success">{translations[currentLang].uiSuccess}</option><option value="failed">{translations[currentLang].uiFailure}</option><option value="pending">{translations[currentLang].uiPending}</option></select>

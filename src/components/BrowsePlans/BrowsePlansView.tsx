@@ -15,7 +15,7 @@ import { BrowsePlan, DthConnection, Language, PlanFilters, UserProfile, isSameDt
 import { OperatorTheme } from '../../lib/theme';
 import { filterAndSortPlans, catalogItemToBrowsePlan, catalogPriceMaximum } from '../../lib/browsePlansData';
 import { PlanFilterSidebar } from './PlanFilterSidebar';
-import { PlanCard } from './PlanCard';
+import { CatalogColumnHeadings, PlanCard } from './PlanCard';
 import { CompareDrawer } from './CompareDrawer';
 import { ComparisonTable } from './ComparisonTable';
 import { ApplyPlanModal } from './ApplyPlanModal';
@@ -179,12 +179,6 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
       >
         <div className="max-w-3xl space-y-3">
           <div className="flex items-center gap-2">
-            <div
-              className="w-8 h-8 rounded-xl flex items-center justify-center font-bold text-accent-ink shadow-sm"
-              style={{ backgroundColor: currentTheme.primaryColor }}
-            >
-              <Tv className="w-4 h-4" />
-            </div>
             <h1 className="text-xl md:text-2xl font-bold tracking-tight">
               {t.browsePacksTitle}
             </h1>
@@ -249,7 +243,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
             onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
             aria-expanded={isMobileFilterOpen}
             aria-controls="catalog-mobile-filters"
-            className={`lg:hidden py-2 px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 ${
+            className={`xl:hidden py-2 px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 ${
               isLight ? 'bg-paper-2 border-rule text-ink' : 'bg-paper border-rule-strong text-accent-ink'
             }`}
           >
@@ -262,7 +256,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
       {/* Main Grid: Sidebar on Left, Cards on Right */}
       <div className="catalog-layout">
         {/* Desktop Filter Sidebar */}
-        <div className="hidden lg:block catalog-filters">
+        <div className="hidden xl:block catalog-filters">
           <PlanFilterSidebar
             priceMaximum={priceMaximum}
             filters={filters}
@@ -276,7 +270,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
 
         {/* Mobile Filter Drawer */}
         {isMobileFilterOpen && (
-          <div id="catalog-mobile-filters" className="lg:hidden col-span-1">
+          <div id="catalog-mobile-filters" className="xl:hidden col-span-1">
             <PlanFilterSidebar
               priceMaximum={priceMaximum}
               filters={filters}
@@ -396,6 +390,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
               ) : displayedPlans.length > 0 ? (
                 /* Cards Grid */
                 <div className="catalog-plans">
+                  <CatalogColumnHeadings currentLang={currentLang} />
                   {displayedPlans.map((plan) => {
                     const isSelectedForCompare = selectedForCompare.some((p) => p.id === plan.id);
                     return (

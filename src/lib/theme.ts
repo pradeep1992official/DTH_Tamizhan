@@ -204,8 +204,8 @@ const shared = {
 
 const operator = (id: DthOperatorId, name: string, tagline: string): OperatorTheme => ({
   ...shared, id, name, tagline, isLightMode: true,
-  primaryColor: `var(--operator-${id.replaceAll('_', '-')})`,
-  accentColor: `var(--operator-${id.replaceAll('_', '-')})`,
+  primaryColor: 'var(--color-brand)',
+  accentColor: 'var(--color-ochre)',
   brandTag: name,
 });
 

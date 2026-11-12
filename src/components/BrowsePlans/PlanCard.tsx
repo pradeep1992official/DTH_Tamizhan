@@ -3,6 +3,7 @@ import React from 'react';
 import { BrowsePlan, Language } from '../../types';
 import { OperatorTheme } from '../../lib/theme';
 import { translations } from '../../lib/translations';
+import { OperatorCardLogo } from '../BrandAssets';
 
 interface PlanCardProps {
   plan: BrowsePlan;
@@ -21,6 +22,14 @@ const OPERATOR_NAMES: Record<string, { name: string; tamil: string; color: strin
   dish_tv: { name: 'Dish TV & D2H', tamil: 'டிஷ் டிவி & டி2எச்', color: 'var(--operator-dish-tv)' },
   d2h: { name: 'Dish TV & D2H', tamil: 'டிஷ் டிவி & டி2எச்', color: 'var(--operator-dish-tv)' },
 };
+
+export function CatalogColumnHeadings({ currentLang }: { currentLang: Language }) {
+  const t = translations[currentLang];
+  return <div className="catalog-column-headings">
+    <span>{t.uiCatalogOperator}</span><span>{t.uiCatalogPack}</span>
+    <span>{t.uiCatalogDuration}</span><span>{t.uiCatalogTotal}</span><span>{t.uiCatalogAction}</span>
+  </div>;
+}
 
 export const PlanCard: React.FC<PlanCardProps> = ({
   plan,
@@ -61,15 +70,43 @@ export const PlanCard: React.FC<PlanCardProps> = ({
     >
       <header className="compact-plan-header">
         <div className="compact-plan-pills">
-          <span
-            className="compact-plan-pill compact-plan-operator"
+          <div
+            className="catalog-operator-identity"
             data-operator={plan.operator}
           >
-            {currentLang === 'ta' && opInfo.tamil ? opInfo.tamil : opInfo.name}
-          </span>
+            <OperatorCardLogo operatorId={plan.operator} className="catalog-operator-logo-image" />
+            <span className="catalog-operator-name">{currentLang === 'ta' && opInfo.tamil ? opInfo.tamil : opInfo.name}</span>
+          </div>
           <span className="compact-plan-pill compact-plan-quality" data-quality={plan.type}>{plan.type}</span>
           <span className="compact-plan-pill compact-plan-duration" data-duration={plan.duration_months}>{duration}</span>
         </div>
+      </header>
+
+      <div className="compact-plan-details">
+      <h3 className="font-bold wrap-break-word">{planName}</h3>
+      <p className="compact-plan-summary text-sm text-muted">
+        <span>{formatChannelCounts(plan, currentLang)}</span>
+      </p>
+      {validateCatalogPack(plan).length > 0 && <p role="status" className="text-error text-xs">{translations[currentLang].uiCatalogReview}: {formatCatalogIssues(plan, currentLang)}</p>}
+      {channelListUrl && (
+        <a className="compact-plan-channel-link" href={channelListUrl} target="_blank" rel="noopener noreferrer" aria-label={`${channelListLabel}: ${planName}`}>
+          {channelListLabel} <span aria-hidden="true">&rarr;</span>
+        </a>
+      )}
+      </div>
+      <span className="catalog-duration-cell">{duration}</span>
+
+      <footer className="compact-plan-footer">
+        <div className="compact-plan-price">
+          <span className="text-2xl font-bold tabular-nums tracking-tight">{formatPrice(plan.price, currentLang)}</span>
+          <span className="compact-plan-total block text-xs text-muted">
+            {currentLang === 'ta' ? `${duration} \u0bae\u0bca\u0ba4\u0bcd\u0ba4\u0bae\u0bcd` : `Total for ${duration.toLowerCase()}`}
+          </span>
+          <span className="compact-plan-monthly block text-xs text-muted">
+            {formatMonthlyEquivalent(plan.price, plan.duration_months, currentLang)}
+          </span>
+        </div>
+        <div className="compact-plan-actions">
         <label className="compact-plan-compare text-xs text-muted">
           <input
             type="checkbox"
@@ -81,31 +118,6 @@ export const PlanCard: React.FC<PlanCardProps> = ({
           />
           {t.addToCompare}
         </label>
-      </header>
-
-      <h3 className="font-bold wrap-break-word">{planName}</h3>
-      <p className="compact-plan-summary text-sm text-muted">
-        <span>{formatChannelCounts(plan, currentLang)}</span>
-      </p>
-      {validateCatalogPack(plan).length > 0 && <p role="status" className="text-error text-xs">{translations[currentLang].uiCatalogReview}: {formatCatalogIssues(plan, currentLang)}</p>}
-      {channelListUrl && (
-        <a className="compact-plan-channel-link" href={channelListUrl} target="_blank" rel="noopener noreferrer" aria-label={`${channelListLabel}: ${planName}`}>
-          {channelListLabel} <span aria-hidden="true">&rarr;</span>
-        </a>
-      )}
-
-      <footer className="compact-plan-footer">
-        <div className="compact-plan-price">
-          <span className="text-2xl font-bold tabular-nums tracking-tight">{formatPrice(plan.price, currentLang)}</span>
-          <span className="compact-plan-total block text-xs text-muted">
-            {currentLang === 'ta' ? `${duration} \u0bae\u0bca\u0ba4\u0bcd\u0ba4\u0bae\u0bcd` : `Total for ${duration.toLowerCase()}`}
-          </span>
-          {plan.duration_months > 1 && (
-            <span className="compact-plan-monthly block text-xs text-muted">
-              {formatMonthlyEquivalent(plan.price, plan.duration_months, currentLang)}
-            </span>
-          )}
-        </div>
         <button
           type="button"
           onClick={() => onSelectPlan(plan)}
@@ -115,6 +127,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({
         >
           {t.selectThisPack}
         </button>
+        </div>
       </footer>
     </article>
   );
