@@ -5,7 +5,7 @@ import type { Language } from '../types';
 export function ErrorPage({ status, currentLang = 'en' }: { status: 404 | 500; currentLang?: Language }) {
   const ta = currentLang === 'ta';
   return <section className="space-y-5 p-6 border border-rule rounded-2xl bg-paper text-ink" role={status === 500 ? 'alert' : undefined}>
-    <h1 tabIndex={-1} className="text-2xl font-bold">{status} — {status === 404 ? (translations[currentLang].uiPageNotFound) : (translations[currentLang].uiWeCouldNotLoadThisPage)}</h1>
+    <h1 tabIndex={-1} className="text-2xl font-bold">{status} - {status === 404 ? (translations[currentLang].uiPageNotFound) : (translations[currentLang].uiWeCouldNotLoadThisPage)}</h1>
     <p>{status === 404 ? (translations[currentLang].uiThisAddressDoesNotExistCheckTheLinkOrReturnHome) : (translations[currentLang].uiReturnHomeToTryAgainThisErrorIsNotConfirmationThatAPaymentSucceeded)}</p>
     <a href="/" className="underline underline-offset-4">{translations[currentLang].uiBackToHome}</a>
   </section>;

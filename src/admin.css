@@ -157,6 +157,11 @@
 .pending-order-details { min-width: 0; display: grid; gap: 5px; }
 .pending-order-highlights .compact-plan-pill { font-size: 12px; padding: 3px 10px; }
 .pending-customer-id { background: var(--color-paper-2); color: var(--color-ink); border: 1px solid var(--color-rule); gap: 5px; font-variant-numeric: tabular-nums; }
+.pending-orders-tab .pending-order-highlights { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.pending-order-highlights .compact-plan-pill { flex: 0 0 auto; width: auto; white-space: nowrap; }
+.pending-order-details { min-width: 0; }
+.pending-order-summary { margin-top: 6px; }
+.pending-order-summary > * { min-width: 0; overflow-wrap: anywhere; }
 .pending-pill-label { font-size: 11px; font-weight: 500; }
 .pending-order-price { background: #dcfce7; color: #14532d; font-variant-numeric: tabular-nums; }
 .pending-order-summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; font-size: 12px; }

@@ -22,7 +22,7 @@ export function pageMetadata(path: string, lang: Language = 'en'): PageMetadata 
   const base = { path: requestedPath, status: 200 as const, noindex: false };
   if (path === '/500') return { ...base, status: 500, noindex: true, title: `${lang === 'ta' ? 'சேவைப் பிழை' : 'Service error'} (500) | DTH Tamizhan`, description: lang === 'ta' ? 'பக்கம் ஏற்றப்படவில்லை. முகப்புப் பக்கத்திற்குத் திரும்பவும்.' : 'The page could not be loaded. Return to the home page.' };
   if (path === '/worker' || path === '/dealer' || path === '/admin' || (path.startsWith('/admin/') && adminTabs.has(path.slice(7)))) {
-    return { ...base, noindex: true, title: `${lang === 'ta' ? 'நிர்வாகம்' : 'Administration'}${path.startsWith('/admin/') ? ` — ${path.slice(7)}` : ''} | DTH Tamizhan`, description: lang === 'ta' ? 'அங்கீகரிக்கப்பட்ட நிர்வாகிகளுக்கான செயல்பாட்டுப் பக்கம்.' : 'Restricted operations for authorized administrators.' };
+    return { ...base, noindex: true, title: `${lang === 'ta' ? 'நிர்வாகம்' : 'Administration'}${path.startsWith('/admin/') ? ` - ${path.slice(7)}` : ''} | DTH Tamizhan`, description: lang === 'ta' ? 'அங்கீகரிக்கப்பட்ட நிர்வாகிகளுக்கான செயல்பாட்டுப் பக்கம்.' : 'Restricted operations for authorized administrators.' };
   }
   const policy = POLICY_ROUTES.find(route => route.path === path);
   if (policy) return { ...base, title: `${policy[lang]} | DTH Tamizhan`, description: policyDescriptions[policy.key][lang === 'ta' ? 1 : 0] };

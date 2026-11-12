@@ -707,7 +707,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                             className="text-2xl sm:text-3xl font-bold tabular-nums tracking-tight"
                             style={{ color: currentTheme.packHdBandBg }}
                           >
-                            {recHDPlan ? formatPrice(recHDPlan.amount, currentLang) : '—'}
+                            {recHDPlan ? formatPrice(recHDPlan.amount, currentLang) : '-'}
                           </span>
                           {recHDPlan && (
                             <span className={`text-xs font-medium ${currentTheme.subText}`}>
@@ -842,7 +842,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                             className="text-2xl sm:text-3xl font-bold tabular-nums tracking-tight"
                             style={{ color: currentTheme.packSdBandBg }}
                           >
-                            {recSDPlan ? formatPrice(recSDPlan.amount, currentLang) : '—'}
+                            {recSDPlan ? formatPrice(recSDPlan.amount, currentLang) : '-'}
                           </span>
                           {recSDPlan && (
                             <span className={`text-xs font-medium ${currentTheme.subText}`}>
@@ -982,7 +982,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                             className="text-2xl sm:text-3xl font-bold tabular-nums tracking-tight"
                             style={{ color: currentTheme.packFlexibleBandBg }}
                           >
-                            {validCustomAmount !== null ? formatPrice(validCustomAmount, currentLang) : '\u2014'}
+                            {validCustomAmount !== null ? formatPrice(validCustomAmount, currentLang) : '-'}
                           </span>
                           <span className={`text-xs font-medium ${currentTheme.subText}`}>
                             / Top-up
@@ -1103,7 +1103,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
             <span className={`text-xs block font-medium ${currentTheme.subText}`}>{t.totalPayable}</span>
             <div className="flex items-baseline gap-2">
               <span id="total-payable" aria-live="polite" className="text-3xl font-bold tabular-nums tracking-tight" style={{ color: currentTheme.primaryColor }}>
-                <span key={`${payablePrice}-${canProceed}`}>{canProceed && Number.isFinite(payablePrice) && payablePrice > 0 ? formatPrice(payablePrice, currentLang) : '\u2014'}</span>
+                <span key={`${payablePrice}-${canProceed}`}>{canProceed && Number.isFinite(payablePrice) && payablePrice > 0 ? formatPrice(payablePrice, currentLang) : '-'}</span>
               </span>
               <span className={`text-xs font-medium ${currentTheme.headingText}`}>
                 ({selectedPackType === 'CUSTOM' ? t.customPack : `${activePlan?.pack_type || selectedPackType} ${t.pack} • ${formatDuration(activePlan?.duration_months || (selectedPackType === 'HD' ? hdDuration : sdDuration), currentLang)}`})

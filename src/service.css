@@ -147,7 +147,7 @@ html[lang="ta"] :is(.task-language,.tabular-nums) { unicode-bidi: isolate; }
   :is(.plans-page, .recharge-catalog) .compact-plan { border: 0; border-bottom: 1px solid var(--color-rule); border-radius: 0; background: transparent; }
   :is(.plans-page, .recharge-catalog) .compact-plan:hover { background: var(--color-paper); }
   .compact-plan-header { flex-direction: row; align-items: center; gap: 8px; }
-  .compact-plan-pills { display: grid; grid-template-columns: 145px 40px; align-items: center; gap: 8px; }
+  :is(.plans-page, .recharge-catalog) .compact-plan-pills { display: grid; grid-template-columns: 145px 40px; align-items: center; gap: 8px; }
   :is(.plans-page, .recharge-catalog) .compact-plan-pill.compact-plan-quality { margin: 0; padding: 4px 7px; min-width: 40px; }
   :is(.plans-page, .recharge-catalog) .compact-plan-footer { display: contents; }
   :is(.plans-page, .recharge-catalog) .compact-plan-actions { min-width: 0; justify-content: flex-start; gap: 10px; }
@@ -158,7 +158,7 @@ html[lang="ta"] :is(.task-language,.tabular-nums) { unicode-bidi: isolate; }
   :is(.plans-page, .recharge-catalog) .compact-plan h3 { font-size: 15px; margin: 0 0 4px; }
   .compact-plan-monthly { line-height: 1.6; }
   .catalog-duration-cell { display: block; font-size: 13px; font-weight: 600; }
-  .compact-plan-pills .compact-plan-duration { display: none; }
+  :is(.plans-page, .recharge-catalog) .compact-plan-pills .compact-plan-duration { display: none; }
 }
 @media(max-width:1279px) {
   .plans-page .catalog-layout { grid-template-columns: minmax(0,1fr); }
