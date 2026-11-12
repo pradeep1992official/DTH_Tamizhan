@@ -603,11 +603,11 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
                                       </span>
                                       <ArrowRight className="w-3 h-3 text-success" />
                                       <span className="font-bold text-success">
-                                        ₹{row.amount}
+                                        Rs. {row.amount}
                                       </span>
                                     </div>
                                   ) : (
-                                    <span className="tabular-nums font-bold">₹{row.amount}</span>
+                                    <span className="tabular-nums font-bold">Rs. {row.amount}</span>
                                   )}
                                 </td>
                                 <td className="p-3">
@@ -787,7 +787,7 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
                   <div className="p-3 rounded-lg border bg-paper-2 space-y-1">
                     <span className="font-bold text-accent">Step 2: Edit & Review</span>
                     <p className="opacity-80 text-sm">
-                      Update prices (e.g. ₹299 to ₹319) or add new packs in Excel / Numbers / Sheets.
+                      Update prices (e.g. Rs. 299 to Rs. 319) or add new packs in Excel / Numbers / Sheets.
                     </p>
                   </div>
 
@@ -859,7 +859,7 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
                         <td className="p-2.5 text-success font-bold">Mandatory</td>
                       </tr>
                       <tr>
-                        <td className="p-2.5 tabular-nums font-bold">Price (INR)</td>
+                        <td className="p-2.5 tabular-nums font-bold">Price (Rs.)</td>
                         <td className="p-2.5 tabular-nums text-sm opacity-75">amount, price, cost</td>
                         <td className="p-2.5 tabular-nums text-sm">299, 1650, 3100</td>
                         <td className="p-2.5 text-success font-bold">Mandatory</td>

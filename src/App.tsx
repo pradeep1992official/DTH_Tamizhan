@@ -538,7 +538,7 @@ function MainApp() {
             </div>
           </div>
           <PolicyLinks currentLang={currentLang} />
-          <p className="footer-disclaimer">{t.footerDisclaimer}</p>
+          <p className="footer-disclaimer">{t.madeWithLove} {t.footerDisclaimer}</p>
         </div>
       </footer>
 

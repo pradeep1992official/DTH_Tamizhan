@@ -37,7 +37,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
       `Operator: ${order.operatorName}\n` +
       `Viewing Card: ${order.smartCardNumber}\n` +
       `Pack: ${order.packName}\n` +
-      `Amount Paid: ₹${order.amount}\n` +
+      `Amount Paid: Rs. ${order.amount}\n` +
       `Order ID: ${order.orderId}\n` +
       `Ref ID: ${order.operatorRefId}\n` +
       `Date: ${new Date(order.createdAt).toLocaleDateString()}`;
@@ -156,7 +156,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
             <p className="text-muted">{BUSINESS_DETAILS.feesAndTaxes}</p>
             <div className="flex justify-between pt-2 border-t border-rule font-bold text-sm text-ink">
               <span>{t.totalPayable}</span>
-              <span className="tabular-nums text-accent">₹{order.amount}</span>
+              <span className="tabular-nums text-accent">Rs. {order.amount}</span>
             </div>
           </div>
 

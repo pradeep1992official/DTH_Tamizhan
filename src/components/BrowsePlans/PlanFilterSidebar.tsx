@@ -228,7 +228,7 @@ export const PlanFilterSidebar: React.FC<PlanFilterSidebarProps> = ({
             {t.filterByPrice}
           </label>
           <span className="font-mono" style={{ color: currentTheme.primaryColor }}>
-            ₹{filters.priceRange[0]} - ₹{Math.min(filters.priceRange[1], priceMaximum)}
+            Rs. {filters.priceRange[0]} - Rs. {Math.min(filters.priceRange[1], priceMaximum)}
           </span>
         </div>
         <input

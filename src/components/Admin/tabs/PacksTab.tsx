@@ -496,7 +496,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
               </div>
 
               <div>
-                <label className="font-medium block mb-1 text-ink ">Amount in INR (₹)</label>
+                <label className="font-medium block mb-1 text-ink ">Amount (Rs.)</label>
                 <input
                   type="number"
                   required
@@ -615,7 +615,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
           >
             <h3 id="delete-pack-title" className="font-bold text-base text-error">{t.confirmDeletePackTitle}</h3>
             <p className="text-sm text-ink  leading-relaxed">
-              {t.confirmDeletePackDesc} <strong>{packToDelete.plan_name}</strong> (₹{packToDelete.amount})?
+              {t.confirmDeletePackDesc} <strong>{packToDelete.plan_name}</strong> (Rs. {packToDelete.amount})?
             </p>
             <div className="flex justify-end gap-2 pt-2">
               <button

@@ -35,7 +35,7 @@ export function validateCatalogPack(pack: PackFields): CatalogIssue[] {
   for (const match of name.matchAll(/(?:₹|Rs\.?|INR)\s*([\d,]+(?:\.\d+)*)/gi)) if (Number(match[1].replace(/,/g, '')) !== amount) add('plan_name', `Name price (${match[0]}) disagrees with amount (${amount}).`);
   const unlabeled = name.replace(/\b\d+\s*(?:HD|(?:total\s+)?channels?|months?|mos?|m|years?)\b/gi, '')
     .replace(/(?:₹|Rs\.?|INR)\s*[\d,]+(?:\.\d+)*/gi, '');
-  if (/\b\d+\b/.test(unlabeled)) add('plan_name', 'Unlabelled number in pack name needs review; specify HD/channels, months/years or INR so it can be checked.');
+  if (/\b\d+\b/.test(unlabeled)) add('plan_name', 'Unlabelled number in pack name needs review; specify HD/channels, months/years or Rs. so it can be checked.');
   return issues;
 }
 export function assertValidCatalogPack(pack: PackFields): void {
@@ -47,7 +47,7 @@ export function monthlyEquivalent(amount: number, duration: number): number {
   return Math.round((amount / duration + Number.EPSILON) * 100) / 100;
 }
 export function formatPrice(amount: number, lang: Language = 'en'): string {
-  return Number.isFinite(amount) && amount > 0 ? new Intl.NumberFormat(lang === 'ta' ? 'ta-IN' : 'en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(amount) : 'Price needs review';
+  return Number.isFinite(amount) && amount > 0 ? `Rs. ${new Intl.NumberFormat(lang === 'ta' ? 'ta-IN' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)}` : 'Price needs review';
 }
 export function formatMonthlyEquivalent(amount: number, duration: number, lang: Language = 'en'): string {
   const value = monthlyEquivalent(amount, duration);
@@ -55,6 +55,10 @@ export function formatMonthlyEquivalent(amount: number, duration: number, lang: 
 }
 export function formatDuration(duration: number, lang: Language = 'en'): string {
   return (VALID_DURATIONS as readonly number[]).includes(duration) ? `${duration} ${duration === 1 ? translations[lang].month : translations[lang].months}` : 'Duration needs review';
+}
+export function formatStoredDuration(value: string, lang: Language = 'en'): string {
+  const match = /^(\d+)\s*(?:m|months?)$/i.exec(value.trim());
+  return match && (VALID_DURATIONS as readonly number[]).includes(Number(match[1])) ? formatDuration(Number(match[1]), lang) : value;
 }
 export function formatChannelCounts(pack: PackFields, lang: Language = 'en'): string {
   const issues = validateCatalogPack(pack).filter(issue => ['channel_count', 'hd_channel_count', 'plan_name'].includes(issue.field));

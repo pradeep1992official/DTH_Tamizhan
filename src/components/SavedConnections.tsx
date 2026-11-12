@@ -185,7 +185,7 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
                     <div>
                       <span className={`text-xs font-medium block ${currentTheme.mutedText}`}>Balance</span>
                       <span className="font-medium text-sm">
-                        {typeof conn.balance === 'number' ? `₹${conn.balance.toFixed(2)}` : 'Not available'}
+                        {typeof conn.balance === 'number' ? `Rs. ${conn.balance.toFixed(2)}` : 'Not available'}
                       </span>
                     </div>
                     {validExpiry && (

@@ -368,7 +368,7 @@ export const Header: React.FC<HeaderProps> = ({
                       className="w-full px-4 py-2 text-left text-error hover:bg-error-soft hover:text-error flex items-center gap-2.5 transition-colors font-medium"
                     >
                       <LogOut className="w-4 h-4" />
-                      <span>Log Out</span>
+                      <span>{t.signOut}</span>
                     </button>
                   </div>
                 )}
