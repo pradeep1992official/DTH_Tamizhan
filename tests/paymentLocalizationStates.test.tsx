@@ -20,7 +20,7 @@ describe('Tamil checkout states', () => {
   });
   it('localizes ready state, currency, methods and full duration', () => {
     const html = render();
-    expect(html).toContain('Rs. 1,399.00'); expect(html).toContain('6 மாதங்கள்');
+    expect(html).toContain('Rs. 1,399'); expect(html).toContain('6 மாதங்கள்');
     expect(html).toContain('சோதனை முறை'); expect(html).toContain('சோதனைக் கட்டணத்தை இயக்கவும்');
     expect(html).not.toMatch(/Test mode|Simulate test payment|Total payable|Debit \/ Credit Card|6 months/);
   });

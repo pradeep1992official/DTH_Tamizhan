@@ -4,8 +4,13 @@ import { pageMetadata, updatePageMetadata } from '../src/lib/pageMetadata';
 import { POLICY_ROUTES } from '../src/lib/trustContent';
 
 describe('page-specific metadata and icons (QA-19 / QA-20)', () => {
+  it('treats the removed security page as not found', () => {
+    for (const lang of ['en', 'ta'] as const) {
+      expect(pageMetadata('/security', lang)).toMatchObject({ status: 404, noindex: true });
+    }
+  });
   it('major pages have distinct titles and descriptions in both languages', () => {
-    const paths = ['/recharge', '/plans', '/account', '/connections', '/security', ...POLICY_ROUTES.map(route => route.path), '/404'];
+    const paths = ['/recharge', '/plans', '/account', '/connections', ...POLICY_ROUTES.map(route => route.path), '/404'];
     for (const lang of ['en', 'ta'] as const) {
       const values = paths.map(path => pageMetadata(path, lang));
       expect(new Set(values.map(item => item.title)).size).toBe(paths.length);

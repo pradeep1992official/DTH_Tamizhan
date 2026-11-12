@@ -23,7 +23,7 @@ beforeAll(async () => {
 afterAll(async () => { await new Promise<void>(resolve => server.close(() => resolve())); vi.unstubAllEnvs(); });
 
 describe('real HTTP page responses and metadata (QA-18 / QA-20)', () => {
-  it.each(['/recharge', '/plans', '/account', '/connections', '/contact', '/refund-policy', '/privacy-policy', '/terms', '/security'])('%s serves its own title, description and OG tags before JavaScript', async path => {
+  it.each(['/recharge', '/plans', '/account', '/connections', '/contact', '/refund-policy', '/privacy-policy', '/terms'])('%s serves its own title, description and OG tags before JavaScript', async path => {
     const response = await fetch(origin + path);
     const html = await response.text();
     const expected = pageMetadata(path);

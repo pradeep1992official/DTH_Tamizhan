@@ -23,7 +23,6 @@ export const translations = {
     navWorker: 'Dealer / Worker Queue',
     navHelp: 'Customer Care',
     navAdmin: 'Admin Portal',
-    navSecurity: 'Security Notice',
     
     // Auth
     loginTitle: 'Sign In to DTH Tamizhan',
@@ -395,7 +394,6 @@ export const translations = {
     navWorker: 'டீலர் / பணியாளர் பிரிவு',
     navHelp: 'வாடிக்கையாளர் உதவி',
     navAdmin: 'நிர்வாக போர்டல்',
-    navSecurity: 'பாதுகாப்பு அறிவிப்பு',
 
     // Auth
     loginTitle: 'டிடிஎச் தமிழனில் உள்நுழைக',

@@ -7,7 +7,6 @@ const pages: Record<string, { en: [string, string]; ta: [string, string] }> = {
   '/plans': { en: ['Browse DTH Packs', 'Search and compare DTH packs by operator, duration, price and declared channel counts.'], ta: ['டிடிஎச் பேக்குகளைப் பார்க்கவும்', 'ஆபரேட்டர், காலம், விலை மற்றும் சேனல் எண்ணிக்கையின் அடிப்படையில் பேக்குகளைத் தேடி ஒப்பிடுங்கள்.'] },
   '/account': { en: ['Your Account', 'Sign in to manage your DTH Tamizhan account and access saved connections.'], ta: ['உங்கள் கணக்கு', 'உங்கள் கணக்கை நிர்வகிக்கவும் சேமித்த இணைப்புகளை அணுகவும் உள்நுழையுங்கள்.'] },
   '/connections': { en: ['Saved Set-Top Boxes', 'Manage saved DTH subscriber IDs and choose a connection for a recharge request.'], ta: ['சேமித்த செட்-டாப் பெட்டிகள்', 'சேமித்த சந்தாதாரர் எண்களை நிர்வகித்து ரீசார்ஜுக்கான இணைப்பைத் தேர்ந்தெடுக்கவும்.'] },
-  '/security': { en: ['Security Notice', 'Read the application security-control overview and its deployment limitations.'], ta: ['பாதுகாப்பு அறிவிப்பு', 'செயலியின் பாதுகாப்புக் கட்டுப்பாடுகள் மற்றும் அவற்றின் வரம்புகளைப் படிக்கவும்.'] },
 };
 const policyDescriptions = {
   contact: ['Find support details and learn how to raise a recharge, payment or privacy concern.', 'ரீசார்ஜ், கட்டணம் மற்றும் தனியுரிமை கேள்விகளுக்கான உதவி விவரங்களைப் பார்க்கவும்.'],

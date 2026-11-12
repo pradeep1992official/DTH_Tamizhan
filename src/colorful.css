@@ -51,16 +51,13 @@
 
 .plans-page > .page-heading { background: var(--color-theme-light); }
 .connections-page > .page-heading { background: var(--color-theme-muted-soft); }
-.security-page > .page-heading { background: var(--color-theme-surface); }
-:is(.plans-page,.connections-page,.security-page) > .page-heading { padding: var(--space-lg); border-radius: var(--radius-card); border: 0; }
+:is(.plans-page,.connections-page) > .page-heading { padding: var(--space-lg); border-radius: var(--radius-card); border: 0; }
 .catalog-toolbar { border-top: 3px solid var(--color-theme-rose); }
 .catalog-plan > div:first-child > div:first-child { background: var(--color-theme-surface); border-radius: var(--radius-card) var(--radius-card) 0 0; }
 .catalog-plan .plan-facts { background: transparent; }
 .filter-panel > div:first-child { color: var(--color-theme-rose); border-color: var(--color-theme-rose); }
 .connection-list > div { border-top: 4px solid var(--color-theme-muted); }
 .connection-list > div:nth-child(even) { border-top-color: var(--color-theme-rose); }
-.security-table thead { background: var(--color-theme-deep); color: var(--color-accent-ink); }
-.security-row h2 { color: var(--color-theme-muted); }
 
 .admin-rail { background: var(--color-theme-deep); padding: var(--space-md); border-radius: var(--radius-card); }
 .admin-rail :is(.admin-title,.admin-identity,.admin-authorized,.admin-nav-item,.admin-back) { color: var(--color-accent-ink); }
@@ -87,7 +84,7 @@
 #profile-dropdown-trigger-btn p[style], .recharge-subscriber button[style] { color: var(--color-accent-deep) !important; }
 @media (max-width: 40rem) {
   .footer-brand .font-sans { font-size: var(--text-md); }
-  :is(.plans-page,.connections-page,.security-page) > .page-heading { padding: var(--space-md); }
+  :is(.plans-page,.connections-page) > .page-heading { padding: var(--space-md); }
   .admin-rail { padding: var(--space-md); }
 }
 @layer base {
@@ -205,6 +202,7 @@
 }
 .plan-catalog-table td[data-label] > .catalog-recommended { flex-wrap: nowrap; white-space: nowrap; gap: 4px; font-size: 11px; }
 .plan-catalog-table .catalog-recommended svg { flex-shrink: 0; }
+.plan-catalog-table .catalog-recommended { background: var(--color-recommended-soft); color: var(--color-recommended); border-color: var(--color-recommended-edge); }
 
 .plan-catalog-table .compact-plan-operator { white-space: nowrap; }
 @media (min-width: 768px) {

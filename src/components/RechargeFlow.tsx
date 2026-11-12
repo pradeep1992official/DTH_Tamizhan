@@ -1,3 +1,5 @@
+import { CatalogColumnHeadings, PlanCard } from './BrowsePlans/PlanCard';
+import { catalogItemToBrowsePlan } from '../lib/browsePlansData';
 import { formatMessage, localizeCustomerError } from '../lib/customerMessages';
 import { OperatorCatalogNotice } from './OperatorCatalogNotice';
 import { TOP_UP_LIMITS, parseTopUpAmount, validateTopUpAmount } from '../lib/topUpAmount';
@@ -65,6 +67,33 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
   const t = translations[currentLang];
   const plansRef = useRef<HTMLDivElement>(null);
   const [packsReached, setPacksReached] = useState(false);
+  const checkoutRef = useRef<HTMLDivElement>(null);
+  const expandedCheckoutHeight = useRef(0);
+  const [checkoutCompact, setCheckoutCompact] = useState(false);
+  useEffect(() => {
+    const checkout = checkoutRef.current;
+    const plans = plansRef.current;
+    if (!checkout || !plans) return;
+    const update = () => {
+      if (!checkoutCompact) expandedCheckoutHeight.current = checkout.getBoundingClientRect().height;
+      const gap = parseFloat(getComputedStyle(checkout.parentElement!).rowGap) || 0;
+      const bottom = parseFloat(getComputedStyle(checkout).bottom) || 0;
+      // Measure the normal-flow position, so shrinking the sticky bar cannot toggle it back.
+      const naturalBottom = plans.getBoundingClientRect().bottom + gap + expandedCheckoutHeight.current;
+      setCheckoutCompact(packsReached && naturalBottom > window.innerHeight - bottom + 1);
+    };
+    update();
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : null;
+    observer?.observe(plans);
+    observer?.observe(checkout);
+    return () => {
+      window.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+      observer?.disconnect();
+    };
+  }, [packsReached, checkoutCompact, currentLang, user]);
   useEffect(() => {
     // Keep the ID field unobstructed. Pin the total only after pack choices enter view.
     if (!plansRef.current || typeof IntersectionObserver === 'undefined') return;
@@ -992,7 +1021,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
             </div>
           ) : (
             /* All packs for the selected operator. */
-            <div className="bouquet-explore">
+            <div className="bouquet-explore recharge-catalog">
               <div className="all-packs-results" role="status">
                 {catalogTypeFilter === 'all' && catalogDurationFilter === 'all'
                   ? `${visibleBouquets.length} ${currentLang === 'ta' ? t.browsePacksTitle : 'packs'}`
@@ -1026,55 +1055,36 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                 </div>
               ) : (
                 <div className="bouquet-category-list">
-                  {visibleBouquets.map((plan, index) => {
-                    const isSelected = activePlan?.id === plan.id && selectedPackType !== 'CUSTOM';
-                    const isExpanded = !!expandedPlanChannels[plan.id];
-                    const channelSummary = formatChannelCounts(plan, currentLang);
-                    return (
-                      <React.Fragment key={plan.id}>
-                        {(index === 0 || visibleBouquets[index - 1].pack_type !== plan.pack_type) && (
-                          <button type="button" className={`bouquet-category-heading bouquet-category-${plan.pack_type.toLowerCase()}`} aria-expanded={!collapsedBouquetTypes[plan.pack_type]}
-                            onClick={() => setCollapsedBouquetTypes(current => ({ ...current, [plan.pack_type]: !current[plan.pack_type] }))}>
-                            <span className="all-packs-quality-pill">{plan.pack_type}</span>
-                            <strong>{currentLang === 'ta' ? t.browsePacksTitle : plan.pack_type === 'HD' ? 'High Definition packs' : 'Standard Definition packs'}</strong>
-                            <span className="all-packs-category-count">{visibleBouquets.filter(item => item.pack_type === plan.pack_type).length}</span>
-                            {collapsedBouquetTypes[plan.pack_type] ? <ChevronDown className="bouquet-category-chevron" /> : <ChevronUp className="bouquet-category-chevron" />}
-                          </button>
-                        )}
-                        {!collapsedBouquetTypes[plan.pack_type] && (
-                          <article data-quality={plan.pack_type} className={`bouquet-plan-card all-packs-card ${isSelected ? 'is-selected' : ''}`}>
-                            <div className="all-packs-card-top">
-                              <div className="all-packs-card-pills">
-                              <span className="all-packs-quality-pill">{plan.pack_type}</span>
-                              <span className="bouquet-duration compact-plan-pill compact-plan-duration" data-duration={plan.duration_months}>{formatDuration(plan.duration_months, currentLang)}</span>
-                              </div>
-                              {plan.is_recommended && <span className="bouquet-recommended"><Crown className="w-3 h-3" />{t.recommendedBadge}</span>}
-                            </div>
-                            <h4>{plan.plan_name}</h4>
-                            {validateCatalogPack(plan).length > 0 && <p className="text-error text-xs">{translations[currentLang].uiCatalogReview}: {formatCatalogIssues(plan, currentLang)}</p>}
-                            <div className="all-packs-channel-summary">
-                              <span className="all-packs-channel-pill"><Tv className="w-3 h-3" />{channelSummary}</span>
-
-                            </div>
-                            <div className="all-packs-card-bottom">
-                              <div className="all-packs-price"><strong>{formatPrice(plan.amount, currentLang)}</strong><span>{formatMonthlyEquivalent(plan.amount, plan.duration_months, currentLang)}</span></div>
-                              <button type="button" className="all-packs-select" aria-pressed={isSelected} aria-label={`${isSelected ? t.selectedAction : t.selectAction} ${currentLang === 'ta' ? plan.tamilName || plan.plan_name : plan.plan_name}, ${formatDuration(plan.duration_months, currentLang)}`}
-                                onClick={() => { setCustomSelectedPlan(plan); setSelectedPackType(plan.pack_type); setCustomAmount(''); }}>
-                                {isSelected && <CheckCircle2 className="w-4 h-4" />}{isSelected ? t.selectedAction : t.selectThisPack}
+                  {(['HD', 'SD'] as const).map(type => {
+                    const plans = visibleBouquets.filter(plan => plan.pack_type === type);
+                    if (!plans.length) return null;
+                    return <section key={type} className="recharge-catalog-group">
+                      <button type="button" className="bouquet-category-heading" aria-expanded={!collapsedBouquetTypes[type]}
+                        onClick={() => setCollapsedBouquetTypes(current => ({ ...current, [type]: !current[type] }))}>
+                        <span className="compact-plan-pill compact-plan-quality" data-quality={type}>{type}</span>
+                        <strong>{type === 'HD' ? t.uiHighDefinitionPacks : t.uiStandardDefinitionPacks}</strong>
+                        <span className="all-packs-category-count">{plans.length}</span>
+                        {collapsedBouquetTypes[type] ? <ChevronDown className="bouquet-category-chevron" /> : <ChevronUp className="bouquet-category-chevron" />}
+                      </button>
+                      {!collapsedBouquetTypes[type] && <div className="catalog-plans">
+                        <CatalogColumnHeadings currentLang={currentLang} />
+                        {plans.map(plan => {
+                          const isSelected = activePlan?.id === plan.id && selectedPackType !== 'CUSTOM';
+                          const isExpanded = !!expandedPlanChannels[plan.id];
+                          return <PlanCard key={plan.id} plan={catalogItemToBrowsePlan(plan)} currentLang={currentLang} currentTheme={currentTheme}
+                            showCompare={false} isSelected={isSelected}
+                            onSelectPlan={() => { setCustomSelectedPlan(plan); setSelectedPackType(plan.pack_type); setCustomAmount(''); }}>
+                            {plan.is_recommended && <span className="bouquet-recommended">{t.recommendedBadge}</span>}
+                            {plan.channel_list.length > 0 && <div className="catalog-channel-details">
+                              <button type="button" aria-expanded={isExpanded} aria-controls={`pack-channels-${plan.id}`} onClick={() => toggleChannelExpand(plan.id)}>
+                                {t.viewChannels}{isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                               </button>
-                            </div>
-                            {plan.channel_list.length > 0 && (
-                              <div className="all-packs-channels">
-                                <button type="button" aria-expanded={isExpanded} aria-controls={`pack-channels-${plan.id}`} onClick={() => toggleChannelExpand(plan.id)}>
-                                  {currentLang === 'ta' ? t.channels : 'View channels'}{isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                                </button>
-                                {isExpanded && <div id={`pack-channels-${plan.id}`} className="all-packs-channel-list">{plan.channel_list.map((channel, i) => <span key={i}>{channel}</span>)}</div>}
-                              </div>
-                            )}
-                          </article>
-                        )}
-                      </React.Fragment>
-                    );
+                              {isExpanded && <div id={`pack-channels-${plan.id}`} className="all-packs-channel-list">{plan.channel_list.map((channel, i) => <span key={i}>{channel}</span>)}</div>}
+                            </div>}
+                          </PlanCard>;
+                        })}
+                      </div>}
+                    </section>;
                   })}
                 </div>
               )}
@@ -1084,7 +1094,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
         </div>
 
         {/* Primary Checkout CTA */}
-        <div className={`recharge-checkout ${packsReached ? 'is-sticky' : ''}`}>
+        <div ref={checkoutRef} className={`recharge-checkout ${packsReached ? 'is-sticky' : ''} ${checkoutCompact ? 'is-compact' : ''}`}>
           <div>
             <h2 className={`mb-2 flex items-center gap-2 text-base font-bold ${currentTheme.headingText}`}>
               <span className="recharge-step-number">4</span>

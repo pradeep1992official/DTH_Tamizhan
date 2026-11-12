@@ -39,7 +39,8 @@ describe('copy and localization (QA-11 / QA-12)', () => {
     expect(translations.en.madeWithLove).toBe('Helping Tamil Nadu households keep their favourite channels on.');
   });
   it.each(['en', 'ta'] as const)('formats currency consistently in %s without changing prices', lang => {
-    expect(formatPrice(1399, lang)).toBe('Rs. 1,399.00');
+    expect(formatPrice(1399, lang)).toBe('Rs. 1,399');
+    expect(formatPrice(10.5, lang)).toBe('Rs. 10.50');
     expect(formatPrice(233.17, lang)).toBe('Rs. 233.17');
   });
   it('uses full duration words and localizes stored checkout durations', () => {

@@ -1,4 +1,3 @@
-import { localizeCustomerError } from '../lib/customerMessages';
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Tv,
@@ -13,7 +12,6 @@ import { Language, UserProfile } from '../types';
 import { verifyAdminNavigationAccess } from '../lib/adminNavigationAccess';
 import { translations } from '../lib/translations';
 import { OperatorTheme } from '../lib/theme';
-import { useAccessibleModal } from '../lib/useAccessibleModal';
 
 interface HeaderProps {
   currentLang: Language;
@@ -32,7 +30,6 @@ export const Header: React.FC<HeaderProps> = ({
   onLanguageChange,
   user,
   onOpenAuth,
-  onUpdateProfile,
   onSignOut,
   activeTab,
   onTabChange,
@@ -40,19 +37,9 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const t = translations[currentLang];
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
-  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
-  const [profileName, setProfileName] = useState('');
-  const [profilePhone, setProfilePhone] = useState('');
-  const [profileError, setProfileError] = useState<string | null>(null);
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [adminAccess, setAdminAccess] = useState<{ uid: string; status: 'checking' | 'allowed' | 'denied' | 'error' } | null>(null);
   const [adminAccessRetry, setAdminAccessRetry] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { modalRef: profileModalRef } = useAccessibleModal({
-    isOpen: isEditProfileOpen,
-    onClose: () => setIsEditProfileOpen(false),
-  });
-
   const isAdmin = !!user && adminAccess?.uid === user.uid && adminAccess.status === 'allowed';
 
   useEffect(() => {
@@ -92,27 +79,6 @@ export const Header: React.FC<HeaderProps> = ({
   }, []);
 
   const isLight = currentTheme.isLightMode;
-
-  const handleSaveProfile = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const displayName = profileName.trim();
-    const phoneNumber = profilePhone.trim();
-    if (displayName.length < 2) {
-      setProfileError(translations[currentLang].uiNameMustBeAtLeast2Characters);
-      return;
-    }
-
-    setIsSavingProfile(true);
-    setProfileError(null);
-    try {
-      await onUpdateProfile({ displayName, phoneNumber: phoneNumber || undefined });
-      setIsEditProfileOpen(false);
-    } catch (error) {
-      setProfileError(error instanceof Error ? error.message : translations[currentLang].uiUnableToSaveProfilePleaseTryAgain);
-    } finally {
-      setIsSavingProfile(false);
-    }
-  };
 
   return (
     <header className={`app-header ${currentTheme.headerBg}`}>
@@ -287,24 +253,7 @@ export const Header: React.FC<HeaderProps> = ({
                     <span>{t.viewSavedBoxes}</span>
                   </button>
 
-                  {user && (
-                  <button
-                    id="dropdown-edit-profile-btn"
-                    onClick={() => {
-                      setIsProfileDropdownOpen(false);
-                      setProfileName(user.displayName || '');
-                      setProfilePhone(user.phoneNumber || '');
-                      setProfileError(null);
-                      setIsEditProfileOpen(true);
-                    }}
-                    className={`w-full px-4 py-2 text-left flex items-center gap-2.5 transition-colors ${
-                      isLight ? 'hover:bg-paper hover:text-ink' : 'hover:bg-ink hover:text-accent-ink'
-                    }`}
-                  >
-                    <Sliders className="w-4 h-4 opacity-70" />
-                    <span>{user ? t.editProfile : (translations[currentLang].uiSignInWithGoogle)}</span>
-                  </button>
-                  )}
+
                 </div>
 
                 </>
@@ -419,77 +368,6 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
 
       </nav>
-      {isEditProfileOpen && user && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setIsEditProfileOpen(false);
-          }}
-        >
-          <div
-            ref={profileModalRef}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="edit-profile-title"
-            className={`w-full max-w-md rounded-xl border p-5 shadow-xl ${isLight ? 'border-rule bg-paper text-ink' : 'border-rule-strong bg-ink text-accent-ink'}`}
-          >
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 id="edit-profile-title" className="text-lg font-bold">{t.editProfile}</h2>
-              <button
-                type="button"
-                onClick={() => setIsEditProfileOpen(false)}
-                aria-label={t.close}
-                className="rounded-lg px-2 py-1 text-muted hover:bg-paper-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-current"
-              >
-                ×
-              </button>
-            </div>
-            <p className="mb-4 break-all text-sm text-muted">{user.email}</p>
-            <form onSubmit={handleSaveProfile} className="space-y-4">
-              <label className="block space-y-1.5 text-sm font-medium">
-                <span>{t.customerFullName}</span>
-                <input
-                  autoComplete="name"
-                  required
-                  minLength={2}
-                  maxLength={100}
-                  value={profileName}
-                  onChange={(event) => setProfileName(event.target.value)}
-                  className="w-full rounded-lg border border-rule bg-paper px-3 py-2.5 text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
-                />
-              </label>
-              <label className="block space-y-1.5 text-sm font-medium">
-                <span>{t.registeredMobile}</span>
-                <input
-                  type="tel"
-                  autoComplete="tel"
-                  maxLength={20}
-                  value={profilePhone}
-                  onChange={(event) => setProfilePhone(event.target.value)}
-                  className="w-full rounded-lg border border-rule bg-paper px-3 py-2.5 text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
-                />
-              </label>
-              {profileError && <p role="alert" className="text-sm text-error">{localizeCustomerError(profileError, currentLang)}</p>}
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsEditProfileOpen(false)}
-                  className="rounded-lg border border-rule px-4 py-2 text-sm font-medium hover:bg-paper-2"
-                >
-                  {t.cancel}
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSavingProfile}
-                  className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink disabled:opacity-60"
-                >
-                  {isSavingProfile ? (translations[currentLang].uiSaving) : t.save}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </header>
   );
 };

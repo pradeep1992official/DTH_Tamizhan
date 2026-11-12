@@ -13,6 +13,7 @@ import {
   Routes,
   Route,
   Navigate,
+  Link,
   useNavigate,
   useLocation,
   useParams
@@ -25,7 +26,6 @@ import { ReceiptModal } from './components/ReceiptModal';
 import { SavedConnections } from './components/SavedConnections';
 import { AdminPortal } from './components/AdminPortal';
 import { NewConnectionModal } from './components/NewConnectionModal';
-import { SecurityNotice } from './components/SecurityNotice';
 import { BrowsePlansView } from './components/BrowsePlans/BrowsePlansView';
 import {
   Language,
@@ -43,7 +43,8 @@ import {
 } from './types';
 import { translations } from './lib/translations';
 import { getOperatorTheme, OPERATOR_THEMES } from './lib/theme';
-import { db, isFirebaseConfigured, sanitizePayload } from './lib/firebase';
+import { auth, db, isFirebaseConfigured, sanitizePayload } from './lib/firebase';
+import { saveAccountProfile } from './lib/accountProfile';
 import { collection, doc, getDocs, setDoc, deleteDoc, query, where, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import {
   Tv,
@@ -248,7 +249,7 @@ function MainApp() {
 
     const updatedProfile = { ...user, ...updates };
     if (isFirebaseConfigured && db) {
-      await setDoc(doc(db, 'users', user.uid), sanitizePayload(updatedProfile), { merge: true });
+      await saveAccountProfile(db, auth, user.uid, updates, t.uiSignInEdit);
     }
     setUser(updatedProfile);
   };
@@ -399,7 +400,6 @@ function MainApp() {
     if (path.startsWith('/plans')) return 'plans';
     if (path.startsWith('/connections')) return 'connections';
     if (path === '/account') return 'account';
-    if (path.startsWith('/security')) return 'security';
     return 'recharge';
   };
 
@@ -408,7 +408,6 @@ function MainApp() {
     else if (tab === 'plans') navigate('/plans');
     else if (tab === 'connections') navigate('/connections');
     else if (tab === 'account') navigate('/account');
-    else if (tab === 'security') navigate('/security');
     else if (tab === 'admin-portal') navigate('/admin/customers');
     else if (tab === 'new-dish') setIsNewDishOpen(true);
   };
@@ -497,9 +496,8 @@ function MainApp() {
             }
           />
           {POLICY_ROUTES.map(route => <Route key={route.key} path={route.path} element={<PolicyPage policy={route.key} currentLang={currentLang} />} />)}
-          <Route path="/account" element={<AccountPage user={user} currentLang={currentLang} onOpenAuth={() => setIsAuthOpen(true)} />} />
+          <Route path="/account" element={<AccountPage user={user} connections={connections} currentLang={currentLang} onOpenAuth={() => setIsAuthOpen(true)} onSignOut={handleSignOut} onUpdateProfile={handleUpdateProfile} />} />
           <Route path="/500" element={<ErrorPage status={500} currentLang={currentLang} />} />
-          <Route path="/security" element={<SecurityNotice currentTheme={currentTheme} currentLang={currentLang} />} />
 
           {/* Admin Routes with react-router parameterization */}
           <Route
@@ -533,14 +531,26 @@ function MainApp() {
         <div className="app-footer-inner">
           <div className="footer-overview">
             <div className="footer-brand">
-              <div className="footer-brand-icon"><Tv className="w-5 h-5" aria-hidden="true" /></div>
               <span className="font-sans font-bold text-base tracking-tight">
                 DTH <span style={{ color: currentTheme.primaryColor }}>தமிழன்</span>
               </span>
             </div>
+            <p className="footer-tagline">{t.brandTagline}</p>
+            <p className="footer-disclaimer">{t.madeWithLove} {t.footerDisclaimer}</p>
           </div>
-          <PolicyLinks currentLang={currentLang} />
-          <p className="footer-disclaimer">{t.madeWithLove} {t.footerDisclaimer}</p>
+          <div className="footer-link-group">
+            <h2>{currentLang === 'ta' ? 'விரைவு இணைப்புகள்' : 'Quick links'}</h2>
+            <nav aria-label={currentLang === 'ta' ? 'விரைவு இணைப்புகள்' : 'Quick links'}>
+              <Link to="/recharge">{t.navRecharge}</Link>
+              <Link to="/plans">{t.navPlans}</Link>
+              <Link to="/connections">{t.navConnections}</Link>
+              <Link to="/account">{currentLang === 'ta' ? 'என் கணக்கு' : 'My account'}</Link>
+            </nav>
+          </div>
+          <div className="footer-link-group">
+            <h2>{currentLang === 'ta' ? 'உதவி மற்றும் கொள்கைகள்' : 'Support & policies'}</h2>
+            <PolicyLinks currentLang={currentLang} />
+          </div>
         </div>
       </footer>
 

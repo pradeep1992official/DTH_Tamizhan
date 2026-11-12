@@ -1,7 +1,7 @@
 import { formatMessage } from '../lib/customerMessages';
 import { subscriberError, subscriberHelp, subscriberRule, subscriberLabel, subscriberPlaceholder, normalizeSubscriberId } from '../lib/subscriberValidation';
 import { getConnectionExpiry } from '../lib/connectionExpiry';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Tv,
   Plus,
@@ -18,6 +18,7 @@ import { DthConnection, DthOperatorId, Language, UserProfile, resolveDishFamilyO
 import { translations } from '../lib/translations';
 import { OperatorTheme, getOperatorTheme } from '../lib/theme';
 import { useAccessibleModal } from '../lib/useAccessibleModal';
+import { OperatorCardLogo } from './BrandAssets';
 
 interface SavedConnectionsProps {
   connections: DthConnection[];
@@ -49,6 +50,7 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
   const [idError, setIdError] = useState<string | null>(null);
   const [nickname, setNickname] = useState('');
   const [customerName, setCustomerName] = useState('');
+  const backdropPointerDown = useRef(false);
 
   const isLight = currentTheme.isLightMode;
 
@@ -143,23 +145,26 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
             const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
             const expired = validExpiry && expiry!.slice(0, 10) < today;
             const operatorNames: Record<string, string> = { sun_direct: 'Sun Direct', tata_play: 'Tata Play', airtel_dth: 'Airtel Digital TV', dish_tv: 'Dish TV & D2H' };
+            const connectionError = subscriberError(conn.operator, conn.smartCardNumber, false, currentLang);
+            const editConnection = () => {
+              setEditing(conn); setOperator(normalizedOp); setSmartCard(conn.smartCardNumber);
+              setNickname(conn.nickname); setCustomerName(conn.customerName || '');
+              setIdError(connectionError); setIsAddOpen(true);
+            };
 
             return (
               <div
                 key={conn.id}
-                className={`${currentTheme.cardInactiveBg} ${currentTheme.cardInactiveBorder} border rounded-2xl p-5 space-y-4 relative group transition-colors flex flex-col justify-between`}
+                className={`connection-card ${currentTheme.cardInactiveBg} ${currentTheme.cardInactiveBorder} border rounded-2xl relative group transition-colors flex flex-col`}
               >
                 <div>
                   {/* Card Header with Specific Operator Badge */}
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <span
-                        className="compact-plan-pill compact-plan-operator"
-                        data-operator={normalizedOp}
-                      >
-                        {operatorNames[normalizedOp] || conn.operatorName}
-                      </span>
-                      <h3 className={`font-bold text-base mt-2 ${currentTheme.headingText}`}>
+                  <div className="connection-card-header">
+                      <div className="connection-operator-logo" role="img" aria-label={operatorNames[normalizedOp] || conn.operatorName}>
+                        <OperatorCardLogo operatorId={normalizedOp} className="connection-operator-logo-image" />
+                      </div>
+                    <div className="connection-card-identity">
+                      <h3 className={`font-bold text-base ${currentTheme.headingText}`}>
                         {conn.nickname}
                       </h3>
                       <p className={`text-xs font-mono mt-0.5 ${currentTheme.mutedText}`}>
@@ -179,28 +184,22 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
                     </button>
                   </div>
 
-                  {/* Account Meta Balance & Expiry */}
-                  <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <span className={`text-xs font-medium block ${currentTheme.mutedText}`}>{translations[currentLang].uiBalance}</span>
-                      <span className="font-medium text-sm">
-                        {typeof conn.balance === 'number' ? `Rs. ${conn.balance.toFixed(2)}` : translations[currentLang].uiNotAvailable}
-                      </span>
-                    </div>
+                  {/* Saved expiry details */}
+                  <div className="connection-meta text-sm">
                     {validExpiry && (
-                      <div>
+                      <div className="connection-detail-row">
                         <span className={`text-xs font-medium block ${currentTheme.mutedText}`}>{translations[currentLang].uiExpiry}</span>
-                        <span className="font-medium text-sm block">
+                        <div className="connection-expiry-row"><span className="font-medium text-sm">
                           {expiryDate!.toLocaleDateString(translations[currentLang].uiEnIN, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}
                         </span>
-                        <span className={`text-xs font-semibold ${expired ? 'text-error' : 'text-success'}`}>{expired ? translations[currentLang].uiExpired : translations[currentLang].uiActive}</span>
+                        <span className={`connection-status ${expired ? 'is-expired' : 'is-active'}`}>{expired ? translations[currentLang].uiExpired : translations[currentLang].uiActive}</span></div>
                       </div>
                     )}
                   </div>
 
-                  {subscriberError(conn.operator, conn.smartCardNumber, false, currentLang) && <p role="alert" className="text-error text-xs">{subscriberError(conn.operator, conn.smartCardNumber, false, currentLang)}</p>}
+                  {connectionError && <p role="alert" className="connection-validation text-error">{connectionError}</p>}
                   {conn.packName && (
-                    <div className={`mt-3 text-sm space-y-1`}>
+                    <div className="connection-pack connection-detail-row text-sm">
                       <span className={currentTheme.mutedText}>{translations[currentLang].uiCurrentPack}</span>
                       <span className="font-medium block break-words">
                         {conn.packName}
@@ -209,18 +208,15 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
                   )}
                 </div>
 
-                <div className={`flex items-center pt-3 border-t ${currentTheme.surfaceBorder}`}>
-                  <button type="button" className="text-xs px-3" onClick={() => {
-                    setEditing(conn); setOperator(conn.operator === 'd2h' ? 'dish_tv' : conn.operator); setSmartCard(conn.smartCardNumber);
-                    setNickname(conn.nickname); setCustomerName(conn.customerName || '');
-                    setIdError(subscriberError(conn.operator, conn.smartCardNumber, false, currentLang)); setIsAddOpen(true);
-                  }}>{translations[currentLang].uiEdit}</button>
+                <div className={`connection-actions flex items-center pt-3 border-t ${currentTheme.surfaceBorder}`}>
+                  <button type="button" className="connection-edit" onClick={editConnection}>{translations[currentLang].uiEdit}</button>
                   <button
-                    onClick={() => onQuickRecharge(conn)}
+                    type="button"
+                    onClick={connectionError ? editConnection : () => onQuickRecharge(conn)}
                     className={`flex-1 py-2.5 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-sm ${currentTheme.cardButtonActive}`}
                   >
-                    <Zap className="w-3.5 h-3.5" />
-                    <span>{t.rechargeAgain}</span>
+                    {!connectionError && <Zap className="w-3.5 h-3.5" />}
+                    <span>{connectionError ? (currentLang === 'ta' ? 'ஐடியைத் திருத்தவும்' : 'Update ID') : t.rechargeAgain}</span>
                   </button>
 
                 </div>
@@ -270,8 +266,11 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
       {isAddOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-scrim/70 backdrop-blur-sm   duration-200"
+          onPointerDown={(e) => { backdropPointerDown.current = e.target === e.currentTarget; }}
+          onPointerCancel={() => { backdropPointerDown.current = false; }}
           onClick={(e) => {
-            if (e.target === e.currentTarget) setIsAddOpen(false);
+            if (backdropPointerDown.current && e.target === e.currentTarget) setIsAddOpen(false);
+            backdropPointerDown.current = false;
           }}
         >
           <div

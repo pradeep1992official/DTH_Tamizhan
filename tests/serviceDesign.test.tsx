@@ -7,8 +7,19 @@ import { CatalogColumnHeadings, PlanCard } from '../src/components/BrowsePlans/P
 import { getOperatorTheme } from '../src/lib/theme';
 import { localizeCustomerError } from '../src/lib/customerMessages';
 import type { BrowsePlan } from '../src/types';
+import { translations } from '../src/lib/translations';
 
 describe('service design and truthful content', () => {
+  it.each(['en', 'ta'] as const)('supports homepage selection without Compare and preserves channel content in %s', currentLang => {
+    const plan: BrowsePlan = { id: 'fixture', operator: 'sun_direct', name: 'Fixture', type: 'HD', duration_months: 6, price: 1399, monthly_equivalent_rate: 233.17, channel_counts_unavailable: true, channels: [], genre_tags: [], is_recommended: false };
+    const html = renderToStaticMarkup(<PlanCard plan={plan} currentTheme={getOperatorTheme('sun_direct')} currentLang={currentLang} showCompare={false} isSelected onSelectPlan={vi.fn()}><button>{translations[currentLang].viewChannels}</button></PlanCard>);
+    expect(html).not.toContain('type="checkbox"');
+    expect(html).toContain('aria-pressed="true"');
+    expect(html).toContain(translations[currentLang].selectedAction);
+    expect(html).toContain(translations[currentLang].viewChannels);
+    expect(html).toContain('data-quality="HD"');
+    expect(html).toContain('sun_logo.png');
+  });
   it.each(['en', 'ta'] as const)('renders localized catalog headings in %s', currentLang => {
     const html = renderToStaticMarkup(<CatalogColumnHeadings currentLang={currentLang} />);
     for (const label of currentLang === 'en' ? ['Operator', 'Pack', 'Duration', 'Total', 'Action'] : ['ஆபரேட்டர்', 'பேக்', 'காலம்', 'மொத்தம்', 'செயல்']) expect(html).toContain(label);
@@ -37,7 +48,7 @@ describe('service design and truthful content', () => {
   it('shows the monthly equivalent even for a one-month catalog row', () => {
     const plan: BrowsePlan = { id: 'fixture', operator: 'sun_direct', name: 'Fixture', type: 'HD', duration_months: 1, price: 259, monthly_equivalent_rate: 259, channel_counts_unavailable: true, channels: [], genre_tags: [], is_recommended: false };
     const html = renderToStaticMarkup(<PlanCard plan={plan} currentTheme={getOperatorTheme('sun_direct')} currentLang="en" isSelectedForCompare={false} canAddToCompare onToggleCompare={vi.fn()} onSelectPlan={vi.fn()} />);
-    expect(html).toContain('Rs. 259.00 / month');
+    expect(html).toContain('Rs. 259 / month');
     expect(html).toContain('catalog-duration-cell');
     expect(html).toMatch(/class="compact-plan-actions">[\s\S]*type="checkbox"[\s\S]*type="button"/);
   });

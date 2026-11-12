@@ -47,7 +47,7 @@ export function monthlyEquivalent(amount: number, duration: number): number {
   return Math.round((amount / duration + Number.EPSILON) * 100) / 100;
 }
 export function formatPrice(amount: number, lang: Language = 'en'): string {
-  return Number.isFinite(amount) && amount > 0 ? `Rs. ${new Intl.NumberFormat(lang === 'ta' ? 'ta-IN' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)}` : translations[lang].uiPriceNeedsReview;
+  return Number.isFinite(amount) && amount > 0 ? `Rs. ${new Intl.NumberFormat(lang === 'ta' ? 'ta-IN' : 'en-IN', { minimumFractionDigits: Number.isInteger(amount) ? 0 : 2, maximumFractionDigits: 2 }).format(amount)}` : translations[lang].uiPriceNeedsReview;
 }
 export function formatMonthlyEquivalent(amount: number, duration: number, lang: Language = 'en'): string {
   const value = monthlyEquivalent(amount, duration);

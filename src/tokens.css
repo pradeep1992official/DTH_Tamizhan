@@ -18,6 +18,13 @@
   --color-ivory: #FFF9F0;
   --color-charcoal: #292323;
   --color-ochre: #B77916;
+  --color-quality-silver: #D0D0D0;
+  --color-quality-silver-edge: #747474;
+  --color-quality-gold: #E9B841;
+  --color-quality-gold-edge: #91620D;
+  --color-recommended: #115E59;
+  --color-recommended-soft: #CCFBF1;
+  --color-recommended-edge: #5EEAD4;
   --color-error: #b33131;
   --color-error-soft: #fff0ed;
   --color-success: #216947;

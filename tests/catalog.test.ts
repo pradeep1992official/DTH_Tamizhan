@@ -11,12 +11,19 @@ const pack: PlanCatalogItem = { id: 'fixture', operator: 'sun_direct', pack_type
   channel_list: ['Sun TV HD', 'KTV HD'], is_recommended: true };
 beforeEach(() => { vi.unstubAllGlobals(); });
 describe('shared catalog formatting (QA-08 / QA-09)', () => {
-  it('uses two decimal monthly equivalents, never whole-rupee ceil or floor', () => {
+  it('preserves fractional monthly equivalents, never whole-rupee ceil or floor', () => {
     expect(monthlyEquivalent(1399, 6)).toBe(233.17);
     expect(formatMonthlyEquivalent(1399, 6)).toContain('233.17');
     expect(formatMonthlyEquivalent(1289, 6)).toContain('214.83');
     expect(formatMonthlyEquivalent(3091, 12)).toContain('257.58');
-    expect(formatMonthlyEquivalent(299, 1)).toContain('299.00');
+    expect(formatMonthlyEquivalent(299, 1)).toBe('Rs. 299 / month');
+  });
+  it.each(['en', 'ta'] as const)('omits unnecessary decimals while preserving real paise in %s', lang => {
+    expect(formatPrice(1399, lang)).toBe('Rs. 1,399');
+    expect(formatPrice(1289, lang)).toBe('Rs. 1,289');
+    expect(formatPrice(10.5, lang)).toBe('Rs. 10.50');
+    expect(formatPrice(10.01, lang)).toBe('Rs. 10.01');
+    expect(formatMonthlyEquivalent(1399, 6, lang)).toContain('233.17');
   });
   it('uses the same declared totals, duration and monthly price after browse conversion/metrics', () => {
     const browse = computePlanMetrics([catalogItemToBrowsePlan(pack)])[0];

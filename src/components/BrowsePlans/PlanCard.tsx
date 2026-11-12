@@ -9,9 +9,12 @@ interface PlanCardProps {
   plan: BrowsePlan;
   currentTheme: OperatorTheme;
   currentLang: Language;
-  isSelectedForCompare: boolean;
-  onToggleCompare: (plan: BrowsePlan) => void;
-  canAddToCompare: boolean;
+  isSelectedForCompare?: boolean;
+  onToggleCompare?: (plan: BrowsePlan) => void;
+  canAddToCompare?: boolean;
+  showCompare?: boolean;
+  isSelected?: boolean;
+  children?: React.ReactNode;
   onSelectPlan: (plan: BrowsePlan) => void;
 }
 
@@ -35,9 +38,12 @@ export const PlanCard: React.FC<PlanCardProps> = ({
   plan,
   currentTheme,
   currentLang,
-  isSelectedForCompare,
+  isSelectedForCompare = false,
   onToggleCompare,
-  canAddToCompare,
+  canAddToCompare = true,
+  showCompare = true,
+  isSelected,
+  children,
   onSelectPlan,
 }) => {
   const t = translations[currentLang];
@@ -65,6 +71,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({
 
   return (
     <article
+      data-selected={isSelected}
       className={`catalog-plan compact-plan border ${isLight ? 'bg-paper border-rule text-ink' : `${currentTheme.mainContainerBg} ${currentTheme.mainContainerBorder} text-accent-ink`}`}
       style={{ borderColor: isSelectedForCompare ? currentTheme.primaryColor : undefined }}
     >
@@ -73,9 +80,10 @@ export const PlanCard: React.FC<PlanCardProps> = ({
           <div
             className="catalog-operator-identity"
             data-operator={plan.operator}
+            role="img"
+            aria-label={currentLang === 'ta' && opInfo.tamil ? opInfo.tamil : opInfo.name}
           >
             <OperatorCardLogo operatorId={plan.operator} className="catalog-operator-logo-image" />
-            <span className="catalog-operator-name">{currentLang === 'ta' && opInfo.tamil ? opInfo.tamil : opInfo.name}</span>
           </div>
           <span className="compact-plan-pill compact-plan-quality" data-quality={plan.type}>{plan.type}</span>
           <span className="compact-plan-pill compact-plan-duration" data-duration={plan.duration_months}>{duration}</span>
@@ -93,6 +101,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({
           {channelListLabel} <span aria-hidden="true">&rarr;</span>
         </a>
       )}
+      {children}
       </div>
       <span className="catalog-duration-cell">{duration}</span>
 
@@ -107,25 +116,26 @@ export const PlanCard: React.FC<PlanCardProps> = ({
           </span>
         </div>
         <div className="compact-plan-actions">
-        <label className="compact-plan-compare text-xs text-muted">
+        {showCompare && <label className="compact-plan-compare text-xs text-muted">
           <input
             type="checkbox"
             checked={isSelectedForCompare}
-            onChange={() => onToggleCompare(plan)}
+            onChange={() => onToggleCompare?.(plan)}
             disabled={!isSelectedForCompare && !canAddToCompare}
             aria-label={`${t.addToCompare}: ${planName}`}
             style={{ accentColor: currentTheme.primaryColor }}
           />
           {t.addToCompare}
-        </label>
+        </label>}
         <button
           type="button"
           onClick={() => onSelectPlan(plan)}
-          aria-label={`${t.selectThisPack}: ${planName}`}
+          aria-pressed={isSelected}
+          aria-label={`${isSelected ? t.selectedAction : t.selectThisPack}: ${planName}`}
           className="rounded-xl px-5 py-2.5 text-sm font-bold text-accent-ink"
           style={{ backgroundColor: currentTheme.primaryColor }}
         >
-          {t.selectThisPack}
+          {isSelected ? t.selectedAction : t.selectThisPack}
         </button>
         </div>
       </footer>

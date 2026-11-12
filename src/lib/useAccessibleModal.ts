@@ -9,6 +9,8 @@ interface UseAccessibleModalProps {
 export function useAccessibleModal({ isOpen, onClose }: UseAccessibleModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const previousActiveElement = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -21,7 +23,7 @@ export function useAccessibleModal({ isOpen, onClose }: UseAccessibleModalProps)
       if (event.key === 'Escape') {
         event.preventDefault();
         event.stopPropagation();
-        onClose();
+        onCloseRef.current();
         return;
       }
 
@@ -78,7 +80,7 @@ export function useAccessibleModal({ isOpen, onClose }: UseAccessibleModalProps)
         previousActiveElement.current.focus();
       }
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   return { modalRef };
 }
