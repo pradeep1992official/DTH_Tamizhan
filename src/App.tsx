@@ -244,7 +244,7 @@ function MainApp() {
   };
 
   const handleUpdateProfile = async (updates: Pick<UserProfile, 'displayName' | 'phoneNumber'>) => {
-    if (!user) throw new Error('You must be signed in to edit your profile.');
+    if (!user) throw new Error(t.uiSignInEdit);
 
     const updatedProfile = { ...user, ...updates };
     if (isFirebaseConfigured && db) {
@@ -419,7 +419,7 @@ function MainApp() {
   return (
     <div className={`app-shell min-h-screen flex flex-col ${currentTheme.pageBg} ${currentTheme.pageText}`}>
       <RouteEffects currentLang={currentLang} />
-      <a href="#main-content" className="skip-link">{currentLang === 'ta' ? 'உள்ளடக்கத்திற்குச் செல்' : 'Skip to content'}</a>
+      <a href="#main-content" className="skip-link">{t.uiSkipContent}</a>
       <Header
         currentLang={currentLang}
         onLanguageChange={handleLanguageChange}
@@ -497,7 +497,7 @@ function MainApp() {
           {POLICY_ROUTES.map(route => <Route key={route.key} path={route.path} element={<PolicyPage policy={route.key} currentLang={currentLang} />} />)}
           <Route path="/account" element={<AccountPage user={user} currentLang={currentLang} onOpenAuth={() => setIsAuthOpen(true)} />} />
           <Route path="/500" element={<ErrorPage status={500} currentLang={currentLang} />} />
-          <Route path="/security" element={<SecurityNotice currentTheme={currentTheme} />} />
+          <Route path="/security" element={<SecurityNotice currentTheme={currentTheme} currentLang={currentLang} />} />
 
           {/* Admin Routes with react-router parameterization */}
           <Route

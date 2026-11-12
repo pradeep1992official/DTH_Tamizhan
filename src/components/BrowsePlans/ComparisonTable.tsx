@@ -1,3 +1,4 @@
+import { formatMessage } from '../../lib/customerMessages';
 import { formatPrice, formatMonthlyEquivalent, formatDuration, formatChannelCounts, validateCatalogPack } from '../../lib/catalog';
 import React from 'react';
 import {
@@ -116,7 +117,7 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
                       <button
                         type="button"
                         onClick={() => onRemovePlan(plan.id)}
-                        aria-label={`Remove ${plan.name} from comparison`}
+                        aria-label={formatMessage(t.uiRemoveNamedPlan, { name: plan.name })}
                         className="shrink-0 rounded-lg p-2 text-muted hover:bg-error/10 hover:text-error focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -173,8 +174,8 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
                                 type="button"
                                 onClick={() => onRemovePlan(p.id)}
                                 className="text-muted hover:text-error p-1"
-                                title="Remove from compare"
-                                aria-label={`Remove ${p.name} from comparison`}
+                                title={translations[currentLang].uiRemoveFromCompare}
+                                aria-label={formatMessage(t.uiRemoveNamedPlan, { name: p.name })}
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>

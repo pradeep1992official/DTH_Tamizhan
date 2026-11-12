@@ -34,19 +34,27 @@ describe('real HTTP page responses and metadata (QA-18 / QA-20)', () => {
     expect(html.match(/<title>/g)).toHaveLength(1);
     expect(html.match(/name="description"/g)).toHaveLength(1);
   });
-  it('gives a nonexistent URL a real 404 and bilingual recovery feedback, without redirecting', async () => {
+  it('gives a nonexistent URL a real 404 and language-specific recovery feedback, without redirecting', async () => {
     const response = await fetch(origin + '/qa-nonexistent-page');
     expect(response.status).toBe(404); expect(response.redirected).toBe(false);
     const html = await response.text();
-    expect(html).toContain('Page not found'); expect(html).toContain('பக்கம் கிடைக்கவில்லை');
+    expect(html).toContain('Page not found'); expect(html).toContain('<html lang="en">');
     expect(html).toContain('href="/"'); expect(response.headers.get('x-robots-tag')).toContain('noindex');
   });
   it.each(['/500', '/test-synchronous-error', '/test-template-error'])('%s returns a real 500 with no stack leak and a home link', async path => {
     const response = await fetch(origin + path); const html = await response.text();
     expect(response.status).toBe(500); expect(html).toContain('Service error');
-    expect(html).toContain('சேவைப் பிழை'); expect(html).toContain('href="/"');
+    expect(html).toContain('We could not load this page'); expect(html).toContain('href="/"');
     expect(html).not.toContain('PRIVATE'); expect(html).not.toContain('/src/main.tsx');
     expect(html).toContain('rel="icon"'); expect(html).toContain('rel="manifest"');
+  });
+  it.each([['/qa-nonexistent-page', 404], ['/500', 500]] as const)('%s sends UTF-8 Tamil error content for the selected language', async (path, status) => {
+    const response = await fetch(origin + path, { headers: { cookie: 'dth_lang=ta' } });
+    const html = await response.text();
+    expect(response.status).toBe(status); expect(html).toContain('<html lang="ta">');
+    expect(html).toMatch(/<meta charset="UTF-8"/i);
+    expect(html).toContain('முகப்புப் பக்கத்திற்குத் திரும்பவும்');
+    expect(html).not.toContain('Back to home');
   });
   it.each(['/admin', '/admin/orders', '/admin/packs', '/admin/reports'])('%s is noindex in both HTML and HTTP headers', async path => {
     const response = await fetch(origin + path);

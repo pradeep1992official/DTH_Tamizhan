@@ -1,5 +1,6 @@
+import { localizeCustomerError } from '../../lib/customerMessages';
 import { formatPrice, formatDuration, formatChannelCounts } from '../../lib/catalog';
-import { subscriberError, subscriberHelp, subscriberRule, normalizeSubscriberId } from '../../lib/subscriberValidation';
+import { subscriberError, subscriberHelp, subscriberRule, subscriberLabel, subscriberPlaceholder, normalizeSubscriberId } from '../../lib/subscriberValidation';
 import React, { useState } from 'react';
 import {
   X,
@@ -95,7 +96,7 @@ export const ApplyPlanModal: React.FC<ApplyPlanModalProps> = ({
     name: plan.operator,
     tamil: '',
     color: currentTheme.primaryColor,
-  }), cardName: subscriberRule(plan.operator, true).label, hint: subscriberHelp(plan.operator, true, currentLang) };
+  }), cardName: subscriberLabel(plan.operator, true, currentLang), hint: subscriberHelp(plan.operator, true, currentLang) };
 
   const matchingBoxes = (connections || []).filter((c) => isSameDthOperatorGroup(c.operator, plan.operator));
   const incompatibleCount = (connections || []).length - matchingBoxes.length;
@@ -104,7 +105,7 @@ export const ApplyPlanModal: React.FC<ApplyPlanModalProps> = ({
     const boxId = selectedBoxId || (matchingBoxes[0]?.id ?? '');
     const box = matchingBoxes.find((b) => b.id === boxId);
     if (!box) {
-      setFormError(currentLang === 'ta' ? 'பொருத்தமான செட்-டாப் பாக்ஸைத் தேர்ந்தெடுக்கவும்' : 'Please select a compatible Set-Top Box.');
+      setFormError(translations[currentLang].uiPleaseSelectACompatibleSetTopBox);
       return;
     }
     if (!isSameDthOperatorGroup(box.operator, plan.operator)) {
@@ -129,8 +130,8 @@ export const ApplyPlanModal: React.FC<ApplyPlanModalProps> = ({
     setFormError(null);
     onAddNewConnectionAndApply(plan, {
       smartCardNumber: cleanCard,
-      nickname: nicknameInput.trim() || `${opMeta.name} Box`,
-      customerName: customerNameInput.trim() || user?.displayName || 'Subscriber',
+      nickname: nicknameInput.trim() || `${opMeta.name} ${t.uiSetTopBox}`,
+      customerName: customerNameInput.trim() || user?.displayName || t.customer,
     });
   };
 
@@ -217,7 +218,7 @@ export const ApplyPlanModal: React.FC<ApplyPlanModalProps> = ({
           {formError && (
             <div role="alert" className="p-3.5 rounded-xl bg-error/10 border border-rule text-error text-sm flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-error shrink-0" />
-              <span>{formError}</span>
+              <span>{localizeCustomerError(formError, currentLang)}</span>
             </div>
           )}
 
@@ -255,7 +256,7 @@ export const ApplyPlanModal: React.FC<ApplyPlanModalProps> = ({
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <label className="text-sm font-bold opacity-80">
-                      {currentLang === 'ta' ? 'சேமிக்கப்பட்ட பாக்ஸைத் தேர்ந்தெடுக்கவும்:' : 'Select Saved Box:'}
+                      {translations[currentLang].uiSelectSavedBox}
                     </label>
                     <button
                       type="button"
@@ -330,12 +331,12 @@ export const ApplyPlanModal: React.FC<ApplyPlanModalProps> = ({
                       type="text"
                       aria-invalid={!!formError}
                       aria-describedby="apply-id-help"
-                      placeholder={subscriberRule(plan.operator, true).placeholder}
+                      placeholder={subscriberPlaceholder(plan.operator, true, currentLang)}
                       value={smartCardInput}
                       onChange={(e) => setSmartCardInput(e.target.value.replace(/\D/g, ''))}
                       className="w-full p-2.5 rounded-xl border text-sm tabular-nums bg-transparent focus:outline-none focus:border-rule"
                     />
-                    <p id="apply-id-help" role={formError ? "alert" : undefined} className={formError ? "text-error" : ""}>{formError || opMeta.hint}</p>
+                    <p id="apply-id-help" role={formError ? "alert" : undefined} className={formError ? "text-error" : ""}>{formError ? localizeCustomerError(formError, currentLang) : opMeta.hint}</p>
                   </div>
 
                   <div>
@@ -344,7 +345,7 @@ export const ApplyPlanModal: React.FC<ApplyPlanModalProps> = ({
                     </label>
                     <input id="applyplanmodal-field-2"
                       type="text"
-                      placeholder="e.g. Living Room TV"
+                      placeholder={translations[currentLang].uiEnterABoxNickname}
                       value={nicknameInput}
                       onChange={(e) => setNicknameInput(e.target.value)}
                       className="w-full p-2.5 rounded-xl border text-sm bg-transparent focus:outline-none focus:border-rule"

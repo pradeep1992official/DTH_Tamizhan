@@ -28,7 +28,7 @@ describe('payment mode (QA-02, QA-03)', () => {
 describe('server price calculation', () => {
   it('ignores client amount, name and validity in favor of the catalog', () => {
     const quote = calculatePayment({ ...input, amount: 1, packName: 'Forged', packValidity: '1 year' } as any, plans);
-    expect(quote).toEqual({ amountPaise: 24950, packName: 'Tamil HD', validity: '1 months' });
+    expect(quote).toEqual({ amountPaise: 24950, packName: 'Tamil HD', validity: '1 month' });
   });
   it('rejects missing/deleted plans and cross-operator plans', () => {
     expect(() => calculatePayment({ ...input, packId: 'deleted' }, plans)).toThrow('unavailable');

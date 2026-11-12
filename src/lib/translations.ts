@@ -1,14 +1,22 @@
+import { customerMessages } from './customerMessages';
 import { Language } from '../types';
 
 export const translations = {
   en: {
+    ...customerMessages.en,
     brandTitle: 'DTH Tamizhan',
     brandTagline: 'DTH recharge and support for Tamil Nadu.',
     heroDescription: 'Choose your DTH operator, enter your customer ID, and check the total before paying.',
-    customDescription: 'Enter a recharge amount of Rs. 50 or more.',
+    heroHeading: 'Recharge your DTH connection',
+    customDescription: 'Enter a recharge amount of Rs. 10 or more.',
     selectedAction: 'Selected',
     selectAction: 'Select',
-    navRecharge: 'Quick Recharge',
+    sunIdLabel: 'Smart Card Number',
+    tataIdLabel: 'Subscriber ID',
+    customerIdLabel: 'Customer ID',
+    dishIdLabel: 'Viewing Card (VC)',
+    combinedIdLabel: 'Viewing Card / Customer ID',
+    navRecharge: 'Recharge',
     navPlans: 'Browse Packs',
     navConnections: 'My Set-Top Boxes',
     navNewDish: 'New Dish Connection',
@@ -47,7 +55,7 @@ export const translations = {
     enterCardNumber: '2. Enter Smart Card / Customer ID',
     checkBalance: 'Check Balance & Status',
     verifying: 'Checking account with operator...',
-    subscriberFound: 'Subscriber Found',
+    subscriberFound: 'Customer found',
     validityExpires: 'Validity Expires',
     activePack: 'Active Pack',
     expiredAlert: 'Recharge Due! Channels currently stopped.',
@@ -122,8 +130,8 @@ export const translations = {
     processingPayment: 'Checking payment status...',
     rechargeSuccess: 'Recharge Successful!',
     paymentFailed: 'Payment verification failed. Please try again.',
-    saveBoxPrompt: 'Save this Viewing Card for fast one-click recharges',
-    subscriberName: 'Subscriber Name',
+    saveBoxPrompt: 'Save this connection for faster recharges',
+    subscriberName: 'Customer name',
     viewingCardLabel: 'Viewing Card No',
     receiptConfirmation: 'Mobile number for your recharge receipt',
     instantActivation: 'Track your recharge status after payment.',
@@ -135,7 +143,7 @@ export const translations = {
     receiptSubtitle: "Check the recorded payment and operator status.",
     orderIdLabel: 'Transaction ID',
     operatorRefLabel: 'Operator Reference',
-    rechargeAmountLabel: 'Amount Paid',
+    rechargeAmountLabel: 'Recharge amount',
     packAppliedLabel: 'Recharged Bouquet',
     dateLabel: 'Timestamp',
     printReceipt: 'Print Receipt',
@@ -227,7 +235,7 @@ export const translations = {
     proceedWithPack: 'Proceed to Payment with this Pack',
     validatingCard: 'Validating smart card with operator...',
     accountVerified: 'Account Verified',
-    boxNicknamePlaceholder: 'e.g. Living Room TV',
+    boxNicknamePlaceholder: 'Enter a box nickname',
 
     // Saved Connections
     addSetTopBox: 'Add Set-Top Box',
@@ -287,9 +295,9 @@ export const translations = {
     brandTheme: 'Operator Brand Theme',
 
     // PackCard
-    recommendedHd: '👑 RECOMMENDED HD',
-    recommendedSd: '📦 RECOMMENDED SD',
-    flexibleTopUp: '⚡ FLEXIBLE TOP-UP',
+    recommendedHd: 'Recommended HD',
+    recommendedSd: 'Recommended SD',
+    flexibleTopUp: 'Flexible top-up',
 
     // Catalog Loading & Error
     loadingLiveCatalog: 'Loading available recharge packs…',
@@ -366,16 +374,23 @@ export const translations = {
     transactionId: 'Transaction ID',
   },
   ta: {
+    ...customerMessages.ta,
     brandTitle: 'டிடிஎச் தமிழன்',
     // Draft Tamil copy: native-speaker review required before publication.
     brandTagline: 'தமிழ்நாட்டிற்கான டிடிஎச் ரீசார்ஜ் மற்றும் உதவி.',
     heroDescription: 'உங்கள் டிடிஎச் ஆபரேட்டரைத் தேர்ந்தெடுத்து, வாடிக்கையாளர் எண்ணை உள்ளிட்டு, பணம் செலுத்தும் முன் மொத்தத் தொகையைச் சரிபார்க்கவும்.',
+    heroHeading: 'உங்கள் டிடிஎச் இணைப்பை ரீசார்ஜ் செய்யுங்கள்',
     customDescription: 'Rs. 10 அல்லது அதற்கு மேற்பட்ட ரீசார்ஜ் தொகையை உள்ளிடவும்.',
     selectedAction: 'தேர்ந்தெடுக்கப்பட்டது',
     selectAction: 'தேர்ந்தெடு',
-    navRecharge: 'உடனடி ரீசார்ஜ்',
-    navPlans: 'பேக்குகளை காண்க',
-    navConnections: 'என் செட்-டாப் பாக்ஸ்கள்',
+    sunIdLabel: 'ஸ்மார்ட் கார்டு எண்',
+    tataIdLabel: 'சந்தாதாரர் எண்',
+    customerIdLabel: 'வாடிக்கையாளர் எண்',
+    dishIdLabel: 'வியூவிங் கார்டு எண்',
+    combinedIdLabel: 'வியூவிங் கார்டு / வாடிக்கையாளர் எண்',
+    navRecharge: 'ரீசார்ஜ்',
+    navPlans: 'பேக்குகள்',
+    navConnections: 'என் பெட்டிகள்',
     navNewDish: 'புதிய டிஷ் இணைப்பு',
     navWorker: 'டீலர் / பணியாளர் பிரிவு',
     navHelp: 'வாடிக்கையாளர் உதவி',
@@ -423,7 +438,7 @@ export const translations = {
     // Plans & Browse
     selectPlan: '3. ரீசார்ஜ் பேக் அல்லது தொகையைத் தேர்ந்தெடுக்கவும்',
     recommendedPacks: 'பரிந்துரைக்கப்பட்ட பேக்குகள்',
-    changePacks: 'அனைத்து பேக்குகளையும் காண்க',
+    changePacks: '{brand} பேக்குகள் அனைத்தும்',
     customPack: 'உங்கள் விருப்பத் தொகையில் ரீசார்ஜ் செய்யவும்',
     customAmount: 'விருப்பத் தொகை',
     enterAmount: 'தொகையை உள்ளிடவும் (Rs.)',
@@ -487,7 +502,7 @@ export const translations = {
     processingPayment: 'கட்டண நிலை சரிபார்க்கப்படுகிறது...',
     rechargeSuccess: 'ரீசார்ஜ் வெற்றிகரமாக முடிந்தது!',
     paymentFailed: 'கட்டணம் செலுத்துவதில் தோல்வி. மீண்டும் முயற்சிக்கவும்.',
-    saveBoxPrompt: 'விரைவு ரீசார்ஜிற்கு இந்த ஸ்மார்ட் கார்டு எண்ணை சேமிக்கவும்',
+    saveBoxPrompt: 'அடுத்த முறை ரீசார்ஜ் செய்ய இந்த இணைப்பைச் சேமிக்கவும்',
     subscriberName: 'வாடிக்கையாளர் பெயர்',
     viewingCardLabel: 'ஸ்மார்ட் கார்டு எண்',
     receiptConfirmation: 'உங்கள் ரீசார்ஜ் ரசீதுக்கான மொபைல் எண்',
@@ -500,7 +515,7 @@ export const translations = {
     receiptSubtitle: "\u0baa\u0ba4\u0bbf\u0bb5\u0bbe\u0ba9 \u0b95\u0b9f\u0bcd\u0b9f\u0ba3 \u0bae\u0bb1\u0bcd\u0bb1\u0bc1\u0bae\u0bcd \u0b86\u0baa\u0bb0\u0bc7\u0b9f\u0bcd\u0b9f\u0bb0\u0bcd \u0ba8\u0bbf\u0bb2\u0bc8\u0baf\u0bc8\u0b9a\u0bcd \u0b9a\u0bb0\u0bbf\u0baa\u0bbe\u0bb0\u0bcd\u0b95\u0bcd\u0b95\u0bb5\u0bc1\u0bae\u0bcd.",
     orderIdLabel: 'பரிவர்த்தனை எண்',
     operatorRefLabel: 'ஆபரேட்டர் ரெஃபரன்ஸ்',
-    rechargeAmountLabel: 'செலுத்திய தொகை',
+    rechargeAmountLabel: 'ரீசார்ஜ் தொகை',
     packAppliedLabel: 'ரீசார்ஜ் செய்த பேக்',
     dateLabel: 'தேதி & நேரம்',
     printReceipt: 'ரசீதை அச்சிடுக',
@@ -592,7 +607,7 @@ export const translations = {
     proceedWithPack: 'இந்த பேக்கிற்கு பணம் செலுத்த தொடரவும்',
     validatingCard: 'ஆபரேட்டருடன் ஸ்மார்ட் கார்டு சரிபார்க்கப்படுகிறது...',
     accountVerified: 'கணக்கு சரிபார்க்கப்பட்டது',
-    boxNicknamePlaceholder: 'எ.கா: ஹால் டிவி',
+    boxNicknamePlaceholder: 'பெட்டிக்கு ஒரு பெயர் உள்ளிடவும்',
 
     // Saved Connections
     addSetTopBox: 'செட்-டாப் பாக்ஸ் சேர்க்கவும்',
@@ -652,9 +667,9 @@ export const translations = {
     brandTheme: 'ஆபரேட்டர் வண்ண வடிவம்',
 
     // PackCard
-    recommendedHd: '👑 பரிந்துரைக்கப்பட்ட HD',
-    recommendedSd: '📦 பரிந்துரைக்கப்பட்ட SD',
-    flexibleTopUp: '⚡ விருப்பத் தொகை ரீசார்ஜ்',
+    recommendedHd: 'பரிந்துரைக்கப்படும் HD',
+    recommendedSd: 'பரிந்துரைக்கப்படும் SD',
+    flexibleTopUp: 'விருப்பத் தொகை ரீசார்ஜ்',
 
     // Catalog Loading & Error
     loadingLiveCatalog: 'கிடைக்கும் ரீசார்ஜ் பேக்குகள் ஏற்றப்படுகின்றன…',

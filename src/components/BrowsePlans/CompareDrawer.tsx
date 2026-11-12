@@ -1,3 +1,4 @@
+import { formatMessage } from '../../lib/customerMessages';
 import { formatPrice, formatDuration } from '../../lib/catalog';
 import React from 'react';
 import { X, Scale, ArrowRight, Trash2, CheckCircle2 } from '../../lib/icons';
@@ -86,8 +87,8 @@ export const CompareDrawer: React.FC<CompareDrawerProps> = ({
                   type="button"
                   onClick={() => onRemovePlan(plan.id)}
                   className="p-1 rounded-full hover:bg-paper-2 text-muted hover:text-error transition-colors"
-                  title="Remove from comparison"
-                  aria-label={`Remove ${plan.name} from comparison`}
+                  title={translations[currentLang].uiRemoveFromComparison}
+                  aria-label={formatMessage(t.uiRemoveNamedPlan, { name: plan.name })}
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>

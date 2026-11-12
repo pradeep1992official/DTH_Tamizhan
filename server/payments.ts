@@ -1,3 +1,4 @@
+import { formatDuration } from '../src/lib/catalog';
 import { randomUUID } from 'node:crypto';
 import type { PlanCatalogItem, DthOperatorId } from '../src/types';
 import { isSameDthOperatorGroup } from '../src/types';
@@ -28,7 +29,7 @@ export function calculatePayment(input: { packId: string; operator: DthOperatorI
   }
   const plan = plans.find(plan => plan.id === input.packId);
   if (!plan || !isSameDthOperatorGroup(plan.operator, input.operator)) throw new PaymentError(400, 'Plan is unavailable for this operator.');
-  return { amountPaise: paise(plan.amount), packName: plan.plan_name, validity: `${plan.duration_months} months` };
+  return { amountPaise: paise(plan.amount), packName: plan.plan_name, validity: formatDuration(plan.duration_months) };
 }
 
 export type SandboxOutcome = 'success' | 'failed' | 'pending';

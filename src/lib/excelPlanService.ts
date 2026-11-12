@@ -178,7 +178,7 @@ export async function exportPlansToExcel(
     { header: 'Pack Quality (HD/SD)', key: 'pack_type', width: 20 },
     { header: 'Duration (Months)', key: 'duration_months', width: 18 },
     { header: 'Plan Name', key: 'plan_name', width: 38 },
-    { header: 'Price (INR)', key: 'amount', width: 14 },
+    { header: 'Price (Rs.)', key: 'amount', width: 14 },
     { header: 'Is Recommended (TRUE/FALSE)', key: 'is_recommended', width: 24 },
     { header: 'Channels List (Comma Separated)', key: 'channel_list', width: 65 },
     { header: 'Channels Count', key: 'channel_count', width: 16 },
@@ -236,7 +236,7 @@ export async function exportPlansToExcel(
     { section: 'Operator Code', guide: 'Must be one of: sun_direct, tata_play, airtel_dth, dish_tv, d2h' },
     { section: 'Pack Quality', guide: 'Must be HD or SD' },
     { section: 'Duration (Months)', guide: 'Must be 1, 3, 6, or 12' },
-    { section: 'Price (INR)', guide: 'Must be a positive number (e.g. 299, 1650, 3100)' },
+    { section: 'Price (Rs.)', guide: 'Must be a positive number (e.g. 299, 1650, 3100)' },
     { section: 'Is Recommended', guide: 'TRUE for featured 2-card homepage hero pack, FALSE for standard pack' },
     { section: 'Channels List', guide: 'Comma-separated channel names (e.g. "Sun TV HD, KTV HD, Star Vijay HD")' },
     { section: 'Plan ID', guide: 'Leave untouched to update existing plan. Leave blank or enter a new unique string to create a new plan.' },
@@ -272,7 +272,7 @@ export async function downloadPlanTemplateExcel() {
     { header: 'Pack Quality (HD/SD)', key: 'pack_type', width: 18 },
     { header: 'Duration (Months)', key: 'duration_months', width: 18 },
     { header: 'Plan Name', key: 'plan_name', width: 38 },
-    { header: 'Price (INR)', key: 'amount', width: 14 },
+    { header: 'Price (Rs.)', key: 'amount', width: 14 },
     { header: 'Is Recommended (TRUE/FALSE)', key: 'is_recommended', width: 24 },
     { header: 'Channels List (Comma Separated)', key: 'channel_list', width: 70 },
     { header: 'Channels Count', key: 'channel_count', width: 16 },
@@ -369,7 +369,7 @@ export async function downloadPlanTemplateExcel() {
     { field: 'Pack Quality', required: 'Mandatory', desc: 'Must be either HD or SD' },
     { field: 'Duration (Months)', required: 'Mandatory', desc: 'Must be 1, 3, 6, or 12' },
     { field: 'Plan Name', required: 'Mandatory', desc: 'Readable name of the recharge bouquet' },
-    { field: 'Price (INR)', required: 'Mandatory', desc: 'Positive price amount in rupees (e.g. 299, 1650)' },
+    { field: 'Price (Rs.)', required: 'Mandatory', desc: 'Positive price amount in Rs. (e.g. 299, 1650)' },
     { field: 'Is Recommended', required: 'Optional', desc: 'TRUE or FALSE. Recommended packs appear in high priority cards.' },
     { field: 'Channels Count', required: 'Mandatory for new packs', desc: 'Declared total channel count, greater than zero. Highlights may be a subset.' },
     { field: 'HD Channels Count', required: 'Mandatory for new packs', desc: 'Explicit HD count, zero or greater and no greater than total. Must agree with HD numbers in the name.' },
@@ -488,7 +488,7 @@ export async function parseAndValidatePlanExcel(
     }
 
     // 6. Price / Amount
-    const rawAmount = normalizedRow['price_inr'] || normalizedRow['price'] || normalizedRow['amount'] || normalizedRow['cost'] || '';
+    const rawAmount = normalizedRow['price_rs'] || normalizedRow['price_inr'] || normalizedRow['price'] || normalizedRow['amount'] || normalizedRow['cost'] || '';
     let amount = NaN;
     if (typeof rawAmount === 'number') {
       amount = rawAmount;
@@ -497,12 +497,12 @@ export async function parseAndValidatePlanExcel(
       if (trimmed.startsWith('-') || /-[0-9]/.test(trimmed)) {
         amount = -1; // Explicit negative value trigger
       } else {
-        const cleanAmountStr = trimmed.replace(/^₹\s*/, '').replace(/,/g, '');
+        const cleanAmountStr = trimmed.replace(/^(?:₹|Rs\.?|INR)\s*/i, '').replace(/,/g, '');
         amount = Number(cleanAmountStr);
       }
     }
     if (isNaN(amount) || amount <= 0) {
-      errors.push(`Invalid Price Amount "${rawAmount}". Must be a positive number greater than ₹0.`);
+      errors.push(`Invalid Price Amount "${rawAmount}". Must be a positive number greater than Rs. 0.`);
     }
 
     // 7. Is Recommended
@@ -557,7 +557,7 @@ export async function parseAndValidatePlanExcel(
       }
       if (originalPlan.amount !== amount) {
         hasChanges = true;
-        diffs.push({ field: 'amount', label: 'Price (INR)', oldVal: `₹${originalPlan.amount}`, newVal: `₹${amount}` });
+        diffs.push({ field: 'amount', label: 'Price (Rs.)', oldVal: `Rs. ${originalPlan.amount}`, newVal: `Rs. ${amount}` });
       }
       if (originalPlan.plan_name !== plan_name) {
         hasChanges = true;

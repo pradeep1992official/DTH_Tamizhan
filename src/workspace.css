@@ -289,3 +289,21 @@
 /* Keep anchor targets and focused route headings below the measured sticky header. */
 html { scroll-padding-top: calc(var(--app-header-height, 0px) + 1rem); }
 #main-content [id], .page-heading, .catalog-toolbar { scroll-margin-top: 1rem; }
+
+/* Tamil copy is longer; keep 360px controls readable without clipping words. */
+html[lang="ta"] .app-shell { font-family: 'Noto Sans Tamil', 'Nirmala UI', sans-serif; }
+html[lang="ta"] :is(h1,h2,h3,h4,p,label,button,dt,dd) { line-height: 1.75; letter-spacing: normal; }
+html[lang="ta"] .pack-label { flex-wrap: wrap; align-items: center; }
+html[lang="ta"] :is(.pack-kind,.pack-state-text) { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+html[lang="ta"] .pack-choice-marker { flex-shrink: 0; }
+html[lang="ta"] :is(.pack-view-toggle,.bouquet-filter-group) { flex-wrap: wrap; }
+html[lang="ta"] :is(.pack-view-toggle button,.bouquet-filter-button,.compact-plan-duration,.dialog-primary) { white-space: normal; overflow-wrap: anywhere; }
+html[lang="ta"] .tabular-nums { unicode-bidi: isolate; }
+@media (max-width: 390px) {
+  html[lang="ta"] .recharge-plans > div:first-child > div button { white-space: normal; min-width: 0; }
+  html[lang="ta"] .profile-menu { max-width: calc(100vw - 2rem); }
+  html[lang="ta"] .dialog-summary { flex-wrap: wrap; }
+  html[lang="ta"] .compact-plan-footer { flex-direction: column; align-items: stretch; }
+  html[lang="ta"] .compact-plan-price { flex-shrink: 0; width: max-content; max-width: 100%; white-space: nowrap; }
+  html[lang="ta"] .compact-plan-footer button { width: 100%; }
+}

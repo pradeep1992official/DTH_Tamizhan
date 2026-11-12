@@ -1,3 +1,4 @@
+import { localizeCustomerError } from '../../lib/customerMessages';
 import { missingCatalogOperators } from '../../lib/catalogAvailability';
 import { OperatorCatalogNotice } from '../OperatorCatalogNotice';
 import React, { useState, useEffect, useMemo } from 'react';
@@ -307,7 +308,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
                   {t.failedToLoadCatalog}
                 </h3>
                 <p className={`text-sm leading-relaxed ${isLight ? 'text-ink' : 'text-muted'}`}>
-                  {fetchError}
+                  {localizeCustomerError(fetchError, currentLang)}
                 </p>
                 <p className={`text-sm font-medium ${isLight ? 'text-ink-2' : 'text-muted'}`}>
                   {t.checkConnectionOrRetry}
@@ -339,7 +340,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
                 <div role="alert" className="p-4 rounded-2xl bg-error-soft border border-rule text-error  flex items-center justify-between gap-3 text-xs">
                   <div className="flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 text-error shrink-0" />
-                    <span className="font-medium">{fetchError}</span>
+                    <span className="font-medium">{localizeCustomerError(fetchError, currentLang)}</span>
                   </div>
                   <button
                     type="button"
@@ -427,12 +428,10 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
 
                   <div className="space-y-1.5 max-w-md mx-auto">
                     <h3 className="font-bold text-lg">
-                      {currentLang === 'ta' ? '\u0baa\u0bca\u0bb0\u0bc1\u0ba8\u0bcd\u0ba4\u0bc1\u0bae\u0bcd \u0baa\u0bc7\u0b95\u0bcd\u0b95\u0bc1\u0b95\u0bb3\u0bcd \u0b87\u0bb2\u0bcd\u0bb2\u0bc8.' : 'No matching packs.'}
+                      {translations[currentLang].uiNoMatchingPacks}
                     </h3>
                     <p className="text-xs text-ink-2  leading-relaxed">
-                      {currentLang === 'ta'
-                        ? 'விலை வரம்பை மாற்றவும் அல்லது அனைத்து வடிகட்டல்களையும் நீக்கி மீண்டும் முயற்சிக்கவும்.'
-                        : 'Try another search or clear your filters.'}
+                      {translations[currentLang].uiTryAnotherSearchOrClearYourFilters}
                     </p>
                   </div>
 
@@ -444,7 +443,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
                       style={{ backgroundColor: currentTheme.primaryColor }}
                     >
                       <RotateCcw className="w-4 h-4" />
-                      <span>{currentLang === 'ta' ? t.resetFilters : 'Clear filters'}</span>
+                      <span>{currentLang === 'ta' ? t.resetFilters : translations[currentLang].uiClearFilters}</span>
                     </button>
                   </div>
                 </div>

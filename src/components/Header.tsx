@@ -1,3 +1,4 @@
+import { localizeCustomerError } from '../lib/customerMessages';
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Tv,
@@ -97,7 +98,7 @@ export const Header: React.FC<HeaderProps> = ({
     const displayName = profileName.trim();
     const phoneNumber = profilePhone.trim();
     if (displayName.length < 2) {
-      setProfileError(currentLang === 'ta' ? 'பெயர் குறைந்தது 2 எழுத்துகள் இருக்க வேண்டும்.' : 'Name must be at least 2 characters.');
+      setProfileError(translations[currentLang].uiNameMustBeAtLeast2Characters);
       return;
     }
 
@@ -107,7 +108,7 @@ export const Header: React.FC<HeaderProps> = ({
       await onUpdateProfile({ displayName, phoneNumber: phoneNumber || undefined });
       setIsEditProfileOpen(false);
     } catch (error) {
-      setProfileError(error instanceof Error ? error.message : 'Unable to save profile. Please try again.');
+      setProfileError(error instanceof Error ? error.message : translations[currentLang].uiUnableToSaveProfilePleaseTryAgain);
     } finally {
       setIsSavingProfile(false);
     }
@@ -123,7 +124,7 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={() => onTabChange('recharge')}
           className="flex items-center gap-3 text-left group focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current rounded-xl"
           id="brand-logo-btn"
-          aria-label="DTH Tamizhan home"
+          aria-label={translations[currentLang].uiDTHTamizhanHome}
         >
           <div
             className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg transition-colors border ${
@@ -151,7 +152,7 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
 
         {/* Center Navigation Links: Dynamic Token Styling */}
-        <nav aria-label="Main navigation" className={`desktop-navigation`}>
+        <nav aria-label={translations[currentLang].uiMainNavigation} className={`desktop-navigation`}>
           <button
             id="nav-recharge-btn"
             onClick={() => onTabChange('recharge')}
@@ -199,7 +200,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               id="profile-dropdown-trigger-btn"
               type="button"
-              aria-label={currentLang === 'ta' ? (user ? `கணக்கு: ${user.displayName || user.email || ''}` : 'கணக்கு') : (user ? `Account: ${user.displayName || user.email || ''}` : 'Account')}
+              aria-label={[t.uiAccount, user?.displayName || user?.email].filter(Boolean).join(': ')}
               onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
               onKeyDown={event => {
                 if (event.key === 'ArrowDown') {
@@ -231,7 +232,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               <div className="text-left hidden sm:block">
                 <p className={`text-xs font-bold leading-tight ${isLight ? 'text-ink' : 'text-accent-ink'}`}>
-                  {user ? (user.displayName || (user.email ? user.email.split('@')[0] : t.customer)) : (currentLang === 'ta' ? 'கணக்கு' : 'Account')}
+                  {user ? (user.displayName || (user.email ? user.email.split('@')[0] : t.customer)) : (translations[currentLang].uiAccount)}
                 </p>
 
               </div>
@@ -262,14 +263,14 @@ export const Header: React.FC<HeaderProps> = ({
                     {user ? (user.displayName || user.email || t.customer) : t.guestUser}
                   </p>
                   <p className={`text-xs truncate mt-0.5 ${isLight ? 'text-ink-2' : 'text-muted'}`}>
-                    {user ? (user.email || 'DTH Account Verified') : t.signInPrompt}
+                    {user ? (user.email || translations[currentLang].uiDTHAccountVerified) : t.signInPrompt}
                   </p>
                 </div>
 
                 {/* Primary Menu Actions */}
                 <div className="py-1">
                   <button type="button" onClick={() => { setIsProfileDropdownOpen(false); onTabChange('account'); }} className="w-full px-4 py-2 text-left flex items-center gap-2.5">
-                    <User className="w-4 h-4" aria-hidden="true" /><span>{currentLang === 'ta' ? 'உங்கள் கணக்கு' : 'Your account'}</span>
+                    <User className="w-4 h-4" aria-hidden="true" /><span>{translations[currentLang].uiYourAccount}</span>
                   </button>
                   <button
                     id="dropdown-view-profile-btn"
@@ -301,7 +302,7 @@ export const Header: React.FC<HeaderProps> = ({
                     }`}
                   >
                     <Sliders className="w-4 h-4 opacity-70" />
-                    <span>{user ? t.editProfile : (currentLang === 'ta' ? 'கூகிள் மூலம் உள்நுழைக' : 'Sign in with Google')}</span>
+                    <span>{user ? t.editProfile : (translations[currentLang].uiSignInWithGoogle)}</span>
                   </button>
                   )}
                 </div>
@@ -310,21 +311,21 @@ export const Header: React.FC<HeaderProps> = ({
                 )}
 
                 <div className="profile-language-row">
-                  <span className="text-sm text-ink-2">{currentLang === 'ta' ? 'மொழி' : 'Language'}</span>
+                  <span className="text-sm text-ink-2">{translations[currentLang].uiLanguage}</span>
                   <div className="profile-language-options" role="group" aria-label={t.language}>
-                    <button type="button" onClick={() => onLanguageChange('en')} aria-pressed={currentLang === 'en'}>English</button>
+                    <button type="button" onClick={() => onLanguageChange('en')} aria-pressed={currentLang === 'en'}>{translations[currentLang].uiEnglish}</button>
                     <button type="button" onClick={() => onLanguageChange('ta')} aria-pressed={currentLang === 'ta'}>தமிழ்</button>
                   </div>
                 </div>
 
                 {/* Admin Operations Console - Restricted to authenticated admins */}
                 {user && adminAccess?.uid === user.uid && adminAccess.status === 'checking' && (
-                  <p role="status" className="px-4 py-2 text-muted">{currentLang === 'ta' ? 'நிர்வாக அணுகலைச் சரிபார்க்கிறது…' : 'Checking admin access…'}</p>
+                  <p role="status" className="px-4 py-2 text-muted">{translations[currentLang].uiCheckingAdminAccess}</p>
                 )}
                 {user && adminAccess?.uid === user.uid && adminAccess.status === 'error' && (
                   <div className="px-4 py-2 space-y-2">
-                    <p role="alert">{currentLang === 'ta' ? 'நிர்வாக அணுகலைச் சரிபார்க்க முடியவில்லை.' : 'Unable to verify admin access.'}</p>
-                    <button type="button" onClick={() => setAdminAccessRetry(value => value + 1)}>{currentLang === 'ta' ? 'மீண்டும் முயற்சிக்கவும்' : 'Retry access check'}</button>
+                    <p role="alert">{translations[currentLang].uiUnableToVerifyAdminAccess}</p>
+                    <button type="button" onClick={() => setAdminAccessRetry(value => value + 1)}>{translations[currentLang].uiRetryAccessCheck}</button>
                   </div>
                 )}
                 {isAdmin && (
@@ -351,7 +352,7 @@ export const Header: React.FC<HeaderProps> = ({
                           borderColor: `color-mix(in oklab, ${currentTheme.primaryColor} 19%, transparent)`,
                         }}
                       >
-                        Admin
+                        {t.adminBadge}
                       </span>
                     </button>
                   </div>
@@ -379,7 +380,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Mobile Navigation Tab Bar */}
-      <nav aria-label="Main navigation" className={`mobile-navigation ${currentTheme.statusStripBg}`}>
+      <nav aria-label={translations[currentLang].uiMainNavigation} className={`mobile-navigation ${currentTheme.statusStripBg}`}>
         <button
           id="mobile-nav-recharge-btn"
           onClick={() => onTabChange('recharge')}
@@ -468,7 +469,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className="w-full rounded-lg border border-rule bg-paper px-3 py-2.5 text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
                 />
               </label>
-              {profileError && <p role="alert" className="text-sm text-error">{profileError}</p>}
+              {profileError && <p role="alert" className="text-sm text-error">{localizeCustomerError(profileError, currentLang)}</p>}
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
@@ -482,7 +483,7 @@ export const Header: React.FC<HeaderProps> = ({
                   disabled={isSavingProfile}
                   className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink disabled:opacity-60"
                 >
-                  {isSavingProfile ? (currentLang === 'ta' ? 'சேமிக்கிறது…' : 'Saving…') : t.save}
+                  {isSavingProfile ? (translations[currentLang].uiSaving) : t.save}
                 </button>
               </div>
             </form>

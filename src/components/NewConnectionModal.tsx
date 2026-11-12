@@ -1,3 +1,4 @@
+import { localizeCustomerError } from '../lib/customerMessages';
 import { BUSINESS_DETAILS } from '../lib/trustContent';
 import React, { useState } from 'react';
 import {
@@ -49,7 +50,7 @@ export const NewConnectionModal: React.FC<NewConnectionModalProps> = ({
       });
       const result = await response.json();
       if (!response.ok || !result.success || !result.request?.id) {
-        throw new Error(result.error || 'Unable to submit the installation request.');
+        throw new Error(result.error || translations[currentLang].uiUnableToSubmitTheInstallationRequest);
       }
       setBookingId(result.request.id);
       setIsBooked(true);
@@ -57,7 +58,7 @@ export const NewConnectionModal: React.FC<NewConnectionModalProps> = ({
       console.error('[Installation Request] Submission failed:', error);
       setSubmitError(currentLang === 'ta'
         ? 'கோரிக்கையை அனுப்ப முடியவில்லை. மீண்டும் முயற்சிக்கவும்.'
-        : error instanceof Error ? error.message : 'Unable to submit the request. Please try again.');
+        : error instanceof Error ? error.message : translations[currentLang].uiUnableToSubmitTheRequestPleaseTryAgain);
     } finally {
       setIsSubmitting(false);
     }
@@ -119,9 +120,9 @@ export const NewConnectionModal: React.FC<NewConnectionModalProps> = ({
                 </label>
                 <fieldset className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {[
-                    { id: 'sun_direct', name: 'Sun Direct', price: BUSINESS_DETAILS.installation, highlight: 'Quotation required' },
-                    { id: 'tata_play', name: 'Tata Play', price: BUSINESS_DETAILS.installation, highlight: 'Quotation required' },
-                    { id: 'airtel_dth', name: 'Airtel DTH', price: BUSINESS_DETAILS.installation, highlight: 'Quotation required' },
+                    { id: 'sun_direct', name: 'Sun Direct', price: BUSINESS_DETAILS.installation, highlight: translations[currentLang].uiQuotationRequired },
+                    { id: 'tata_play', name: 'Tata Play', price: BUSINESS_DETAILS.installation, highlight: translations[currentLang].uiQuotationRequired },
+                    { id: 'airtel_dth', name: 'Airtel DTH', price: BUSINESS_DETAILS.installation, highlight: translations[currentLang].uiQuotationRequired },
                   ].map((item) => (
                     <label
                       key={item.id}
@@ -152,15 +153,15 @@ export const NewConnectionModal: React.FC<NewConnectionModalProps> = ({
               <div className="dialog-section py-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-left text-muted">
                 <div className="flex items-center gap-2">
                   <Tv className="w-4 h-4 text-accent" />
-                  <span className="text-sm block font-medium">Equipment to be confirmed</span>
+                  <span className="text-sm block font-medium">{translations[currentLang].uiEquipment}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Wrench className="w-4 h-4 text-success" />
-                  <span className="text-sm block font-medium">Cabling to be confirmed</span>
+                  <span className="text-sm block font-medium">{translations[currentLang].uiCabling}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Truck className="w-4 h-4 text-accent" />
-                  <span className="text-sm block font-medium">Availability to be confirmed</span>
+                  <span className="text-sm block font-medium">{translations[currentLang].uiAvailability}</span>
                 </div>
               </div>
 
@@ -175,7 +176,7 @@ export const NewConnectionModal: React.FC<NewConnectionModalProps> = ({
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Senthil Kumar"
+                    placeholder={translations[currentLang].uiEnterYourName}
                     className="w-full bg-paper-2 border border-rule rounded-xl px-3 py-2 text-sm text-ink placeholder-muted focus:outline-none focus:border-rule"
                   />
                 </div>
@@ -189,7 +190,7 @@ export const NewConnectionModal: React.FC<NewConnectionModalProps> = ({
                     required
                     value={mobile}
                     onChange={(e) => setMobile(e.target.value.replace(/\D/g, ''))}
-                    placeholder="10-digit mobile"
+                    placeholder={translations[currentLang].uiMobilePlaceholder}
                     className="w-full bg-paper-2 border border-rule rounded-xl px-3 py-2 text-sm text-ink tabular-nums placeholder-muted focus:outline-none focus:border-rule"
                   />
                 </div>
@@ -220,7 +221,7 @@ export const NewConnectionModal: React.FC<NewConnectionModalProps> = ({
                     type="text"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Door no, Street, Area"
+                    placeholder={translations[currentLang].uiAddressPlaceholder}
                     className="w-full bg-paper-2 border border-rule rounded-xl px-3 py-2 text-sm text-ink placeholder-muted focus:outline-none focus:border-rule"
                   />
                 </div>
@@ -233,10 +234,10 @@ export const NewConnectionModal: React.FC<NewConnectionModalProps> = ({
                 className="dialog-primary w-full py-3.5 px-4 rounded-lg bg-accent hover:bg-accent-soft disabled:opacity-50 text-ink font-bold text-sm transition-colors shadow-sm mt-2"
               >
                 {isSubmitting
-                  ? (currentLang === 'ta' ? 'அனுப்புகிறது…' : 'Submitting request…')
-                  : (currentLang === 'ta' ? 'நிறுவல் கோரிக்கையை அனுப்பு' : 'Submit installation request')}
+                  ? (translations[currentLang].uiSubmittingRequest)
+                  : (translations[currentLang].uiSubmitInstallationRequest)}
               </button>
-              {submitError && <p role="alert" className="text-sm text-error">{submitError}</p>}
+              {submitError && <p role="alert" className="text-sm text-error">{localizeCustomerError(submitError, currentLang)}</p>}
             </form>
           ) : (
             <div className="text-center space-y-4 py-4">
@@ -251,9 +252,7 @@ export const NewConnectionModal: React.FC<NewConnectionModalProps> = ({
                   Request ID: {bookingId}
                 </p>
                 <p className="text-sm text-muted mt-2">
-                  {currentLang === 'ta'
-                    ? 'உங்கள் நிறுவல் கோரிக்கை பெறப்பட்டது. விவரங்களை உறுதிப்படுத்த எங்கள் குழு உங்களைத் தொடர்புகொள்ளும்.'
-                    : 'Your installation request has been received. Our team will contact you to confirm the details.'}
+                  {translations[currentLang].uiYourInstallationRequestHasBeenReceivedOurTeamWillContactYouToConfirmTh}
                 </p>
               </div>
               <button

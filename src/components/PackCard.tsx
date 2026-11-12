@@ -1,11 +1,14 @@
 import React from 'react';
 import { CheckCircle2, Circle, Monitor, Tv, Wallet, Ban } from '../lib/icons';
 import { OperatorTheme } from '../lib/theme';
+import { Language } from '../types';
+import { translations } from '../lib/translations';
 
 export type PackCardType = 'HD' | 'SD' | 'FLEXIBLE';
 
 export interface PackCardProps {
   type: PackCardType;
+  currentLang?: Language;
   operatorTheme: OperatorTheme;
   isSelected: boolean;
   isUnavailable?: boolean;
@@ -28,6 +31,7 @@ export interface PackCardProps {
  */
 export const PackCard: React.FC<PackCardProps> = ({
   type,
+  currentLang = 'en',
   operatorTheme,
   isSelected,
   isUnavailable = false,
@@ -41,21 +45,21 @@ export const PackCard: React.FC<PackCardProps> = ({
     HD: {
       bg: operatorTheme.packHdBandBg,
       text: operatorTheme.packHdBandText,
-      label: 'Recommended HD',
+      label: translations[currentLang].recommendedHd,
       border: operatorTheme.packHdBorder,
       tintBg: operatorTheme.packHdTintBg,
     },
     SD: {
       bg: operatorTheme.packSdBandBg,
       text: operatorTheme.packSdBandText,
-      label: 'Recommended SD',
+      label: translations[currentLang].recommendedSd,
       border: operatorTheme.packSdBorder,
       tintBg: operatorTheme.packSdTintBg,
     },
     FLEXIBLE: {
       bg: operatorTheme.packFlexibleBandBg,
       text: operatorTheme.packFlexibleBandText,
-      label: 'Flexible top-up',
+      label: translations[currentLang].flexibleTopUp,
       border: operatorTheme.packFlexibleBorder,
       tintBg: operatorTheme.packFlexibleTintBg,
     },
@@ -92,7 +96,7 @@ export const PackCard: React.FC<PackCardProps> = ({
         <span className="pack-choice-marker" aria-hidden="true">
           {isSelected ? <CheckCircle2 className="w-5 h-5" /> : isUnavailable ? <Ban className="w-5 h-5" /> : <Circle className="w-5 h-5" />}
         </span>
-        {isSelected && <span className="pack-state-text">Selected</span>}
+        {isSelected && <span className="pack-state-text">{translations[currentLang].selectedAction}</span>}
       </div>
 
       {/* 3. Padded body containing children (title, description, duration toggle, price, CTA) */}

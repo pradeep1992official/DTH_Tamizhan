@@ -1,3 +1,4 @@
+import { businessDetails } from '../src/lib/policyTranslations';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
@@ -38,9 +39,9 @@ describe('trust and legal routes (QA-07)', () => {
   it.each(['en', 'ta'] as const)('shows policies and the same support placeholders beside checkout in %s', currentLang => {
     const html = renderToStaticMarkup(<MemoryRouter><CheckoutPolicies currentLang={currentLang} onNavigate={() => {}} /></MemoryRouter>);
     for (const route of POLICY_ROUTES) expect(html).toContain(`href="${route.path}"`);
-    expect(html).toContain(BUSINESS_DETAILS.phone);
-    expect(html).toContain(BUSINESS_DETAILS.email);
-    expect(html).toContain(BUSINESS_DETAILS.supportHours);
+    expect(html).toContain(businessDetails(currentLang).phone);
+    expect(html).toContain(businessDetails(currentLang).email);
+    expect(html).toContain(businessDetails(currentLang).supportHours);
     expect(html).toContain(currentLang === 'en' ? 'By paying you agree' : 'பணம் செலுத்துவதன் மூலம்');
   });
   it('keeps refund timelines unresolved and preserves statutory remedies', () => {

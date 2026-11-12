@@ -1,3 +1,7 @@
+import { businessDetails } from '../lib/policyTranslations';
+import { formatPrice, formatStoredDuration } from '../lib/catalog';
+import { subscriberLabel } from '../lib/subscriberValidation';
+import { localizeCustomerText, paymentMethodLabel } from '../lib/customerMessages';
 import { BUSINESS_DETAILS } from '../lib/trustContent';
 import React from 'react';
 import {
@@ -33,14 +37,14 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
   };
 
   const handleShareWhatsApp = () => {
-    const text = `*DTH Tamizhan Recharge Receipt*\n` +
-      `Operator: ${order.operatorName}\n` +
-      `Viewing Card: ${order.smartCardNumber}\n` +
-      `Pack: ${order.packName}\n` +
-      `Amount Paid: Rs. ${order.amount}\n` +
-      `Order ID: ${order.orderId}\n` +
-      `Ref ID: ${order.operatorRefId}\n` +
-      `Date: ${new Date(order.createdAt).toLocaleDateString()}`;
+    const text = `${t.receiptTitle}\n` +
+      `${t.dthOperatorLabel}: ${order.operatorName}\n` +
+      `${subscriberLabel(order.operator, false, currentLang)}: ${order.smartCardNumber}\n` +
+      `${t.packAppliedLabel}: ${order.packName}\n` +
+      `${t.rechargeAmountLabel}: ${formatPrice(order.amount, currentLang)}\n` +
+      `${t.orderIdLabel}: ${order.orderId}\n` +
+      `${t.operatorRefLabel}: ${order.operatorRefId}\n` +
+      `${t.dateLabel}: ${new Date(order.createdAt).toLocaleDateString(currentLang === 'ta' ? 'ta-IN' : 'en-IN')}`;
     const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
   };
@@ -70,7 +74,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                 {t.receiptTitle}
               </h2>
               <p className="text-sm text-success font-medium">
-                {currentLang === 'ta' ? 'பதிவான நிலை' : 'Recorded status'}: {order.paymentStatus} / {order.rechargeStatus}
+                {translations[currentLang].uiRecordedStatus}: {localizeCustomerText(order.paymentStatus, currentLang)} / {localizeCustomerText(order.rechargeStatus, currentLang)}
               </p>
             </div>
           </div>
@@ -127,11 +131,11 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
           {/* Connection & Plan Details */}
           <div className="receipt-details text-sm">
             <div className="flex justify-between py-1 border-b border-rule">
-              <span className="text-muted">DTH Operator</span>
+              <span className="text-muted">{translations[currentLang].uiDTHOperator}</span>
               <span className="font-bold text-ink">{order.operatorName}</span>
             </div>
             <div className="flex justify-between py-1 border-b border-rule">
-              <span className="text-muted">{t.viewingCardLabel}</span>
+              <span className="text-muted">{subscriberLabel(order.operator, false, currentLang)}</span>
               <span className="tabular-nums font-bold text-accent">
                 {order.smartCardNumber}
               </span>
@@ -142,21 +146,21 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
             </div>
             <div className="flex justify-between py-1 border-b border-rule">
               <span className="text-muted">{t.validity}</span>
-              <span className="font-medium text-muted">{order.packValidity}</span>
+              <span className="font-medium text-muted">{localizeCustomerText(formatStoredDuration(order.packValidity, currentLang), currentLang)}</span>
             </div>
             <div className="flex justify-between py-1 border-b border-rule">
-              <span className="text-muted">Payment Mode</span>
-              <span className="font-medium text-muted">{order.paymentMethod}</span>
+              <span className="text-muted">{translations[currentLang].uiPaymentMode}</span>
+              <span className="font-medium text-muted">{paymentMethodLabel(order.paymentMethod, currentLang)}</span>
             </div>
           </div>
 
           {/* Price Calculation Breakdown */}
           <div className="dialog-section py-4 space-y-2 text-sm">
-            <p className="text-muted">GSTIN: {BUSINESS_DETAILS.gstin}</p>
-            <p className="text-muted">{BUSINESS_DETAILS.feesAndTaxes}</p>
+            <p className="text-muted">{t.uiGSTIN}: {businessDetails(currentLang).gstin}</p>
+            <p className="text-muted">{businessDetails(currentLang).feesAndTaxes}</p>
             <div className="flex justify-between pt-2 border-t border-rule font-bold text-sm text-ink">
               <span>{t.totalPayable}</span>
-              <span className="tabular-nums text-accent">Rs. {order.amount}</span>
+              <span className="tabular-nums text-accent">{formatPrice(order.amount, currentLang)}</span>
             </div>
           </div>
 

@@ -1,45 +1,49 @@
+import { translations } from '../lib/translations';
+import type { Language } from '../types';
 import React from 'react';
 import { CheckCircle2, Database, Lock, Server, ShieldCheck } from '../lib/icons';
 import { OperatorTheme } from '../lib/theme';
 
 interface SecurityNoticeProps {
   currentTheme: OperatorTheme;
+  currentLang?: Language;
 }
 
-const THREAT_ROWS = [
+const THREAT_ROWS = (t: typeof translations.en) => [
   {
-    zone: 'Input surfaces',
-    vectors: 'Invalid smart-card characters, injection attempts, oversized uploads',
-    controls: 'Operator-specific input validation, request schemas, and upload limits',
+    zone: t.uiSecurityInputSurfaces,
+    vectors: t.uiSecurityInvalidSmartCardCharactersInjectionAttemptsOversizedUploads,
+    controls: t.uiSecurityOperatorSpecificInputValidationRequestSchemasAndUploadLimits,
     standard: 'OWASP A03',
   },
   {
-    zone: 'Planning and reasoning',
-    vectors: 'Instruction override and indirect injection from external inputs',
-    controls: 'Data-only deserialization, contextual state validation, and fixed allowed operators',
+    zone: t.uiSecurityPlanningAndReasoning,
+    vectors: t.uiSecurityInstructionOverrideAndIndirectInjectionFromExternalInputs,
+    controls: t.uiSecurityDataOnlyDeserializationContextualStateValidationAndFixedAllowedOp,
     standard: 'OWASP LLM01',
   },
   {
-    zone: 'Tool execution',
-    vectors: 'Privilege escalation, unauthorized order updates, transponder flooding',
-    controls: 'Rate limits on sensitive operations and verified Firebase ID tokens',
+    zone: t.uiSecurityToolExecution,
+    vectors: t.uiSecurityPrivilegeEscalationUnauthorizedOrderUpdatesTransponderFlooding,
+    controls: t.uiSecurityRateLimitsOnSensitiveOperationsAndVerifiedFirebaseIDTokens,
     standard: 'OWASP A01',
   },
   {
-    zone: 'Memory and state',
-    vectors: 'Cross-tenant data access, unauthorized overwrites, undefined values',
-    controls: 'Owner-bound Firestore paths, access rules, and payload sanitization',
-    standard: 'Firestore rules',
+    zone: t.uiSecurityMemoryAndState,
+    vectors: t.uiSecurityCrossTenantDataAccessUnauthorizedOverwritesUndefinedValues,
+    controls: t.uiSecurityOwnerBoundFirestorePathsAccessRulesAndPayloadSanitization,
+    standard: t.uiSecurityFirestoreRules,
   },
   {
-    zone: 'Inter-system communication',
-    vectors: 'API-key leakage and hardcoded credentials',
-    controls: 'Server-side API proxies and environment-based secret injection',
+    zone: t.uiSecurityInterSystemCommunication,
+    vectors: t.uiSecurityAPIKeyLeakageAndHardcodedCredentials,
+    controls: t.uiSecurityServerSideAPIProxiesAndEnvironmentBasedSecretInjection,
     standard: 'OWASP A02 / A05',
   },
 ];
 
-export const SecurityNotice: React.FC<SecurityNoticeProps> = ({ currentTheme }) => {
+export const SecurityNotice: React.FC<SecurityNoticeProps> = ({ currentTheme, currentLang = 'en' }) => {
+  const t = translations[currentLang];
   const isLight = currentTheme.isLightMode;
   const surface = isLight ? 'bg-paper border-rule text-ink' : `${currentTheme.mainContainerBg} ${currentTheme.mainContainerBorder} text-accent-ink`;
   const nestedSurface = isLight ? 'bg-paper-2 border-rule' : 'bg-scrim/20 border-rule-strong';
@@ -58,9 +62,9 @@ export const SecurityNotice: React.FC<SecurityNoticeProps> = ({ currentTheme }) 
             <ShieldCheck className="w-6 h-6" />
           </div>
           <div className="min-w-0">
-            <h1 className={`text-lg sm:text-xl font-bold ${primaryText}`}>Security controls overview</h1>
+            <h1 className={`text-lg sm:text-xl font-bold ${primaryText}`}>{t.uiSecuritySecurityControlsOverview}</h1>
             <p className={`text-sm mt-1 leading-relaxed ${secondaryText}`}>
-              A summary of security controls described for this application.
+              {t.uiSecurityASummaryOfSecurityControlsDescribedForThisApplication}
             </p>
           </div>
         </div>
@@ -68,12 +72,12 @@ export const SecurityNotice: React.FC<SecurityNoticeProps> = ({ currentTheme }) 
           isLight ? 'bg-success-soft text-success border-success' : 'bg-success-soft text-success border-rule'
         }`}>
           <CheckCircle2 className="w-4 h-4 shrink-0" />
-          5 control areas
+          {t.uiSecurity5ControlAreas}
         </span>
       </header>
 
       <div className="space-y-3 md:hidden">
-        {THREAT_ROWS.map((row) => (
+        {THREAT_ROWS(t).map((row) => (
           <article key={row.zone} className={`security-row space-y-2 ${nestedSurface}`}>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className={`font-bold ${primaryText}`}>{row.zone}</h2>
@@ -81,8 +85,8 @@ export const SecurityNotice: React.FC<SecurityNoticeProps> = ({ currentTheme }) 
                 {row.standard}
               </span>
             </div>
-            <p className={`text-sm leading-relaxed ${mutedText}`}><strong>Risk:</strong> {row.vectors}</p>
-            <p className={`text-sm leading-relaxed ${mutedText}`}><strong>Controls:</strong> {row.controls}</p>
+            <p className={`text-sm leading-relaxed ${mutedText}`}><strong>{t.uiSecurityRisk}</strong> {row.vectors}</p>
+            <p className={`text-sm leading-relaxed ${mutedText}`}><strong>{t.uiSecurityControls}</strong> {row.controls}</p>
           </article>
         ))}
       </div>
@@ -91,14 +95,14 @@ export const SecurityNotice: React.FC<SecurityNoticeProps> = ({ currentTheme }) 
         <table className="w-full text-left text-sm">
           <thead className={nestedSurface}>
             <tr>
-              <th className="px-4 py-3 font-medium">Control area</th>
-              <th className="px-4 py-3 font-medium">Example risks</th>
-              <th className="px-4 py-3 font-medium">Described controls</th>
-              <th className="px-4 py-3 font-medium">Reference</th>
+              <th className="px-4 py-3 font-medium">{t.uiSecurityControlArea}</th>
+              <th className="px-4 py-3 font-medium">{t.uiSecurityExampleRisks}</th>
+              <th className="px-4 py-3 font-medium">{t.uiSecurityDescribedControls}</th>
+              <th className="px-4 py-3 font-medium">{t.uiSecurityReference}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-rule-strong">
-            {THREAT_ROWS.map((row) => (
+            {THREAT_ROWS(t).map((row) => (
               <tr key={row.zone}>
                 <th scope="row" className={`px-4 py-3.5 font-medium align-top ${primaryText}`}>{row.zone}</th>
                 <td className={`px-4 py-3.5 align-top leading-relaxed ${mutedText}`}>{row.vectors}</td>
@@ -116,34 +120,34 @@ export const SecurityNotice: React.FC<SecurityNoticeProps> = ({ currentTheme }) 
         <article className={`security-row space-y-2 ${nestedSurface}`}>
           <h2 className="flex items-center gap-2 font-medium text-sm" style={{ color: currentTheme.primaryColor }}>
             <Lock className="w-4 h-4" />
-            Credential handling
+            {t.uiSecurityCredentialHandling}
           </h2>
           <p className={`text-sm leading-relaxed ${mutedText}`}>
-            The project describes server-side environment configuration for sensitive credentials.
+            {t.uiSecurityTheProjectDescribesServerSideEnvironmentConfigurationForSensitive}
           </p>
         </article>
         <article className={`security-row space-y-2 ${nestedSurface}`}>
           <h2 className="flex items-center gap-2 font-medium text-sm" style={{ color: currentTheme.primaryColor }}>
             <Database className="w-4 h-4" />
-            Data access
+            {t.uiSecurityDataAccess}
           </h2>
           <p className={`text-sm leading-relaxed ${mutedText}`}>
-            Firestore rules define access for customer connections and administrative data.
+            {t.uiSecurityFirestoreRulesDefineAccessForCustomerConnectionsAndAdministrative}
           </p>
         </article>
         <article className={`security-row space-y-2 ${nestedSurface}`}>
           <h2 className="flex items-center gap-2 font-medium text-sm" style={{ color: currentTheme.primaryColor }}>
             <Server className="w-4 h-4" />
-            Server requests
+            {t.uiSecurityServerRequests}
           </h2>
           <p className={`text-sm leading-relaxed ${mutedText}`}>
-            Server routes validate request bodies and sanitize selected Firestore payloads.
+            {t.uiSecurityServerRoutesValidateRequestBodiesAndSanitizeSelectedFirestorePayl}
           </p>
         </article>
       </div>
 
       <p className={`text-xs leading-relaxed border-t border-rule-strong pt-4 ${secondaryText}`}>
-        This page summarizes project documentation; it is not an independent security assessment. Effective protection depends on deployment and configuration.
+        {t.uiSecurityThisPageSummarizesProjectDocumentationItIsNotAnIndependentSecurit}
       </p>
     </section>
   );

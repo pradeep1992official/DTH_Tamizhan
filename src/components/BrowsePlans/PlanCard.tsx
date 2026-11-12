@@ -1,4 +1,4 @@
-import { formatPrice, formatMonthlyEquivalent, formatDuration, formatChannelCounts, validateCatalogPack } from '../../lib/catalog';
+import { formatPrice, formatMonthlyEquivalent, formatDuration, formatChannelCounts, formatCatalogIssues, validateCatalogPack } from '../../lib/catalog';
 import React from 'react';
 import { BrowsePlan, Language } from '../../types';
 import { OperatorTheme } from '../../lib/theme';
@@ -52,7 +52,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({
       return null;
     }
   })();
-  const channelListLabel = currentLang === 'ta' ? '\u0b9a\u0bc7\u0ba9\u0bb2\u0bcd \u0baa\u0b9f\u0bcd\u0b9f\u0bbf\u0baf\u0bb2\u0bcd' : 'Channel list';
+  const channelListLabel = translations[currentLang].uiChannelList;
 
   return (
     <article
@@ -83,11 +83,11 @@ export const PlanCard: React.FC<PlanCardProps> = ({
         </label>
       </header>
 
-      <h3 className="font-bold break-words">{planName}</h3>
+      <h3 className="font-bold wrap-break-word">{planName}</h3>
       <p className="compact-plan-summary text-sm text-muted">
         <span>{formatChannelCounts(plan, currentLang)}</span>
       </p>
-      {validateCatalogPack(plan).length > 0 && <p role="status" className="text-error text-xs">Catalog details need review: {validateCatalogPack(plan).map(issue => issue.message).join(" ")}</p>}
+      {validateCatalogPack(plan).length > 0 && <p role="status" className="text-error text-xs">{translations[currentLang].uiCatalogReview}: {formatCatalogIssues(plan, currentLang)}</p>}
       {channelListUrl && (
         <a className="compact-plan-channel-link" href={channelListUrl} target="_blank" rel="noopener noreferrer" aria-label={`${channelListLabel}: ${planName}`}>
           {channelListLabel} <span aria-hidden="true">&rarr;</span>

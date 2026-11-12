@@ -1,4 +1,6 @@
 import { DthOperatorId, Language, resolveDishFamilyOperatorId } from '../types';
+import { translations } from './translations';
+import { formatMessage } from './customerMessages';
 
 // Lengths preserve the operator contract in server/models/store.ts.
 // Prefix hints for Sun Direct, Tata Play and Airtel are unconfirmed; do not enforce them.
@@ -19,14 +21,18 @@ export function subscriberRule(operator: DthOperatorId, combined = false) {
   }
   return SUBSCRIBER_RULES[operator];
 }
+export function subscriberLabel(operator: DthOperatorId, combined = false, lang: Language = 'en'): string {
+  const t = translations[lang];
+  if (combined && (operator === 'dish_tv' || operator === 'd2h')) return t.combinedIdLabel;
+  return { sun_direct: t.sunIdLabel, tata_play: t.tataIdLabel, airtel_dth: t.customerIdLabel, dish_tv: t.dishIdLabel, d2h: t.customerIdLabel }[operator];
+}
+export function subscriberPlaceholder(operator: DthOperatorId, combined = false, lang: Language = 'en'): string {
+  return formatMessage(translations[lang].uiEnterOperatorId, { label: subscriberLabel(operator, combined, lang) });
+}
 export function subscriberHelp(operator: DthOperatorId, combined = false, lang: Language = 'en'): string {
   if (combined && (operator === 'dish_tv' || operator === 'd2h')) return `Dish TV: ${subscriberHelp('dish_tv', false, lang)}; D2H: ${subscriberHelp('d2h', false, lang)}`;
   const rule = subscriberRule(operator, combined);
-  if (lang === 'ta') {
-    const labels = { sun_direct: 'ஸ்மார்ட் கார்டு எண்', tata_play: 'சந்தாதாரர் எண்', airtel_dth: 'வாடிக்கையாளர் எண்', dish_tv: 'வியூவிங் கார்டு எண்', d2h: 'வாடிக்கையாளர் எண்' };
-    return `${labels[operator]}: ${rule.lengths.join(' / ')} இலக்கங்கள்${rule.prefixes.length ? `; ${rule.prefixes.join(' / ')} என்று தொடங்க வேண்டும்` : ''}`;
-  }
-  return `${rule.label}: ${rule.lengths.join(' / ')} digits${rule.prefixes.length ? `; starts with ${rule.prefixes.join(' / ')}` : ''}`;
+  return formatMessage(translations[lang].uiIdHelp, { label: subscriberLabel(operator, combined, lang), lengths: rule.lengths.join(' / '), prefix: rule.prefixes.length ? formatMessage(translations[lang].uiIdPrefix, { prefixes: rule.prefixes.join(' / ') }) : '' });
 }
 export function subscriberError(operator: string, value: string, combined = false, lang: Language = 'en'): string | null {
   const id = normalizeSubscriberId(value);
@@ -34,6 +40,6 @@ export function subscriberError(operator: string, value: string, combined = fals
   const rule = SUBSCRIBER_RULES[resolved as DthOperatorId];
   if (rule && /^[0-9]+$/.test(id) && rule.lengths.includes(id.length) &&
       (!rule.prefixes.length || rule.prefixes.some(prefix => id.startsWith(prefix)))) return null;
-  const help = rule ? subscriberHelp(resolved as DthOperatorId, false, lang) : lang === 'ta' ? 'ஆதரிக்கப்படும் ஆபரேட்டரைத் தேர்ந்தெடுக்கவும்' : 'Select a supported operator';
-  return lang === 'ta' ? `\u0b87\u0ba8\u0bcd\u0ba4 \u0b8e\u0ba3\u0bcd\u0ba3\u0bc8\u0ba4\u0bcd \u0ba4\u0bbf\u0bb0\u0bc1\u0ba4\u0bcd\u0ba4\u0bb5\u0bc1\u0bae\u0bcd. ${help}.` : `Please update this ID. ${help}.`;
+  const help = rule ? subscriberHelp(resolved as DthOperatorId, false, lang) : translations[lang].uiSupportedOperator;
+  return formatMessage(translations[lang].uiUpdateId, { help });
 }

@@ -47,23 +47,30 @@ export function monthlyEquivalent(amount: number, duration: number): number {
   return Math.round((amount / duration + Number.EPSILON) * 100) / 100;
 }
 export function formatPrice(amount: number, lang: Language = 'en'): string {
-  return Number.isFinite(amount) && amount > 0 ? `Rs. ${new Intl.NumberFormat(lang === 'ta' ? 'ta-IN' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)}` : 'Price needs review';
+  return Number.isFinite(amount) && amount > 0 ? `Rs. ${new Intl.NumberFormat(lang === 'ta' ? 'ta-IN' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)}` : translations[lang].uiPriceNeedsReview;
 }
 export function formatMonthlyEquivalent(amount: number, duration: number, lang: Language = 'en'): string {
   const value = monthlyEquivalent(amount, duration);
-  return Number.isFinite(value) ? `${formatPrice(value, lang)} ${translations[lang].perMonth}` : 'Monthly price needs review';
+  return Number.isFinite(value) ? `${formatPrice(value, lang)} ${translations[lang].perMonth}` : translations[lang].uiMonthlyPriceNeedsReview;
 }
 export function formatDuration(duration: number, lang: Language = 'en'): string {
-  return (VALID_DURATIONS as readonly number[]).includes(duration) ? `${duration} ${duration === 1 ? translations[lang].month : translations[lang].months}` : 'Duration needs review';
+  return (VALID_DURATIONS as readonly number[]).includes(duration) ? `${duration} ${duration === 1 ? translations[lang].month : translations[lang].months}` : translations[lang].uiDurationNeedsReview;
 }
 export function formatStoredDuration(value: string, lang: Language = 'en'): string {
   const match = /^(\d+)\s*(?:m|months?)$/i.exec(value.trim());
   return match && (VALID_DURATIONS as readonly number[]).includes(Number(match[1])) ? formatDuration(Number(match[1]), lang) : value;
 }
+export function formatCatalogIssues(pack: PackFields, lang: Language = 'en'): string {
+  const issues = validateCatalogPack(pack);
+  if (lang === 'en') return issues.map(issue => issue.message).join(' ');
+  const t = translations[lang];
+  const messages: Record<string, string> = { channel_count: t.uiCatalogTotalError, hd_channel_count: t.uiCatalogHdError, plan_name: t.uiCatalogNameError, amount: t.uiCatalogPriceError, price: t.uiCatalogPriceError, duration_months: t.uiCatalogDurationError };
+  return [...new Set(issues.map(issue => messages[issue.field] || t.uiCatalogReview))].join(' ');
+}
 export function formatChannelCounts(pack: PackFields, lang: Language = 'en'): string {
   const issues = validateCatalogPack(pack).filter(issue => ['channel_count', 'hd_channel_count', 'plan_name'].includes(issue.field));
-  if (issues.length) return 'Channel details need review';
-  if (pack.channel_counts_unavailable) return lang === 'ta' ? 'சேனல் விவரங்கள் வழங்கப்படவில்லை' : 'Channel details not provided';
+  if (issues.length) return translations[lang].uiChannelDetailsNeedReview;
+  if (pack.channel_counts_unavailable) return translations[lang].uiChannelDetailsNotProvided;
   return `${pack.channel_count} ${translations[lang].channels}${pack.hd_channel_count ? ` (${pack.hd_channel_count} HD)` : ''}`;
 }
 // Preserve the source fields; never manufacture totals, prices or durations on read.

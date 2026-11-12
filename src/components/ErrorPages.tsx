@@ -1,12 +1,13 @@
+import { translations } from '../lib/translations';
 import React from 'react';
 import type { Language } from '../types';
 
 export function ErrorPage({ status, currentLang = 'en' }: { status: 404 | 500; currentLang?: Language }) {
   const ta = currentLang === 'ta';
   return <section className="space-y-5 p-6 border border-rule rounded-2xl bg-paper text-ink" role={status === 500 ? 'alert' : undefined}>
-    <h1 tabIndex={-1} className="text-2xl font-bold">{status} — {status === 404 ? (ta ? 'பக்கம் கிடைக்கவில்லை' : 'Page not found') : (ta ? 'பக்கத்தை ஏற்ற முடியவில்லை' : 'We could not load this page')}</h1>
-    <p>{status === 404 ? (ta ? 'இந்த முகவரி கிடைக்கவில்லை. இணைப்பைச் சரிபார்க்கவும் அல்லது முகப்புக்குச் செல்லவும்.' : 'This address does not exist. Check the link or return home.') : (ta ? 'மீண்டும் முயற்சிக்க முகப்புப் பக்கத்திற்குச் செல்லவும். இந்தப் பிழை கட்டணம் வெற்றியடைந்ததை உறுதிப்படுத்தாது.' : 'Return home to try again. This error is not confirmation that a payment succeeded.')}</p>
-    <a href="/" className="underline underline-offset-4">{ta ? 'முகப்புப் பக்கத்திற்குத் திரும்பவும்' : 'Back to home'}</a>
+    <h1 tabIndex={-1} className="text-2xl font-bold">{status} — {status === 404 ? (translations[currentLang].uiPageNotFound) : (translations[currentLang].uiWeCouldNotLoadThisPage)}</h1>
+    <p>{status === 404 ? (translations[currentLang].uiThisAddressDoesNotExistCheckTheLinkOrReturnHome) : (translations[currentLang].uiReturnHomeToTryAgainThisErrorIsNotConfirmationThatAPaymentSucceeded)}</p>
+    <a href="/" className="underline underline-offset-4">{translations[currentLang].uiBackToHome}</a>
   </section>;
 }
 

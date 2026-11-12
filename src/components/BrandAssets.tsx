@@ -1,3 +1,5 @@
+import type { Language } from '../types';
+import { translations } from '../lib/translations';
 import { Play } from '../lib/icons';
 import React, { useState } from 'react';
 import { DthOperatorId } from '../types';
@@ -141,7 +143,7 @@ export const OperatorCardLogo: React.FC<{ operatorId: DthOperatorId; className?:
     <div className="h-9 sm:h-10 px-3 mx-auto bg-paper rounded-xl shadow-sm border border-rule flex items-center justify-center overflow-hidden transition-transform ">
       <img
         src={candidates[candidateIdx]}
-        alt={`${operatorId} logo`}
+        alt="" aria-hidden="true"
         referrerPolicy="no-referrer"
         onError={() => setCandidateIdx((prev) => prev + 1)}
         className={className}
@@ -191,11 +193,11 @@ export const OperatorHeroImage: React.FC<OperatorHeroImageProps> = ({
 };
 
 // Sun Direct Dish, STB & Remote setup component
-export const SunDirectHeroBannerGraphic: React.FC = () => {
+export const SunDirectHeroBannerGraphic: React.FC<{ currentLang?: Language }> = ({ currentLang = 'en' }) => {
   return (
     <OperatorHeroImage
       candidates={['/assets/sun_direct_hero_clean.png', '/sun_direct_hero_clean.png']}
-      alt="Sun Direct HD Dish, Set-Top Box & Remote"
+      alt={translations[currentLang].uiSunSetup}
       fallbackSvg={
         <svg aria-hidden="true" viewBox="0 0 320 260" className="w-full h-full drop-shadow-2xl" fill="none">
           <defs>
@@ -250,11 +252,11 @@ export const SunDirectHeroBannerGraphic: React.FC = () => {
 };
 
 // Airtel Digital TV setup component
-export const AirtelHeroBannerGraphic: React.FC = () => {
+export const AirtelHeroBannerGraphic: React.FC<{ currentLang?: Language }> = ({ currentLang = 'en' }) => {
   return (
     <OperatorHeroImage
       candidates={['/assets/airtel_hero.png', '/airtel_hero.png']}
-      alt="Airtel Digital TV Setup"
+      alt={translations[currentLang].uiAirtelSetup}
       containerClassName="relative w-44 sm:w-56 md:w-72 h-36 sm:h-44 md:h-52 flex items-center justify-center"
       imgClassName="w-[82%] h-[82%] object-contain drop-shadow-2xl transition-transform duration-300 "
       fallbackSvg={
@@ -274,11 +276,11 @@ export const AirtelHeroBannerGraphic: React.FC = () => {
 };
 
 // Tata Play setup component
-export const TataPlayHeroBannerGraphic: React.FC = () => {
+export const TataPlayHeroBannerGraphic: React.FC<{ currentLang?: Language }> = ({ currentLang = 'en' }) => {
   return (
     <OperatorHeroImage
       candidates={['/assets/tata_play_hero.png', '/tata_play_hero.png']}
-      alt="Tata Play Setup"
+      alt={translations[currentLang].uiTataSetup}
       fallbackSvg={
         <div className="opacity-90 flex items-center pr-2 md:pr-6">
           <svg aria-hidden="true" viewBox="0 0 240 200" className="w-64 h-56" fill="none">
@@ -295,11 +297,11 @@ export const TataPlayHeroBannerGraphic: React.FC = () => {
 };
 
 // Dish TV / d2h setup component
-export const DishTvHeroBannerGraphic: React.FC = () => {
+export const DishTvHeroBannerGraphic: React.FC<{ currentLang?: Language }> = ({ currentLang = 'en' }) => {
   return (
     <OperatorHeroImage
       candidates={['/assets/dish_hero.png', '/dish_hero.png']}
-      alt="Dish TV & d2h Setup"
+      alt={translations[currentLang].uiDishSetup}
       fallbackSvg={
         <div className="opacity-35 flex items-center pr-4">
           <svg aria-hidden="true" viewBox="0 0 240 200" className="w-64 h-56" fill="none">
@@ -311,18 +313,18 @@ export const DishTvHeroBannerGraphic: React.FC = () => {
   );
 };
 
-export const HeroIllustrativeGraphic: React.FC<{ theme: OperatorTheme }> = ({ theme }) => {
+export const HeroIllustrativeGraphic: React.FC<{ theme: OperatorTheme; currentLang?: Language }> = ({ theme, currentLang = 'en' }) => {
   if (theme.id === 'airtel_dth') {
-    return <AirtelHeroBannerGraphic />;
+    return <AirtelHeroBannerGraphic currentLang={currentLang} />;
   }
 
   if (theme.id === 'tata_play') {
-    return <TataPlayHeroBannerGraphic />;
+    return <TataPlayHeroBannerGraphic currentLang={currentLang} />;
   }
 
   if (theme.id === 'dish_tv' || theme.id === 'd2h') {
-    return <DishTvHeroBannerGraphic />;
+    return <DishTvHeroBannerGraphic currentLang={currentLang} />;
   }
 
-  return <SunDirectHeroBannerGraphic />;
+  return <SunDirectHeroBannerGraphic currentLang={currentLang} />;
 };

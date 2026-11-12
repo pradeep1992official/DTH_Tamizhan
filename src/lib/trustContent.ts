@@ -88,7 +88,7 @@ export const POLICY_CONTENT: Record<PolicyKey, PolicySection[]> = {
     ] },
     { heading: 'Your request and the final amount', paragraphs: [
       'Use accurate subscriber and contact details and review the selected operator, pack, validity and final payable amount. Do not use another person’s account or make a recharge without their authority. Keep your sign-in credentials private and do not use the site for fraud or interference.',
-      `Prices are in Indian rupees. Applicable charges, tax treatment and invoice details: ${b.feesAndTaxes}. A catalog listing is not a guarantee of operator acceptance or a promise that an incorrect listing will be supplied. Errors must be explained and resolved without removing your statutory rights.`,
+      `Prices are shown as Rs. Applicable charges, tax treatment and invoice details: ${b.feesAndTaxes}. A catalog listing is not a guarantee of operator acceptance or a promise that an incorrect listing will be supplied. Errors must be explained and resolved without removing your statutory rights.`,
     ] },
     { heading: 'Payment and recharge status', paragraphs: [
       'A request is not a completed recharge merely because you clicked a button, saw a redirect or were debited. Payment needs provider confirmation, and the recharge needs operator confirmation. Operator or payment-provider processing can delay the outcome; activation is not guaranteed to be instant.',

@@ -1,4 +1,5 @@
 import type { Language } from '../types';
+import { customerMessages, formatMessage } from './customerMessages';
 
 // Preserve the existing input's INR 10–20,000 limits and server's paise precision.
 // This is the single configuration used by the form and payment API.
@@ -9,9 +10,7 @@ export function validateTopUpAmount(value: unknown, lang: Language = 'en'): stri
   const amount = Number(raw);
   const syntax = new RegExp(`^[0-9]+(?:\\.[0-9]{1,${TOP_UP_LIMITS.decimalPlaces}})?$`);
   if (syntax.test(raw) && Number.isFinite(amount) && amount >= TOP_UP_LIMITS.min && amount <= TOP_UP_LIMITS.max && Number.isSafeInteger(Math.round(amount * 100))) return null;
-  return lang === 'ta'
-    ? `Rs. ${TOP_UP_LIMITS.min} முதல் Rs. ${TOP_UP_LIMITS.max.toLocaleString('en-IN')} வரை, அதிகபட்சம் ${TOP_UP_LIMITS.decimalPlaces} தசம இடங்களுடன் தொகையை உள்ளிடவும்.`
-    : `Enter an amount from Rs. ${TOP_UP_LIMITS.min} to Rs. ${TOP_UP_LIMITS.max.toLocaleString('en-IN')} with no more than ${TOP_UP_LIMITS.decimalPlaces} decimal places.`;
+  return formatMessage(customerMessages[lang].uiAmountBounds, { min: TOP_UP_LIMITS.min, max: TOP_UP_LIMITS.max.toLocaleString('en-IN'), decimals: TOP_UP_LIMITS.decimalPlaces });
 }
 
 export function parseTopUpAmount(value: unknown): number | null {

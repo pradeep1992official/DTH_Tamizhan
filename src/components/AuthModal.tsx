@@ -1,3 +1,4 @@
+import { localizeCustomerError } from '../lib/customerMessages';
 import React, { useState } from 'react';
 import {
   X,
@@ -19,9 +20,8 @@ interface AuthModalProps {
   currentUser: UserProfile | null;
 }
 
-function formatNameFromEmail(email?: string): string {
-  if (!email) return 'Subscriber';
-  if (isSuperAdminEmail(email)) return 'Professor Pradeep S';
+function formatNameFromEmail(email?: string, lang: Language = 'en'): string {
+  if (!email) return translations[lang].customer;
   const prefix = email.split('@')[0];
   const clean = prefix.replace(/[_.]/g, ' ').replace(/[0-9]/g, '').trim();
   if (clean.length > 1) {
@@ -62,7 +62,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         const userEmail = fbUser.email || currentUser?.email || '';
         const isSuperAdmin = isSuperAdminEmail(userEmail);
-        const finalDisplayName = fbUser.displayName || (isSuperAdmin ? 'Professor Pradeep S' : formatNameFromEmail(userEmail));
+        const finalDisplayName = fbUser.displayName || formatNameFromEmail(userEmail, currentLang);
 
         const profile: UserProfile = {
           uid: fbUser.uid,
@@ -93,7 +93,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         onClose();
       } else {
         setIsLoading(false);
-        setErrorMsg(currentLang === 'ta' ? 'அங்கீகார சேவை தற்போது கிடைக்கவில்லை. சிறிது நேரம் கழித்து முயற்சிக்கவும்.' : 'Authentication is currently not available. Please try again later.');
+        setErrorMsg(translations[currentLang].uiAuthenticationIsCurrentlyNotAvailablePleaseTryAgainLater);
       }
     } catch (err: any) {
       console.warn('Google Auth popup result:', err);
@@ -103,13 +103,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
 
       if (err?.code === 'auth/popup-closed-by-user') {
-        setErrorMsg(currentLang === 'ta'
-          ? 'உள்நுழைவு முடிவதற்கு முன் சாளரம் மூடப்பட்டது. மீண்டும் முயற்சிக்கவும்; தொடர்ந்தால் Firebase அங்கீகரிக்கப்பட்ட டொமைனைச் சரிபார்க்கவும்.'
-          : 'The sign-in window closed before authentication completed. Try again; if it keeps happening, check the Firebase authorized domain.');
+        setErrorMsg(translations[currentLang].uiTheSignInWindowClosedBeforeAuthenticationCompletedTryAgainIfItKeepsHap);
         return;
       }
 
-      setErrorMsg(err?.message || (currentLang === 'ta' ? 'உள்நுழைவு நிறைவடையவில்லை. மீண்டும் முயற்சிக்கவும்.' : 'Google Sign-In was not completed. Please try again.'));
+      setErrorMsg(err?.message || (translations[currentLang].uiGoogleSignInWasNotCompletedPleaseTryAgain));
     }
   };
 
@@ -157,7 +155,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           {errorMsg && (
             <div role="alert" className="p-3.5 rounded-xl bg-error/10 border border-rule text-error text-sm flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 text-error" />
-              <span>{errorMsg}</span>
+              <span>{localizeCustomerError(errorMsg, currentLang)}</span>
             </div>
           )}
 
@@ -187,7 +185,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                 />
               </svg>
-              <span>{isLoading ? (currentLang === 'ta' ? 'சரிபார்க்கப்படுகிறது...' : 'Connecting...') : t.googleOption}</span>
+              <span>{isLoading ? (translations[currentLang].uiConnecting) : t.googleOption}</span>
             </button>
 
             <p className="text-sm text-center text-muted">

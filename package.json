@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
+    "check:i18n": "tsx scripts/check-localization.ts",
     "test": "vitest run",
     "test:unit": "vitest run tests/calculateSavings.test.ts tests/filterAndSortPlans.test.ts tests/excelParser.test.ts",
     "test:rules": "npx vitest run tests/firestore.rules.test.ts",

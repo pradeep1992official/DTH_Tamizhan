@@ -1,4 +1,5 @@
-import { subscriberError, subscriberHelp, subscriberRule, normalizeSubscriberId } from '../lib/subscriberValidation';
+import { formatMessage } from '../lib/customerMessages';
+import { subscriberError, subscriberHelp, subscriberRule, subscriberLabel, subscriberPlaceholder, normalizeSubscriberId } from '../lib/subscriberValidation';
 import { getConnectionExpiry } from '../lib/connectionExpiry';
 import React, { useState } from 'react';
 import {
@@ -80,7 +81,7 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
       operator: selectedOperator,
       operatorName: opNames[selectedOperator] || 'Dish TV',
       smartCardNumber: cleanCard,
-      nickname: nickname || 'Living Room DTH',
+      nickname: nickname || t.uiSetTopBox,
       customerName: customerName.trim() || undefined,
     });
 
@@ -108,9 +109,7 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
             <span>{t.myConnectionsTitle}</span>
           </h1>
           <p className={`text-xs ${currentTheme.subText}`}>
-            {currentLang === 'ta'
-              ? 'உங்கள் வீட்டில் உள்ள அனைத்து செட்-டாப் பாக்ஸ்களையும் நிர்வகிக்கவும் மற்றும் 1-கிளிக் ரீசார்ஜ் செய்யவும்.'
-              : 'Manage your saved Set-Top Boxes and recharge them quickly.'}
+            {translations[currentLang].uiManageYourSavedSetTopBoxesAndRechargeThemQuickly}
           </p>
         </div>
 
@@ -170,11 +169,11 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
 
                     <button
                       onClick={() => {
-                        if (window.confirm(`Remove \u201c${conn.nickname}\u201d from your saved boxes?`)) onDeleteConnection(conn.id);
+                        if (window.confirm(formatMessage(t.uiConfirmRemoveBox, { name: conn.nickname }))) onDeleteConnection(conn.id);
                       }}
-                      aria-label={`Remove ${conn.nickname}`}
+                      aria-label={formatMessage(t.uiRemoveNamedBox, { name: conn.nickname })}
                       className="min-h-11 min-w-11 flex items-center justify-center p-2 rounded-xl transition-colors text-error hover:bg-error-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-error   "
-                      title="Remove Connection"
+                      title={translations[currentLang].uiRemoveConnection}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -183,18 +182,18 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
                   {/* Account Meta Balance & Expiry */}
                   <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
                     <div>
-                      <span className={`text-xs font-medium block ${currentTheme.mutedText}`}>Balance</span>
+                      <span className={`text-xs font-medium block ${currentTheme.mutedText}`}>{translations[currentLang].uiBalance}</span>
                       <span className="font-medium text-sm">
-                        {typeof conn.balance === 'number' ? `Rs. ${conn.balance.toFixed(2)}` : 'Not available'}
+                        {typeof conn.balance === 'number' ? `Rs. ${conn.balance.toFixed(2)}` : translations[currentLang].uiNotAvailable}
                       </span>
                     </div>
                     {validExpiry && (
                       <div>
-                        <span className={`text-xs font-medium block ${currentTheme.mutedText}`}>Expiry</span>
+                        <span className={`text-xs font-medium block ${currentTheme.mutedText}`}>{translations[currentLang].uiExpiry}</span>
                         <span className="font-medium text-sm block">
-                          {expiryDate!.toLocaleDateString(currentLang === 'ta' ? 'ta-IN' : 'en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}
+                          {expiryDate!.toLocaleDateString(translations[currentLang].uiEnIN, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}
                         </span>
-                        <span className={`text-xs font-semibold ${expired ? 'text-error' : 'text-success'}`}>{expired ? 'Expired' : 'Active'}</span>
+                        <span className={`text-xs font-semibold ${expired ? 'text-error' : 'text-success'}`}>{expired ? translations[currentLang].uiExpired : translations[currentLang].uiActive}</span>
                       </div>
                     )}
                   </div>
@@ -202,7 +201,7 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
                   {subscriberError(conn.operator, conn.smartCardNumber, false, currentLang) && <p role="alert" className="text-error text-xs">{subscriberError(conn.operator, conn.smartCardNumber, false, currentLang)}</p>}
                   {conn.packName && (
                     <div className={`mt-3 text-sm space-y-1`}>
-                      <span className={currentTheme.mutedText}>Current pack</span>
+                      <span className={currentTheme.mutedText}>{translations[currentLang].uiCurrentPack}</span>
                       <span className="font-medium block break-words">
                         {conn.packName}
                       </span>
@@ -215,7 +214,7 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
                     setEditing(conn); setOperator(conn.operator === 'd2h' ? 'dish_tv' : conn.operator); setSmartCard(conn.smartCardNumber);
                     setNickname(conn.nickname); setCustomerName(conn.customerName || '');
                     setIdError(subscriberError(conn.operator, conn.smartCardNumber, false, currentLang)); setIsAddOpen(true);
-                  }}>Edit</button>
+                  }}>{translations[currentLang].uiEdit}</button>
                   <button
                     onClick={() => onQuickRecharge(conn)}
                     className={`flex-1 py-2.5 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-sm ${currentTheme.cardButtonActive}`}
@@ -242,7 +241,7 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
           </div>
           <div className="max-w-md mx-auto space-y-1">
             <h3 className={`font-bold text-base ${currentTheme.headingText}`}>
-              {currentLang === 'ta' ? 'சேமிக்கப்பட்ட செட்-டாப் பாக்ஸ்கள் இல்லை' : 'No Saved Set-Top Boxes'}
+              {translations[currentLang].uiNoSavedSetTopBoxes}
             </h3>
             <p className={`text-xs ${currentTheme.subText}`}>
               {t.noConnections}
@@ -308,16 +307,16 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
                   onChange={(e) => setOperator(e.target.value as DthOperatorId)}
                   className={`w-full ${currentTheme.inputBg} ${currentTheme.inputBorder} ${currentTheme.inputFocusBorder} ${currentTheme.inputText} rounded-xl px-3.5 py-2.5 font-medium focus:outline-none border transition-colors`}
                 >
-                  <option value="sun_direct">Sun Direct (சன் டைரக்ட்)</option>
-                  <option value="tata_play">Tata Play (டாடா பிளே)</option>
-                  <option value="airtel_dth">Airtel Digital TV (ஏர்டெல்)</option>
-                  <option value="dish_tv">Dish TV & D2H (டிஷ் டிவி)</option>
+                  <option value="sun_direct">{t.uiSunDirect}</option>
+                  <option value="tata_play">{t.uiTataPlay}</option>
+                  <option value="airtel_dth">{t.uiAirtel}</option>
+                  <option value="dish_tv">{t.uiDishD2h}</option>
                 </select>
               </div>
 
               <div>
                 <label className={`block font-medium mb-1.5 ${currentTheme.subText}`}>
-                  {subscriberRule(operator, true).label}
+                  {subscriberLabel(operator, true, currentLang)}
                 </label>
                 <input
                   type="text"
@@ -326,7 +325,7 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
                   aria-describedby="saved-box-help"
                   value={smartCard}
                   onChange={(e) => setSmartCard(e.target.value.replace(/[^0-9]/g, ''))}
-                  placeholder={subscriberRule(operator, true).placeholder}
+                  placeholder={subscriberPlaceholder(operator, true, currentLang)}
                   className={`w-full ${currentTheme.inputBg} ${currentTheme.inputBorder} ${currentTheme.inputFocusBorder} ${currentTheme.inputText} ${currentTheme.inputPlaceholder} rounded-xl px-3.5 py-2.5 font-mono font-bold focus:outline-none border transition-colors`}
                 />
               </div>

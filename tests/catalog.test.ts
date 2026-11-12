@@ -24,7 +24,7 @@ describe('shared catalog formatting (QA-08 / QA-09)', () => {
     expect(browse.monthly_equivalent_rate).toBe(233.17);
     expect(formatChannelCounts(browse)).toBe(formatChannelCounts(pack));
     expect(formatMonthlyEquivalent(browse.price, browse.duration_months)).toBe(formatMonthlyEquivalent(pack.amount, pack.duration_months));
-    expect(formatDuration(6)).toBe('6 Months');
+    expect(formatDuration(6)).toBe('6 months');
     expect(formatPrice(browse.price)).toBe(formatPrice(pack.amount));
   });
   it('treats highlights as a subset, not as a source for channel totals', () => {
