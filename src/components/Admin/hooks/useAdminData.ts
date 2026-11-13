@@ -31,6 +31,9 @@ async function readApiResponse(response: Response, endpoint: string): Promise<un
 }
 
 export interface PaymentReportItem {
+  customerPhone?: string;
+  registeredMobile?: string;
+  packValidity?: string;
   id: string;
   paymentMethod: string;
   amount: number;

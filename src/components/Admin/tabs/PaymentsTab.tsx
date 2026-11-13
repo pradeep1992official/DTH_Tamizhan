@@ -1,5 +1,7 @@
 import { AdminRefreshButton } from '../AdminRefreshButton';
 import { EmailDeliveryPanel } from '../EmailDeliveryPanel';
+import { WhatsAppShare } from '../WhatsAppShare';
+import { paymentWhatsAppLink } from '../../../lib/whatsappNotifications';
 import React, { useState } from 'react';
 import { Search, Eye, X } from '../../../lib/icons';
 import { useAccessibleModal } from '../../../lib/useAccessibleModal';
@@ -217,6 +219,7 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
               </dl>
             </section>
             <div className="history-details-reference"><span>Operator reference</span><span className="font-mono">{selectedPayment.operatorRefId || 'Not provided'}</span></div>
+            {selectedPayment.status === 'paid' && selectedPayment.providerStatus === 'captured' && <WhatsAppShare href={paymentWhatsAppLink(selectedPayment)} currentLang={currentLang} />}
           </div>
         </div>
       )}

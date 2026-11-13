@@ -102,7 +102,7 @@ This is not a complete security audit. Firebase authentication is the source of 
 | Live payment readiness/refunds | Activate and configure live Razorpay keys when ready; add verified webhooks, automatic reconciliation and refund execution. Orders, hosted checkout and server signature/capture verification are implemented. |
 | Installation fulfillment | Admin request management, assignment, scheduling and status tracking |
 | AI recommendations | Backend `/api/ai/recommend-plans` exists; frontend does not call it |
-| Optional notifications | SMS and automatic WhatsApp delivery are not implemented. Brevo payment-receipt and manual-recharge-confirmation emails are implemented; configure the sender and server credentials to activate them. |
+| Optional notifications | Manual WhatsApp drafts are available in Admin Payments → View for captured payments and Recharge history → View for completed recharges, plus after Mark Successful. The administrator reviews and presses Send in WhatsApp. Brevo receipt/confirmation emails are implemented; configure server credentials to activate them. SMS and automated WhatsApp delivery are not implemented. |
 | Business information | Replace `[FILL IN]` values in `src/lib/trustContent.ts` and `src/lib/policyTranslations.ts` |
 | Production persistence | Durable shared storage instead of server-local files where required |
 

@@ -1,4 +1,6 @@
 import { normalizeRechargeOrder } from '../../../lib/pendingRechargeOrders';
+import { WhatsAppShare } from '../WhatsAppShare';
+import { rechargeWhatsAppLink } from '../../../lib/whatsappNotifications';
 import { AdminRefreshButton } from '../AdminRefreshButton';
 import { useAccessibleModal } from '../../../lib/useAccessibleModal';
 import React, { useState } from 'react';
@@ -241,6 +243,7 @@ export const RechargesTab: React.FC<RechargesTabProps> = ({
               </dl>
             </section>
             <div className="history-details-reference"><span>Operator reference</span><span className="font-mono">{selectedOrder.operatorRefId || 'Not provided'}</span></div>
+            {selectedOrder.paymentStatus === 'paid' && selectedOrder.rechargeStatus === 'completed' && <WhatsAppShare href={rechargeWhatsAppLink(selectedOrder)} currentLang={currentLang} />}
           </div>
         </div>
       )}

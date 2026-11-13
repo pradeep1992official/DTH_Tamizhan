@@ -1,4 +1,6 @@
 import { AdminRefreshButton } from '../AdminRefreshButton';
+import { WhatsAppShare } from '../WhatsAppShare';
+import { rechargeWhatsAppLink } from '../../../lib/whatsappNotifications';
 import React, { useState } from 'react';
 import { pendingPaidRecharges } from '../../../lib/pendingRechargeOrders';
 import { Clock, CheckCircle2 } from '../../../lib/icons';
@@ -31,6 +33,7 @@ export const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
   const isLight = currentTheme.isLightMode;
   const pendingQueue = pendingPaidRecharges(orders);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+  const [completedOrder, setCompletedOrder] = useState<RechargeOrder | null>(null);
 
   const handleProcessOrder = async (orderId: string) => {
     if (processingIds.has(orderId)) return;
@@ -43,6 +46,7 @@ export const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Unable to update recharge');
+      if (data.order?.orderId === orderId && data.order.rechargeStatus === 'completed') setCompletedOrder(data.order);
       showToast(`Order ${orderId} marked as successfully recharged`);
       onRefresh();
     } catch (err) {
@@ -54,6 +58,10 @@ export const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
 
   return (
     <div className="admin-tab pending-orders-tab space-y-4">
+      {completedOrder && <section className="rounded-lg border border-rule p-4 space-y-3" aria-label="Recharge confirmation">
+        <div className="flex items-center justify-between gap-3"><p className="text-sm font-semibold">{completedOrder.customerName || completedOrder.smartCardNumber} — {currentLang === 'ta' ? 'ரீசார்ஜ் நிலை சேமிக்கப்பட்டது' : 'Recharge status saved'}</p><button type="button" className="text-sm underline" onClick={() => setCompletedOrder(null)}>{currentLang === 'ta' ? 'மூடவும்' : 'Dismiss'}</button></div>
+        <WhatsAppShare href={rechargeWhatsAppLink(completedOrder)} currentLang={currentLang} />
+      </section>}
       {/* Queue Header Banner */}
       <div className={`admin-section-heading flex items-center justify-between gap-4 ${
         isLight ? 'bg-warning/10 border-rule text-ink' : 'bg-warning/10 border-rule text-accent-ink'
