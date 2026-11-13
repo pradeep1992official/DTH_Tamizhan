@@ -1,4 +1,4 @@
-﻿# DTH Tamizhan
+# DTH Tamizhan
 
 English and Tamil DTH pack browsing, recharge checkout, saved set-top boxes and administration for Sun Direct, Tata Play, Airtel Digital TV, Dish TV and D2H.
 
@@ -9,6 +9,18 @@ Built with React, TypeScript, Vite, Express, Firebase Authentication and Firesto
 The separate local sandbox simulator does not collect money or credit an operator account.
 
 Subscriber verification follows the manual workflow: customers enter their subscriber ID and contact details, and the administrator checks the ID in the operator/distributor portal before recharging. The app can search locally saved customer records; it does not retrieve live operator balances or account details. Live provider lookup is optional and outside the current scope.
+
+## Project structure
+
+- `src/`: React application, components, styles and client utilities.
+- `server.ts` and `server/`: Express entry point and backend code.
+- `public/`: static assets served by Vite.
+- `scripts/`: maintenance, import, migration and validation utilities.
+- `tests/`: automated tests and fixtures.
+- [docs/](docs/README.md): documentation index, implementation reports and audit results.
+- `data/` and `.local-fixtures/`: ignored local runtime data and fixtures.
+- `artifacts/` and `tmp/`: generated review output and temporary working files.
+- `dist/`: generated production build.
 
 ## Local setup
 
