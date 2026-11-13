@@ -10,9 +10,12 @@ describe('saved connection expiry', () => {
   it('hides monthly expiry even when a recorded expiry exists', () => {
     expect(getConnectionExpiry({ packDurationMonths: 1, expiryDate: '2026-12-01' } as DthConnection)).toBeUndefined();
   });
-  it('calculates from the recharge date and preserves legacy recorded dates', () => {
-    expect(getConnectionExpiry({ packDurationMonths: 6, lastRechargeDate: '2026-01-01', expiryDate: '2026-07-01' } as DthConnection)).toBe('2026-06-30');
-    expect(getConnectionExpiry({ expiryDate: '2026-07-01' } as DthConnection)).toBe('2026-07-01');
+  it('requires completion and hides legacy dates without completion provenance', () => {
+    expect(getConnectionExpiry({ packDurationMonths: 6, rechargeCompletedAt: '2026-01-01', expiryDate: '2026-07-01' } as DthConnection)).toBe('2026-06-30');
+    expect(getConnectionExpiry({ expiryDate: '2026-07-01' } as DthConnection)).toBeUndefined();
+    expect(getConnectionExpiry({ packDurationMonths: 6, lastRechargeDate: '2026-01-01' } as DthConnection)).toBeUndefined();
+    expect(calculateConnectionExpiry('2026-01-01', 3)).toBeUndefined();
+    expect(calculateConnectionExpiry('2026-01-01T20:00:00Z', 6)).toBe('2026-07-01');
   });
   it('recognizes stored validity labels and rejects invalid dates', () => {
     expect(getPackDuration('180 Days')).toBe(6);

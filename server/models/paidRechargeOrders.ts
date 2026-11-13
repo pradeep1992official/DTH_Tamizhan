@@ -73,14 +73,17 @@ export async function updatePaidRechargeStatus(orderId: string, status: Recharge
       const current = latestOrder.exists ? latestOrder.data() as RechargeOrder : order;
       if (current.rechargeStatus === status) return current;
       if (current.rechargeStatus === 'completed') throw new PaymentError(409, 'This recharge has already been completed.');
-      const updated = { ...current, rechargeStatus: status, workerNotes: workerNotes || current.workerNotes, updatedAt: new Date().toISOString() };
+      const now = new Date().toISOString();
+      const updated = { ...current, rechargeStatus: status, workerNotes: workerNotes || current.workerNotes, updatedAt: now,
+        ...(status === 'completed' ? { completedAt: now } : {}) };
       transaction.set(orderRef, cleanData(updated)); return updated;
     });
   }
   if (order.rechargeStatus === status) return order;
   if (order.rechargeStatus === 'completed') throw new PaymentError(409, 'This recharge has already been completed.');
+  const now = new Date().toISOString();
   const updated = { ...order, rechargeStatus: status, workerNotes: workerNotes || order.workerNotes,
-    updatedAt: new Date().toISOString() };
+    updatedAt: now, ...(status === 'completed' ? { completedAt: now } : {}) };
   const records = [...MEMORY_RECHARGE_ORDERS];
   const index = records.findIndex(item => item.orderId === orderId);
   if (index >= 0) records[index] = updated; else records.unshift(updated);

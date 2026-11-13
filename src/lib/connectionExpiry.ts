@@ -11,16 +11,15 @@ export function getPackDuration(value: string): number | undefined {
 
 export function calculateConnectionExpiry(rechargeDate: string, months: number): string | undefined {
   const date = new Date(rechargeDate);
-  if (!Number.isFinite(date.getTime()) || ![1, 3, 6, 12].includes(months)) return undefined;
-  date.setUTCDate(date.getUTCDate() + months * 30);
-  return date.toISOString().slice(0, 10);
+  if (!Number.isFinite(date.getTime()) || ![6, 12].includes(months)) return undefined;
+  // Use the completion calendar date in India, including completions after UTC midnight.
+  const indianDate = new Date(date.getTime() + 330 * 60_000);
+  indianDate.setUTCDate(indianDate.getUTCDate() + (months === 6 ? 180 : 360));
+  return indianDate.toISOString().slice(0, 10);
 }
 
 export function getConnectionExpiry(connection: DthConnection): string | undefined {
   const months = connection.packDurationMonths ?? getPackDuration(connection.packName || '');
-  if (months === 1) return undefined;
-  if (months && connection.lastRechargeDate) {
-    return calculateConnectionExpiry(connection.lastRechargeDate, months);
-  }
-  return connection.expiryDate || undefined;
+  if (![6, 12].includes(months!) || !connection.rechargeCompletedAt) return undefined;
+  return calculateConnectionExpiry(connection.rechargeCompletedAt, months!);
 }

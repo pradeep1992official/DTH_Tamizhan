@@ -7,6 +7,7 @@ import {
 import { isCallerAdminAuthorized, verifyAuthToken } from '../middleware/auth';
 import { SubscriberDetails } from '../../src/types';
 import { getRechargeOrders, updatePaidRechargeStatus } from '../models/paidRechargeOrders';
+import { syncCompletedRechargeConnection } from '../models/savedRechargeConnections';
 import { UpdateOrderStatusSchema } from '../middleware/validation';
 import { PaymentError } from '../payments';
 
@@ -110,6 +111,7 @@ export const ordersController = {
     if (!parsed.success) { res.status(400).json({ success: false, error: 'A valid order and recharge status are required.' }); return; }
     try {
       const order = await updatePaidRechargeStatus(parsed.data.orderId, parsed.data.rechargeStatus, parsed.data.workerNotes);
+      await syncCompletedRechargeConnection(order);
       res.json({ success: true, order });
     } catch (error) {
       res.status(error instanceof PaymentError ? error.status : 500).json({ success: false,

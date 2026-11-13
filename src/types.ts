@@ -91,6 +91,7 @@ export interface DthConnection {
   balance?: number;
   expiryDate?: string;
   lastRechargeDate?: string;
+  rechargeCompletedAt?: string;
   packDurationMonths?: number;
   monthlyPackPrice?: number;
   packName?: string;
@@ -98,6 +99,7 @@ export interface DthConnection {
 }
 
 export interface RechargeOrder {
+  completedAt?: string;
   testMode?: boolean;
   paymentId?: string;
   orderId: string;
