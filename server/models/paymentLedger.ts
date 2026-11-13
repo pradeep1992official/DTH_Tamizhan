@@ -12,6 +12,7 @@ export interface PaymentLedgerEntry {
   customerUid?: string;
   packId?: string;
   packValidity?: string;
+  receiptPending?: boolean;
   customerPhone?: string;
   customerEmail?: string;
 }
@@ -43,9 +44,14 @@ export async function recordProviderPayment(payment: Payments.RazorpayPayment, o
       customerUid: notes.dth_customer_uid || previous?.customerUid, customerEmail: notes.dth_customer_email || previous?.customerEmail,
       packId: notes.dth_pack_id || previous?.packId, packValidity: notes.dth_validity || previous?.packValidity,
       createdAt: new Date(payment.created_at * 1000).toISOString(), operatorRefId: previous?.operatorRefId || '', testMode, provider: 'Razorpay',
+      receiptPending: payment.status === 'captured' && (previous?.receiptPending === true || previous?.providerStatus !== 'captured'),
     };
   };
-  if (usesFirestore()) return mutateRecord<PaymentLedgerEntry>(collections.payments, paymentKey(payment.id, testMode), build);
+  if (usesFirestore()) {
+    const entry = await mutateRecord<PaymentLedgerEntry>(collections.payments, paymentKey(payment.id, testMode), build);
+    if (entry.receiptPending) await import('../emailDelivery').then(module => module.enqueueReceiptEvents(entry)).catch(() => console.warn('[email] Payment receipt remains queued for recovery.'));
+    return entry;
+  }
   const entries = await readPaymentLedger();
   const previous = entries.find(entry => entry.id === payment.id && entry.testMode === testMode);
   const entry = build(previous);

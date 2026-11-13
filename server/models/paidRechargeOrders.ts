@@ -9,6 +9,7 @@ import { RECHARGE_ORDERS_FILE } from './store';
 import { PaymentError } from '../payments';
 import { collections, paymentKey, readCollection, usesFirestore, cleanData } from '../persistence';
 import { getAdminFirestore } from '../middleware/auth';
+import { limitedRecords } from '../queries';
 
 // The durable provider ledger is also the source for the paid recharge queue.
 // Payment capture queues the request; it never confirms operator fulfillment.
@@ -54,8 +55,8 @@ export async function getRechargeOrders(): Promise<RechargeOrder[]> {
 export const getCustomerRechargeOrders = getRechargeOrders;
 
 export async function updatePaidRechargeStatus(orderId: string, status: RechargeOrder['rechargeStatus'], workerNotes?: string): Promise<RechargeOrder> {
-  const payments = await readPaymentLedger();
-  const saved = await readSavedRechargeOrders();
+  const payments = usesFirestore() ? await limitedRecords<PaymentLedgerEntry>(collections.payments, [{ field: 'orderId', op: 'eq', value: orderId }], 2) : await readPaymentLedger();
+  const saved = usesFirestore() ? (await getAdminFirestore().getAll(...[false, true].map(test => getAdminFirestore().collection(collections.recharges).doc(paymentKey(orderId, test))))).filter(doc => doc.exists).map(doc => doc.data() as RechargeOrder) : await readSavedRechargeOrders();
   const order = mergePaidRechargeOrders(saved, payments).find(item => item.orderId === orderId);
   if (!order) throw new PaymentError(404, 'Recharge order not found.');
   const payment = payments.find(item => item.id === order.paymentId && item.orderId === orderId && item.testMode === order.testMode);
@@ -66,7 +67,7 @@ export async function updatePaidRechargeStatus(orderId: string, status: Recharge
     const db = getAdminFirestore();
     const orderRef = db.collection(collections.recharges).doc(paymentKey(orderId, order.testMode === true));
     const paymentRef = db.collection(collections.payments).doc(paymentKey(payment.id, payment.testMode));
-    return db.runTransaction(async transaction => {
+    const result = await db.runTransaction(async transaction => {
       const [latestOrder, latestPayment] = await transaction.getAll(orderRef, paymentRef);
       const provider = latestPayment.data() as PaymentLedgerEntry | undefined;
       if (!provider || provider.status !== 'paid' || provider.providerStatus !== 'captured' || provider.amount !== order.amount || provider.orderId !== orderId) throw new PaymentError(409, 'A captured payment is required before updating this recharge.');
@@ -75,9 +76,11 @@ export async function updatePaidRechargeStatus(orderId: string, status: Recharge
       if (current.rechargeStatus === 'completed') throw new PaymentError(409, 'This recharge has already been completed.');
       const now = new Date().toISOString();
       const updated = { ...current, rechargeStatus: status, workerNotes: workerNotes || current.workerNotes, updatedAt: now,
-        ...(status === 'completed' ? { completedAt: now } : {}) };
+        ...(status === 'completed' ? { completedAt: now, receiptPending: true } : {}) };
       transaction.set(orderRef, cleanData(updated)); return updated;
     });
+    if (result.receiptPending) await import('../emailDelivery').then(module => module.enqueueReceiptEvents(payment, result)).catch(() => console.warn('[email] Recharge receipt remains queued for recovery.'));
+    return result;
   }
   if (order.rechargeStatus === status) return order;
   if (order.rechargeStatus === 'completed') throw new PaymentError(409, 'This recharge has already been completed.');

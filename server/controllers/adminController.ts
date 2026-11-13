@@ -1,5 +1,9 @@
 import { readLookupCustomers, saveLookupCustomer, deleteLookupCustomer, readOperators, saveOperator, readAdminRequests, saveAdminRequest } from '../models/sharedStore';
 import { usesFirestore } from '../persistence';
+import { parsePage, paymentPage } from '../models/paymentPages';
+import { customerDirectoryPage } from '../models/customerDirectoryPage';
+import { queryRecords } from '../queries';
+import { ordersForPayments } from '../models/paymentPages';
 import { randomUUID } from 'node:crypto';
 import { getAuth } from 'firebase-admin/auth';
 import { customersFromPaidRecharges } from '../../src/lib/rechargeCustomers';
@@ -48,7 +52,13 @@ export const adminController = {
     if (!verdict.authorized) return forbidden(res);
     res.setHeader('Cache-Control', 'no-store');
     try {
-      const details = customerDetails(String(req.params.id), await getCustomerRechargeOrders(), await readPaymentLedger());
+      const id = String(req.params.id);
+      const parts = id.match(/^(sun_direct|airtel_dth|tata_play|dish_tv|d2h)_(\d{8,11})(_test)?$/);
+      if (!parts) { res.status(404).json({ success: false, error: 'Customer not found.' }); return; }
+      const ledger = usesFirestore() ? await queryRecords<Awaited<ReturnType<typeof readPaymentLedger>>[number]>('server_payments', [
+        { field: 'operator', op: 'eq', value: parts[1] }, { field: 'smartCardNumber', op: 'eq', value: parts[2] }, { field: 'testMode', op: 'eq', value: Boolean(parts[3]) },
+      ]) : await readPaymentLedger();
+      const details = customerDetails(id, await ordersForPayments(ledger), ledger);
       if (!details) { res.status(404).json({ success: false, error: 'Customer not found.' }); return; }
       await enrichCustomerContacts([details.customer]);
       res.json({ success: true, ...details });
@@ -88,7 +98,9 @@ export const adminController = {
     const auth = await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS);
     if (!auth.authorized) return forbidden(res);
     try {
-      const customers = customersFromPaidRecharges(await getCustomerRechargeOrders());
+      let page;
+      try { page = parsePage(req.query); } catch { res.status(400).json({ success: false, error: 'Invalid customers page.' }); return; }
+      const { customers, nextCursor } = await customerDirectoryPage(page);
       // Older payments can recover contact details from their bound account.
       const profiles = new Map<string, Promise<{ name?: string; phone?: string }>>();
       for (const customer of customers) {
@@ -111,7 +123,7 @@ export const adminController = {
         if (profile?.phone && !customer.registeredMobile) customer.registeredMobile = profile.phone;
       }));
       res.setHeader('Cache-Control', 'no-store');
-      res.json({ success: true, count: customers.length, customers });
+      res.json({ success: true, count: customers.length, customers, nextCursor });
     } catch { res.status(503).json({ success: false, error: 'Unable to load customers from recorded payments.' }); }
   },
 
@@ -177,6 +189,7 @@ export const adminController = {
         completedOrders,
         pendingOrders,
         totalRechargeVolume,
+        settledVolume: orders.filter(order => order.paymentStatus === 'paid').reduce((sum, order) => sum + order.amount, 0),
       },
       orders: orders.slice(0, 50),
     });
@@ -187,8 +200,9 @@ export const adminController = {
     const auth = await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS);
     if (!auth.authorized) return forbidden(res);
     try {
-      const ledger = await readPaymentLedger();
-      const savedOrders = await getRechargeOrders();
+      let page;
+      try { page = parsePage(req.query); } catch { res.status(400).json({ success: false, error: 'Invalid payments page.' }); return; }
+      const { payments: ledger, orders: savedOrders, nextCursor } = await paymentPage(page);
       const resolvedLedger = ledger.map(entry => {
         const saved = savedOrders.find(order => order.orderId === entry.orderId || order.paymentId === entry.id);
         return { ...entry, customerName: missingCustomerName(entry.customerName) && saved?.customerName ? saved.customerName : entry.customerName,
@@ -199,7 +213,7 @@ export const adminController = {
       await enrichCustomerContacts(payments);
       for (const payment of payments) if (missingCustomerName(payment.customerName)) payment.customerName = 'Name not provided';
       res.setHeader('Cache-Control', 'no-store');
-      res.json({ success: true, count: payments.length, payments });
+      res.json({ success: true, count: payments.length, payments, nextCursor });
     } catch { res.status(503).json({ success: false, error: 'Unable to read recorded payments.' }); }
   },
 

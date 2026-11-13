@@ -10,6 +10,7 @@ import { getRechargeOrders, updatePaidRechargeStatus } from '../models/paidRecha
 import { syncCompletedRechargeConnection } from '../models/savedRechargeConnections';
 import { UpdateOrderStatusSchema } from '../middleware/validation';
 import { PaymentError } from '../payments';
+import { parsePage, paymentPage } from '../models/paymentPages';
 
 export const ordersController = {
   async list(req: Request, res: Response): Promise<void> {
@@ -23,29 +24,15 @@ export const ordersController = {
       return;
     }
 
-    const callerEmail = authCtx.email || '';
-    let allOrders;
-    try { allOrders = await getRechargeOrders(); }
-    catch { res.status(503).json({ success: false, error: 'Unable to load recorded recharge payments.', orders: [] }); return; }
     const adminCheck = await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS);
-    if (adminCheck.authorized && req.query.isWorker === 'true') {
-      const orders = allOrders.filter((order) => order.rechargeStatus !== 'completed');
-      res.json({ success: true, count: orders.length, orders });
-      return;
-    }
-    if (adminCheck.authorized && req.query.all === 'true') {
-      res.json({
-        success: true,
-        count: allOrders.length,
-        orders: allOrders,
-      });
-      return;
-    }
-
-    const orders = allOrders.filter((order) =>
-      order.user_id === authCtx.uid || (callerEmail && order.registeredMobile === callerEmail),
-    );
-    res.json({ success: true, count: orders.length, orders });
+    let page;
+    try { page = parsePage(req.query); } catch { res.status(400).json({ success: false, error: 'Invalid orders page.' }); return; }
+    try {
+      const adminWide = adminCheck.authorized && (req.query.isWorker === 'true' || req.query.all === 'true');
+      const result = await paymentPage(page, adminWide ? undefined : authCtx.uid);
+      const orders = adminWide && req.query.isWorker === 'true' ? result.orders.filter(order => order.rechargeStatus !== 'completed') : result.orders;
+      res.json({ success: true, count: orders.length, orders, nextCursor: result.nextCursor });
+    } catch { res.status(503).json({ success: false, error: 'Unable to load recorded recharge payments.', orders: [] }); }
   },
 
   async listAdmin(req: Request, res: Response): Promise<void> {
@@ -55,9 +42,11 @@ export const ordersController = {
       return;
     }
     try {
-      const orders = await getRechargeOrders();
+      let page;
+      try { page = parsePage(req.query); } catch { res.status(400).json({ success: false, error: 'Invalid orders page.' }); return; }
+      const { orders, nextCursor } = await paymentPage(page);
       res.setHeader('Cache-Control', 'no-store');
-      res.json({ success: true, count: orders.length, orders });
+      res.json({ success: true, count: orders.length, orders, nextCursor });
     } catch { res.status(503).json({ success: false, error: 'Unable to load recorded recharge payments.', orders: [] }); }
   },
 

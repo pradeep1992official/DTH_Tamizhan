@@ -99,6 +99,7 @@ export interface DthConnection {
 }
 
 export interface RechargeOrder {
+  receiptPending?: boolean;
   completedAt?: string;
   testMode?: boolean;
   paymentId?: string;

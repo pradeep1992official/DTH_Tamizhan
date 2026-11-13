@@ -11,6 +11,17 @@ import { randomUUID } from 'node:crypto';
 import { razorpayClient, verifyPaymentSignature } from '../razorpay';
 import { recordProviderPayment } from '../models/paymentLedger';
 import { verifyAuthToken } from '../middleware/auth';
+import { readOperators } from '../models/sharedStore';
+
+async function checkOperator(id: string) {
+  const operator = (await readOperators(true)).find(item => item.id === id);
+  if (!operator || operator.isEnabled === false || operator.isActive === false) throw new PaymentError(409, 'This operator is currently unavailable.');
+}
+async function currentQuotePlans(packId: string) {
+  if (packId === 'custom') return [];
+  const plan = await planModel.getById(packId);
+  return plan ? [plan] : [];
+}
 
 export const paymentsRouter = Router();
 let sandboxPlans: Awaited<ReturnType<typeof planModel.getAll>> = [];
@@ -49,7 +60,7 @@ paymentsRouter.get('/api/payments/config', (_req, res) => {
   res.json({ mode, provider: mode === 'sandbox' ? 'Local sandbox simulator' : 'Razorpay' });
 });
 paymentsRouter.post('/api/payments/session', orderCreateLimiter, validateBody(prepareSchema), async (req, res, next) => {
-  try { sandboxPlans = await planModel.getAll(); } catch (error) { next(error); return; }
+  try { await checkOperator(req.body.operator); sandboxPlans = await currentQuotePlans(req.body.packId); } catch (error) { next(error); return; }
   respond(res, () => {
   for (const [id, entry] of sessionOwners) if (entry.expiresAt <= Date.now()) sessionOwners.delete(id);
   const session = service.prepare({ ...req.body, idempotencyKey: `${res.locals.customer.uid}:${req.body.idempotencyKey}` });
@@ -89,7 +100,8 @@ paymentsRouter.post('/api/create-order', orderCreateLimiter, validateBody(orderS
     if ('packId' in input) {
       const error = subscriberError(input.operator, input.smartCardNumber);
       if (error) throw new PaymentError(400, error);
-      const quote = calculatePayment(input, await planModel.getAll());
+      await checkOperator(input.operator);
+      const quote = calculatePayment(input, await currentQuotePlans(input.packId));
       amount = quote.amountPaise;
       notes = { dth_operator: input.operator, dth_subscriber: input.smartCardNumber,
         dth_plan: quote.packName.slice(0, 256), dth_pack_id: input.packId.slice(0, 256),

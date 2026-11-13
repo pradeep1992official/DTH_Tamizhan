@@ -9,7 +9,7 @@ import { paymentMethodLabel } from '../lib/customerMessages';
 import { Clock, Download, RefreshCw } from '../lib/icons';
 import './CustomerHistoryPage.css';
 
-type History = ReturnType<typeof customerHistory>;
+type History = ReturnType<typeof customerHistory> & { nextCursor?: string | null };
 const operatorNames: Record<string, string> = { airtel_dth: 'Airtel Digital TV', sun_direct: 'Sun Direct', tata_play: 'Tata Play', dish_tv: 'Dish TV', d2h: 'D2H' };
 export function CustomerHistoryPage({ user, currentLang, onOpenAuth }: { user: UserProfile | null; currentLang: Language; onOpenAuth: () => void }) {
   const [state, setState] = useState<{ uid: string; data: History } | null>(null);
@@ -19,6 +19,7 @@ export function CustomerHistoryPage({ user, currentLang, onOpenAuth }: { user: U
   const [box, setBox] = useState('all');
   const [filter, setFilter] = useState('all');
   const [downloading, setDownloading] = useState('');
+  const [loadingMore, setLoadingMore] = useState(false);
   const text = (en: string, ta: string) => currentLang === 'ta' ? ta : en;
   useEffect(() => {
     setState(null); setError(''); setBox('all'); setFilter('all'); setDownloading('');
@@ -39,6 +40,18 @@ export function CustomerHistoryPage({ user, currentLang, onOpenAuth }: { user: U
     return () => { active = false; controller.abort(); };
   }, [user?.uid, refresh]);
   const data = user && state?.uid === user.uid ? state.data : null;
+  async function loadMore() {
+    if (!user || !data?.nextCursor || loadingMore) return;
+    const uid = user.uid; const cursor = data.nextCursor; setLoadingMore(true); setError('');
+    try {
+      const response = await fetch(`/api/my/history?cursor=${encodeURIComponent(cursor)}`, { headers: await paymentAuthHeaders() });
+      const result = await response.json(); if (!response.ok || !result.success) throw new Error(result.error || 'Unable to load more history.');
+      if (auth?.currentUser?.uid !== uid) return;
+      setState(old => !old || old.uid !== uid || old.data.nextCursor !== cursor ? old : ({ uid, data: { ...result,
+        orders: [...old.data.orders, ...result.orders], payments: [...old.data.payments, ...result.payments] } }));
+    } catch (error) { if (auth?.currentUser?.uid === uid) setError(error instanceof Error ? error.message : 'Unable to load more history.'); }
+    finally { setLoadingMore(false); }
+  }
   const date = (value: string) => new Date(value).toLocaleString(currentLang === 'ta' ? 'ta-IN' : 'en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' });
   const status = (value: string) => ({ completed: text('Completed', 'முடிந்தது'), pending: text('Awaiting recharge', 'ரீசார்ஜ் நிலுவை'), processing: text('Awaiting recharge', 'ரீசார்ஜ் நிலுவை'), failed: text('Failed', 'தோல்வி'), paid: text('Paid', 'செலுத்தப்பட்டது'), initiated: text('Pending payment', 'கட்டணம் நிலுவை'), refunded: text('Refunded', 'திருப்பிச் செலுத்தப்பட்டது') }[value] || value);
   const boxKey = (item: { operator: string; smartCardNumber: string }) => `${item.operator}:${item.smartCardNumber}`;
@@ -73,6 +86,7 @@ export function CustomerHistoryPage({ user, currentLang, onOpenAuth }: { user: U
           {!orders.length && <div className="customer-history-empty"><h2>{text('No recharges to show', 'ரீசார்ஜ் பதிவுகள் இல்லை')}</h2><p>{data.orders.length ? text('Try a different filter.', 'வேறு வடிப்பானைத் தேர்ந்தெடுக்கவும்.') : text('Your recharge requests will appear here after payment is confirmed.', 'கட்டணம் உறுதியானதும் ரீசார்ஜ் கோரிக்கைகள் இங்கே காட்டப்படும்.')}</p><Link className="account-primary" to="/recharge">{text('Recharge a box', 'ரீசார்ஜ் செய்யவும்')}</Link></div>}
         </section>
         <section className="customer-history-payment-section"><h2>{text('Your payments', 'உங்கள் கட்டணங்கள்')}</h2>{payments.length ? <div className="customer-history-table"><table><thead><tr><th>{text('Date (IST)', 'தேதி (IST)')}</th><th>{text('Connection', 'இணைப்பு')}</th><th>{text('Payment ID', 'கட்டண எண்')}</th><th>{text('Amount', 'தொகை')}</th><th>{text('Status', 'நிலை')}</th><th>{text('Receipt', 'ரசீது')}</th></tr></thead><tbody>{payments.map(payment => <tr key={payment.id}><td>{date(payment.createdAt)}</td><td>{operatorNames[payment.operator] || text('Payment', 'கட்டணம்')}<small>{payment.smartCardNumber}</small></td><td>{payment.id}<small>{paymentMethodLabel(payment.paymentMethod, currentLang)}</small></td><td>{payment.currency === 'INR' ? formatPrice(payment.amount, currentLang) : `${payment.currency} ${payment.amount}`}</td><td>{status(payment.status)}</td><td>{payment.status === 'paid' ? <button type="button" disabled={!!downloading} onClick={() => void download(payment.id)} aria-label={`${text('Download PDF receipt', 'PDF ரசீதைப் பதிவிறக்கவும்')} ${payment.id}`}><Download size={16} />{downloading === payment.id ? text('Preparing…', 'தயாராகிறது…') : 'PDF'}</button> : '—'}</td></tr>)}</tbody></table></div> : <p>{text('No payments to show.', 'கட்டண பதிவுகள் இல்லை.')}</p>}</section>
+        {data.nextCursor && <button type="button" className="account-primary" disabled={loadingMore} onClick={() => void loadMore()}>{loadingMore ? text('Loading…', 'ஏற்றுகிறது…') : text('Load older records', 'பழைய பதிவுகளை ஏற்றவும்')}</button>}
       </>}
     </>}
   </section>;

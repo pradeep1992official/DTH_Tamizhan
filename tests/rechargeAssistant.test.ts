@@ -1,23 +1,42 @@
 import { beforeEach, expect, it, vi } from 'vitest';
-const f = vi.hoisted(() => ({ account: { uid: 'owner' } as any, extract: vi.fn(), boxes: [] as any[], plans: [] as any[] }));
+const f = vi.hoisted(() => ({ account: { uid: 'owner' } as any, extract: vi.fn(), boxes: [] as any[], plans: [] as any[], storageError: null as any, boxReads: 0 }));
 vi.mock('../server/middleware/auth', () => ({ verifyAuthToken: async () => f.account,
   getAdminFirestore: () => ({ collection: () => ({ where: (_field: string, _op: string, uid: string) => {
-    expect(uid).toBe('owner'); return { get: async () => ({ docs: f.boxes.map(box => ({ id: box.id, data: () => box })) }) };
+    expect(uid).toBe('owner'); return { get: async () => { f.boxReads++; if (f.storageError) throw f.storageError; return { docs: f.boxes.map(box => ({ id: box.id, data: () => box })) }; } };
   } }) }) }));
-vi.mock('../server/models/planModel', () => ({ planModel: { getAll: async () => f.plans } }));
+vi.mock('../server/models/planModel', () => ({ planModel: { getAll: async () => f.plans, getForOperator: async (operator: string) => f.plans.filter(plan => plan.operator === operator) } }));
 vi.mock('../server/models/sharedStore', () => ({ readOperators: async () => [{ id: 'airtel_dth', name: 'Airtel Digital TV', isEnabled: true }] }));
 vi.mock('../server/utils/rechargeIntent', async importOriginal => {
   const actual = await importOriginal<typeof import('../server/utils/rechargeIntent')>();
   return { ...actual, extractRechargeIntent: f.extract };
 });
-import { prepareAssistantRecharge } from '../server/controllers/rechargeAssistant';
+import { prepareAssistantRecharge, clearAssistantReadCache } from '../server/controllers/rechargeAssistant';
 import { parseRechargeCommand } from '../server/utils/rechargeIntent';
 beforeEach(() => {
+  clearAssistantReadCache();
+  f.boxReads = 0;
+  f.storageError = null;
   f.account = { uid: 'owner' };
   f.boxes = [{ id: 'hall', user_id: 'owner', nickname: 'Hall Box', operator: 'airtel_dth', smartCardNumber: '3012345678' }];
   f.plans = [{ id: 'hd6', operator: 'airtel_dth', pack_type: 'HD', duration_months: 6, plan_name: 'Tamil HD', amount: 1396,
     channel_list: [], is_recommended: false, channel_counts_unavailable: true }];
   f.extract.mockReset(); f.extract.mockResolvedValue({ boxName: 'hall', months: 6, quality: 'HD' });
+});
+it('retains extracted preferences and avoids repeated saved-box and model reads on short replies', async () => {
+  f.boxes[0].nickname = 'வரவேற்பறை';
+  f.extract.mockResolvedValue({ boxName: 'வரவேற்பறை', months: null, quality: null, packName: null });
+  const messages = ['என் வரவேற்பறை பாக்ஸை ரீசார்ஜ் செய்யவும்'];
+  await request({ messages });
+  await request({ messages: [...messages, 'HD'] });
+  expect((await request({ messages: [...messages, 'HD', '6 months'] })).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'awaiting_payment' }));
+  expect(f.boxReads).toBe(1); expect(f.extract).toHaveBeenCalledOnce();
+});
+it('reports database quota exhaustion accurately instead of blaming AI', async () => {
+  f.storageError = Object.assign(new Error('Quota exceeded'), { code: 8 });
+  const res = await request();
+  expect(res.status).toHaveBeenCalledWith(429);
+  expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false, code: 'storage_quota_exceeded' }));
+  expect(f.extract).not.toHaveBeenCalled();
 });
 async function request(body: object = { messages: ['Recharge 6 month HD for hall box'] }) {
   const res = { status: vi.fn(), json: vi.fn(), setHeader: vi.fn() }; res.status.mockReturnValue(res);
@@ -48,7 +67,7 @@ it('never resolves another customer’s box even with an explicit ID', async () 
 it('asks for clarification on duplicate nicknames or missing preferences', async () => {
   f.boxes.push({ ...f.boxes[0], id: 'hall2' });
   expect((await request()).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'choose_box' }));
-  f.boxes.pop(); f.extract.mockResolvedValue({ boxName: 'hall', months: null, quality: 'HD' });
+  f.boxes.pop(); clearAssistantReadCache(); f.extract.mockResolvedValue({ boxName: 'hall', months: null, quality: 'HD' });
   expect((await request({ messages: ['Recharge HD for hall box'] })).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'preferences' }));
 });
 it('does not replace unavailable plans with a different duration', async () => {

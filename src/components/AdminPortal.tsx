@@ -138,7 +138,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         fetchAccessList();
         break;
     }
-  }, [activeTab, user, adminAuthorized, fetchCustomers, fetchOrders, fetchPacks, fetchPayments, fetchReports, fetchOperators, fetchAccessList]);
+  }, [activeTab, user?.uid, adminAuthorized, fetchCustomers, fetchOrders, fetchPacks, fetchPayments, fetchReports, fetchOperators, fetchAccessList]);
 
   const isAdmin = adminAuthorized;
 
@@ -305,6 +305,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
         {activeTab === 'reports' && (
           <ReportsTab
+            summary={adminData.reportSummary}
             getAuthHeaders={getAuthHeaders}
             auditLogs={auditLogs}
             customers={customers}
@@ -342,6 +343,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             user={user}
           />
         )}
+        {activeTab === 'customers' && adminData.customersNext && <button type="button" className="admin-primary" disabled={custLoading} onClick={() => void fetchCustomers(adminData.customersNext!)}>{currentLang === 'ta' ? 'மேலும் வாடிக்கையாளர்களை ஏற்றவும்' : 'Load more customers'}</button>}
+        {['pending', 'recharges'].includes(activeTab) && adminData.ordersNext && <button type="button" className="admin-primary" disabled={ordersLoading} onClick={() => void fetchOrders(adminData.ordersNext!)}>{currentLang === 'ta' ? 'மேலும் ஆர்டர்களை ஏற்றவும்' : 'Load more orders'}</button>}
+        {activeTab === 'payments' && adminData.paymentsNext && <button type="button" className="admin-primary" disabled={paymentsLoading} onClick={() => void fetchPayments(adminData.paymentsNext!)}>{currentLang === 'ta' ? 'மேலும் கட்டணங்களை ஏற்றவும்' : 'Load more payments'}</button>}
       </div>
     </div>
   );

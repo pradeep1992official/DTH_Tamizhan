@@ -15,6 +15,7 @@ import { OperatorTheme } from '../../../lib/theme';
 import { translations } from '../../../lib/translations';
 
 interface ReportsTabProps {
+  summary?: { totalCustomers: number; completedOrders: number; settledVolume: number } | null;
   getAuthHeaders?: () => Promise<Record<string, string>>;
   auditLogs: PlanAuditLog[];
   customers: CustomerRecord[];
@@ -26,6 +27,7 @@ interface ReportsTabProps {
 }
 
 export const ReportsTab: React.FC<ReportsTabProps> = ({
+  summary,
   auditLogs,
   customers,
   orders,
@@ -38,8 +40,8 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
   const t = translations[currentLang];
   const isLight = currentTheme.isLightMode;
   const settledOrders = orders.filter((order) => order.paymentStatus === 'paid');
-  const totalVolume = settledOrders.reduce((sum, order) => sum + (order.amount || 0), 0);
-  const completedCount = orders.filter((o) => o.rechargeStatus === 'completed').length;
+  const totalVolume = summary?.settledVolume ?? settledOrders.reduce((sum, order) => sum + (order.amount || 0), 0);
+  const completedCount = summary?.completedOrders ?? orders.filter((o) => o.rechargeStatus === 'completed').length;
 
   const [search, setSearch] = useState('');
   const [operator, setOperator] = useState('all');
@@ -92,7 +94,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
             <span className="text-sm font-medium">{t.totalSubscribers}</span>
             <Users className="w-4 h-4 text-accent" />
           </div>
-          <div className="text-xl font-mono font-bold mt-1">{customers.length}</div>
+          <div className="text-xl font-mono font-bold mt-1">{summary?.totalCustomers ?? customers.length}</div>
           <div className="text-sm text-ink  mt-1">Customer accounts</div>
         </div>
 

@@ -58,11 +58,14 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
   const [customers, setCustomers] = useState<CustomerRecord[]>([]);
   const [custLoading, setCustLoading] = useState(false);
   const [customersError, setCustomersError] = useState<string | null>(null);
+  const [customersNext, setCustomersNext] = useState<string | null>(null);
 
   // 2. Orders & Recharges State
   const [orders, setOrders] = useState<RechargeOrder[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [ordersError, setOrdersError] = useState<string | null>(null);
+  const [ordersNext, setOrdersNext] = useState<string | null>(null);
+  const [paymentsNext, setPaymentsNext] = useState<string | null>(null);
 
   // 3. Plan Catalog State
   const [plans, setPlans] = useState<PlanCatalogItem[]>([]);
@@ -72,6 +75,7 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
   // 4. Reports & Audit Logs State
   const [auditLogs, setAuditLogs] = useState<PlanAuditLog[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
+  const [reportSummary, setReportSummary] = useState<{ totalCustomers: number; completedOrders: number; settledVolume: number } | null>(null);
 
   // 5. Payment Reports State
   const [payments, setPayments] = useState<PaymentReportItem[]>([]);
@@ -102,6 +106,8 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
   useEffect(() => {
     let active = true;
     setAuthorizedUid(null); setAdminError(null);
+    setOrdersNext(null); setPaymentsNext(null); setCustomersNext(null);
+    setReportSummary(null);
     setCustomers([]); setOrders([]); setPlans([]); setAuditLogs([]); setPayments([]);
     setOperators([]); setApprovedAdmins([]); setPendingRequests([]);
     if (user) {
@@ -115,14 +121,14 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
   }, [user?.uid, getAuthHeaders]);
 
   // Fetch Customers
-  const fetchCustomers = useCallback(async () => {
+  const fetchCustomers = useCallback(async (cursor?: string) => {
     if (!adminAuthorized) return;
     setCustLoading(true);
     setCustomersError(null);
-    setCustomers([]);
+    if (!cursor) { setCustomers([]); setCustomersNext(null); }
     try {
       const headers = await getAuthHeaders();
-      const endpoint = '/api/admin/customers';
+      const endpoint = '/api/admin/customers' + (cursor ? `?cursor=${encodeURIComponent(cursor)}` : '');
       const res = await fetch(endpoint, { headers });
       const data = await readApiResponse(res, endpoint);
       if (!res.ok || !isRecord(data) || data.success !== true || !Array.isArray(data.customers)) {
@@ -130,7 +136,8 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
         throw new Error(error || `Unable to load customers (${res.status})`);
       }
       if (auth?.currentUser?.uid !== user?.uid) return;
-      setCustomers(data.customers as CustomerRecord[]);
+      setCustomers(old => cursor ? [...old, ...data.customers as CustomerRecord[]] : data.customers as CustomerRecord[]);
+      setCustomersNext(typeof data.nextCursor === 'string' ? data.nextCursor : null);
     } catch (err) {
 
       setCustomersError(err instanceof Error ? err.message : 'Unable to load customers. Please try again.');
@@ -140,14 +147,14 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
   }, [getAuthHeaders, adminAuthorized]);
 
   // Fetch Orders
-  const fetchOrders = useCallback(async () => {
+  const fetchOrders = useCallback(async (cursor?: string) => {
     if (!adminAuthorized) return;
     setOrdersLoading(true);
     setOrdersError(null);
-    setOrders([]);
+    if (!cursor) { setOrders([]); setOrdersNext(null); }
     try {
       const headers = await getAuthHeaders();
-      const endpoint = '/api/admin/orders';
+      const endpoint = '/api/admin/orders' + (cursor ? `?cursor=${encodeURIComponent(cursor)}` : '');
       const res = await fetch(endpoint, { headers });
       const data = await readApiResponse(res, endpoint);
       if (!res.ok || !isRecord(data) || data.success !== true || !Array.isArray(data.orders)) {
@@ -155,7 +162,8 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
         throw new Error(error || `Unable to load orders (${res.status})`);
       }
       if (auth?.currentUser?.uid !== user?.uid) return;
-      setOrders(data.orders as RechargeOrder[]);
+      setOrders(old => cursor ? [...old, ...data.orders as RechargeOrder[]] : data.orders as RechargeOrder[]);
+      setOrdersNext(typeof data.nextCursor === 'string' ? data.nextCursor : null);
     } catch (err) {
 
       setOrdersError(err instanceof Error ? err.message : 'Unable to load orders. Please try again.');
@@ -197,6 +205,11 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
       const logs = data.logs;
       if (auth?.currentUser?.uid !== user?.uid) return;
       setAuditLogs(logs);
+      const reportResponse = await fetch('/api/admin/reports', { headers });
+      const report = await reportResponse.json();
+      if (!reportResponse.ok || !report.success) throw new Error(report.error || 'Unable to load report totals.');
+      if (auth?.currentUser?.uid !== user?.uid) return;
+      setReportSummary(report.summary);
     } catch (err) {
       setAdminError(err instanceof Error ? err.message : 'Unable to load admin data.');
     } finally {
@@ -205,18 +218,20 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
   }, [getAuthHeaders, adminAuthorized]);
 
   // Fetch Payments
-  const fetchPayments = useCallback(async () => {
+  const fetchPayments = useCallback(async (cursor?: string) => {
     if (!adminAuthorized) return;
     setPaymentsLoading(true);
     try {
       const headers = await getAuthHeaders();
-      const res = await fetch('/api/admin/payments', { headers });
+      if (!cursor) setPaymentsNext(null);
+      const res = await fetch('/api/admin/payments' + (cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''), { headers });
       if (!res.ok) { setPayments([]); throw new Error(`Unable to load payments (${res.status}).`); }
       if (res.ok) {
         const data = await res.json();
         if (auth?.currentUser?.uid !== user?.uid) return;
         if (data.success && Array.isArray(data.payments)) {
-          setPayments(data.payments);
+          setPayments(old => cursor ? [...old, ...data.payments] : data.payments);
+          setPaymentsNext(typeof data.nextCursor === 'string' ? data.nextCursor : null);
         }
       }
     } catch (err) {
@@ -274,6 +289,7 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
   }, [getAuthHeaders, adminAuthorized]);
 
   return {
+    ordersNext, paymentsNext, customersNext,
     adminAuthorized,
     adminError,
     getAuthHeaders,
@@ -294,6 +310,7 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
     setPlans,
     auditLogs,
     reportsLoading,
+    reportSummary,
     fetchReports,
     payments,
     paymentsLoading,

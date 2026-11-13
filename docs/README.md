@@ -4,6 +4,7 @@
 
 - [Project setup, features, storage and deployment](../README.md)
 - [Design system](../design.md)
+- [Database usage and deployment notes](database-usage.md)
 
 ## Reports and audits
 

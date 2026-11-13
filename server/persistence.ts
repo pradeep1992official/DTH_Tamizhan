@@ -45,8 +45,13 @@ export async function acquireStorageLease(name: string): Promise<StorageLease | 
     transaction.set(ref, { owner, expiresAt: now + 120_000 }); return true;
   });
   if (!await claim(true)) return null;
+  let renewAfter = Date.now() + 60_000;
   return {
-    renew: async () => { if (!await claim()) throw new Error('Shared worker lease expired.'); },
+    renew: async () => {
+      if (Date.now() < renewAfter) return;
+      if (!await claim()) throw new Error('Shared worker lease expired.');
+      renewAfter = Date.now() + 60_000;
+    },
     release: async () => { await db.runTransaction(async transaction => { const snapshot = await transaction.get(ref); if (snapshot.data()?.owner === owner) transaction.delete(ref); }); },
   };
 }

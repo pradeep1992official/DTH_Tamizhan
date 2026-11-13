@@ -4,6 +4,8 @@ import { collections, documentKey, mutateRecord, readCollection, setRecord, uses
 import { getAdminFirestore } from '../middleware/auth';
 import { MEMORY_CUSTOMERS, MEMORY_ADMIN_REQUESTS, OPERATORS, DATA_DIR, saveCustomersToDisk, saveOperatorSettingsToDisk, type AdminRequestRecord } from './store';
 import type { CustomerRecord, DthOperator } from '../../src/types';
+import { ReadCache } from '../utils/readCache';
+const operatorCache = new ReadCache<DthOperator[]>(30_000);
 
 export async function readLookupCustomers(): Promise<CustomerRecord[]> {
   return usesFirestore() ? readCollection(collections.customers) : [...MEMORY_CUSTOMERS];
@@ -19,13 +21,15 @@ export async function deleteLookupCustomer(id: string) {
   const index = MEMORY_CUSTOMERS.findIndex(item => item.id === id);
   if (index >= 0) { MEMORY_CUSTOMERS.splice(index, 1); saveCustomersToDisk(); }
 }
-export async function readOperators(): Promise<DthOperator[]> {
+export async function readOperators(fresh = false): Promise<DthOperator[]> {
   if (!usesFirestore()) return OPERATORS.map(item => ({ ...item }));
-  const settings = await readCollection<Partial<DthOperator>>(collections.operators);
-  return OPERATORS.map(base => ({ ...base, ...settings.find(item => item.id === base.id), id: base.id }));
+  return operatorCache.get('operators', async () => {
+    const settings = await readCollection<Partial<DthOperator>>(collections.operators);
+    return OPERATORS.map(base => ({ ...base, ...settings.find(item => item.id === base.id), id: base.id }));
+  }, fresh);
 }
 export async function saveOperator(operator: DthOperator) {
-  if (usesFirestore()) { await setRecord(collections.operators, operator.id, operator); return; }
+  if (usesFirestore()) { await setRecord(collections.operators, operator.id, operator); operatorCache.clear(); return; }
   Object.assign(OPERATORS.find(item => item.id === operator.id)!, operator); saveOperatorSettingsToDisk();
 }
 const requestsFile = () => path.join(DATA_DIR, 'admin_requests.json');

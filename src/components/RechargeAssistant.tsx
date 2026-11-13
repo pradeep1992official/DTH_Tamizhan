@@ -158,12 +158,14 @@ export function RechargeAssistant({ currentLang, displayName, onCheckout }: {
       </React.Fragment>)}</div>}
       {(busy || reply || error) && <div aria-live="polite" aria-busy={busy} className="recharge-chat-reply rounded-xl p-4 space-y-3">
         <p className="text-xs font-semibold text-muted">{text('Recharge assistant', 'ரீசார்ஜ் உதவியாளர்')}</p>
-        {busy && <p>{text('Finding your box and available packs…', 'உங்கள் பாக்ஸ் மற்றும் பேக்குகளைத் தேடுகிறது…')}</p>}
+        {busy && <p>{text('Thinking…', 'யோசிக்கிறது…')}</p>}
         {reply && reply.state !== 'awaiting_payment' && reply.state !== 'alternatives' && <p>{notices[reply.state]}</p>}
         {reply?.state === 'alternatives' && <p>{text('I couldn’t find that exact pack for this duration. Would you like one of these alternatives?', 'இந்த காலத்திற்கு அந்த பேக் கிடைக்கவில்லை. இந்த மாற்று பேக்குகளில் ஒன்றைத் தேர்வு செய்ய விரும்புகிறீர்களா?')}</p>}
         {reply?.state === 'awaiting_payment' && !selectedPlan && <p>{text('I found a few matching packs. Which would you like?', 'பொருந்தும் சில பேக்குகள் உள்ளன. எது வேண்டும்?')}</p>}
         {reply?.source === 'command' && <p className="text-sm text-muted">{text('AI is unavailable; using the standard command matcher.', 'AI கிடைக்கவில்லை; வழக்கமான கட்டளை பொருத்தம் பயன்படுத்தப்படுகிறது.')}</p>}
-        {error && <p role="alert" className="text-error">{error}</p>}
+        {error && <div className="space-y-2"><p role="alert" className="text-error">{error}</p>
+          <button type="button" className="recharge-chat-suggestion" disabled={busy} onClick={() => void send(messages)}>{text('Retry request', 'மீண்டும் முயற்சிக்கவும்')}</button>
+        </div>}
         {reply?.state === 'history' && <a className="recharge-chat-suggestion" href="/history" onClick={() => setOpen(false)}>{text('View my recharge history', 'என் ரீசார்ஜ் வரலாற்றைப் பார்க்கவும்')} <ArrowRight size={18} /></a>}
       {reply?.operators && <div className="recharge-chat-choice-grid">{reply.operators.map(operator => <button type="button" key={operator.id} disabled={busy || messages.length >= 12} className="recharge-chat-suggestion" onClick={() => {
         const next = [...messages, operator.name]; setMessages(next); void send(next, undefined, operator.id);

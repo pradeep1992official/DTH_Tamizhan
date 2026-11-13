@@ -1,7 +1,8 @@
 import type { DthConnection, RechargeOrder } from '../../src/types';
 import { getPackDuration, calculateConnectionExpiry } from '../../src/lib/connectionExpiry';
 import { getAdminFirestore } from '../middleware/auth';
-import { cleanData, documentKey, readCollection, usesFirestore } from '../persistence';
+import { cleanData, documentKey, usesFirestore } from '../persistence';
+import { limitedRecords } from '../queries';
 
 export function connectionFromRecharge(order: RechargeOrder, existing?: DthConnection): DthConnection {
   const months = getPackDuration(order.packValidity);
@@ -24,7 +25,10 @@ export function connectionFromRecharge(order: RechargeOrder, existing?: DthConne
 export async function syncCompletedRechargeConnection(order: RechargeOrder): Promise<void> {
   if (!usesFirestore() || order.paymentStatus !== 'paid' || order.rechargeStatus !== 'completed' ||
       !order.user_id || order.user_id === 'legacy-unassigned') return;
-  const connections = await readCollection<DthConnection>('dth_connections');
+  const connections = await limitedRecords<DthConnection>('dth_connections', [
+    { field: 'user_id', op: 'eq', value: order.user_id }, { field: 'operator', op: 'eq', value: order.operator },
+    { field: 'smartCardNumber', op: 'eq', value: order.smartCardNumber },
+  ], 1);
   const existing = connections.find(box => box.user_id === order.user_id && box.operator === order.operator && box.smartCardNumber === order.smartCardNumber);
   const proposed = connectionFromRecharge(order, existing);
   const db = getAdminFirestore();

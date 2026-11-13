@@ -22,7 +22,9 @@
     ]
   },
   "firestore": {
-    "rules": "firestore.rules"
+    "database": "ai-studio-dthtamizhan-ab9bf4ab-c166-4e84-a763-9f8a48360247",
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
   },
   "emulators": {
     "firestore": {

@@ -8,6 +8,9 @@ import {
 import { PlanCatalogItem } from '../../src/types';
 import { collections, readCollection, usesFirestore, cleanData } from '../persistence';
 import { getAdminFirestore } from '../middleware/auth';
+import { ReadCache } from '../utils/readCache';
+import { queryRecords } from '../queries';
+const cache = new ReadCache<PlanCatalogItem[]>(60_000);
 
 function loadPlans(): { plans: PlanCatalogItem[]; deletedIds: string[] } {
   try {
@@ -54,11 +57,24 @@ function persistPlans(): void {
 }
 
 export const planModel = {
-  async getAll(): Promise<PlanCatalogItem[]> {
+  async getAll(fresh = false): Promise<PlanCatalogItem[]> {
     // This document stores catalog bookkeeping, not a purchasable pack.
     if (!usesFirestore()) return local().plans.filter(plan => plan.id !== 'catalog_state');
-    const [plans, deleted] = await Promise.all([readCollection<PlanCatalogItem>(collections.plans), this.getDeletedIds()]);
-    return plans.filter(plan => plan.id !== 'catalog_state' && !deleted.includes(plan.id));
+    return cache.get('all', async () => {
+      const [plans, deleted] = await Promise.all([readCollection<PlanCatalogItem>(collections.plans), this.getDeletedIds()]);
+      return plans.filter(plan => plan.id !== 'catalog_state' && !deleted.includes(plan.id));
+    }, fresh);
+  },
+  async getForOperator(operator: string): Promise<PlanCatalogItem[]> {
+    if (!usesFirestore()) return (await this.getAll()).filter(plan => plan.operator === operator);
+    return cache.get(operator, () => queryRecords<PlanCatalogItem>(collections.plans, [{ field: 'operator', op: 'eq', value: operator }]));
+  },
+  clearCache() { cache.clear(); },
+  async getById(id: string): Promise<PlanCatalogItem | undefined> {
+    if (id === 'custom' || id === 'catalog_state') return undefined;
+    if (!usesFirestore()) return local().plans.find(plan => plan.id === id && !local().deletedIds.includes(id));
+    const snapshot = await getAdminFirestore().collection(collections.plans).doc(id).get();
+    return snapshot.exists ? snapshot.data() as PlanCatalogItem : undefined;
   },
 
   async getDeletedIds(): Promise<string[]> {
@@ -71,7 +87,7 @@ export const planModel = {
     if (usesFirestore()) {
       const db = getAdminFirestore(); const batch = db.batch();
       batch.set(db.collection(collections.plans).doc(plan.id), cleanData(plan));
-      batch.delete(db.collection(collections.deletedPlans).doc(plan.id)); await batch.commit(); return;
+      batch.delete(db.collection(collections.deletedPlans).doc(plan.id)); await batch.commit(); cache.clear(); return;
     }
     const { plans } = local();
     const index = plans.findIndex((item) => item.id === plan.id);
@@ -85,7 +101,7 @@ export const planModel = {
     if (usesFirestore()) {
       const db = getAdminFirestore(); const batch = db.batch();
       batch.delete(db.collection(collections.plans).doc(planId));
-      batch.set(db.collection(collections.deletedPlans).doc(planId), { id: planId }); await batch.commit(); return;
+      batch.set(db.collection(collections.deletedPlans).doc(planId), { id: planId }); await batch.commit(); cache.clear(); return;
     }
     local().plans = local().plans.filter((plan) => plan.id !== planId);
     if (!local().deletedIds.includes(planId)) local().deletedIds.push(planId);

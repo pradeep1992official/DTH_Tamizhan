@@ -7,6 +7,14 @@ vi.mock('../server/middleware/auth', () => ({ verifyAuthToken: async (req: expre
 } }));
 vi.mock('../server/models/paymentLedger', () => ({ readPaymentLedger: () => fixture.ledger }));
 vi.mock('../server/models/paidRechargeOrders', () => ({ getRechargeOrders: () => fixture.orders }));
+vi.mock('../server/models/paymentPages', async importOriginal => {
+  const original = await importOriginal<typeof import('../server/models/paymentPages')>();
+  return { ...original,
+    paymentPage: async (_page: unknown, uid?: string) => ({ payments: fixture.ledger.filter(payment => !uid || payment.customerUid === uid), orders: fixture.orders.filter(order => !uid || order.user_id === uid), nextCursor: null }),
+    customerPayment: async (uid: string, id: string) => fixture.ledger.find(payment => payment.customerUid === uid && payment.id === id),
+    ordersForPayments: async (payments: any[]) => fixture.orders.filter(order => payments.some(payment => payment.orderId === order.orderId)),
+  };
+});
 vi.mock('../server/receiptPdf', () => ({ receiptPdf: fixture.pdf }));
 import { customerHistoryRouter } from '../server/routes/customerHistory';
 import { pageMetadata } from '../src/lib/pageMetadata';

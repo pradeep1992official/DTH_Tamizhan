@@ -7,8 +7,10 @@ import type { PaymentLedgerEntry } from './models/paymentLedger';
 import type { RechargeOrder } from '../src/types';
 import { receiptEmail, type ReceiptEvent } from './receiptEmail';
 import { receiptPdf, receiptDataFromText, type ReceiptPdfData } from './receiptPdf';
-import { acquireStorageLease, collections, documentKey, readCollection, setRecord, usesFirestore, type StorageLease } from './persistence';
+import { acquireStorageLease, collections, documentKey, readCollection, setRecord, usesFirestore, cleanData, type StorageLease } from './persistence';
 import { getAdminFirestore } from './middleware/auth';
+import { limitedRecords } from './queries';
+import { countAll } from '@google-cloud/firestore/pipelines';
 
 export interface EmailJob {
   id: string; idempotencyKey: string; recipient: string; name: string; event: ReceiptEvent;
@@ -31,6 +33,7 @@ export async function readEmailOutbox(): Promise<EmailJob[]> {
   return jobs;
 }
 export async function saveEmailJobs(jobs: EmailJob[], lease?: StorageLease) {
+  if (!jobs.length) return;
   await lease?.renew();
   if (usesFirestore()) {
     for (const job of jobs) {
@@ -53,6 +56,76 @@ export async function saveEmailJobs(jobs: EmailJob[], lease?: StorageLease) {
   fs.writeFileSync(`${file()}.tmp`, JSON.stringify([...merged.values()], null, 2), 'utf8');
   fs.renameSync(`${file()}.tmp`, file());
 }
+let wakeWorker: (() => void) | undefined;
+let scheduleWorker: ((delay: number) => void) | undefined;
+// Events create deterministic outbox IDs. Retries never overwrite a previously sent job.
+export async function enqueueReceiptEvents(payment: PaymentLedgerEntry, order?: RechargeOrder, now = Date.now()) {
+  const config = emailDeliveryConfig();
+  if (!config.enabled || !config.configured) return;
+  let jobs = queueReceiptEmails([], [payment], order ? [order] : [], now);
+  if (order) jobs = jobs.filter(job => job.event === 'recharge');
+  if (usesFirestore()) {
+    const db = getAdminFirestore();
+    for (const job of jobs) {
+      try { await db.collection(collections.emails).doc(documentKey(job.id)).create(cleanData(job)); }
+      catch (error) { if ((error as { code?: number }).code !== 6) throw error; }
+    }
+    if (order) await db.collection(collections.recharges).doc(`${order.testMode ? 'test' : 'live'}_${order.orderId}`).update({ receiptPending: false });
+    else await db.collection(collections.payments).doc(`${payment.testMode ? 'test' : 'live'}_${payment.id}`).update({ receiptPending: false });
+  } else {
+    const existing = await readEmailOutbox(); const ids = new Set(existing.map(job => job.id));
+    await saveEmailJobs(jobs.filter(job => !ids.has(job.id)));
+  }
+  if (jobs.length) wakeWorker?.();
+}
+
+async function recoverReceiptEvents() {
+  if (!usesFirestore()) return;
+  const pending = await limitedRecords<PaymentLedgerEntry>(collections.payments, [{ field: 'receiptPending', op: 'eq', value: true }], 25);
+  for (const payment of pending) await enqueueReceiptEvents(payment);
+  const recharges = await limitedRecords<RechargeOrder>(collections.recharges, [{ field: 'receiptPending', op: 'eq', value: true }], 25);
+  for (const order of recharges) {
+    const doc = await getAdminFirestore().collection(collections.payments).doc(`${order.testMode ? 'test' : 'live'}_${order.paymentId}`).get();
+    if (doc.exists) await enqueueReceiptEvents(doc.data() as PaymentLedgerEntry, order);
+  }
+}
+
+async function dueEmailJobs(now: number): Promise<EmailJob[]> {
+  if (!usesFirestore()) return (await readEmailOutbox()).filter(job => ['pending', 'sending'].includes(job.status) && job.nextAttemptAt <= now).slice(0, 5);
+  return limitedRecords<EmailJob>(collections.emails, [{ field: 'status', op: 'in', value: ['pending', 'sending'] }, { field: 'nextAttemptAt', op: 'lte', value: now }], 5);
+}
+
+// Called only while holding receipt_email_worker. Bootstrap once from existing
+// jobs; subsequent batches read one compact rolling-allowance document.
+async function emailAllowance(now: number) {
+  const ref = getAdminFirestore().collection(collections.runtime).doc('receipt_email_allowance');
+  const snapshot = await ref.get();
+  let entries: { id: string; time: number }[];
+  if (snapshot.exists) {
+    const saved = snapshot.data()?.entries;
+    if (!Array.isArray(saved) || saved.some(entry => typeof entry.id !== 'string' || !Number.isFinite(entry.time))) throw new Error('Invalid email allowance.');
+    entries = saved.filter(entry => entry.time > now - 86_400_000);
+  } else {
+    const recent = (await Promise.all([
+      limitedRecords<EmailJob>(collections.emails, [{ field: 'lastAttemptAt', op: 'gt', value: now - 86_400_000 }], 301),
+      limitedRecords<EmailJob>(collections.emails, [{ field: 'acceptedAt', op: 'gt', value: now - 86_400_000 }], 301),
+    ])).flat();
+    entries = [...new Map(recent.map(job => [job.id, { id: job.id, time: Math.max(job.lastAttemptAt || 0, job.acceptedAt || 0) }])).values()];
+    await ref.set({ entries });
+  }
+  return {
+    async reserve(id: string, limit: number) {
+      if (entries.some(entry => entry.id === id)) return true;
+      if (entries.length >= limit) return false;
+      entries.push({ id, time: now }); await ref.set({ entries }); return true;
+    },
+    async accepted(id: string) {
+      const entry = entries.find(entry => entry.id === id);
+      if (entry) { entry.time = Math.max(now, Date.now()); await ref.set({ entries }); }
+    },
+    availableAt: () => entries.length ? Math.min(...entries.map(entry => entry.time)) + 86_400_001 : now + 60_000,
+  };
+}
 export function emailDeliveryConfig() {
   const enabled = process.env.BREVO_ENABLED === 'true';
   const configured = Boolean(process.env.BREVO_API_KEY && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(process.env.BREVO_SENDER_EMAIL || ''));
@@ -62,6 +135,11 @@ export function emailDeliveryConfig() {
 }
 
 export async function receiptEmailStatus() {
+  if (usesFirestore()) {
+    const result = await getAdminFirestore().pipeline().collection(collections.emails).aggregate({ groups: ['status'], accumulators: [countAll().as('count')] }).execute();
+    const counts = new Map(result.results.map(row => { const value = row.data(); return [value.status, Number(value.count)]; }));
+    return { ...emailDeliveryConfig(), pending: (counts.get('pending') || 0) + (counts.get('sending') || 0), accepted: counts.get('accepted') || 0, failed: counts.get('failed') || 0, review: counts.get('review') || 0 };
+  }
   const jobs = await readEmailOutbox();
   return { ...emailDeliveryConfig(), pending: jobs.filter(job => ['pending', 'sending'].includes(job.status)).length,
     accepted: jobs.filter(job => job.status === 'accepted').length,
@@ -72,9 +150,11 @@ export async function retryRejectedEmails() {
   processing = true;
   let lease: StorageLease | null = null;
   try {
+  const failedJobs = () => usesFirestore() ? limitedRecords<EmailJob>(collections.emails, [{ field: 'status', op: 'eq', value: 'failed' }], 25) : readEmailOutbox().then(jobs => jobs.filter(job => job.status === 'failed'));
+  if (!(await failedJobs()).length) return 0;
   lease = await acquireStorageLease('receipt_email_worker');
   if (!lease) throw new Error('Email delivery is busy. Please retry shortly.');
-  const jobs = await readEmailOutbox();
+  const jobs = await failedJobs();
   let retried = 0;
   for (const job of jobs) {
     // Only explicit provider rejections are safe to retry after correcting configuration.
@@ -113,18 +193,27 @@ export async function processReceiptEmails(now = Date.now()) {
   if (!config.enabled || !config.configured || processing) return;
   processing = true;
   let lease: StorageLease | null = null;
+  let nextDelay: number | undefined;
   try {
+    // One bounded due-job query when idle, no lock writes or ledger scans.
+    if (!usesFirestore()) {
+      const existing = await readEmailOutbox();
+      const jobs = queueReceiptEmails(existing, await readPaymentLedger(), await getRechargeOrders(), now);
+      await saveEmailJobs(jobs);
+    }
+    if (!(await dueEmailJobs(now)).length) return;
     lease = await acquireStorageLease('receipt_email_worker');
     if (!lease) return;
-    const payments = await readPaymentLedger();
-    const existing = await readEmailOutbox(); const ids = new Set(existing.map(job => job.id));
-    const jobs = queueReceiptEmails(existing, payments, await getRechargeOrders(), now);
-    const currentPayments = new Map(payments.map(payment => [`${payment.testMode ? 'test' : 'live'}:${payment.id}`, payment]));
-    await saveEmailJobs(jobs.filter(job => !ids.has(job.id)), lease);
+    const jobs = await dueEmailJobs(now);
+    const allowance = usesFirestore() ? await emailAllowance(now) : null;
+    const recent = usesFirestore() ? [] : await readEmailOutbox();
+    let used = recent.filter(item => (item.acceptedAt || item.lastAttemptAt || 0) > now - 86_400_000).length;
     let attempted = 0;
     for (const job of jobs) {
       if (!['pending', 'sending'].includes(job.status) || job.nextAttemptAt > now) continue;
-      const payment = currentPayments.get(job.id.slice(0, job.id.lastIndexOf(':')));
+      const key = job.id.slice(0, job.id.lastIndexOf(':'));
+      const payment = usesFirestore() ? (await getAdminFirestore().collection(collections.payments).doc(key.replace(':', '_')).get()).data() as PaymentLedgerEntry | undefined :
+        (await readPaymentLedger()).find(payment => `${payment.testMode ? 'test' : 'live'}:${payment.id}` === key);
       if (!payment || payment.status !== 'paid' || payment.providerStatus !== 'captured') {
         job.status = 'cancelled'; job.error = 'Payment no longer captured; pending email cancelled.'; await saveEmailJobs([job], lease); continue;
       }
@@ -133,9 +222,13 @@ export async function processReceiptEmails(now = Date.now()) {
         job.status = 'review'; job.error = 'Delivery unconfirmed; check Brevo logs before retrying.'; await saveEmailJobs([job], lease); continue;
       }
       // A rolling 24-hour cap is conservative across daily-reset timezones.
-      const used = jobs.filter(item => (item.acceptedAt || item.lastAttemptAt || 0) > now - 86_400_000).length;
       const alreadyReserved = Boolean(job.lastAttemptAt && job.lastAttemptAt > now - 86_400_000);
-      if (used >= config.dailyLimit && !alreadyReserved) continue;
+      if (allowance) {
+        if (!await allowance.reserve(job.id, config.dailyLimit)) {
+          job.nextAttemptAt = allowance.availableAt(); await saveEmailJobs([job], lease); continue;
+        }
+      } else if (used >= config.dailyLimit && !alreadyReserved) continue;
+      if (!alreadyReserved) used++;
       if (attempted++ >= 5) break;
       if (!job.attachment && job.attachmentParts) {
         let content = '';
@@ -167,6 +260,7 @@ export async function processReceiptEmails(now = Date.now()) {
         const result = await response.json().catch(() => ({})) as { messageId?: string; code?: string };
         if (response.ok && result.messageId) {
           job.status = 'accepted'; job.acceptedAt = now; job.messageId = result.messageId; delete job.error;
+          await allowance?.accepted(job.id);
         } else if (result.code === 'duplicate_parameter') {
           job.status = 'review'; job.error = 'Provider reported a duplicate; check Brevo delivery logs.';
         } else if (response.status === 429) {
@@ -182,12 +276,27 @@ export async function processReceiptEmails(now = Date.now()) {
       }
       await saveEmailJobs([job], lease);
     }
-  } finally { try { await lease?.release(); } finally { processing = false; } }
+    const waiting = jobs.filter(job => ['pending', 'sending'].includes(job.status));
+    if (waiting.length) nextDelay = Math.max(1000, Math.min(15 * 60_000, ...waiting.map(job => job.nextAttemptAt > now ? job.nextAttemptAt - now : 15 * 60_000)));
+    else if (jobs.length === 5) nextDelay = 1000;
+  } finally { try { await lease?.release(); } finally { processing = false; if (nextDelay !== undefined) scheduleWorker?.(nextDelay); } }
 }
 
 export function startReceiptEmailWorker() {
-  const tick = () => { void processReceiptEmails().catch(() => console.warn('[email] Outbox processing failed. Check persistent storage.')); };
+  let stopped = false;
+  let nextTimer: ReturnType<typeof setTimeout> | undefined;
+  const schedule = (delay: number) => { if (stopped) return; clearTimeout(nextTimer); nextTimer = setTimeout(tick, delay); nextTimer.unref(); };
+  const tick = () => {
+    if (stopped) return;
+    if (processing) { schedule(1000); return; }
+    void processReceiptEmails().catch(() => console.warn('[email] Outbox processing failed. Check persistent storage.'));
+  };
+  const wake = () => schedule(250);
+  wakeWorker = wake; scheduleWorker = schedule;
   tick();
-  const timer = setInterval(tick, 30_000); timer.unref();
-  return () => clearInterval(timer);
+  const timer = setInterval(() => {
+    if (!emailDeliveryConfig().enabled || !emailDeliveryConfig().configured) return;
+    void recoverReceiptEvents().then(tick).catch(() => console.warn('[email] Receipt recovery deferred.'));
+  }, 15 * 60_000); timer.unref();
+  return () => { stopped = true; if (wakeWorker === wake) { wakeWorker = undefined; scheduleWorker = undefined; } clearTimeout(nextTimer); clearInterval(timer); };
 }

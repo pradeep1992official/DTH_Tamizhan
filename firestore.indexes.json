@@ -1,0 +1,18 @@
+{
+  "indexes": [
+    { "collectionGroup": "server_payments", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{ "fieldPath": "customerUid", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }, { "fieldPath": "id", "order": "DESCENDING" }] },
+    { "collectionGroup": "server_payments", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{ "fieldPath": "createdAt", "order": "DESCENDING" }, { "fieldPath": "id", "order": "DESCENDING" }] },
+    { "collectionGroup": "server_payments", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{ "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "providerStatus", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }, { "fieldPath": "id", "order": "DESCENDING" }] },
+    { "collectionGroup": "server_payments", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{ "fieldPath": "customerUid", "order": "ASCENDING" }, { "fieldPath": "testMode", "order": "ASCENDING" }, { "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "providerStatus", "order": "ASCENDING" }, { "fieldPath": "operator", "order": "ASCENDING" }, { "fieldPath": "smartCardNumber", "order": "ASCENDING" }] },
+    { "collectionGroup": "server_payments", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{ "fieldPath": "operator", "order": "ASCENDING" }, { "fieldPath": "smartCardNumber", "order": "ASCENDING" }, { "fieldPath": "testMode", "order": "ASCENDING" }] },
+    { "collectionGroup": "server_payments", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{ "fieldPath": "orderId", "order": "ASCENDING" }] },
+    { "collectionGroup": "server_payments", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{ "fieldPath": "receiptPending", "order": "ASCENDING" }] },
+    { "collectionGroup": "server_recharges", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{ "fieldPath": "receiptPending", "order": "ASCENDING" }] },
+    { "collectionGroup": "server_email_outbox", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{ "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "nextAttemptAt", "order": "ASCENDING" }] },
+    { "collectionGroup": "server_email_outbox", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{ "fieldPath": "lastAttemptAt", "order": "ASCENDING" }] },
+    { "collectionGroup": "server_email_outbox", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{ "fieldPath": "acceptedAt", "order": "ASCENDING" }] },
+    { "collectionGroup": "plan_catalog", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{ "fieldPath": "operator", "order": "ASCENDING" }] },
+    { "collectionGroup": "dth_connections", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{ "fieldPath": "user_id", "order": "ASCENDING" }, { "fieldPath": "operator", "order": "ASCENDING" }, { "fieldPath": "smartCardNumber", "order": "ASCENDING" }] }
+  ],
+  "fieldOverrides": []
+}
