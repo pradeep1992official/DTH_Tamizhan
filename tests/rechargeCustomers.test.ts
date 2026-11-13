@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { customersFromSuccessfulRecharges } from '../src/lib/rechargeCustomers';
+import { customersFromPaidRecharges, customersFromSuccessfulRecharges } from '../src/lib/rechargeCustomers';
 import type { RechargeOrder } from '../src/types';
 const order = (overrides: Partial<RechargeOrder> = {}): RechargeOrder => ({
   orderId: 'order-1', user_id: 'user-1', operator: 'sun_direct', operatorName: 'Sun Direct',
@@ -8,6 +8,14 @@ const order = (overrides: Partial<RechargeOrder> = {}): RechargeOrder => ({
   createdAt: '2026-01-01', updatedAt: '2026-01-01', ...overrides,
 });
 describe('successful recharge customer directory', () => {
+  it('includes paid customers before fulfillment with contact, connection and status details', () => {
+    expect(customersFromPaidRecharges([order({ rechargeStatus: 'pending', customerName: 'Customer', registeredMobile: '9876543210' })])[0]).toMatchObject({ customerName: 'Customer', registeredMobile: '9876543210', smartCardNumber: '40000000001', activePackName: 'Tamil', latestRechargeStatus: 'pending' });
+  });
+  it('shows test customers separately without including them in successful live customer totals', () => {
+    const orders = [order(), order({ orderId: 'test-order', testMode: true })];
+    expect(customersFromPaidRecharges(orders)).toHaveLength(2);
+    expect(customersFromSuccessfulRecharges(orders)).toHaveLength(1);
+  });
   it('excludes paid but unfulfilled orders, failed payments and demo orders', () => {
     expect(customersFromSuccessfulRecharges([
       order({ rechargeStatus: 'pending' }), order({ rechargeStatus: 'processing' }),

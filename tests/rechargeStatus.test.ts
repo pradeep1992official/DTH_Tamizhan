@@ -3,7 +3,7 @@ const fixture = vi.hoisted(() => ({ orders: [] as any[], payments: [] as any[], 
 vi.mock('node:fs', () => ({ default: { mkdirSync: vi.fn(), writeFileSync: fixture.write, renameSync: fixture.rename } }));
 vi.mock('../server/models/store', () => ({ MEMORY_RECHARGE_ORDERS: fixture.orders, RECHARGE_ORDERS_FILE: 'fixture/orders.json', OPERATORS: [{ id: 'airtel_dth', name: 'Airtel Digital TV' }] }));
 vi.mock('../server/models/paymentLedger', () => ({ readPaymentLedger: () => fixture.payments }));
-import { getRechargeOrders, updatePaidRechargeStatus } from '../server/models/paidRechargeOrders';
+import { getCustomerRechargeOrders, getRechargeOrders, updatePaidRechargeStatus } from '../server/models/paidRechargeOrders';
 beforeEach(() => {
   vi.clearAllMocks(); fixture.orders.length = 0;
   fixture.payments = [{ id: 'pay_1', orderId: 'order_1', status: 'paid', providerStatus: 'captured', amount: 100,
@@ -27,4 +27,12 @@ it('leaves memory pending if disk persistence fails', () => {
   fixture.write.mockImplementationOnce(() => { throw new Error('Disk unavailable'); });
   expect(() => updatePaidRechargeStatus('order_1', 'completed')).toThrow('Disk unavailable');
   expect(getRechargeOrders()[0].rechargeStatus).toBe('pending');
+});
+it('excludes seeded orders from customer, pending and history feeds while retaining Razorpay test orders', () => {
+  const actual = getRechargeOrders()[0];
+  fixture.orders.push({ ...actual, orderId: 'ORD-TN-894102', paymentId: undefined, user_id: 'cust-101', testMode: undefined });
+  const customers = getCustomerRechargeOrders();
+  expect(customers).toHaveLength(1);
+  expect(customers[0]).toMatchObject({ orderId: 'order_1', paymentId: 'pay_1', testMode: true });
+  expect(getRechargeOrders()).toHaveLength(1);
 });

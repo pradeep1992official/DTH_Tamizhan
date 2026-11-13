@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import {
   APPROVED_ADMIN_EMAILS,
   MEMORY_CUSTOMERS,
-  MEMORY_RECHARGE_ORDERS,
   OPERATORS,
 } from '../models/store';
 import { isCallerAdminAuthorized, verifyAuthToken } from '../middleware/auth';

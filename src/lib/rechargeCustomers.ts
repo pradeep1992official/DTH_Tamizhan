@@ -10,7 +10,7 @@ export function customersFromPaidRecharges(orders: RechargeOrder[]): CustomerRec
   const customers = new Map<string, CustomerRecord>();
   const successful = orders.filter(order => order.paymentStatus === 'paid'
     && !order.orderId.startsWith('DEMO-') && !order.user_id.startsWith('demo-'));
-  successful.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  successful.sort((a, b) => Date.parse(b.updatedAt || b.createdAt) - Date.parse(a.updatedAt || a.createdAt));
   for (const order of successful) {
     const id = `${order.operator}_${order.smartCardNumber}${order.testMode ? '_test' : ''}`;
     const existing = customers.get(id);

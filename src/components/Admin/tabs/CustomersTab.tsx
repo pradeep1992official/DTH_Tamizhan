@@ -97,7 +97,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
                 {heading('customerName', 'Customer')}
                 {heading('operator', 'Operator', 'hidden md:table-cell')}
                 {heading('smartCardNumber', 'Smart card')}
-                {heading('activePackName', 'Last recharged pack', 'hidden md:table-cell')}
+                {heading('activePackName', 'Latest recharge pack', 'hidden md:table-cell')}
                 
               </tr>
             </thead>
@@ -131,7 +131,6 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
                   <tr key={cust.id} className="hover:bg-paper-2 transition-colors">
                     <td data-label="Customer" className="p-3.5 font-medium">
                       <div className="font-bold text-sm text-ink ">{cust.customerName}</div>
-                      {cust.testMode && <span className="text-xs text-muted">TEST CUSTOMER</span>}
                       <div className="text-sm text-muted  flex items-center gap-1 mt-0.5">
                         <Phone className="w-3.5 h-3.5" />
                         <span>{cust.registeredMobile || 'Phone not provided'}</span>
@@ -139,12 +138,13 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
                       <div className="md:hidden text-sm text-ink  mt-1">
                         {cust.operatorName} · {cust.smartCardNumber}
                       </div>
+                      <div className="md:hidden text-xs text-muted mt-1">{cust.activePackName}{cust.latestRechargeStatus !== 'completed' && ` · ${cust.latestRechargeStatus === 'failed' ? 'Failed' : 'Pending'}`}</div>
                     </td>
                     <td data-label="Operator" className="hidden md:table-cell p-3.5"><span className="compact-plan-pill compact-plan-operator" data-operator={cust.operator}>{operatorNames[cust.operator] || cust.operatorName}</span></td>
                     <td data-label="Smart card" className="p-3.5 font-mono font-bold text-xs">{cust.smartCardNumber}</td>
-                    <td data-label="Last recharged pack" className="hidden md:table-cell p-3.5">
+                    <td data-label="Latest recharge pack" className="hidden md:table-cell p-3.5">
                       <div className="font-medium text-ink ">{cust.activePackName}</div>
-                      <span className="text-xs text-muted">{cust.latestRechargeStatus === 'completed' ? 'Recharge completed' : cust.latestRechargeStatus === 'failed' ? 'Recharge failed' : 'Paid · Recharge pending'}</span>
+                      {cust.latestRechargeStatus !== 'completed' && <span className="text-xs text-muted">{cust.latestRechargeStatus === 'failed' ? 'Recharge failed' : 'Paid · Recharge pending'}</span>}
 
                     </td>
 

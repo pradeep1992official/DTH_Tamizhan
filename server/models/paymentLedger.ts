@@ -33,7 +33,7 @@ export function recordProviderPayment(payment: Payments.RazorpayPayment, order?:
     status: payment.status === 'captured' ? 'paid' : payment.status === 'failed' ? 'failed' : payment.status === 'refunded' ? 'refunded' : 'initiated',
     providerStatus: payment.status, operator: notes.dth_operator || previous?.operator || 'unknown',
     customerName: notes.dth_customer_name || previous?.customerName || 'Subscriber',
-    customerPhone: notes.dth_customer_phone || payment.contact || previous?.customerPhone || '',
+    customerPhone: notes.dth_customer_phone || (payment.contact ? String(payment.contact) : '') || previous?.customerPhone || '',
     smartCardNumber: notes.dth_subscriber || previous?.smartCardNumber || '',
     packName: notes.dth_plan || previous?.packName || '',
     customerUid: notes.dth_customer_uid || previous?.customerUid,

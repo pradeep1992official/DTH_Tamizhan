@@ -40,8 +40,13 @@ export function mergePaidRechargeOrders(existing: RechargeOrder[], payments: Pay
 }
 
 export function getRechargeOrders(): RechargeOrder[] {
-  return mergePaidRechargeOrders(MEMORY_RECHARGE_ORDERS, readPaymentLedger());
+  const payments = readPaymentLedger();
+  const provenance = new Set(payments.map(payment => JSON.stringify([payment.orderId, payment.id, payment.testMode])));
+  return mergePaidRechargeOrders(MEMORY_RECHARGE_ORDERS, payments).filter(order =>
+    provenance.has(JSON.stringify([order.orderId, order.paymentId, order.testMode])));
 }
+
+export const getCustomerRechargeOrders = getRechargeOrders;
 
 export function updatePaidRechargeStatus(orderId: string, status: RechargeOrder['rechargeStatus'], workerNotes?: string): RechargeOrder {
   const payments = readPaymentLedger();

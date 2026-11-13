@@ -170,7 +170,7 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
               ) : (
                 filteredPayments.map((p) => (
                   <tr key={p.id} className="hover:bg-paper-2 transition-colors">
-                    <td data-label="Transaction" className="payment-transaction p-3.5 font-mono font-bold">{p.id}{p.testMode && <span className="block text-xs text-muted mt-1">TEST · No real money</span>}</td>
+                    <td data-label="Transaction" className="payment-transaction p-3.5 font-mono font-bold">{p.id}</td>
                     <td data-label="Date (IST)" className="p-3.5 text-xs"><div>{dateLabel(p.createdAt)}</div><div className="text-muted mt-1">{dateLabel(p.createdAt, true)}</div></td>
                     <td data-label="Customer" className="payment-customer p-3.5 font-medium">{p.customerName}</td>
                     <td data-label={t.operatorLabel} className="hidden md:table-cell p-3.5 capitalize"><span className="compact-plan-pill compact-plan-operator" data-operator={p.operator}>{operators[p.operator] || p.operator}</span></td>
