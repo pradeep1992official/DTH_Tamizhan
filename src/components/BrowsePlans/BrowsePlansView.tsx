@@ -21,6 +21,7 @@ import { ComparisonTable } from './ComparisonTable';
 import { ApplyPlanModal } from './ApplyPlanModal';
 import { PlanCatalogService } from '../../lib/planCatalogService';
 import { translations } from '../../lib/translations';
+import { PlanSuggestions } from './PlanSuggestions';
 
 interface BrowsePlansViewProps {
   currentTheme: OperatorTheme;
@@ -188,6 +189,12 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
           </p>
         </div>
       </div>
+
+      <PlanSuggestions user={user} currentLang={currentLang} onOpenAuth={onOpenAuth} onSelect={id => {
+        const plan = allPlans.find(item => item.id === id);
+        if (plan) setSelectedPlanForApply(plan);
+        else fetchLivePlans();
+      }} />
 
       {/* Control Bar: Search, Sort & Results Count */}
       <div

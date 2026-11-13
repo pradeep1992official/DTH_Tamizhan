@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "ai:check-free": "tsx scripts/check-free-ai.ts",
     "storage:migrate": "tsx scripts/migrate-persistence.ts",
     "storage:check": "tsx scripts/check-persistence.ts",
     "dev": "tsx watch server.ts",
