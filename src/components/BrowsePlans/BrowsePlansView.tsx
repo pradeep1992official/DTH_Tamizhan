@@ -63,7 +63,11 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
   const [allPlans, setAllPlans] = useState<BrowsePlan[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<PlanFilters>(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState<PlanFilters>(() => {
+    const operator = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('operator') : null;
+    return operator && ['sun_direct', 'tata_play', 'airtel_dth', 'dish_tv', 'd2h'].includes(operator)
+      ? { ...DEFAULT_FILTERS, operators: [operator as PlanFilters['operators'][number]] } : DEFAULT_FILTERS;
+  });
   const priceMaximum = catalogPriceMaximum(allPlans);
 
   // Compare tool state

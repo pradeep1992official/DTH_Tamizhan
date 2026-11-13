@@ -1,0 +1,75 @@
+.signal-page{max-width:1100px;margin:28px auto;padding:32px;color:#302a28;background:#fffaf2;border:1px solid #e7d5c3;border-radius:20px;font-family:Manrope,system-ui,sans-serif;box-sizing:border-box}
+.signal-page *{box-sizing:border-box}
+.signal-eyebrow{display:flex;align-items:center;gap:12px;font-size:10px;font-weight:700;letter-spacing:1.8px;color:#68162f}
+.signal-eyebrow>span>span{margin:0 9px;color:#a59387}
+.signal-brand-mark{display:grid;place-items:center;width:38px;height:32px;border:1px solid #68162f;border-radius:8px;font-size:10px;letter-spacing:0}
+.signal-layout{display:grid;grid-template-columns:1.05fr 1fr;align-items:center;gap:52px;padding:42px 0 38px}
+.signal-tv{position:relative;padding-bottom:25px;min-width:0}
+.signal-screen{position:relative;overflow:hidden;aspect-ratio:1.3;border:8px solid #252d3b;border-bottom-width:4px;border-radius:17px 17px 5px 5px;background:radial-gradient(ellipse at 50% 35%,#2052a1,#092754 75%);color:#f8fbff;box-shadow:0 15px 35px #182c4326}
+.signal-screen:after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,#ffffff06 0,#ffffff06 1px,transparent 1px,transparent 4px);pointer-events:none}
+.signal-screen-top{position:absolute;top:18px;left:17px;right:17px;display:flex;justify-content:space-between;font:10px/1.3 monospace;letter-spacing:1px;color:#b7d1f5}
+.signal-led{display:flex;align-items:center;gap:6px}
+.signal-led:before{content:"";width:5px;height:5px;border-radius:50%;background:#ffc47a}
+.signal-frequency{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-bottom:55px}
+.signal-channel-number{font:700 clamp(72px,9vw,118px)/1.1 Arial,sans-serif;letter-spacing:4px;font-variant-numeric:lining-nums tabular-nums;z-index:1;text-shadow:3px 0 #7bcfff35,-3px 0 #ff9dbb30}
+.signal-frequency-label{margin-top:9px;font:9px/1.4 monospace;letter-spacing:2px;z-index:1;color:#a7c7ed}
+.signal-orbit{position:absolute;width:185px;height:185px;border:1px solid #8cbcf22b;border-radius:50%;transform:translateY(-24px)}
+.signal-orbit-two{width:236px;height:236px;border-style:dashed;opacity:.65}
+.signal-osd{position:absolute;bottom:18px;left:15px;right:15px;display:flex;align-items:center;gap:12px;padding:13px 14px;background:#061a3be8;border:1px solid #6b9bd04d;border-left:3px solid #f1c885;border-radius:3px;z-index:1}
+.signal-osd-number{font:700 22px/1 monospace;color:#f1c885;padding-right:12px;border-right:1px solid #9ab4d13d}
+.signal-osd strong{display:block;font-size:12px;font-weight:600}
+.signal-osd div>span{display:block;font-size:9px;color:#9ab6d9;margin-top:5px}
+.signal-osd-bars{margin-left:auto;display:flex;align-items:flex-end;gap:3px}
+.signal-osd-bars i{width:4px;background:#6384ad}
+.signal-osd-bars i:nth-child(1){height:5px;background:#efba70}
+.signal-osd-bars i:nth-child(2){height:9px}
+.signal-osd-bars i:nth-child(3){height:13px}
+.signal-osd-bars i:nth-child(4){height:17px}
+.signal-tv-base{height:30px;display:flex;align-items:center;justify-content:space-between;padding:0 23px;background:#252d3b;border-radius:0 0 14px 14px;color:#b8c2d0;font:7px/1 monospace;letter-spacing:2px;position:relative;z-index:1}
+.signal-power{width:5px;height:5px;background:#f1c885;border-radius:50%}
+.signal-tv-stand{position:absolute;bottom:0;left:35%;right:35%;height:25px;background:#333d4e;clip-path:polygon(25% 0,75% 0,83% 65%,100% 80%,100% 100%,0 100%,0 80%,17% 65%)}
+.signal-error-code{font-size:10px;font-weight:700;color:#886650;letter-spacing:1.7px;margin:0 0 15px}
+.signal-copy h1{font-size:clamp(27px,3.1vw,39px);font-weight:700;line-height:1.16;letter-spacing:-1.3px;color:#68162f;margin:0}
+.signal-copy h1>span{display:block;font-size:.62em;font-weight:500;letter-spacing:-.5px;color:#493b36;margin-top:9px}
+.signal-description{font-size:16px;line-height:1.8;color:#7d6c62;margin:20px 0 23px;max-width:420px}
+.signal-actions{display:flex;flex-wrap:wrap;gap:10px}
+.signal-button{display:inline-flex;align-items:center;justify-content:center;gap:15px;border:1px solid #d7bfa9;border-radius:8px;padding:12px 15px;text-decoration:none;font-family:inherit;font-size:12px;font-weight:600;line-height:1.3;cursor:pointer;min-height:44px;transition:background .15s,color .15s}
+.signal-button-primary{background:#68162f;color:#fffaf2;border-color:#68162f}
+.signal-button-primary:hover{background:#501025}
+.signal-button-secondary{background:#fffdf8;color:#493b36}
+.signal-button-secondary:hover{background:#f3e8db}
+.signal-page a:focus-visible,.signal-page button:focus-visible,.signal-page summary:focus-visible{outline:3px solid #bd8752;outline-offset:4px}
+.signal-report{margin-top:23px;font-size:13px;color:#817063}
+.signal-report summary{cursor:pointer;text-decoration:underline;text-underline-offset:4px;list-style-position:inside}
+.signal-report form{display:grid;gap:10px;margin-top:12px}
+.signal-report p{line-height:1.6;margin:10px 0}
+.signal-report code{overflow-wrap:anywhere;color:#493b36}
+.signal-report button{justify-self:start}
+.signal-report button:disabled{opacity:.6;cursor:wait}
+.signal-pack-links{border-top:1px solid #e7d5c3;padding-top:23px;display:flex;align-items:center;gap:25px;flex-wrap:wrap}
+.signal-pack-links>span{font-size:13px;color:#8b7666}
+.signal-pack-links>div{display:flex;gap:9px;flex-wrap:wrap}
+.signal-pack-links a{display:flex;align-items:center;gap:16px;padding:9px 13px;border:1px solid #e7d5c3;border-radius:7px;color:#695044;font-size:13px;text-decoration:none;background:#fffdf8}
+.signal-pack-links a:hover{border-color:#68162f;color:#68162f}
+@media(max-width:760px){.signal-page{padding:24px 20px;margin:15px auto}
+.signal-layout{grid-template-columns:1fr;gap:29px;padding:28px 0}
+.signal-tv{max-width:410px;width:100%;margin:auto}
+.signal-channel-number{font-size:100px}
+.signal-copy h1{font-size:31px}
+.signal-description{max-width:none}
+.signal-pack-links{gap:15px}
+.signal-pack-links>div{width:100%}
+}
+@media(max-width:420px){.signal-actions{flex-direction:column}
+.signal-button{width:100%}
+.signal-pack-links a{gap:8px;padding:9px}
+.signal-osd{gap:8px;padding:10px}
+.signal-osd strong{font-size:11px}
+.signal-osd div>span{font-size:8px}
+.signal-frequency-label{font-size:8px;letter-spacing:1.4px}
+.signal-screen-top{font-size:8px}
+.signal-eyebrow{font-size:8px;letter-spacing:1px}
+}
+@media(prefers-reduced-motion:reduce){.signal-page *{transition:none!important}
+}
+

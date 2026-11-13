@@ -305,6 +305,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
         {activeTab === 'reports' && (
           <ReportsTab
+            getAuthHeaders={getAuthHeaders}
             auditLogs={auditLogs}
             customers={customers}
             orders={orders}

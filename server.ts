@@ -1,4 +1,5 @@
 import { checkPersistence, usesFirestore } from './server/persistence';
+import { brokenLinksRouter } from './server/routes/brokenLinks';
 import { pageHandler, globalErrorHandler } from './server/pages';
 import { paymentsRouter } from './server/routes/payments';
 import express, { Request, Response } from 'express';
@@ -76,6 +77,7 @@ async function startServer() {
   app.use(emailRouter);
   app.use(customerHistoryRouter);
   app.use(authConfigRouter);
+  app.use(brokenLinksRouter);
 
   app.use('/api', (_req, res) => { res.status(404).json({ success: false, error: 'API route not found.' }); });
 

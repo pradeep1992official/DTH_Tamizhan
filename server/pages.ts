@@ -1,18 +1,19 @@
-import { customerMessages } from '../src/lib/customerMessages';
 import type { ErrorRequestHandler, Request, RequestHandler } from 'express';
 import { pageMetadata } from '../src/lib/pageMetadata';
 import type { Language } from '../src/types';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { createElement } from 'react';
+import { SignalLostPage } from '../src/components/SignalLostPage';
+import { ServerSignalPage } from '../src/components/ServerSignalPage';
 
 const escapeHtml = (value: string) => value.replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]!));
 export function requestLanguage(req: Request): Language {
   const cookie = req.headers.cookie?.match(/(?:^|;\s*)dth_lang=(en|ta)(?:;|$)/)?.[1];
   return cookie === 'ta' || (!cookie && req.headers['accept-language']?.startsWith('ta')) ? 'ta' : 'en';
 }
-export function statusPageBody(status: 404 | 500, lang: Language = 'en'): string {
-  const t = customerMessages[lang];
-  const title = status === 404 ? t.uiPageNotFound : t.uiWeCouldNotLoadThisPage;
-  const description = status === 404 ? t.uiThisAddressDoesNotExistCheckTheLinkOrReturnHome : t.uiReturnHomeToTryAgainThisErrorIsNotConfirmationThatAPaymentSucceeded;
-  return `<main style="max-width:48rem;margin:4rem auto;padding:2rem;font:1rem/1.7 system-ui;color:#33272b;background:#fffefa"><h1>${status} — ${escapeHtml(title)}</h1><p>${escapeHtml(description)}</p><a href="/">${escapeHtml(t.uiBackToHome)}</a></main>`;
+export function statusPageBody(status: 404 | 500, lang: Language = 'en', path?: string): string {
+  if (status === 404) return renderToStaticMarkup(createElement(SignalLostPage, { currentLang: lang, path }));
+  return renderToStaticMarkup(createElement(ServerSignalPage, { currentLang: lang, retryPath: path }));
 }
 
 export function injectPageMetadata(html: string, pathname: string, lang: Language, origin: string): string {
@@ -39,10 +40,10 @@ export function pageHandler(readTemplate: (req: Request) => string | Promise<str
     if (!['GET', 'HEAD'].includes(req.method)) { res.status(404).send('Not found'); return; }
     try {
       const meta = pageMetadata(req.path, requestLanguage(req));
-      const template = meta.status === 500 ? '<!doctype html><html><head></head><body></body></html>' : await readTemplate(req);
+      const template = meta.status === 500 ? '<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1" /></head><body style="margin:0;background:#080f20"></body></html>' : await readTemplate(req);
       let html = injectPageMetadata(template, req.path, requestLanguage(req), originForRequest(req));
-      if (meta.status === 404) html = html.replace(/<div id="root">[\s\S]*?<\/div>/, `<div id="root">${statusPageBody(404, requestLanguage(req))}</div>`);
-      if (meta.status === 500) html = html.replace('</body>', `${statusPageBody(500, requestLanguage(req))}</body>`);
+      if (meta.status === 404) html = html.replace(/<div id="root">[\s\S]*?<\/div>/, `<div id="root">${statusPageBody(404, requestLanguage(req), req.path)}</div>`);
+      if (meta.status === 500) html = html.replace('</body>', `${statusPageBody(500, requestLanguage(req), typeof req.query.retry === 'string' ? req.query.retry : req.path)}</body>`);
       res.setHeader('Cache-Control', 'no-store');
       if (meta.path === '/auth/email-link') res.setHeader('Referrer-Policy', 'no-referrer');
       if (meta.noindex) res.setHeader('X-Robots-Tag', 'noindex, nofollow');
@@ -54,6 +55,6 @@ export const globalErrorHandler: ErrorRequestHandler = (_error, req, res, next) 
   if (res.headersSent) { next(_error); return; }
   res.setHeader('Cache-Control', 'no-store'); res.setHeader('X-Robots-Tag', 'noindex, nofollow');
   if (req.path.startsWith('/api/')) { res.status(500).json({ success: false, error: 'Internal server error.' }); return; }
-  const html = injectPageMetadata(`<!doctype html><html><head></head><body>${statusPageBody(500, requestLanguage(req))}</body></html>`, '/500', requestLanguage(req), originForRequest(req));
+  const html = injectPageMetadata(`<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1" /></head><body style="margin:0;background:#080f20">${statusPageBody(500, requestLanguage(req), req.path)}</body></html>`, '/500', requestLanguage(req), originForRequest(req));
   res.status(500).type('html').send(html);
 };

@@ -53,7 +53,7 @@ describe('real HTTP page responses and metadata (QA-18 / QA-20)', () => {
     const html = await response.text();
     expect(response.status).toBe(status); expect(html).toContain('<html lang="ta">');
     expect(html).toMatch(/<meta charset="UTF-8"/i);
-    expect(html).toContain('முகப்புப் பக்கத்திற்குத் திரும்பவும்');
+    expect(html).toContain(status === 404 ? 'சேனல் கிடைக்கவில்லை' : 'சேவையக சிக்னல் கிடைக்கவில்லை');
     expect(html).not.toContain('Back to home');
   });
   it.each(['/admin', '/admin/orders', '/admin/packs', '/admin/reports'])('%s is noindex in both HTML and HTTP headers', async path => {

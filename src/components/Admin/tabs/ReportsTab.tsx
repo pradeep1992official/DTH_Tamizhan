@@ -1,4 +1,5 @@
 import { AdminRefreshButton } from '../AdminRefreshButton';
+import { BrokenLinksPanel } from '../BrokenLinksPanel';
 import React, { useState } from 'react';
 import {
   BarChart3,
@@ -14,6 +15,7 @@ import { OperatorTheme } from '../../../lib/theme';
 import { translations } from '../../../lib/translations';
 
 interface ReportsTabProps {
+  getAuthHeaders?: () => Promise<Record<string, string>>;
   auditLogs: PlanAuditLog[];
   customers: CustomerRecord[];
   orders: RechargeOrder[];
@@ -31,6 +33,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
   onRefresh,
   currentTheme,
   currentLang,
+  getAuthHeaders,
 }) => {
   const t = translations[currentLang];
   const isLight = currentTheme.isLightMode;
@@ -68,6 +71,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
 
   return (
     <div className="admin-tab reports-tab space-y-4">
+      {getAuthHeaders && <BrokenLinksPanel getAuthHeaders={getAuthHeaders} currentLang={currentLang} />}
       <div className="text-xs text-muted space-y-1">
         <p>Recharge records: {period} ({orders.length} loaded)</p>
         <p>Paid recharge total includes paid orders in these records. Payments shows paid payment records and applies its own search and method filters.</p>
