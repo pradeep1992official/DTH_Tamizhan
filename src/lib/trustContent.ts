@@ -1,24 +1,25 @@
 export const BUSINESS_DETAILS = {
-  legalName: '[FILL IN] Registered business name',
-  address: '[FILL IN] Registered business / correspondence address',
-  phone: '[FILL IN] Customer support phone',
-  email: '[FILL IN] Customer support email',
-  supportHours: '[FILL IN] Support days, hours and time zone',
-  gstin: '[FILL IN] GSTIN, or confirm not applicable',
-  grievanceOfficer: '[FILL IN] Grievance officer name and designation',
-  grievanceEmail: '[FILL IN] Grievance officer email',
-  grievanceAddress: '[FILL IN] Grievance correspondence address',
-  acknowledgement: '[FILL IN] Support / grievance acknowledgement timeframe',
-  resolution: '[FILL IN] Grievance resolution timeframe, subject to applicable law',
-  refundReview: '[FILL IN] Refund eligibility review timeframe',
-  refundProcessing: '[FILL IN] Approved refund initiation timeframe',
-  bankCredit: '[FILL IN] Expected bank / payment-provider credit timeframe',
-  reconciliation: '[FILL IN] Pending-payment reconciliation timeframe',
-  feesAndTaxes: '[FILL IN] Applicable fees, taxes and invoice treatment',
-  policyDate: '[FILL IN] Policy effective date',
-  retention: '[FILL IN] Retention periods for account, recharge, support and financial records',
-  processors: '[FILL IN] Confirm hosting, payment and other processors, processing purposes and locations',
-  installation: '[FILL IN] Installation availability and written quotation',
+  legalName: 'SMP Enterprises',
+  address: 'I, 68/72C, East Street, Thirukoilur - 605757',
+  phone: '+91 8144404504',
+  email: 'professorpradeeps@gmail.com',
+  supportHours: 'Monday to Friday, 10:00 am to 6:00 pm IST',
+  gstin: '33CDBPP1554Q1Z8',
+  grievanceOfficer: 'Lavanya, Grievance Officer',
+  grievanceEmail: 'lavanyacommunication09@gmail.com',
+  grievanceAddress: '68/72C, East Street, Thirukoilur - 605757',
+  // Merchant grievance commitments follow consumer rules, not Razorpay's own complaint SLA.
+  acknowledgement: 'Within 48 hours of receiving the complaint, with a copy of the recorded complaint',
+  resolution: 'Within one month of receiving the complaint, subject to any shorter applicable legal deadline',
+  refundReview: 'SMP Enterprises checks the payment status and whether the operator recharge was completed. We communicate the decision or any further information needed through the grievance process; Razorpay does not set a separate merchant eligibility-review deadline',
+  refundProcessing: 'After approval, SMP Enterprises must manually submit the refund through Razorpay and confirm the initiation date and refund reference. Approval alone does not start bank processing; Razorpay does not prescribe our internal approval-to-submission deadline',
+  bankCredit: 'Normally 7–10 working days after initiation of a normal Razorpay refund, to the original payment method. Timing depends on the bank and payment method; contact support with the refund reference if the stated period is exceeded',
+  reconciliation: 'Report a debit with an unconfirmed payment immediately. Razorpay may check the bank for late authorisation for up to 3 days from payment creation. This is a payment-status reconciliation window, not a promise of recharge completion or bank-refund credit within 3 days',
+  feesAndTaxes: 'The amount displayed at checkout is the amount charged; this checkout does not add a separate Razorpay gateway surcharge. Razorpay processing fees and 18% GST on those fees are merchant charges under the merchant agreement, not an automatic 18% tax on the recharge value. Any applicable customer charges or taxes must be disclosed before payment. The payment receipt is not a tax invoice',
+  policyDate: 'To be announced after launch; this policy is a draft until its effective date is published',
+  retention: 'Account profiles and saved boxes are kept while needed to provide the account service; verified deletion requests are reviewed by support, subject to required records. Closed support correspondence is retained for 2 years after closure as our business retention period. Payment, recharge and refund records needed for GST accounts are retained for 72 months from the due date for the annual return for the relevant year. Records involved in proceedings or investigations are retained until one year after final disposal or the statutory retention period, whichever is later. Other applicable legal holds may extend retention. Removal or anonymisation of records no longer needed is handled through manual review; automatic deletion is not implemented',
+  processors: 'Netlify is the current hosting provider selected for deployment. Google/Firebase provides authentication and database storage; Razorpay processes payments; Brevo sends transactional emails. Optional AI pack suggestions send preferences and plan information to Google Gemini. Information shared with each provider is limited to its service purpose. Hosting, logs and provider processing may occur in India or other countries according to deployment configuration and provider terms; India-only processing is not promised',
+  installation: 'Not applicable. DTH Tamizhan provides DTH recharges only; installation services, installation service areas and installation quotations are not offered',
 } as const;
 
 export const POLICY_ROUTES = [
@@ -33,13 +34,13 @@ const b = BUSINESS_DETAILS;
 export const POLICY_CONTENT: Record<PolicyKey, PolicySection[]> = {
   contact: [
     { heading: 'How to ask for help', paragraphs: [
-      'For a recharge, payment, cancellation or privacy question, use the support details below. Contact details marked [FILL IN] are awaiting confirmation and are not working contact channels.',
+      'For a recharge, payment, cancellation or privacy question, use the support details below.',
       'Share the order reference, operator, amount, date and a short description. Mask unrelated personal or banking details in screenshots. Never share your OTP, UPI PIN, password, full card number or CVV.',
       'If your account was debited but the recharge is not confirmed, keep the transaction reference and ask support to check its status. Avoid paying again while the first payment is unresolved.',
     ] },
     { heading: 'Complaints and escalation', paragraphs: [
       `If support has not resolved your issue, contact ${b.grievanceOfficer} at ${b.grievanceEmail}. Postal contact: ${b.grievanceAddress}. Include your earlier support reference.`,
-      `Acknowledgement: ${b.acknowledgement}. Resolution: ${b.resolution}. These details must be completed consistently with applicable consumer law. Your statutory complaint and consumer-forum rights are unaffected.`,
+      `Acknowledgement: ${b.acknowledgement}. Resolution: ${b.resolution}. These are SMP Enterprises grievance commitments; Razorpay handles complaints submitted directly to it under its own policy. Your statutory complaint and consumer-forum rights are unaffected.`,
     ] },
   ],
   refund: [
@@ -68,13 +69,13 @@ export const POLICY_CONTENT: Record<PolicyKey, PolicySection[]> = {
     { heading: 'Information used by the service', paragraphs: [
       'Account information can include your Google/Firebase user ID, name, email, profile image and any phone number you provide. Saved-box and recharge details can include your DTH operator, subscriber ID, box nickname, selected pack, amount, transaction references and status. Support correspondence may contain information you choose to send.',
       'The app uses browser storage for items such as profile/session-related display data, language, selected operator and saved-box information. Clearing browser storage removes local copies; it does not automatically delete server records or sign you out of every service.',
-      'Network requests can disclose IP address, browser/device information and technical logs to hosting and service providers. The site uses Google/Firebase for authentication and Google-hosted fonts. Provider details, optional features and processing locations must be confirmed in the processor list below.',
-      'This checkout does not collect card numbers, CVVs or UPI PINs. If a payment provider is enabled later, its hosted payment flow and privacy notice must identify how payment credentials are handled.',
+      'Network requests can disclose IP address, browser/device information and technical logs to hosting and service providers. The site uses Google/Firebase for authentication and Google-hosted fonts. Provider details and processing locations are described below.',
+      'This checkout does not collect card numbers, CVVs or UPI PINs. Razorpay handles payment credentials through its hosted checkout under its own privacy notice.',
     ] },
     { heading: 'Purpose, sharing and retention', paragraphs: [
       'Information is used to provide sign-in, manage saved boxes, handle recharge requests, investigate payment status, respond to support requests, prevent misuse and keep records required by law. Operators and payment providers need the information required for a requested transaction. Hosting/authentication providers process information for their relevant service.',
       `Processor list and processing locations: ${b.processors}. Any additional analytics, marketing, advertising or data-sharing use must be disclosed before it is enabled.`,
-      `Retention: ${b.retention}. The final schedule must explain what is retained for legal, tax, dispute or fraud-prevention reasons and when other data is removed.`,
+      `Retention: ${b.retention}.`,
     ] },
     { heading: 'Your choices and requests', paragraphs: [
       'Contact support to ask about access, correction, deletion, consent withdrawal or a privacy complaint, as applicable under Indian law. Some verification may be needed to protect your account. We will explain if a legal retention requirement limits a deletion request. Do not send passwords or payment credentials as identity proof.',
@@ -83,7 +84,7 @@ export const POLICY_CONTENT: Record<PolicyKey, PolicySection[]> = {
   ],
   terms: [
     { heading: 'Business and scope', paragraphs: [
-      `DTH Tamizhan is operated by ${b.legalName}. Registered address: ${b.address}. GST information: ${b.gstin}. These draft terms cover use of the website and DTH recharge/support requests in India.`,
+      `DTH Tamizhan is operated by ${b.legalName}. Registered address: ${b.address}. GST information: ${b.gstin}. These draft terms cover use of the website and DTH recharge/support requests in India. ${b.installation}.`,
       'Operator names and logos identify the relevant services. Their appearance does not by itself establish an authorized partnership, endorsement or affiliation.',
     ] },
     { heading: 'Your request and the final amount', paragraphs: [

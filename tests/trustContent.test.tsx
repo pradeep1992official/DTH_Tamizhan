@@ -17,17 +17,24 @@ describe('trust and legal routes (QA-07)', () => {
       {POLICY_ROUTES.map(item => <Route key={item.key} path={item.path} element={<PolicyPage policy={item.key} currentLang="en" />} />)}
     </Routes></MemoryRouter>);
     expect(html).toContain(`<h1 class="text-2xl font-bold">${route.en.replace(/&/g, '&amp;')}</h1>`);
-    expect(html).toContain('[FILL IN]');
+    expect(html).toContain('To be announced after launch');
     expect(html).toContain('Draft');
     expect(policyPageTitle(route.key, 'en')).toBe(`${route.en} | DTH Tamizhan`);
     expect(policyPageTitle(route.key, 'ta')).toContain(route.ta);
   });
-  it('uses explicit placeholders for every unknown business detail and operational timeline', () => {
-    for (const value of Object.values(BUSINESS_DETAILS)) expect(value).toMatch(/^\[FILL IN\]/);
+  it('publishes confirmed business details while keeping the launch date pending', () => {
+    expect(BUSINESS_DETAILS.policyDate).toContain('To be announced after launch');
+    expect(BUSINESS_DETAILS.installation).toContain('recharges only');
+    expect(BUSINESS_DETAILS.processors).toContain('Netlify');
+    expect(BUSINESS_DETAILS.retention).toContain('72 months from the due date');
+    expect(BUSINESS_DETAILS.retention).toContain('automatic deletion is not implemented');
     const contact = renderToStaticMarkup(<SupportDetails currentLang="en" full />);
     for (const field of ['legalName', 'address', 'phone', 'email', 'supportHours', 'gstin', 'grievanceOfficer'] as const) expect(contact).toContain(BUSINESS_DETAILS[field]);
-    expect(contact).not.toContain('href="tel:');
-    expect(contact).not.toContain('href="mailto:');
+    expect(contact).toContain('href="tel:+918144404504"');
+    expect(contact).toContain('href="mailto:professorpradeeps@gmail.com"');
+    expect(contact).toContain('href="mailto:lavanyacommunication09@gmail.com"');
+    const tamil = renderToStaticMarkup(<SupportDetails currentLang="ta" full />);
+    expect(tamil).toContain('SMP Enterprises'); expect(tamil).toContain(BUSINESS_DETAILS.gstin); expect(tamil).toContain(BUSINESS_DETAILS.grievanceEmail);
   });
   it.each(['en', 'ta'] as const)('includes all English and Tamil footer destinations in %s mode', currentLang => {
     const html = renderToStaticMarkup(<MemoryRouter><PolicyLinks currentLang={currentLang} bilingual /></MemoryRouter>);
@@ -46,13 +53,17 @@ describe('trust and legal routes (QA-07)', () => {
     expect(html).not.toContain(businessDetails(currentLang).supportHours);
     expect(html).not.toContain(currentLang === 'en' ? 'By paying you agree' : 'பணம் செலுத்துவதன் மூலம்');
   });
-  it('keeps refund timelines unresolved and preserves statutory remedies', () => {
+  it('distinguishes merchant review from provider credit estimates and preserves statutory remedies', () => {
     const text = JSON.stringify(POLICY_CONTENT.refund);
     expect(text).toContain(BUSINESS_DETAILS.refundReview);
     expect(text).toContain(BUSINESS_DETAILS.refundProcessing);
     expect(text).toContain(BUSINESS_DETAILS.bankCredit);
     expect(text).toContain('required by law');
-    expect(text).not.toMatch(/\b\d+\s*(?:hours?|days?|weeks?)\b/i);
+    expect(BUSINESS_DETAILS.bankCredit).toContain('7–10 working days');
+    expect(BUSINESS_DETAILS.refundProcessing).toContain('manually submit');
+    expect(BUSINESS_DETAILS.refundReview).toContain('does not set');
+    expect(BUSINESS_DETAILS.reconciliation).toContain('not a promise');
+    expect(BUSINESS_DETAILS.feesAndTaxes).toContain('not an automatic 18% tax');
   });
   it('removes unsupported trust, timing and encryption claims in both languages', () => {
     for (const lang of ['en', 'ta'] as const) {

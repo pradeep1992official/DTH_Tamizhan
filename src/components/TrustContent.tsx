@@ -24,5 +24,9 @@ export function SupportDetails({ currentLang, full = false }: { currentLang: Lan
       [translations[currentLang].uiGrievanceEmail, details.grievanceEmail],
       [translations[currentLang].uiGrievanceAddress, details.grievanceAddress]] : []),
   ];
-  return <dl className="space-y-2 text-sm break-words">{rows.map(([label, value]) => <div key={label}><dt className="font-medium inline">{label}: </dt><dd className="inline">{value}</dd></div>)}</dl>;
+  return <dl className="space-y-2 text-sm break-words">{rows.map(([label, value]) => {
+    const href = value === details.phone && /^\+?[\d\s()-]{7,}$/.test(value) ? `tel:${value.replace(/[^\d+]/g, '')}` :
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? `mailto:${value}` : null;
+    return <div key={label}><dt className="font-medium inline">{label}: </dt><dd className="inline">{href ? <a href={href} className="underline underline-offset-4">{value}</a> : value}</dd></div>;
+  })}</dl>;
 }
