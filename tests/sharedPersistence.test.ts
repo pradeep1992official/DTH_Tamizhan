@@ -26,6 +26,7 @@ import { acquireStorageLease, collections, paymentKey, usesFirestore } from '../
 import { recordProviderPayment, readPaymentLedger } from '../server/models/paymentLedger';
 import { updatePaidRechargeStatus, getRechargeOrders } from '../server/models/paidRechargeOrders';
 import { processReceiptEmails, readEmailOutbox, saveEmailJobs } from '../server/emailDelivery';
+import { planModel } from '../server/models/planModel';
 
 const payment = { id: 'pay_shared', order_id: 'order_shared', amount: 139600, currency: 'INR', method: 'upi', status: 'captured', created_at: 1700000000 } as any;
 const order = { notes: { dth_operator: 'airtel_dth', dth_subscriber: '3015222222', dth_plan: 'Tamil HD', dth_customer_uid: 'customer', dth_customer_email: 'customer@example.com' } } as any;
@@ -78,4 +79,9 @@ it('never falls back to files when Firestore fails and refuses production file m
   await expect(recordProviderPayment(payment, order)).rejects.toThrow('Storage unavailable');
   expect(state.docs.has(`${collections.payments}/${paymentKey(payment.id, false)}`)).toBe(false);
   vi.stubEnv('NODE_ENV', 'production'); vi.stubEnv('PERSISTENCE_DRIVER', 'file'); expect(usesFirestore).toThrow('Production requires');
+});
+it('excludes catalog bookkeeping without hiding real packs that need administrator review', async () => {
+  state.docs.set('plan_catalog/catalog_state', { id: 'catalog_state', updatedAt: '2026-11-13' });
+  state.docs.set('plan_catalog/real-pack', { id: 'real-pack', plan_name: 'Pack requiring review', amount: 0 });
+  expect((await planModel.getAll()).map(plan => plan.id)).toEqual(['real-pack']);
 });

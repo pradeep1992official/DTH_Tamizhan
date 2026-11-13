@@ -55,9 +55,10 @@ function persistPlans(): void {
 
 export const planModel = {
   async getAll(): Promise<PlanCatalogItem[]> {
-    if (!usesFirestore()) return local().plans;
+    // This document stores catalog bookkeeping, not a purchasable pack.
+    if (!usesFirestore()) return local().plans.filter(plan => plan.id !== 'catalog_state');
     const [plans, deleted] = await Promise.all([readCollection<PlanCatalogItem>(collections.plans), this.getDeletedIds()]);
-    return plans.filter(plan => !deleted.includes(plan.id));
+    return plans.filter(plan => plan.id !== 'catalog_state' && !deleted.includes(plan.id));
   },
 
   async getDeletedIds(): Promise<string[]> {
