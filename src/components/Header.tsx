@@ -9,7 +9,7 @@ import {
   Sliders
 } from '../lib/icons';
 import { Language, UserProfile } from '../types';
-import { verifyAdminNavigationAccess } from '../lib/adminNavigationAccess';
+import { AdminNavigationError, verifyAdminNavigationAccess } from '../lib/adminNavigationAccess';
 import { translations } from '../lib/translations';
 import { OperatorTheme } from '../lib/theme';
 
@@ -39,6 +39,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [adminAccess, setAdminAccess] = useState<{ uid: string; status: 'checking' | 'allowed' | 'denied' | 'error' } | null>(null);
   const [adminAccessRetry, setAdminAccessRetry] = useState(0);
+  const [adminAccessError, setAdminAccessError] = useState<'session' | 'server' | 'network'>('server');
   const dropdownRef = useRef<HTMLDivElement>(null);
   const isAdmin = !!user && adminAccess?.uid === user.uid && adminAccess.status === 'allowed';
 
@@ -49,8 +50,11 @@ export const Header: React.FC<HeaderProps> = ({
     setAdminAccess({ uid: user.uid, status: 'checking' });
     verifyAdminNavigationAccess(user.uid, controller.signal).then(allowed => {
       if (active) setAdminAccess({ uid: user.uid, status: allowed ? 'allowed' : 'denied' });
-    }).catch(() => {
-      if (active) setAdminAccess({ uid: user.uid, status: 'error' });
+    }).catch(error => {
+      if (active) {
+        setAdminAccessError(error instanceof AdminNavigationError ? error.reason : 'server');
+        setAdminAccess({ uid: user.uid, status: 'error' });
+      }
     });
     return () => { active = false; controller.abort(); };
   }, [user?.uid, isProfileDropdownOpen, adminAccessRetry]);
@@ -274,6 +278,11 @@ export const Header: React.FC<HeaderProps> = ({
                 {user && adminAccess?.uid === user.uid && adminAccess.status === 'error' && (
                   <div className="px-4 py-2 space-y-2">
                     <p role="alert">{translations[currentLang].uiUnableToVerifyAdminAccess}</p>
+                    <p className="text-xs text-muted">{currentLang === 'ta'
+                      ? adminAccessError === 'session' ? 'வெளியேறி மீண்டும் உள்நுழையவும். சிக்கல் தொடர்ந்தால் சேவையக Firebase அமைப்பைச் சரிபார்க்கவும்.' : 'சேவையக இணைப்பு மற்றும் Firebase நிர்வாக அமைப்பைச் சரிபார்த்து மீண்டும் முயற்சிக்கவும்.'
+                      : adminAccessError === 'session' ? 'Sign out and sign in again. If this continues, check the server Firebase credentials.'
+                      : adminAccessError === 'network' ? 'Check your connection and retry. The authentication server could not be reached.'
+                      : 'The server could not confirm access. Check the server Firebase configuration and retry.'}</p>
                     <button type="button" onClick={() => setAdminAccessRetry(value => value + 1)}>{translations[currentLang].uiRetryAccessCheck}</button>
                   </div>
                 )}

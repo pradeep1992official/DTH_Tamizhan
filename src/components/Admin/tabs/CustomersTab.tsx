@@ -123,7 +123,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
               ) : filteredCustomers.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="p-8 text-center text-ink ">
-                    {customers.length === 0 ? 'Customers will appear after their first successful recharge' : 'No matching customers'}
+                    {customers.length === 0 ? 'Customers will appear after their first captured recharge payment' : 'No matching customers'}
                   </td>
                 </tr>
               ) : (
@@ -131,9 +131,10 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
                   <tr key={cust.id} className="hover:bg-paper-2 transition-colors">
                     <td data-label="Customer" className="p-3.5 font-medium">
                       <div className="font-bold text-sm text-ink ">{cust.customerName}</div>
+                      {cust.testMode && <span className="text-xs text-muted">TEST CUSTOMER</span>}
                       <div className="text-sm text-muted  flex items-center gap-1 mt-0.5">
                         <Phone className="w-3.5 h-3.5" />
-                        <span>{cust.registeredMobile}</span>
+                        <span>{cust.registeredMobile || 'Phone not provided'}</span>
                       </div>
                       <div className="md:hidden text-sm text-ink  mt-1">
                         {cust.operatorName} · {cust.smartCardNumber}
@@ -143,6 +144,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
                     <td data-label="Smart card" className="p-3.5 font-mono font-bold text-xs">{cust.smartCardNumber}</td>
                     <td data-label="Last recharged pack" className="hidden md:table-cell p-3.5">
                       <div className="font-medium text-ink ">{cust.activePackName}</div>
+                      <span className="text-xs text-muted">{cust.latestRechargeStatus === 'completed' ? 'Recharge completed' : cust.latestRechargeStatus === 'failed' ? 'Recharge failed' : 'Paid · Recharge pending'}</span>
 
                     </td>
 

@@ -294,6 +294,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
         {activeTab === 'payments' && (
           <PaymentsTab
+            getAuthHeaders={getAuthHeaders}
             payments={payments}
             paymentsLoading={paymentsLoading}
             onRefresh={fetchPayments}

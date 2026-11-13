@@ -93,6 +93,7 @@ export const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
                   <span className="compact-plan-pill compact-plan-operator" data-operator={order.operator}>{order.operatorName}</span>
                   <span className="compact-plan-pill pending-customer-id"><span className="pending-pill-label">ID</span> {order.smartCardNumber}</span>
                   <span className="compact-plan-pill pending-order-price">Rs. {order.amount.toLocaleString('en-IN')}</span>
+                  {order.testMode && <span className="compact-plan-pill">TEST · No real recharge</span>}
                 </div>
                 <div className="pending-order-summary text-sm">
                   <strong title={`Order ${order.orderId}`}>{order.customerName || t.customer}</strong>

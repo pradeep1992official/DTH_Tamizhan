@@ -11,8 +11,7 @@ import {
   AlertCircle,
   Calendar,
   CreditCard,
-  X,
-  Sparkles
+  X
 } from '../lib/icons';
 import { DthConnection, DthOperatorId, Language, UserProfile, resolveDishFamilyOperatorId } from '../types';
 import { translations } from '../lib/translations';

@@ -1,4 +1,4 @@
-import { formatPrice, formatStoredDuration } from '../lib/catalog';
+﻿import { formatPrice, formatStoredDuration } from '../lib/catalog';
 import { localizeCustomerText, localizeCustomerError } from '../lib/customerMessages';
 import { subscriberLabel } from '../lib/subscriberValidation';
 import { translations } from '../lib/translations';
@@ -9,6 +9,8 @@ import { subscriberError } from '../lib/subscriberValidation';
 import { useAccessibleModal } from '../lib/useAccessibleModal';
 import type { OperatorTheme } from '../lib/theme';
 import type { CheckoutSession, SandboxOutcome } from '../../server/payments';
+import { RazorpayCheckout } from './RazorpayCheckout';
+import { paymentAuthHeaders } from '../lib/paymentAuth';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -38,9 +40,9 @@ export function PaymentInstrument({ method, mode, session, expired, seconds, cur
   </>;
 }
 
-export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, plan, operator, smartCard, currentLang }) => {
-  const { modalRef } = useAccessibleModal({ isOpen, onClose });
+export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, plan, operator, smartCard, currentLang, user }) => {
   const [mode, setMode] = useState<'sandbox' | 'production' | null>(null);
+  const { modalRef } = useAccessibleModal({ isOpen: isOpen && mode !== 'production', onClose });
   const [session, setSession] = useState<CheckoutSession | null>(null);
   const [method, setMethod] = useState<'upi' | 'card' | 'netbanking'>('upi');
   const [outcome, setOutcome] = useState<SandboxOutcome>('success');
@@ -59,7 +61,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, pla
     const timeout = setTimeout(() => abort.abort(), 15_000);
     try {
       const response = await fetch(url, { method: body ? 'POST' : 'GET', signal: abort.signal,
-        headers: body ? { 'Content-Type': 'application/json' } : undefined,
+        headers: body ? await paymentAuthHeaders() : undefined,
         body: body ? JSON.stringify(body) : undefined });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || translations[currentLang].uiCheckoutIsUnavailablePleaseRetry);
@@ -82,7 +84,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, pla
       if (version !== generation.current) return;
       const confirmedMode = config.mode === 'sandbox' ? 'sandbox' : 'production';
       setMode(confirmedMode);
-      if (confirmedMode === 'production' || fresh) setSession(null);
+      if (confirmedMode === 'production') return;
+      if (fresh) setSession(null);
       if (fresh || !requestKey.current) requestKey.current = crypto.randomUUID();
       const data = await request('/api/payments/session', { idempotencyKey: requestKey.current,
         packId, operator: operator.id, smartCardNumber: smartCard,
@@ -128,6 +131,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, pla
   }
 
   if (!isOpen) return null;
+  if (mode === 'production') return <RazorpayCheckout key={`${packId}-${plan.price}-${operator.id}-${smartCard}`} onClose={onClose} plan={plan} operator={operator} smartCard={smartCard} currentLang={currentLang} user={user} />;
   const seconds = session ? Math.max(0, Math.ceil((session.expiresAt - now) / 1000)) : 0;
   const expired = !!session && seconds === 0 && session.status === 'ready';
   const formatAmount = (paise: number) => formatPrice(paise / 100, currentLang);
@@ -145,7 +149,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, pla
         </div>
         <div className="p-6 space-y-5">
           <dl className="payment-reference text-sm space-y-2">
-            <div><dt className="text-muted">{translations[currentLang].uiPaymentProvider}</dt><dd>{session ? localizeCustomerText(session.provider, currentLang) : mode === 'production' ? translations[currentLang].uiNotConfigured : translations[currentLang].uiCheckingConfiguration}</dd></div>
+            <div><dt className="text-muted">{translations[currentLang].uiPaymentProvider}</dt><dd>{session ? localizeCustomerText(session.provider, currentLang) : translations[currentLang].uiCheckingConfiguration}</dd></div>
             <div><dt className="text-muted">{translations[currentLang].uiOrderReference}</dt><dd className="break-all tabular-nums">{session?.id || translations[currentLang].uiNoProviderOrder}</dd></div>
           </dl>
           <p className="text-sm text-muted">{mode === 'sandbox' ? translations[currentLang].uiSandboxExplanation : translations[currentLang].uiPaymentExplanation}</p>
@@ -173,3 +177,4 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, pla
     </div>
   );
 };
+

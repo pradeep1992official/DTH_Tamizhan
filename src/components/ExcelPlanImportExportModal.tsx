@@ -14,7 +14,6 @@ import {
   FileDown,
   Check,
   Info,
-  Sparkles,
   ArrowUpRight,
   Database
 } from '../lib/icons';
@@ -739,9 +738,6 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
                   isLight ? 'bg-paper border-rule' : 'bg-paper-2 border-rule'
                 }`}>
                   <div className="flex items-center gap-3">
-                    <div className="p-3 rounded-lg bg-accent-soft text-accent">
-                      <Sparkles className="w-6 h-6" />
-                    </div>
                     <div>
                       <h3 className="font-bold text-base">Download Blank Excel Template</h3>
                       <p className={`text-sm ${currentTheme.subText}`}>

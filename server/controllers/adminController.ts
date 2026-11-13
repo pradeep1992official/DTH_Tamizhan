@@ -1,5 +1,6 @@
 import { getAuth } from 'firebase-admin/auth';
-import { customersFromSuccessfulRecharges } from '../../src/lib/rechargeCustomers';
+import { customersFromPaidRecharges } from '../../src/lib/rechargeCustomers';
+import { getRechargeOrders } from '../models/paidRechargeOrders';
 import { Request, Response } from 'express';
 import {
   APPROVED_ADMIN_EMAILS,
@@ -21,6 +22,8 @@ import {
   verifyAuthToken,
 } from '../middleware/auth';
 import { CustomerRecord } from '../../src/types';
+import { readPaymentLedger, recordProviderPayment } from '../models/paymentLedger';
+import { razorpayClient } from '../razorpay';
 
 function forbidden(res: Response): void {
   res.status(403).json({ success: false, error: 'Forbidden. Admin privileges required.' });
@@ -60,8 +63,32 @@ export const adminController = {
   async listCustomers(req: Request, res: Response): Promise<void> {
     const auth = await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS);
     if (!auth.authorized) return forbidden(res);
-    const customers = customersFromSuccessfulRecharges(MEMORY_RECHARGE_ORDERS);
-    res.json({ success: true, count: customers.length, customers });
+    try {
+      const customers = customersFromPaidRecharges(getRechargeOrders());
+      // Older payments can recover contact details from their bound account.
+      const profiles = new Map<string, Promise<{ name?: string; phone?: string }>>();
+      for (const customer of customers) {
+        const uid = customer.customerUid;
+        if (!uid || uid === 'legacy-unassigned' || (customer.customerName !== 'Subscriber' && customer.registeredMobile)) continue;
+        if (!profiles.has(uid)) profiles.set(uid, (async () => {
+          const [profile, account] = await Promise.all([
+            getAdminFirestore().collection('users').doc(uid).get().then(doc => doc.data()).catch(() => undefined),
+            Promise.resolve().then(() => getAuth().getUser(uid)).catch(() => undefined),
+          ]);
+          const name = profile?.displayName || account?.displayName;
+          const phone = profile?.phoneNumber || account?.phoneNumber;
+          return { name: typeof name === 'string' ? name.slice(0, 100) : undefined,
+            phone: typeof phone === 'string' ? phone.slice(0, 20) : undefined };
+        })());
+      }
+      await Promise.all(customers.map(async customer => {
+        const profile = customer.customerUid ? await profiles.get(customer.customerUid) : undefined;
+        if (profile?.name && customer.customerName === 'Subscriber') customer.customerName = profile.name;
+        if (profile?.phone && !customer.registeredMobile) customer.registeredMobile = profile.phone;
+      }));
+      res.setHeader('Cache-Control', 'no-store');
+      res.json({ success: true, count: customers.length, customers });
+    } catch { res.status(503).json({ success: false, error: 'Unable to load customers from recorded payments.' }); }
   },
 
   async createCustomer(req: Request, res: Response): Promise<void> {
@@ -141,7 +168,7 @@ export const adminController = {
   async payments(req: Request, res: Response): Promise<void> {
     const auth = await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS);
     if (!auth.authorized) return forbidden(res);
-    const payments = MEMORY_RECHARGE_ORDERS.map((order) => ({
+    const legacyPayments = MEMORY_RECHARGE_ORDERS.map((order) => ({
       id: order.orderId,
       paymentMethod: order.paymentMethod,
       amount: order.amount,
@@ -151,7 +178,32 @@ export const adminController = {
       createdAt: order.createdAt,
       operatorRefId: order.operatorRefId,
     }));
-    res.json({ success: true, count: payments.length, payments });
+    try {
+      const ledger = readPaymentLedger();
+      const ids = new Set(ledger.map(entry => entry.id));
+      const payments = [...ledger, ...legacyPayments.filter(entry => !ids.has(entry.id))]
+        .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+      res.setHeader('Cache-Control', 'no-store');
+      res.json({ success: true, count: payments.length, payments });
+    } catch { res.status(503).json({ success: false, error: 'Unable to read recorded payments.' }); }
+  },
+
+  async syncPayments(req: Request, res: Response): Promise<void> {
+    const verdict = await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS);
+    if (!verdict.authorized) return forbidden(res);
+    if (!verdict.isSuperAdmin) return forbidden(res);
+    try {
+      const client = razorpayClient();
+      const result = await client.payments.all({ count: 100 });
+      let imported = 0;
+      for (const payment of result.items) {
+        if (!payment.order_id) continue;
+        const order = await client.orders.fetch(payment.order_id);
+        recordProviderPayment(payment, order);
+        imported++;
+      }
+      res.json({ success: true, imported, message: `Synced ${imported} of the latest 100 Razorpay payments for the configured account and key mode.` });
+    } catch { res.status(503).json({ success: false, error: 'Unable to sync Razorpay payments. Check provider credentials and retry. Previously imported records are retained.' }); }
   },
 
   async accessList(req: Request, res: Response): Promise<void> {

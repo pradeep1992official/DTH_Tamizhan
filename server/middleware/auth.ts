@@ -40,6 +40,8 @@ export async function verifyAuthToken(req: Request): Promise<{ uid: string; emai
       emailVerified: decodedToken.email_verified === true,
     };
   } catch (err: any) {
+    // Log only the error code; never log bearer tokens or credential contents.
+    console.warn('[auth] Firebase token verification failed:', typeof err?.code === 'string' ? err.code : 'unknown');
     return null;
   }
 }

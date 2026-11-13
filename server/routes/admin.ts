@@ -20,6 +20,7 @@ adminRouter.post('/api/admin/customers/sync', adminController.syncCustomers);
 adminRouter.get('/api/admin/audit-logs', adminController.auditLogs);
 adminRouter.get('/api/admin/reports', adminController.reports);
 adminRouter.get('/api/admin/payments', adminController.payments);
+adminRouter.post('/api/admin/payments/sync', adminLimiter, adminController.syncPayments);
 adminRouter.get('/api/admin/access-list', adminController.accessList);
 adminRouter.post('/api/admin/request-access', adminLimiter, validateBody(RequestAccessSchema), adminController.requestAccess);
 adminRouter.post('/api/admin/approve-user', adminLimiter, validateBody(ApproveUserSchema), adminController.approveUser);

@@ -7,6 +7,9 @@ import {
 } from '../models/store';
 import { isCallerAdminAuthorized, verifyAuthToken } from '../middleware/auth';
 import { SubscriberDetails } from '../../src/types';
+import { getRechargeOrders, updatePaidRechargeStatus } from '../models/paidRechargeOrders';
+import { UpdateOrderStatusSchema } from '../middleware/validation';
+import { PaymentError } from '../payments';
 
 export const ordersController = {
   async list(req: Request, res: Response): Promise<void> {
@@ -21,22 +24,25 @@ export const ordersController = {
     }
 
     const callerEmail = authCtx.email || '';
+    let allOrders;
+    try { allOrders = getRechargeOrders(); }
+    catch { res.status(503).json({ success: false, error: 'Unable to load recorded recharge payments.', orders: [] }); return; }
     const adminCheck = await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS);
     if (adminCheck.authorized && req.query.isWorker === 'true') {
-      const orders = MEMORY_RECHARGE_ORDERS.filter((order) => order.rechargeStatus !== 'completed');
+      const orders = allOrders.filter((order) => order.rechargeStatus !== 'completed');
       res.json({ success: true, count: orders.length, orders });
       return;
     }
     if (adminCheck.authorized && req.query.all === 'true') {
       res.json({
         success: true,
-        count: MEMORY_RECHARGE_ORDERS.length,
-        orders: MEMORY_RECHARGE_ORDERS,
+        count: allOrders.length,
+        orders: allOrders,
       });
       return;
     }
 
-    const orders = MEMORY_RECHARGE_ORDERS.filter((order) =>
+    const orders = allOrders.filter((order) =>
       order.user_id === authCtx.uid || (callerEmail && order.registeredMobile === callerEmail),
     );
     res.json({ success: true, count: orders.length, orders });
@@ -48,11 +54,11 @@ export const ordersController = {
       res.status(403).json({ success: false, error: 'Forbidden. Admin privileges required.' });
       return;
     }
-    res.json({
-      success: true,
-      count: MEMORY_RECHARGE_ORDERS.length,
-      orders: MEMORY_RECHARGE_ORDERS,
-    });
+    try {
+      const orders = getRechargeOrders();
+      res.setHeader('Cache-Control', 'no-store');
+      res.json({ success: true, count: orders.length, orders });
+    } catch { res.status(503).json({ success: false, error: 'Unable to load recorded recharge payments.', orders: [] }); }
   },
 
   verifySubscriber(req: Request, res: Response): void {
@@ -101,6 +107,14 @@ export const ordersController = {
       res.status(403).json({ success: false, error: 'Forbidden. Admin privileges required.' });
       return;
     }
-    res.status(503).json({ success: false, error: 'Order changes require verified payment provenance. Payment verification is not configured.' });
+    const parsed = UpdateOrderStatusSchema.safeParse(req.body);
+    if (!parsed.success) { res.status(400).json({ success: false, error: 'A valid order and recharge status are required.' }); return; }
+    try {
+      const order = updatePaidRechargeStatus(parsed.data.orderId, parsed.data.rechargeStatus, parsed.data.workerNotes);
+      res.json({ success: true, order });
+    } catch (error) {
+      res.status(error instanceof PaymentError ? error.status : 500).json({ success: false,
+        error: error instanceof PaymentError ? error.message : 'Unable to save recharge status. Please retry.' });
+    }
   },
 };

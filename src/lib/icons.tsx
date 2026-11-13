@@ -56,7 +56,6 @@ import {
   SignOutIcon,
   SlidersIcon,
   SlidersHorizontalIcon,
-  SparkleIcon,
   SquareIcon,
   StackIcon,
   TelevisionIcon,
@@ -135,7 +134,6 @@ export const ShieldCheck = /* @__PURE__ */ themedIcon(ShieldCheckIcon);
 export const Sliders = /* @__PURE__ */ themedIcon(SlidersIcon);
 export const SlidersHorizontal = /* @__PURE__ */ themedIcon(SlidersHorizontalIcon);
 export const Smartphone = /* @__PURE__ */ themedIcon(DeviceMobileIcon);
-export const Sparkles = /* @__PURE__ */ themedIcon(SparkleIcon);
 export const Square = /* @__PURE__ */ themedIcon(SquareIcon);
 export const Trash2 = /* @__PURE__ */ themedIcon(TrashIcon);
 export const TrendingUp = /* @__PURE__ */ themedIcon(TrendUpIcon);

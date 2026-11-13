@@ -10,7 +10,6 @@ import {
   Tv,
   Check,
   X,
-  Sparkles,
   RefreshCw,
   AlertCircle
 } from '../../../lib/icons';
@@ -364,7 +363,6 @@ export const PacksTab: React.FC<PacksTabProps> = ({
                     <td data-label={t.status} className="hidden sm:table-cell p-3.5">
                       {plan.is_recommended ? (
                         <span className="catalog-recommended text-sm px-2.5 py-0.5 rounded-full bg-success/10 text-success  font-bold border border-rule inline-flex items-center gap-1 w-fit">
-                          <Sparkles className="w-3.5 h-3.5" />
                           <span>Recommended</span>
                         </span>
                       ) : (

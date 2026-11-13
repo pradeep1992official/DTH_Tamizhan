@@ -39,6 +39,12 @@ export interface PaymentReportItem {
   customerName: string;
   createdAt: string;
   operatorRefId: string;
+  orderId?: string;
+  testMode?: boolean;
+  providerStatus?: string;
+  smartCardNumber?: string;
+  packName?: string;
+  currency?: string;
 }
 
 export function useAdminData(user: UserProfile | null, showToast: (msg: string) => void) {

@@ -11,7 +11,6 @@ import {
   Tv,
   CheckCircle2,
   AlertCircle,
-  Sparkles,
   CreditCard,
   Crown,
   ChevronRight,

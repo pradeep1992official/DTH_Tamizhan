@@ -98,6 +98,8 @@ export interface DthConnection {
 }
 
 export interface RechargeOrder {
+  testMode?: boolean;
+  paymentId?: string;
   orderId: string;
   user_id: string;
   operator: DthOperatorId;
@@ -253,6 +255,9 @@ export interface AdminAccessRequest {
 }
 
 export interface CustomerRecord {
+  testMode?: boolean;
+  latestRechargeStatus?: RechargeOrder['rechargeStatus'];
+  customerUid?: string;
   id: string;
   customerName: string;
   registeredMobile: string;

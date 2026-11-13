@@ -15,6 +15,7 @@ interface PaymentsTabProps {
   onRefresh: () => void;
   currentTheme: OperatorTheme;
   currentLang: Language;
+  getAuthHeaders?: () => Promise<Record<string, string>>;
 }
 
 export const PaymentsTab: React.FC<PaymentsTabProps> = ({
@@ -23,12 +24,27 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
   onRefresh,
   currentTheme,
   currentLang,
+  getAuthHeaders,
 }) => {
   const t = translations[currentLang];
   const isLight = currentTheme.isLightMode;
   const [selectedPayment, setSelectedPayment] = useState<PaymentReportItem | null>(null);
   const { modalRef } = useAccessibleModal({ isOpen: Boolean(selectedPayment), onClose: () => setSelectedPayment(null) });
   const [paySearch, setPaySearch] = useState('');
+  const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState('');
+  const [modeFilter, setModeFilter] = useState('all');
+  async function syncRazorpay() {
+    if (!getAuthHeaders || syncing) return;
+    setSyncing(true); setSyncMessage('');
+    try {
+      const response = await fetch('/api/admin/payments/sync', { method: 'POST', headers: await getAuthHeaders() });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Unable to sync payments. Super-administrator access is required.');
+      setSyncMessage(data.message); onRefresh();
+    } catch (error) { setSyncMessage(error instanceof Error ? error.message : 'Payment sync failed.'); }
+    finally { setSyncing(false); }
+  }
   const [methodFilter, setMethodFilter] = useState('all');
   const [sort, setSort] = useState<{ key: PaymentSortKey; direction: 'asc' | 'desc' }>({ key: 'createdAt', direction: 'desc' });
   const operators: Record<string, string> = { sun_direct: 'Sun Direct', tata_play: 'Tata Play', airtel_dth: 'Airtel DTH', dish_tv: 'Dish TV & D2H', d2h: 'Dish TV & D2H' };
@@ -50,9 +66,11 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
     const matchSearch =
       p.id.toLowerCase().includes(paySearch.toLowerCase()) ||
       p.customerName.toLowerCase().includes(paySearch.toLowerCase()) ||
-      (p.operatorRefId || '').toLowerCase().includes(paySearch.toLowerCase());
+      (p.operatorRefId || '').toLowerCase().includes(paySearch.toLowerCase()) ||
+      (p.orderId || '').toLowerCase().includes(paySearch.toLowerCase()) ||
+      (p.smartCardNumber || '').toLowerCase().includes(paySearch.toLowerCase());
     const matchMethod = methodFilter === 'all' || p.paymentMethod === methodFilter;
-    return matchSearch && matchMethod;
+    return matchSearch && matchMethod && (modeFilter === 'all' || (modeFilter === 'test' ? p.testMode === true : p.testMode !== true));
   }).sort((a, b) => {
     const { key, direction } = sort;
     const value = (item: PaymentReportItem) => key === 'operator' ? operators[item.operator] || item.operator : key === 'paymentMethod' ? methods[item.paymentMethod] || item.paymentMethod : String(item[key] ?? '');
@@ -60,7 +78,7 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
     return (direction === 'asc' ? comparison : -comparison) || a.id.localeCompare(b.id);
   });
 
-  const settledPayments = filteredPayments.filter((payment) => payment.status === 'paid');
+  const settledPayments = filteredPayments.filter((payment) => payment.status === 'paid' && !payment.testMode);
   const totalVolume = settledPayments.reduce((acc, payment) => acc + payment.amount, 0);
 
   return (
@@ -69,11 +87,11 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
       <section aria-label="Payment summary" className="payments-summary">
       <div className="admin-summary">
         <div className="admin-summary-item">
-          <div className={`text-sm font-medium ${isLight ? 'text-ink' : 'text-muted'}`}>Total paid</div>
+          <div className={`text-sm font-medium ${isLight ? 'text-ink' : 'text-muted'}`}>Total paid (live)</div>
           <div className="text-2xl font-bold mt-1 text-success">Rs. {totalVolume.toLocaleString('en-IN')}</div>
         </div>
         <div className="admin-summary-item">
-          <div className={`text-sm font-medium ${isLight ? 'text-ink' : 'text-muted'}`}>Paid transactions</div>
+          <div className={`text-sm font-medium ${isLight ? 'text-ink' : 'text-muted'}`}>Paid transactions (live)</div>
           <div className="text-2xl font-mono font-bold mt-1">{settledPayments.length}</div>
         </div>
       </div>
@@ -116,8 +134,11 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
           </select>
         </div>
 
-        <AdminRefreshButton onRefresh={onRefresh} loading={paymentsLoading} label={t.refresh} />
+        <select aria-label="Payment environment" value={modeFilter} onChange={event => setModeFilter(event.target.value)} className="border border-rule rounded-lg p-2 bg-paper"><option value="all">All payments</option><option value="live">Live payments</option><option value="test">Test payments</option></select>
+        {getAuthHeaders && <button type="button" disabled={syncing} onClick={() => void syncRazorpay()} className="border border-rule rounded-lg px-3 py-2">{syncing ? 'Syncing…' : 'Sync recent Razorpay payments'}</button>}
+        <AdminRefreshButton onRefresh={onRefresh} loading={paymentsLoading || syncing} label={t.refresh} />
       </div>
+      {syncMessage && <p role="status" className="text-sm">{syncMessage}</p>}
 
       {/* Payments Table */}
       <div className={`border rounded-lg overflow-hidden shadow-none ${
@@ -149,7 +170,7 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
               ) : (
                 filteredPayments.map((p) => (
                   <tr key={p.id} className="hover:bg-paper-2 transition-colors">
-                    <td data-label="Transaction" className="payment-transaction p-3.5 font-mono font-bold">{p.id}</td>
+                    <td data-label="Transaction" className="payment-transaction p-3.5 font-mono font-bold">{p.id}{p.testMode && <span className="block text-xs text-muted mt-1">TEST · No real money</span>}</td>
                     <td data-label="Date (IST)" className="p-3.5 text-xs"><div>{dateLabel(p.createdAt)}</div><div className="text-muted mt-1">{dateLabel(p.createdAt, true)}</div></td>
                     <td data-label="Customer" className="payment-customer p-3.5 font-medium">{p.customerName}</td>
                     <td data-label={t.operatorLabel} className="hidden md:table-cell p-3.5 capitalize"><span className="compact-plan-pill compact-plan-operator" data-operator={p.operator}>{operators[p.operator] || p.operator}</span></td>
@@ -184,6 +205,11 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
             </div>
             <section className="history-details-section" aria-label="Payment information">
               <dl className="history-details-fields">
+                <div><dt>Environment</dt><dd>{selectedPayment.testMode ? 'Test payment · No real money' : 'Live'}</dd></div>
+                <div><dt>Razorpay order</dt><dd>{selectedPayment.orderId || 'Not provided'}</dd></div>
+                <div><dt>Subscriber ID</dt><dd>{selectedPayment.smartCardNumber || 'Not recorded for this payment'}</dd></div>
+                <div><dt>Plan</dt><dd>{selectedPayment.packName || 'Not recorded for this payment'}</dd></div>
+                <div><dt>Provider status</dt><dd>{selectedPayment.providerStatus || selectedPayment.status}</dd></div>
                 <div><dt>Payment method</dt><dd>{methods[selectedPayment.paymentMethod] || selectedPayment.paymentMethod}</dd></div>
                 <div><dt>Date (IST)</dt><dd>{dateLabel(selectedPayment.createdAt)}<br />{dateLabel(selectedPayment.createdAt, true)}</dd></div>
               </dl>

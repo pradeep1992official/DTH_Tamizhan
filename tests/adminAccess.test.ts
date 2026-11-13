@@ -25,7 +25,7 @@ import { ordersController } from '../server/controllers/ordersController';
 import { plansController } from '../server/controllers/plansController';
 
 const request = (token?: string) => ({ headers: token ? { authorization: `Bearer ${token}` } : {}, query: {}, body: {} } as any);
-const response = () => { const res = { status: vi.fn(), json: vi.fn() }; res.status.mockReturnValue(res); return res; };
+const response = () => { const res = { status: vi.fn(), json: vi.fn(), setHeader: vi.fn() }; res.status.mockReturnValue(res); return res; };
 const readers = [ordersController.listAdmin, adminController.listCustomers, adminController.payments, adminController.reports,
   adminController.operators, adminController.accessList, adminController.auditLogs, plansController.listAdmin, plansController.listDeleted];
 
@@ -88,10 +88,10 @@ describe('canonical admin permission policy and API read path', () => {
     const req = request('customer'); req.body = { role: 'admin', is_plan_admin: true };
     expect((await isCallerAdminAuthorized(req, new Set(['customer@example.com']))).authorized).toBe(false);
   });
-  it('refuses fulfillment writes without a trusted payment verifier', async () => {
+  it('rejects invalid fulfillment updates without writing', async () => {
     const res = response();
     await ordersController.updateStatus(request('root'), res as any);
-    expect(res.status).toHaveBeenCalledWith(503);
+    expect(res.status).toHaveBeenCalledWith(400);
     expect(mocks.save).not.toHaveBeenCalled();
   });
   it('does not fabricate subscriber/customer data when lookup has no record', () => {

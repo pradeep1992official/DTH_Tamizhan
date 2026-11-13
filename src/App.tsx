@@ -275,6 +275,10 @@ function MainApp() {
     smartCard: string,
     saveBox: boolean
   ) => {
+    if (!user || !auth?.currentUser || auth.currentUser.uid !== user.uid) {
+      setIsAuthOpen(true);
+      return;
+    }
     if (subscriberError(operator.id, smartCard)) {
       setPrefillConn({ operator: operator.id, smartCardNumber: smartCard } as DthConnection);
       navigate('/recharge');

@@ -44,4 +44,18 @@ describe('server-backed admin navigation', () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 503 })));
     await expect(verifyAdminNavigationAccess('delegate')).rejects.toThrow('could not be verified');
   });
+  it('refreshes the token once after a 401 and checks the server again', async () => {
+    const fetcher = vi.fn().mockResolvedValueOnce(new Response('', { status: 401 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(approved)));
+    vi.stubGlobal('fetch', fetcher);
+    expect(await verifyAdminNavigationAccess('delegate')).toBe(true);
+    expect(session.current.getIdToken).toHaveBeenCalledWith(true);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+  it('never grants access when the refreshed token is rejected', async () => {
+    const fetcher = vi.fn(async () => new Response('', { status: 401 }));
+    vi.stubGlobal('fetch', fetcher);
+    await expect(verifyAdminNavigationAccess('delegate')).rejects.toMatchObject({ reason: 'session' });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
 });

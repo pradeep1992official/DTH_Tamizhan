@@ -140,3 +140,23 @@ Deploy the backend before relying on Hosting rewrites. Deploy Firestore rules se
 ## Demo fixtures
 
 Runtime reads do not create demo customers, orders, connections or catalog records. For isolated fixture export, set `NODE_ENV=development`, run `npx tsx scripts/seed-demo-admin.ts`, and enter the requested confirmation phrase. Files export to `.local-fixtures/` without contacting a database.
+# Razorpay checkout
+
+Customers must sign in before opening checkout. Order creation, signature verification, and simulator endpoints require a server-verified Firebase ID token. Razorpay orders store the authenticated customer's UID in server-written notes, and verification rejects orders belonging to another account. Legacy payments without customer ownership metadata remain available to authorized administrators through provider sync but cannot be claimed by customers.
+
+Run `npm install`, copy `.env.example` to `.env` when setting up a new machine, and set `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, and optionally `VITE_RAZORPAY_KEY_ID` (public key only). Set `PAYMENT_MODE=production` to use Razorpay Standard Checkout; `sandbox` selects the existing local simulator. Razorpay test keys still use Razorpay's test environment in production mode. The browser receives the public key from the order endpoint so it always matches the backend key.
+
+Run `npm run dev` and open http://localhost:3000. Choose an operator, enter a valid subscriber ID, select a plan or custom top-up, review checkout, and click **Pay securely**. Complete the Razorpay test flow, cancel the modal, and try a failed payment. Success is shown only after server verification. If verification fails after payment, retry verification instead of paying again. Use test payment details from [Razorpay's integration guide](https://razorpay.com/docs/payments/payment-gateway/web-integration/standard/integration-steps/).
+
+`POST /api/create-order` accepts either a catalog selection (`packId`, `operator`, `smartCardNumber`, optional `customAmount` in rupees), or `{ "amount": 100, "currency": "INR", "receipt": "optional-reference" }` with amount in paise. Catalog prices are calculated server-side. `POST /api/verify-payment` accepts `razorpay_order_id`, `razorpay_payment_id`, and `razorpay_signature`; it verifies the HMAC and provider order/payment and returns `paid: true` only for a captured payment. The generic amount endpoint does not purchase a catalog plan or authorize fulfillment.
+
+Set the server environment variables in your deployment, serve the unified Express backend (`npm run build` then `npm start`), and configure automatic capture in the Razorpay Dashboard. Static-only hosting and `npm run preview` do not provide these API routes. Never publish `.env` or prefix the secret with `VITE_`. No credentials belong in tracked files.
+
+Verified Razorpay payments are recorded atomically in `data/razorpay_payments.json` and shown in Admin → Payments. Test records are labeled and excluded from live totals. A super administrator can use **Sync recent Razorpay payments** to import the latest 100 provider payments from the configured account and key mode, including older payments and payments completed after the browser closed. Older orders without DTH metadata show unavailable subscriber/plan details; new checkout orders include that metadata. This sync does not initiate or capture payments. Disk storage requires a persistent volume and a single server process; use a shared durable store before deploying multiple instances.
+
+Admin → Pending Orders and customer order history derive captured recharge requests from this same durable ledger. Only payments with a valid operator, subscriber ID, and plan enter the queue; standalone or legacy payments without that metadata stay in Payments. Administrators can mark captured-payment orders successful, including test orders; completion is saved to `data/recharge_orders.json`. Test markers are retained, and completed test orders are excluded from customer recharge totals. Marking an order successful records the administrator's confirmation and does not call an operator recharge API. Payment authorization alone does not queue a recharge. Repeated verification/sync does not duplicate the request or reset an existing fulfillment status.
+
+This integration confirms payments but does not fulfill DTH recharges. Before live fulfillment, connect verified payments to your order workflow and add durable reconciliation/webhooks. No database tables were added.
+
+Checks: `npm run lint`, `npx vitest run tests/razorpay.test.ts tests/payments.test.ts tests/copyLocalization.test.tsx`, and `npm run build`.
+
