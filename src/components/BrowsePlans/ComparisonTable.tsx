@@ -1,5 +1,5 @@
 import { formatMessage } from '../../lib/customerMessages';
-import { formatPrice, formatMonthlyEquivalent, formatDuration, formatChannelCounts, validateCatalogPack } from '../../lib/catalog';
+import { formatPrice, formatMonthlyEquivalent, formatDuration, validateCatalogPack } from '../../lib/catalog';
 import React from 'react';
 import {
   X,
@@ -128,8 +128,6 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
                   <dl className={`mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t pt-3 text-sm ${isLight ? 'border-rule' : 'border-rule'}`}>
                     <dt className={isLight ? 'text-muted' : 'text-muted'}>{t.qualityLabel}</dt>
                     <dd className="text-right font-medium">{plan.type} {t.clarity}</dd>
-                    <dt className={isLight ? 'text-muted' : 'text-muted'}>{t.channels}</dt>
-                    <dd className="text-right font-medium">{formatChannelCounts(plan, currentLang)}</dd>
                     <dt className={isLight ? 'text-muted' : 'text-muted'}>{t.validity}</dt>
                     <dd className="text-right font-medium">{formatDuration(plan.duration_months, currentLang)}</dd>
                     <dt className={isLight ? 'text-muted' : 'text-muted'}>{t.monthlyEquivalent}</dt>
@@ -203,14 +201,6 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
                       }`}>
                         {p.type} {t.clarity}
                       </span>
-                    </td>
-                  ))}
-                </tr>
-                <tr>
-                  <td className={`p-3 font-medium ${isLight ? 'text-muted' : 'text-muted'}`}>{t.channels}</td>
-                  {plans.map((p) => (
-                    <td key={p.id} className="p-3 font-bold">
-                      {formatChannelCounts(p, currentLang)}
                     </td>
                   ))}
                 </tr>

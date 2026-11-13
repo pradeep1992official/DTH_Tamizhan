@@ -4,7 +4,7 @@ import { formatMessage, localizeCustomerError } from '../lib/customerMessages';
 import { OperatorCatalogNotice } from './OperatorCatalogNotice';
 import { TOP_UP_LIMITS, parseTopUpAmount, validateTopUpAmount } from '../lib/topUpAmount';
 import { RechargeHelp } from './RechargeHelp';
-import { formatPrice, formatMonthlyEquivalent, formatDuration, formatChannelCounts, formatCatalogIssues, validateCatalogPack } from '../lib/catalog';
+import { formatPrice, formatMonthlyEquivalent, formatDuration, formatCatalogIssues, validateCatalogPack } from '../lib/catalog';
 import { subscriberError, subscriberHelp, subscriberRule, subscriberLabel, subscriberPlaceholder, normalizeSubscriberId } from '../lib/subscriberValidation';
 import React, { useState, useEffect, useRef } from 'react';
 import {
@@ -688,11 +688,6 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                         <span className={`font-medium ${currentTheme.subText}`}>
                           {recHDPlan ? formatDuration(recHDPlan.duration_months, currentLang) : `${t.uiUnavailable}: ${formatDuration(hdDuration, currentLang)}`}
                         </span>
-                        <span className={`text-xs font-bold ${currentTheme.mutedText}`}>
-                          {recHDPlan
-                            ? formatChannelCounts(recHDPlan, currentLang)
-                            : hasHDOptions ? '' : (translations[currentLang].uiUnavailable)}
-                        </span>
                       </div>
                     </div>
                   </div>
@@ -822,11 +817,6 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                       <div className={`px-2.5 py-1.5 rounded-xl border text-xs flex items-center justify-between ${currentTheme.inputBg} ${currentTheme.inputBorder}`}>
                         <span className={`font-medium ${currentTheme.subText}`}>
                           {recSDPlan ? formatDuration(recSDPlan.duration_months, currentLang) : `${t.uiUnavailable}: ${formatDuration(sdDuration, currentLang)}`}
-                        </span>
-                        <span className={`text-xs font-bold ${currentTheme.mutedText}`}>
-                          {recSDPlan
-                            ? formatChannelCounts(recSDPlan, currentLang)
-                            : hasSDOptions ? '' : (translations[currentLang].uiUnavailable)}
                         </span>
                       </div>
                     </div>

@@ -1,4 +1,4 @@
-import { formatPrice, formatMonthlyEquivalent, formatDuration, formatChannelCounts, formatCatalogIssues, validateCatalogPack } from '../../lib/catalog';
+import { formatPrice, formatMonthlyEquivalent, formatDuration, formatCatalogIssues, validateCatalogPack } from '../../lib/catalog';
 import React from 'react';
 import { BrowsePlan, Language } from '../../types';
 import { OperatorTheme } from '../../lib/theme';
@@ -92,9 +92,6 @@ export const PlanCard: React.FC<PlanCardProps> = ({
 
       <div className="compact-plan-details">
       <h3 className="font-bold wrap-break-word">{planName}</h3>
-      <p className="compact-plan-summary text-sm text-muted">
-        <span>{formatChannelCounts(plan, currentLang)}</span>
-      </p>
       {validateCatalogPack(plan).length > 0 && <p role="status" className="text-error text-xs">{translations[currentLang].uiCatalogReview}: {formatCatalogIssues(plan, currentLang)}</p>}
       {channelListUrl && (
         <a className="compact-plan-channel-link" href={channelListUrl} target="_blank" rel="noopener noreferrer" aria-label={`${channelListLabel}: ${planName}`}>

@@ -1,5 +1,5 @@
 import { localizeCustomerError } from '../../lib/customerMessages';
-import { formatPrice, formatDuration, formatChannelCounts } from '../../lib/catalog';
+import { formatPrice, formatDuration } from '../../lib/catalog';
 import { subscriberError, subscriberHelp, subscriberRule, subscriberLabel, subscriberPlaceholder, normalizeSubscriberId } from '../../lib/subscriberValidation';
 import React, { useState } from 'react';
 import {
@@ -198,9 +198,6 @@ export const ApplyPlanModal: React.FC<ApplyPlanModalProps> = ({
                 </span>
               </div>
               <h4 className="font-bold text-sm sm:text-base mt-0.5">{plan.name}</h4>
-              <p className="text-sm opacity-90 font-medium">
-                {formatChannelCounts(plan, currentLang)}
-              </p>
             </div>
 
             <div className="text-right shrink-0">
