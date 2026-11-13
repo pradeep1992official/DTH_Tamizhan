@@ -255,6 +255,7 @@ export interface AdminAccessRequest {
 }
 
 export interface CustomerRecord {
+  boxCount?: number;
   testMode?: boolean;
   latestRechargeStatus?: RechargeOrder['rechargeStatus'];
   customerUid?: string;

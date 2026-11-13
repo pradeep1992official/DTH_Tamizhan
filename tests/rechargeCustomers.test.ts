@@ -8,6 +8,16 @@ const order = (overrides: Partial<RechargeOrder> = {}): RechargeOrder => ({
   createdAt: '2026-01-01', updatedAt: '2026-01-01', ...overrides,
 });
 describe('successful recharge customer directory', () => {
+  it('counts distinct boxes per account without counting repeat recharges or other account/mode boxes', () => {
+    const rows = customersFromPaidRecharges([
+      order(), order({ orderId: 'repeat' }), order({ orderId: 'box-2', smartCardNumber: '40000000002' }),
+      order({ orderId: 'other-account', user_id: 'other-user', smartCardNumber: '40000000003' }),
+      order({ orderId: 'test-box', testMode: true }),
+    ]);
+    expect(rows.find(row => row.smartCardNumber === '40000000001' && !row.testMode)?.boxCount).toBe(2);
+    expect(rows.find(row => row.customerUid === 'other-user')?.boxCount).toBe(1);
+    expect(rows.find(row => row.testMode)?.boxCount).toBe(1);
+  });
   it('includes paid customers before fulfillment with contact, connection and status details', () => {
     expect(customersFromPaidRecharges([order({ rechargeStatus: 'pending', customerName: 'Customer', registeredMobile: '9876543210' })])[0]).toMatchObject({ customerName: 'Customer', registeredMobile: '9876543210', smartCardNumber: '40000000001', activePackName: 'Tamil', latestRechargeStatus: 'pending' });
   });

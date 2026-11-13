@@ -1,6 +1,8 @@
 import { AdminRefreshButton } from '../AdminRefreshButton';
 import React, { useState } from 'react';
-import { Search, Phone, RefreshCw } from '../../../lib/icons';
+import { Search, Phone, RefreshCw, Eye } from '../../../lib/icons';
+import { useSearchParams } from 'react-router-dom';
+import { CustomerDetailsPage } from '../CustomerDetailsPage';
 import { CustomerRecord, DthOperatorId, Language, isSameDthOperatorGroup } from '../../../types';
 import { OperatorTheme } from '../../../lib/theme';
 import { translations } from '../../../lib/translations';
@@ -23,10 +25,13 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
   onRefresh,
   currentTheme,
   currentLang,
+  getAuthHeaders,
 }) => {
   const t = translations[currentLang];
   const isLight = currentTheme.isLightMode;
   const [custSearch, setCustSearch] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const customerId = searchParams.get('customer');
   const [custOpFilter, setCustOpFilter] = useState<string>('all');
   type CustomerSortKey = 'customerName' | 'operator' | 'smartCardNumber' | 'activePackName';
   const [sort, setSort] = useState<{ key: CustomerSortKey; direction: 'asc' | 'desc' }>({ key: 'customerName', direction: 'asc' });
@@ -46,6 +51,8 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
     return sort.direction === 'asc' ? comparison : -comparison;
   });
 
+  if (customerId) return <CustomerDetailsPage customerId={customerId} getAuthHeaders={getAuthHeaders} currentLang={currentLang} onBack={() => { const next = new URLSearchParams(searchParams); next.delete('customer'); setSearchParams(next); }} />;
+
   return (
     <div className="admin-tab customers-tab space-y-4">
       {/* Top Filter Bar */}
@@ -55,7 +62,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
             <input
               type="text"
-              placeholder="Search by name, smart card, or phone" aria-label="Search customers"
+              placeholder="Search by name, subscriber ID, or phone" aria-label="Search customers"
               value={custSearch}
               onChange={(e) => setCustSearch(e.target.value)}
               className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm font-medium focus:outline-none transition-colors ${
@@ -96,15 +103,16 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
               <tr>
                 {heading('customerName', 'Customer')}
                 {heading('operator', 'Operator', 'hidden md:table-cell')}
-                {heading('smartCardNumber', 'Smart card')}
+                {heading('smartCardNumber', 'Subscriber ID')}
                 {heading('activePackName', 'Latest recharge pack', 'hidden md:table-cell')}
+                <th scope="col" className="p-3.5 font-medium">Actions</th>
                 
               </tr>
             </thead>
             <tbody className="divide-y divide-rule">
               {custLoading ? (
                 <tr>
-                  <td colSpan={4} className="p-8 text-center text-muted ">
+                  <td colSpan={5} className="p-8 text-center text-muted ">
                     <div className="flex items-center justify-center gap-2">
                       <RefreshCw className="w-4 h-4 animate-spin text-warning" />
                       <span>Loading subscribers from database…</span>
@@ -113,7 +121,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
                 </tr>
               ) : customersError ? (
                 <tr>
-                  <td colSpan={4} className="p-8 text-center">
+                  <td colSpan={5} className="p-8 text-center">
                     <p role="alert" className="text-sm font-medium text-error ">{customersError}</p>
                     <button type="button" onClick={onRefresh} className="mt-3 rounded-lg border px-3 py-1.5 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">
                       Retry loading customers
@@ -122,7 +130,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
                 </tr>
               ) : filteredCustomers.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="p-8 text-center text-ink ">
+                  <td colSpan={5} className="p-8 text-center text-ink ">
                     {customers.length === 0 ? 'Customers will appear after their first captured recharge payment' : 'No matching customers'}
                   </td>
                 </tr>
@@ -130,7 +138,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
                 filteredCustomers.map((cust) => (
                   <tr key={cust.id} className="hover:bg-paper-2 transition-colors">
                     <td data-label="Customer" className="p-3.5 font-medium">
-                      <div className="font-bold text-sm text-ink ">{cust.customerName}</div>
+                      <div className="font-bold text-sm text-ink flex flex-wrap items-center gap-2">{cust.customerName}{(cust.boxCount || 1) > 1 && <span className="customer-box-count">{cust.boxCount} {currentLang === 'ta' ? 'பாக்ஸ்கள்' : 'boxes'}</span>}</div>
                       <div className="text-sm text-muted  flex items-center gap-1 mt-0.5">
                         <Phone className="w-3.5 h-3.5" />
                         <span>{cust.registeredMobile || 'Phone not provided'}</span>
@@ -141,14 +149,13 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
                       <div className="md:hidden text-xs text-muted mt-1">{cust.activePackName}{cust.latestRechargeStatus !== 'completed' && ` · ${cust.latestRechargeStatus === 'failed' ? 'Failed' : 'Pending'}`}</div>
                     </td>
                     <td data-label="Operator" className="hidden md:table-cell p-3.5"><span className="compact-plan-pill compact-plan-operator" data-operator={cust.operator}>{operatorNames[cust.operator] || cust.operatorName}</span></td>
-                    <td data-label="Smart card" className="p-3.5 font-mono font-bold text-xs">{cust.smartCardNumber}</td>
+                    <td data-label="Subscriber ID" className="p-3.5 font-mono font-bold text-xs">{cust.smartCardNumber}</td>
                     <td data-label="Latest recharge pack" className="hidden md:table-cell p-3.5">
                       <div className="font-medium text-ink ">{cust.activePackName}</div>
                       {cust.latestRechargeStatus !== 'completed' && <span className="text-xs text-muted">{cust.latestRechargeStatus === 'failed' ? 'Recharge failed' : 'Paid · Recharge pending'}</span>}
 
                     </td>
-
-
+                    <td data-label="Actions" className="p-3.5"><button type="button" className="history-view-action inline-flex items-center gap-2 rounded-lg px-3 py-2 border border-rule" aria-label={`View details for ${cust.customerName}, ${cust.smartCardNumber}`} onClick={() => { const next = new URLSearchParams(searchParams); next.set('customer', cust.id); setSearchParams(next); }}><Eye size={16} />View</button></td>
                   </tr>
                 ))
               )}

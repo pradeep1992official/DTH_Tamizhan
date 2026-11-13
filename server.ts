@@ -3,6 +3,7 @@ import { paymentsRouter } from './server/routes/payments';
 import express, { Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
+import { createServer } from 'node:http';
 import { createServer as createViteServer } from 'vite';
 import dotenv from 'dotenv';
 import helmet from 'helmet';
@@ -36,6 +37,8 @@ const PORT = Number(process.env.PORT) || 3000;
 
 async function startServer() {
   const app = express();
+  const httpServer = createServer(app);
+  let vite: Awaited<ReturnType<typeof createViteServer>> | undefined;
 
   // Enable trust proxy for reverse proxies (Google Cloud Run / Load Balancer)
   app.set('trust proxy', 1);
@@ -68,12 +71,12 @@ async function startServer() {
 
   // 5. Vite middleware for development or Static Asset serving in Production
   if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
+    vite = await createViteServer({
+      server: { middlewareMode: true, hmr: process.env.DISABLE_HMR === 'true' ? false : { server: httpServer } },
       appType: 'custom',
     });
     app.use(vite.middlewares);
-    app.use(pageHandler(async req => vite.transformIndexHtml(req.originalUrl, fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8'))));
+    app.use(pageHandler(async req => vite!.transformIndexHtml(req.originalUrl, fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8'))));
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath, { index: false }));
@@ -81,9 +84,28 @@ async function startServer() {
   }
   app.use(globalErrorHandler);
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[DTH Tamizhan] Unified Server listening on http://0.0.0.0:${PORT}`);
-  });
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const onError = (error: NodeJS.ErrnoException) => reject(error.code === 'EADDRINUSE'
+        ? new Error(`Port ${PORT} is already in use. Stop the other DTH Tamizhan server before starting another instance.`) : error);
+      httpServer.once('error', onError);
+      httpServer.listen(PORT, '0.0.0.0', () => { httpServer.off('error', onError); resolve(); });
+    });
+  } catch (error) { await vite?.close(); throw error; }
+  console.log(`[DTH Tamizhan] Unified Server listening on http://0.0.0.0:${PORT}`);
+
+  let stopping = false;
+  const shutdown = async () => {
+    if (stopping) return;
+    stopping = true;
+    const timeout = setTimeout(() => process.exit(1), 5000);
+    timeout.unref();
+    await vite?.close();
+    httpServer.closeAllConnections();
+    httpServer.close(() => { clearTimeout(timeout); process.exit(0); });
+  };
+  process.once('SIGINT', () => void shutdown());
+  process.once('SIGTERM', () => void shutdown());
 }
 
 startServer().catch((err) => {

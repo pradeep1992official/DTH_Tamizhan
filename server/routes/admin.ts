@@ -14,6 +14,7 @@ export const adminRouter = Router();
 
 adminRouter.get('/api/admin/verify-token', adminController.verifyToken);
 adminRouter.get('/api/admin/customers', adminController.listCustomers);
+adminRouter.get('/api/admin/customers/:id', adminController.customerDetails);
 adminRouter.post('/api/admin/customers/create', adminLimiter, validateBody(CreateCustomerSchema), adminController.createCustomer);
 adminRouter.post('/api/admin/customers/delete', adminLimiter, adminController.deleteCustomer);
 adminRouter.post('/api/admin/customers/sync', adminController.syncCustomers);

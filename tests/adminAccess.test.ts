@@ -102,4 +102,12 @@ describe('canonical admin permission policy and API read path', () => {
     expect(res.json.mock.calls[0][0]).not.toHaveProperty('subscriber');
     expect(mocks.save).not.toHaveBeenCalled();
   });
+  it('protects the customer details endpoint from non-admin users', async () => {
+    for (const token of [undefined, 'bad', 'customer', 'unverified']) {
+      const res = response();
+      await adminController.customerDetails({ ...request(token), params: { id: 'airtel_dth_3015222222' } } as any, res as any);
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json.mock.calls[0][0]).not.toHaveProperty('customer');
+    }
+  });
 });

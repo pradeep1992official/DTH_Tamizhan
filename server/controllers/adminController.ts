@@ -25,12 +25,24 @@ import { CustomerRecord } from '../../src/types';
 import { readPaymentLedger, recordProviderPayment } from '../models/paymentLedger';
 import { razorpayClient } from '../razorpay';
 import { enrichCustomerContacts, missingCustomerName } from '../customerContacts';
+import { customerDetails } from '../models/customerDetails';
 
 function forbidden(res: Response): void {
   res.status(403).json({ success: false, error: 'Forbidden. Admin privileges required.' });
 }
 
 export const adminController = {
+  async customerDetails(req: Request, res: Response): Promise<void> {
+    const verdict = await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS);
+    if (!verdict.authorized) return forbidden(res);
+    res.setHeader('Cache-Control', 'no-store');
+    try {
+      const details = customerDetails(String(req.params.id), getCustomerRechargeOrders(), readPaymentLedger());
+      if (!details) { res.status(404).json({ success: false, error: 'Customer not found.' }); return; }
+      await enrichCustomerContacts([details.customer]);
+      res.json({ success: true, ...details });
+    } catch { res.status(503).json({ success: false, error: 'Unable to load customer details. Please retry.' }); }
+  },
   async auditLogs(req: Request, res: Response): Promise<void> {
     const verdict = await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS);
     if (!verdict.authorized) return forbidden(res);
