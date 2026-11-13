@@ -12,7 +12,7 @@ import { requestEmailSignInLink, emailLinkStorage } from '../lib/emailLinkAuth';
 interface AuthModalProps { isOpen: boolean; onClose: () => void; currentLang: Language; onSuccess: () => void; currentUser?: UserProfile | null }
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, currentLang, onSuccess, currentUser }) => {
   const [method, setMethod] = useState<'email' | 'phone'>('email');
-  const [mode, setMode] = useState<'link' | 'signin' | 'signup' | 'reset'>('link');
+  const [mode, setMode] = useState<'link' | 'signin' | 'signup' | 'reset'>('signin');
   const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [name, setName] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [phone, setPhone] = useState(''); const [code, setCode] = useState(''); const [codeSent, setCodeSent] = useState(false);
@@ -28,7 +28,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, currentLa
   const { modalRef } = useAccessibleModal({ isOpen, onClose: () => { if (!locked.current) onClose(); } });
   function clearCaptcha() { verifier.current?.clear(); verifier.current = null; }
   useEffect(() => {
-    generation.current++; locked.current = false; setBusy(false); setError(''); setMessage(''); setMethod('email'); setMode('link'); setEmailCooldown(0);
+    generation.current++; locked.current = false; setBusy(false); setError(''); setMessage(''); setMethod('email'); setMode('signin'); setEmailCooldown(0);
     setEmail(currentUser?.email || ''); setPassword(''); setConfirmPassword(''); setName(currentUser?.displayName || '');
     setPhone(currentUser?.phoneNumber || ''); setCode(''); setCodeSent(false); setCooldown(0); confirmation.current = null;
     setLinkingUid(currentUser && auth?.currentUser?.uid === currentUser.uid ? currentUser.uid : null);
@@ -95,12 +95,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, currentLa
       const number = normalizeLoginPhone(phone);
       if (linkingUid && auth!.currentUser?.uid !== linkingUid) throw new Error('Your account changed. Please sign in again.');
       clearCaptcha(); auth!.languageCode = currentLang === 'ta' ? 'ta' : 'en';
-      verifier.current = new RecaptchaVerifier(auth!, 'phone-recaptcha', { size: 'normal' });
-      await verifier.current.render();
-      if (version !== generation.current) return;
       try {
+        // Let Firebase run one on-demand check for this SMS request.
+        verifier.current = new RecaptchaVerifier(auth!, 'phone-recaptcha', { size: 'invisible' });
         const result = await sendPhoneCode(auth!, number, verifier.current!, linkingUid);
         if (version !== generation.current) return;
+        clearCaptcha();
         confirmation.current = result;
         setPhone(number); setCodeSent(true); setCooldown(60); setCode('');
         setMessage(text('Enter the 6-digit code sent to your phone.', 'உங்கள் தொலைபேசிக்கு அனுப்பிய 6 இலக்கக் குறியீட்டை உள்ளிடவும்.'));
@@ -148,7 +148,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, currentLa
             {!phoneEnabled && <p className="text-sm text-muted">{phoneEnabled === null ? text('Checking phone sign-in…', 'தொலைபேசி உள்நுழைவு சரிபார்க்கப்படுகிறது…') : text('Phone sign-in is not enabled yet. Please use email or Google.', 'தொலைபேசி உள்நுழைவு இன்னும் செயல்படுத்தப்படவில்லை. மின்னஞ்சல் அல்லது Google ஐப் பயன்படுத்தவும்.')}</p>}
             <button type="submit" className="signin-primary" disabled={busy || !phoneEnabled || (!codeSent && cooldown > 0)}>{busy ? text('Please wait…', 'காத்திருக்கவும்…') : codeSent ? text('Verify & continue', 'சரிபார்த்துத் தொடரவும்') : text('Send verification code', 'சரிபார்ப்புக் குறியீட்டை அனுப்பவும்')}</button>
             {codeSent && <div className="signin-links"><button type="button" disabled={busy || cooldown > 0} onClick={() => void sendCode()}>{cooldown ? `${text('Resend in', 'மீண்டும் அனுப்ப')} ${cooldown}s` : text('Resend code', 'குறியீட்டை மீண்டும் அனுப்பவும்')}</button><button type="button" disabled={busy} onClick={() => { setCodeSent(false); confirmation.current = null; setCode(''); clearCaptcha(); }}>{text('Change number', 'எண்ணை மாற்றவும்')}</button></div>}
-          </form><p className="signin-consent">{text('By continuing, you agree to receive a verification SMS. Google processes the number to help prevent abuse.', 'தொடர்வதன் மூலம் சரிபார்ப்பு SMS பெற ஒப்புக்கொள்கிறீர்கள். தவறான பயன்பாட்டைத் தடுக்க Google எண்ணைச் செயலாக்குகிறது.')}</p>
+          </form><p className="signin-consent">{text('By continuing, you agree to receive a verification SMS; standard rates may apply. Google sends and stores your number to help prevent spam and abuse. Keep access to your number; email and Google sign-in are also available.', 'தொடர்வதன் மூலம் சரிபார்ப்பு SMS பெற ஒப்புக்கொள்கிறீர்கள்; வழக்கமான கட்டணங்கள் பொருந்தலாம். தவறான பயன்பாட்டைத் தடுக்க Google உங்கள் எண்ணைச் சேமிக்கிறது. உங்கள் எண்ணின் அணுகலைப் பாதுகாக்கவும்; மின்னஞ்சல் அல்லது Google மூலமும் உள்நுழையலாம்.')}</p>
         </>}
       </div>
     </div>
