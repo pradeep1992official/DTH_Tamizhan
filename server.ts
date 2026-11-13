@@ -7,6 +7,7 @@ import { createServer } from 'node:http';
 import { startReceiptEmailWorker, emailDeliveryConfig } from './server/emailDelivery';
 import { emailRouter } from './server/routes/email';
 import { customerHistoryRouter } from './server/routes/customerHistory';
+import { authConfigRouter } from './server/routes/authConfig';
 import { createServer as createViteServer } from 'vite';
 import dotenv from 'dotenv';
 import helmet from 'helmet';
@@ -71,6 +72,7 @@ async function startServer() {
   app.use(aiRouter);
   app.use(emailRouter);
   app.use(customerHistoryRouter);
+  app.use(authConfigRouter);
 
   app.use('/api', (_req, res) => { res.status(404).json({ success: false, error: 'API route not found.' }); });
 

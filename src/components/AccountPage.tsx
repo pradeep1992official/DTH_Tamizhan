@@ -92,6 +92,7 @@ export function AccountPage({ user, currentLang, connections = [], onOpenAuth, o
         <Link className="account-text-link" to="/privacy-policy">{copy.privacy} &rarr;</Link>
       </section>
       <div className="account-secondary">
+        <section className="account-card"><h2>{ta ? 'உள்நுழைவு முறைகள்' : 'Sign-in methods'}</h2><p className="text-sm text-muted mt-2 mb-4">{ta ? 'இதே கணக்கில் மின்னஞ்சல் கடவுச்சொல் அல்லது சரிபார்த்த தொலைபேசி எண்ணைச் சேர்க்கவும்.' : 'Add email/password or a verified phone number to this account, keeping your boxes and history together.'}</p><button type="button" className="account-primary" onClick={onOpenAuth}>{ta ? 'உள்நுழைவு முறைகளை நிர்வகிக்கவும்' : 'Manage sign-in methods'}</button></section>
         <section className="account-card"><h2>{ta ? 'உங்கள் ரீசார்ஜ் வரலாறு' : 'Your recharge history'}</h2><p className="text-sm text-muted mt-2 mb-4">{ta ? 'அனைத்து பாக்ஸ்களின் ரீசார்ஜ், கட்டண நிலை மற்றும் ரசீதுகளைப் பார்க்கவும்.' : 'View recharges, payment status and PDF receipts for all your boxes.'}</p><Link className="account-primary" to="/history">{ta ? 'வரலாற்றைப் பார்க்கவும்' : 'View history'}</Link></section>
         <section className="account-card">
           <div className="account-card-heading"><h2>{copy.boxes}</h2><span className="account-count">{saved.length}</span></div>

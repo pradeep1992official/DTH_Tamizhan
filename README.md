@@ -22,7 +22,7 @@ npm run dev
 
 Open `http://localhost:3000`. Express serves the API and Vite frontend. `PORT` overrides the default port.
 
-Configure Firebase in `firebase-applet-config.json`, including `firestoreDatabaseId`. Enable Google sign-in and authorize the application domain in Firebase Authentication. Server Firebase operations require Application Default Credentials available to the Firebase Admin SDK. Do not commit credentials.
+Configure Firebase in `firebase-applet-config.json`, including `firestoreDatabaseId`. Enable Google and Email/Password sign-in and authorize the application domain in Firebase Authentication. Phone OTP is supported but requires separate provider, billing/domain/region setup and the opt-in server flag described below. Server Firebase operations require Application Default Credentials available to the Firebase Admin SDK. Do not commit credentials.
 
 | Variable | Current behavior |
 | --- | --- |
@@ -50,7 +50,7 @@ The build creates frontend assets in `dist/` and the Express bundle at `dist/ser
 - English/Tamil interface, operator-specific subscriber ID validation and custom recharge amounts.
 - Recommended HD/SD packs, duration selection, catalog filtering, comparison and supplied channel details.
 - Sandbox checkout sessions with simulated success/failure/pending outcomes, expiry and retry handling.
-- Google sign-in. Phone OTP login is not implemented.
+- Google and passwordless email-link sign-in (the default Email option), with optional password sign-in, registration and password reset. Phone OTP sign-in/linking is implemented with reCAPTCHA and a resend cooldown; SMS is off by default until configured.
 - My Account with profile/contact details, name/mobile editing, saved-box preview and support/recharge links. Profile editing is part of My Account rather than a separate header option.
 - Saved-box add/edit/remove, operator logos, compact cards, saved expiry/status and prefilled recharge. Invalid IDs offer Update ID instead of Quick Recharge. Balance display is removed because live retrieval is unavailable.
 - Admin customer directory, pending queue, recharge history, pack management, payment reports, reports/audit views, operator settings and administrator approvals.
@@ -156,6 +156,28 @@ Verified Razorpay payments are recorded atomically in `data/razorpay_payments.js
 Admin → Pending Orders and customer order history derive captured recharge requests from this same durable ledger. Only payments with a valid operator, subscriber ID, and plan enter the queue; standalone or legacy payments without that metadata stay in Payments. Administrators can mark captured-payment orders successful, including test orders; completion is saved to `data/recharge_orders.json`. Test markers are retained, and completed test orders are excluded from customer recharge totals. Marking an order successful records the administrator's confirmation and does not call an operator recharge API. Payment authorization alone does not queue a recharge. Repeated verification/sync does not duplicate the request or reset an existing fulfillment status.
 
 The manual recharge workflow is implemented: captured payment → Pending Orders → administrator recharges through the operator/distributor portal → administrator confirms success with **Mark Successful** → completed recharge history. An automatic DTH recharge API is not required for this workflow. Before accepting live payments, configure live credentials and add durable reconciliation/webhooks for reliable background payment updates. No database tables were added.
+
+## Sign-in methods
+
+The sign-in dialog supports **Google**, **Email** (passwordless email links by default, with a password alternative), and **Phone number** (Firebase SMS OTP). Firebase manages passwords and verification codes; they are not stored in application profile documents or browser storage. Saved profile edits and the authenticated UID continue to drive the account, boxes, checkout and private history.
+
+Passwordless flow: enter an email → **Email me a sign-in link** → open the email → confirm that address at `/auth/email-link` → continue to Your account. No password is required, and Firebase verifies the email during completion. New email-link users are registered automatically. Opening the link on another device prompts for the same email address. The app stores only a short-lived email/flow hint (up to 24 hours), never the action code or link; it does not take an email address from URL parameters. Expired, invalid or used links show a recovery message. The callback route is `noindex`, uses `no-referrer`, and removes the action code from the address bar after success.
+
+Manual Firebase Console setup is required; adding frontend code does not activate providers on the Firebase project:
+
+1. Open Firebase Console → project `gen-lang-client-0168639596` → Authentication → Sign-in method. Enable **Email/Password**, then enable **Email link (passwordless sign-in)** in that provider and save. Firebase requires the Email/Password provider enabled even for email-link sign-in. Keep Google enabled.
+2. Add your deployed hostname under Authentication → Settings → Authorized domains. Confirm the project's password policy and Firebase verification/reset email templates. Email verification and password resets use Firebase's own email service, separate from Brevo receipt emails.
+3. For phone sign-in, explicitly enable the **Phone** provider, configure SMS region policy for your customer regions, and use an authorized deployed HTTPS domain. Real verification SMS requires the **Blaze** billing plan and can incur per-SMS charges; this is not an unlimited free login method. See [Firebase authentication limits](https://firebase.google.com/docs/auth/limits) and [phone authentication setup](https://firebase.google.com/docs/auth/web/phone-auth).
+4. Only after that setup, set `FIREBASE_PHONE_AUTH_ENABLED=true` in the server environment and restart/redeploy. It defaults to `false`; the app displays an unavailable message instead of attempting SMS. This app flag does not replace Firebase's billing, quota, region and abuse controls. No billing plan was upgraded by this code change.
+5. For no-SMS-cost testing, configure fictional phone numbers and fixed codes in Firebase Console → Authentication → Sign-in method → Phone → Phone numbers for testing. Do not put test numbers/codes in source, bypass reCAPTCHA in production, or send real SMS during automated tests. Firebase documents restrictions for localhost phone authentication; test the phone flow on an authorized deployed domain.
+
+Existing customers should sign in using their original method, then open **Your account → Manage sign-in methods** to add a password or link a verified phone number. Linking retains the same UID, boxes and recharge history. Accounts are not automatically merged based on matching names, phone profile fields or email strings. If a credential is already linked to another Firebase account, sign-in shows an error instead of merging records. A profile contact number alone is not a phone-login credential; it must be linked through OTP verification.
+
+The same account-management dialog can email a passwordless linking link, including for a phone-only account adding an email. Complete it while signed in to the original account; on another device, sign in to that original account before confirming the link. Existing email providers are reauthenticated rather than linked twice. Using the normal email-link sign-in with an existing email relies on Firebase's identity handling, rather than creating or copying application records.
+
+**Free-plan limit:** Firebase currently allows only **5 email-link sign-in emails per day on Spark**, versus 25,000 on Blaze. This quota is separate from Brevo's 300 receipt emails/day, and this implementation uses Firebase's official `sendSignInLinkToEmail` service. No billing change is made. Google sign-in and password sign-in remain alternatives if the link quota is reached. See [Firebase email-link documentation](https://firebase.google.com/docs/auth/web/email-link-auth) and [authentication limits](https://firebase.google.com/docs/auth/limits).
+
+Password-created email accounts receive a verification email. Open that link, then use **Manage sign-in methods → Check verification** (or sign out/in) to refresh verification before expecting automatic receipt email delivery. Passwordless email-link sign-in verifies the email when the link is completed. Phone-only accounts can sign in and pay, but need to link and verify an email to receive emailed receipts. Only Firebase-verified email identities qualify for super-administrator email-based access.
 
 ## Automatic receipt email (Brevo)
 

@@ -222,7 +222,7 @@ export const Header: React.FC<HeaderProps> = ({
                   <div className="profile-signin-row">
                     <button id="dropdown-signin-btn" type="button" onClick={() => { setIsProfileDropdownOpen(false); onOpenAuth(); }}>
                       <User className="w-4 h-4" aria-hidden="true" />
-                      <span>{t.googleOption}</span>
+                      <span>{t.uiSignIn}</span>
                     </button>
                   </div>
                 )}

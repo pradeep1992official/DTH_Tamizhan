@@ -44,6 +44,7 @@ export function pageHandler(readTemplate: (req: Request) => string | Promise<str
       if (meta.status === 404) html = html.replace(/<div id="root">[\s\S]*?<\/div>/, `<div id="root">${statusPageBody(404, requestLanguage(req))}</div>`);
       if (meta.status === 500) html = html.replace('</body>', `${statusPageBody(500, requestLanguage(req))}</body>`);
       res.setHeader('Cache-Control', 'no-store');
+      if (meta.path === '/auth/email-link') res.setHeader('Referrer-Policy', 'no-referrer');
       if (meta.noindex) res.setHeader('X-Robots-Tag', 'noindex, nofollow');
       res.status(meta.status).type('html').send(html);
     } catch (error) { next(error); }
