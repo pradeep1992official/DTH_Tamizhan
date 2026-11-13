@@ -49,6 +49,7 @@
 .rzp-receipt { margin-top: 18px; }
 .rzp-contact { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 20px 0 0; border: 0; padding: 0; min-width: 0; }
 .rzp-contact legend { font-size: 12px; font-weight: 650; margin-bottom: 10px; }
+.rzp-body > .rzp-pay { margin-top: 20px; }
 .rzp-contact label { display: grid; gap: 6px; font-size: 12px; color: var(--color-muted); min-width: 0; }
 .rzp-contact input { width: 100%; min-width: 0; border: 1px solid var(--color-rule); border-radius: 7px; background: var(--color-paper); color: var(--color-ink); padding: 10px 11px; font-size: 14px; }
 .rzp-contact input:focus-visible { outline: 2px solid var(--color-brand); outline-offset: 2px; }

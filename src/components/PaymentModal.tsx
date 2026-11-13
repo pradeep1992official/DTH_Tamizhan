@@ -136,7 +136,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, pla
   const expired = !!session && seconds === 0 && session.status === 'ready';
   const formatAmount = (paise: number) => formatPrice(paise / 100, currentLang);
   return (
-    <div className="dialog-backdrop fixed inset-0 z-50 flex items-center justify-center p-4" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
+    <div className="dialog-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
       <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="payment-modal-title" className="hm-dialog payment-checkout rounded-xl border border-rule bg-paper text-ink w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto shadow-lg text-left">
         <div className="px-6 py-4 border-b border-rule bg-paper-2 flex items-center justify-between">
           <div><h2 id="payment-modal-title" className="text-base font-bold">{translations[currentLang].uiCompleteDTHRecharge}</h2><p className="text-sm text-muted">{operator.name} / {subscriberLabel(operator.id, false, currentLang)}: {smartCard}</p></div>

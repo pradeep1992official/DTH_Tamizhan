@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import type { DthOperator, DthPlan, Language, UserProfile } from '../types';
 import { formatDuration, formatPrice } from '../lib/catalog';
 import { useAccessibleModal } from '../lib/useAccessibleModal';
-import { ArrowRight, Calendar, CheckCircle2, CreditCard, Lock, RefreshCw, ShieldCheck, Tv, X } from '../lib/icons';
+import { ArrowRight, Calendar, CheckCircle2, Lock, RefreshCw, ShieldCheck, Tv, X } from '../lib/icons';
 import { OperatorCardLogo } from './BrandAssets';
 import './RazorpayCheckout.css';
 import { downloadPaymentReceipt, type VerifiedPayment } from '../lib/paymentReceipt';
@@ -86,7 +86,7 @@ export function RazorpayCheckout({ onClose, plan, operator, smartCard, currentLa
         theme: { color: '#68162f' },
         prefill: { name: customerName.trim(), contact: phone, email: user?.email || '' },
         handler: (payment: PaymentResult) => { completed = true; void verify(payment); },
-        modal: { ondismiss: () => { if (!completed) { setMessage(label('Payment cancelled. No payment confirmed.', 'கட்டணம் ரத்து செய்யப்பட்டது.')); release(); } } },
+        modal: { backdropclose: false, ondismiss: () => { if (!completed) { setMessage(label('Payment cancelled. No payment confirmed.', 'கட்டணம் ரத்து செய்யப்பட்டது.')); release(); } } },
       });
       checkout.on('payment.failed', event => { setError(event.error?.description || 'Payment failed. Please retry.'); });
       checkout.open();
@@ -99,7 +99,7 @@ export function RazorpayCheckout({ onClose, plan, operator, smartCard, currentLa
   const durationLabel = duration ? formatDuration(duration, currentLang) : null;
   // The duration has its own badge; avoid repeating the generated suffix in the title.
   const planTitle = durationLabel && plan.name.endsWith(` (${durationLabel})`) ? plan.name.slice(0, -(` (${durationLabel})`.length)) : plan.name;
-  return <div className="rzp-backdrop" onClick={event => { if (event.target === event.currentTarget && !cannotClose) onClose(); }}>
+  return <div className="rzp-backdrop">
     <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="razorpay-title" aria-describedby="razorpay-description" className="rzp-dialog">
       <header className="rzp-header">
         <span className="rzp-eyebrow"><ShieldCheck size={16} />{label('DTH TAMIZHAN · CHECKOUT', 'DTH TAMIZHAN · கட்டணம்')}</span>
@@ -134,10 +134,9 @@ export function RazorpayCheckout({ onClose, plan, operator, smartCard, currentLa
               logo: ({ airtel_dth: '/assets/airtel_logo.png', sun_direct: '/assets/sun_logo.png', tata_play: '/assets/tata_logo.png', dish_tv: '/assets/dishtv_logo.png', d2h: undefined })[operator.id] }); }
             catch { setError(label('Could not download receipt. Please try again.', 'ரசீதைப் பதிவிறக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.')); }
             finally { setDownloading(false); }
-          }}>{downloading ? label('Preparing receipt…', 'ரசீது தயாராகிறது…') : label('Download payment receipt', 'கட்டண ரசீதைப் பதிவிறக்கவும்')}</button><p className="rzp-receipt-hint">{label('Downloads an HTML receipt. Open it to print or save as PDF.', 'HTML ரசீது பதிவிறக்கப்படும். அதைத் திறந்து அச்சிடலாம் அல்லது PDF ஆகச் சேமிக்கலாம்.')}</p></> : <p className="rzp-receipt-hint">{label('Your receipt will be available once payment is captured.', 'கட்டணம் உறுதியானதும் ரசீது கிடைக்கும்.')}</p>}
+          }}>{downloading ? label('Preparing receipt…', 'ரசீது தயாராகிறது…') : label('Download payment receipt', 'கட்டண ரசீதைப் பதிவிறக்கவும்')}</button></> : <p className="rzp-receipt-hint">{label('Your receipt will be available once payment is captured.', 'கட்டணம் உறுதியானதும் ரசீது கிடைக்கும்.')}</p>}
         </div>}
         {!verified && <>
-          <div className="rzp-methods"><CreditCard size={20} /><div><strong>{label('Choose how to pay', 'கட்டண முறையைத் தேர்ந்தெடுக்கவும்')}</strong><p>{label('Available UPI, card and net banking options appear in Razorpay.', 'கிடைக்கும் UPI, கார்டு மற்றும் இணைய வங்கி முறைகள் Razorpay பக்கத்தில் காட்டப்படும்.')}</p></div></div>
           <button type="button" className="rzp-pay" disabled={busy} aria-busy={busy} onClick={() => result ? void verify(result) : void pay()}>
             {busy ? <RefreshCw size={19} className="rzp-spinner" /> : <Lock size={18} />}
             <span>{busy ? result ? label('Confirming your payment…', 'கட்டணம் சரிபார்க்கப்படுகிறது…') : label('Opening secure checkout…', 'பாதுகாப்பான கட்டணப் பக்கம் திறக்கப்படுகிறது…') : result ? label('Check payment status', 'கட்டண நிலையைச் சரிபார்க்கவும்') : `${label('Pay', 'செலுத்தவும்')} ${formatPrice(order.current ? order.current.amount / 100 : plan.price, currentLang)}`}</span>

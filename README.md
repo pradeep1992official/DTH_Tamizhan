@@ -4,7 +4,11 @@ English and Tamil DTH pack browsing, recharge checkout, saved set-top boxes and 
 
 Built with React, TypeScript, Vite, Express, Firebase Authentication and Firestore. Several server datasets use local JSON files.
 
-**Live payments and operator recharge dispatch are not implemented.** Sandbox checkout simulates outcomes without taking money, creating financial orders or crediting an operator account.
+**Razorpay Standard Checkout is integrated; the current configuration uses test keys. DTH recharge fulfillment is manual.** After payment capture, the request appears in Pending Orders. An administrator recharges the subscriber through their operator/distributor portal, confirms success, then clicks **Mark Successful**. Automatic operator dispatch is outside the intended scope.
+
+The separate local sandbox simulator does not collect money or credit an operator account.
+
+Subscriber verification follows the manual workflow: customers enter their subscriber ID and contact details, and the administrator checks the ID in the operator/distributor portal before recharging. The app can search locally saved customer records; it does not retrieve live operator balances or account details. Live provider lookup is optional and outside the current scope.
 
 ## Local setup
 
@@ -94,11 +98,8 @@ This is not a complete security audit. Firebase sign-out/auth-state synchronizat
 
 | Feature | Remaining work |
 | --- | --- |
-| Live payments/refunds | Gateway orders, hosted payment/QR, verified webhooks, reconciliation and refund execution |
-| Actual DTH recharge | Operator/distributor dispatch and confirmation |
-| Order fulfillment | Status-update endpoint currently returns a verification-not-configured error |
-| Subscriber lookup | Endpoint searches local customer records; no live provider lookup |
-| Payment-to-receipt flow | Receipt UI, printing and manual WhatsApp sharing exist, but checkout does not invoke the completed-payment callback |
+| Live payment readiness/refunds | Activate and configure live Razorpay keys when ready; add verified webhooks, automatic reconciliation and refund execution. Orders, hosted checkout and server signature/capture verification are implemented. |
+| Receipt enhancements | Checkout provides a downloadable HTML payment receipt with Print / Save as PDF. Automated receipt delivery is not implemented. |
 | Installation fulfillment | Admin request management, assignment, scheduling and status tracking |
 | AI recommendations | Backend `/api/ai/recommend-plans` exists; frontend does not call it |
 | Automatic notifications | SMS, WhatsApp and email delivery; receipt sharing currently opens WhatsApp manually |
@@ -156,7 +157,7 @@ Verified Razorpay payments are recorded atomically in `data/razorpay_payments.js
 
 Admin → Pending Orders and customer order history derive captured recharge requests from this same durable ledger. Only payments with a valid operator, subscriber ID, and plan enter the queue; standalone or legacy payments without that metadata stay in Payments. Administrators can mark captured-payment orders successful, including test orders; completion is saved to `data/recharge_orders.json`. Test markers are retained, and completed test orders are excluded from customer recharge totals. Marking an order successful records the administrator's confirmation and does not call an operator recharge API. Payment authorization alone does not queue a recharge. Repeated verification/sync does not duplicate the request or reset an existing fulfillment status.
 
-This integration confirms payments but does not fulfill DTH recharges. Before live fulfillment, connect verified payments to your order workflow and add durable reconciliation/webhooks. No database tables were added.
+The manual recharge workflow is implemented: captured payment → Pending Orders → administrator recharges through the operator/distributor portal → administrator confirms success with **Mark Successful** → completed recharge history. An automatic DTH recharge API is not required for this workflow. Before accepting live payments, configure live credentials and add durable reconciliation/webhooks for reliable background payment updates. No database tables were added.
 
 Checks: `npm run lint`, `npx vitest run tests/razorpay.test.ts tests/payments.test.ts tests/copyLocalization.test.tsx`, and `npm run build`.
 
