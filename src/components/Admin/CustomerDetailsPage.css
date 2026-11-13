@@ -1,6 +1,10 @@
 .customer-details-page { display: grid; gap: 20px; min-width: 0; }
 .customers-tab .compact-plan-pill.compact-plan-operator { display: inline-flex; align-items: center; padding: 5px 10px; line-height: 1.4; }
 .customer-box-count { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--color-rule); background: var(--color-paper-2); color: var(--color-brand); font-size: 11px; line-height: 1.4; font-weight: 600; white-space: nowrap; }
+.customers-tab .customer-actions-heading, .customers-tab .customer-actions-cell { width: 112px; text-align: center; vertical-align: middle; white-space: nowrap; }
+@media (max-width: 767px) {
+  .customers-tab .admin-responsive-table td.customer-actions-cell { width: auto; flex-direction: row; align-items: center; justify-content: space-between; }
+}
 .customer-details-toolbar { display: flex; justify-content: space-between; gap: 16px; }
 .customer-details-toolbar button { display: inline-flex; align-items: center; gap: 7px; min-height: 42px; font-size: 13px; color: var(--color-brand); }
 .customer-details-page > h2 { font-size: 24px; font-weight: 700; letter-spacing: -.03em; margin: 0; }

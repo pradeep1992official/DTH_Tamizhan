@@ -105,7 +105,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
                 {heading('operator', 'Operator', 'hidden md:table-cell')}
                 {heading('smartCardNumber', 'Subscriber ID')}
                 {heading('activePackName', 'Latest recharge pack', 'hidden md:table-cell')}
-                <th scope="col" className="p-3.5 font-medium">Actions</th>
+                <th scope="col" className="customer-actions-heading p-3.5 font-medium">Actions</th>
                 
               </tr>
             </thead>
@@ -155,7 +155,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
                       {cust.latestRechargeStatus !== 'completed' && <span className="text-xs text-muted">{cust.latestRechargeStatus === 'failed' ? 'Recharge failed' : 'Paid · Recharge pending'}</span>}
 
                     </td>
-                    <td data-label="Actions" className="p-3.5"><button type="button" className="history-view-action inline-flex items-center gap-2 rounded-lg px-3 py-2 border border-rule" aria-label={`View details for ${cust.customerName}, ${cust.smartCardNumber}`} onClick={() => { const next = new URLSearchParams(searchParams); next.set('customer', cust.id); setSearchParams(next); }}><Eye size={16} />View</button></td>
+                    <td data-label="Actions" className="customer-actions-cell p-3.5"><button type="button" className="history-view-action inline-flex items-center gap-2 rounded-lg px-3 py-2 border border-rule" aria-label={`View details for ${cust.customerName}, ${cust.smartCardNumber}`} onClick={() => { const next = new URLSearchParams(searchParams); next.set('customer', cust.id); setSearchParams(next); }}><Eye size={16} />View</button></td>
                   </tr>
                 ))
               )}
