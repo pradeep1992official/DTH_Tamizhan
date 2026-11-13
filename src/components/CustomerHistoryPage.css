@@ -1,0 +1,36 @@
+.customer-history-page { width: 100%; max-width: 1100px; margin: 0 auto; padding: 28px 0 48px; display: grid; gap: 24px; }
+.customer-history-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+.customer-history-heading h1 { margin: 0 0 8px; font-size: 30px; font-weight: 700; letter-spacing: -.04em; }
+.customer-history-heading p { margin: 0; color: var(--color-muted); font-size: 14px; }
+.customer-history-page button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; padding: 8px 12px; border: 1px solid var(--color-rule); border-radius: 7px; font-size: 13px; }
+.customer-history-page button:disabled { opacity: .55; cursor: wait; }
+.customer-history-page :is(button,select,summary,a):focus-visible { outline: 2px solid var(--color-brand); outline-offset: 4px; }
+.customer-history-filters { display: flex; flex-wrap: wrap; gap: 16px; padding: 18px; background: var(--color-paper-2); border: 1px solid var(--color-rule); border-radius: 10px; }
+.customer-history-filters label { display: grid; gap: 7px; min-width: 200px; font-size: 12px; color: var(--color-muted); }
+.customer-history-filters select { background: var(--color-paper); color: var(--color-ink); border: 1px solid var(--color-rule); border-radius: 6px; padding: 9px 12px; font-size: 13px; max-width: 100%; }
+.customer-history-orders { display: grid; gap: 12px; }
+.customer-history-order { border: 1px solid var(--color-rule); border-radius: 10px; background: var(--color-paper); }
+.customer-history-order summary { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 20px; cursor: pointer; list-style: none; }
+.customer-history-order summary::-webkit-details-marker { display: none; }
+.customer-history-order summary > span:first-child { display: grid; gap: 5px; font-size: 14px; }
+.customer-history-order summary small { color: var(--color-muted); font-size: 12px; }
+.customer-history-order-total { display: grid; justify-items: end; gap: 8px; flex-shrink: 0; }
+.customer-history-order-total strong { color: var(--color-brand); font-size: 20px; font-variant-numeric: tabular-nums; }
+.customer-history-status { font-size: 11px; background: var(--color-paper-2); border-radius: 999px; padding: 4px 9px; color: var(--color-muted); }
+.customer-history-status.is-completed { background: #eaf4ed; color: #286047; }
+.customer-history-status.is-failed { background: var(--color-error-soft); color: var(--color-error); }
+.customer-history-order dl { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 20px; border-top: 1px solid var(--color-rule); margin: 0; padding: 20px; }
+.customer-history-order dt { font-size: 12px; color: var(--color-muted); }
+.customer-history-order dd { margin: 5px 0 0; font-size: 13px; overflow-wrap: anywhere; }
+.customer-history-empty { padding: 36px 24px; border: 1px solid var(--color-rule); border-radius: 10px; background: var(--color-paper); text-align: center; }
+.customer-history-empty > svg { margin: 0 auto 16px; color: var(--color-brand); }
+.customer-history-empty h2 { font-size: 19px; margin: 0 0 8px; font-weight: 650; }
+.customer-history-empty p { color: var(--color-muted); font-size: 14px; margin-bottom: 20px; }
+.customer-history-error { border: 1px solid var(--color-rule); border-radius: 8px; padding: 16px; color: var(--color-error); background: var(--color-error-soft); }
+.customer-history-payment-section h2 { font-size: 20px; font-weight: 650; margin: 0 0 16px; }
+.customer-history-table { overflow-x: auto; border: 1px solid var(--color-rule); border-radius: 10px; }
+.customer-history-table table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; }
+.customer-history-table th { background: var(--color-paper-2); color: var(--color-muted); padding: 13px; font-weight: 550; white-space: nowrap; }
+.customer-history-table td { border-top: 1px solid var(--color-rule); padding: 16px 13px; vertical-align: middle; overflow-wrap: anywhere; }
+.customer-history-table small { display: block; margin-top: 5px; font-size: 11px; color: var(--color-muted); }
+@media(max-width:767px) { .customer-history-heading h1 { font-size: 25px; } .customer-history-heading { flex-wrap: wrap; } .customer-history-order summary { padding: 16px; gap: 12px; } .customer-history-order dl { grid-template-columns: repeat(2,minmax(0,1fr)); padding: 16px; } .customer-history-filters label { min-width: 0; flex: 1 1 180px; } .customer-history-order-total strong { font-size: 17px; } }

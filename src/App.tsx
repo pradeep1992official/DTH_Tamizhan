@@ -1,6 +1,7 @@
 import { connectionCacheKey, ownedConnections, readConnectionCache } from './lib/connectionCache';
 import { RouteEffects } from './components/RouteEffects';
 import { AccountPage } from './components/AccountPage';
+import { CustomerHistoryPage } from './components/CustomerHistoryPage';
 import { ErrorPage } from './components/ErrorPages';
 import { pageMetadata } from './lib/pageMetadata';
 import { PolicyPage } from './components/PolicyPage';
@@ -417,6 +418,7 @@ function MainApp() {
     if (path.startsWith('/plans')) return 'plans';
     if (path.startsWith('/connections')) return 'connections';
     if (path === '/account') return 'account';
+    if (path === '/history') return 'history';
     return 'recharge';
   };
 
@@ -425,6 +427,7 @@ function MainApp() {
     else if (tab === 'plans') navigate('/plans');
     else if (tab === 'connections') navigate('/connections');
     else if (tab === 'account') navigate('/account');
+    else if (tab === 'history') navigate('/history');
     else if (tab === 'admin-portal') navigate('/admin/customers');
     else if (tab === 'new-dish') setIsNewDishOpen(true);
   };
@@ -514,6 +517,7 @@ function MainApp() {
           />
           {POLICY_ROUTES.map(route => <Route key={route.key} path={route.path} element={<PolicyPage policy={route.key} currentLang={currentLang} />} />)}
           <Route path="/account" element={<AccountPage user={user} connections={connections} currentLang={currentLang} onOpenAuth={() => setIsAuthOpen(true)} onSignOut={handleSignOut} onUpdateProfile={handleUpdateProfile} />} />
+          <Route path="/history" element={<CustomerHistoryPage user={user} currentLang={currentLang} onOpenAuth={() => setIsAuthOpen(true)} />} />
           <Route path="/500" element={<ErrorPage status={500} currentLang={currentLang} />} />
 
           {/* Admin Routes with react-router parameterization */}

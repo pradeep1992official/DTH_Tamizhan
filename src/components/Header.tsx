@@ -6,7 +6,8 @@ import {
   ShieldCheck,
   ChevronDown,
   UserCheck,
-  Sliders
+  Sliders,
+  Clock
 } from '../lib/icons';
 import { Language, UserProfile } from '../types';
 import { AdminNavigationError, verifyAdminNavigationAccess } from '../lib/adminNavigationAccess';
@@ -242,6 +243,7 @@ export const Header: React.FC<HeaderProps> = ({
                   <button type="button" onClick={() => { setIsProfileDropdownOpen(false); onTabChange('account'); }} className="w-full px-4 py-2 text-left flex items-center gap-2.5">
                     <User className="w-4 h-4" aria-hidden="true" /><span>{translations[currentLang].uiYourAccount}</span>
                   </button>
+                  <button type="button" onClick={() => { setIsProfileDropdownOpen(false); onTabChange('history'); }} className="w-full px-4 py-2 text-left flex items-center gap-2.5"><Clock className="w-4 h-4" /><span>{currentLang === 'ta' ? 'ரீசார்ஜ் வரலாறு' : 'Your recharge history'}</span></button>
                   <button
                     id="dropdown-view-profile-btn"
                     onClick={() => {

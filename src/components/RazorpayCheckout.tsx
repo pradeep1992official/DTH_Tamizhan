@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { DthOperator, DthPlan, Language, UserProfile } from '../types';
 import { formatDuration, formatPrice } from '../lib/catalog';
 import { useAccessibleModal } from '../lib/useAccessibleModal';
@@ -145,6 +146,7 @@ export function RazorpayCheckout({ onClose, plan, operator, smartCard, currentLa
         </>}
         <div className="rzp-provider"><span><ShieldCheck size={15} />{label('Secure payments by', 'பாதுகாப்பான கட்டணம்')}</span><img src="/assets/razorpay-logo.png" width="100" height="22" alt="Razorpay" /></div>
         <button type="button" className="rzp-back" disabled={cannotClose} onClick={onClose}>{verified ? label('Done', 'முடிந்தது') : label('Go back and edit', 'திரும்பிச் சென்று திருத்தவும்')}</button>
+        {verified && <Link className="rzp-back text-center" to="/history" onClick={onClose}>{label('View recharge history', 'ரீசார்ஜ் வரலாற்றைப் பார்க்கவும்')}</Link>}
       </div>
     </div>
   </div>;

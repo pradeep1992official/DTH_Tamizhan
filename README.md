@@ -74,6 +74,7 @@ Expiry reflects saved information or recharge-duration calculations, not a live 
 | `/admin/customers` | Customer directory |
 | `/admin/pending` | Pending orders |
 | `/admin/recharges` | Recharge history |
+| `/history` | Signed-in customer's recharge history, payments and PDF receipts |
 | `/admin/packs` | Pack management |
 | `/admin/payments` | Payment reports |
 | `/admin/reports` | Reports and audits |
@@ -103,7 +104,6 @@ This is not a complete security audit. Firebase sign-out/auth-state synchronizat
 | AI recommendations | Backend `/api/ai/recommend-plans` exists; frontend does not call it |
 | Optional notifications | SMS and automatic WhatsApp delivery are not implemented. Brevo payment-receipt and manual-recharge-confirmation emails are implemented; configure the sender and server credentials to activate them. |
 | Account lifecycle | Firebase session synchronization/sign-out; load saved profile edits on login rather than rebuilding from Google data |
-| Customer order history | Backend listing exists without a dedicated customer history page |
 | Business information | Replace `[FILL IN]` values in `src/lib/trustContent.ts` and `src/lib/policyTranslations.ts` |
 | Production persistence | Durable shared storage instead of server-local files where required |
 
@@ -160,7 +160,15 @@ The manual recharge workflow is implemented: captured payment → Pending Orders
 
 ## Automatic receipt email (Brevo)
 
+Customer self-service history is available at **`/history`**, through **Your recharge history** in the account menu and **View history** on the account page. Signed-in customers can view their own recharge requests across all boxes, filter by connection/status, inspect order/payment references, and download PDF receipts for captured payments. A completed order downloads a recharge confirmation. Guests are prompted to sign in; data and receipt downloads are restricted server-side to the authenticated UID, including for administrators using this personal page. Internal admin notes are excluded. The page is marked `noindex` and its API responses use `Cache-Control: no-store`. Administrators retain the separate Customers → View page.
+
 Brevo sends two transactional emails per eligible order: a payment receipt after provider-confirmed capture, then a recharge confirmation after an administrator clicks **Mark Successful**. Emails include the customer, subscriber ID, operator, pack, validity, amount and payment/order references, plus a customer-friendly PDF receipt attachment with embedded English/Tamil fonts and operator branding. The recipient is the verified Firebase sign-in email, saved server-side when creating the Razorpay order. Client-supplied recipient addresses are ignored. Older transactions without a recorded verified email do not send automatically.
+
+Receipt formats:
+
+- **Email attachments:** new payment receipts and recharge confirmations are attached as `.pdf` files that customers can open directly on their phone or computer. English and Tamil names are supported, and available operator logos appear on the receipt.
+- **Checkout download:** the existing **Download payment receipt** button still downloads an HTML receipt, which can be opened and printed or saved as PDF through the browser.
+- **Previously sent emails:** existing HTML attachments cannot be changed retroactively. Make a new test transaction to check the PDF attachment. Already-attempted delivery retries preserve their original attachment to avoid changing an in-flight request; accepted emails are not resent automatically.
 
 Setup for local development and deployment:
 
@@ -177,8 +185,8 @@ Setup for local development and deployment:
    BREVO_SEND_TEST_EMAILS=false
    ```
 
-4. Restart/redeploy the Express server. Do not use a `VITE_` prefix for any Brevo credentials. Brevo delivery uses Node's built-in `fetch`. PDF receipts use `pdf-lib`, `@pdf-lib/fontkit` and bundled OFL-licensed Noto fonts. Keep `public/assets/fonts` (or the copied `dist/assets/fonts`) in the deployment.
-5. To test with the existing Razorpay test keys, temporarily set `BREVO_SEND_TEST_EMAILS=true`, sign in with a verified email you control, and make a **new** checkout order. After capture, wait about 30 seconds for the payment receipt. Mark the pending request successful and wait for its confirmation email. Test emails are clearly labeled and still consume the email allowance. Turn the test-email flag off afterwards.
+4. Run `npm install` after pulling dependency changes, then restart/redeploy the Express server. Do not use a `VITE_` prefix for any Brevo credentials. Brevo delivery uses Node's built-in `fetch`. PDF receipts use `pdf-lib`, `@pdf-lib/fontkit`, `regenerator-runtime` for Tamil font shaping, and bundled OFL-licensed Noto fonts. Keep `public/assets/fonts` and the operator logo assets (or their copied `dist/assets` versions) in the deployment. PDF generation runs locally on the server without an external paid conversion service.
+5. To test with the existing Razorpay test keys, temporarily set `BREVO_SEND_TEST_EMAILS=true`, sign in with a verified email you control, and make a **new** checkout order. After capture, wait about 30 seconds for the payment receipt and open its `.pdf` attachment. Check the customer name, subscriber ID, pack, amount and references. Mark the pending request successful and check the confirmation email's PDF too. Test emails are clearly labeled and still consume the email allowance. Turn the test-email flag off afterwards.
 
 The free plan currently includes 300 email sends per day; verify current limits in [Brevo's plan documentation](https://help.brevo.com/hc/en-us/articles/208589409-About-Brevo-s-pricing-plans). The app caps unique delivery attempts at a maximum of 300 per rolling 24 hours, deferring additional jobs. Two emails per order means roughly 150 orders per day if the account sends no other emails. Other apps sharing your Brevo account also consume the provider allowance. Hosting/domain costs are separate. The application does not upgrade your plan or purchase credits.
 

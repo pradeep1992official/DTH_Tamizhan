@@ -3,6 +3,7 @@ import { POLICY_ROUTES } from './trustContent';
 
 export interface PageMetadata { title: string; description: string; status: 200 | 404 | 500; noindex: boolean; path: string }
 const pages: Record<string, { en: [string, string]; ta: [string, string] }> = {
+  '/history': { en: ['Your Recharge History', 'Sign in to view your recharge history, payment status and receipts across all your boxes.'], ta: ['உங்கள் ரீசார்ஜ் வரலாறு', 'உங்கள் பாக்ஸ்களின் ரீசார்ஜ் வரலாறு, கட்டண நிலை மற்றும் ரசீதுகளைப் பார்க்க உள்நுழையவும்.'] },
   '/recharge': { en: ['DTH Recharge', 'Review DTH operator packs, subscriber details and custom top-up options before checkout.'], ta: ['டிடிஎச் ரீசார்ஜ்', 'கட்டணத்திற்கு முன் டிடிஎச் பேக்குகள், சந்தாதாரர் விவரங்கள் மற்றும் விருப்பத் தொகை வாய்ப்புகளைப் பாருங்கள்.'] },
   '/plans': { en: ['Browse DTH Packs', 'Search and compare DTH packs by operator, duration, price and declared channel counts.'], ta: ['டிடிஎச் பேக்குகளைப் பார்க்கவும்', 'ஆபரேட்டர், காலம், விலை மற்றும் சேனல் எண்ணிக்கையின் அடிப்படையில் பேக்குகளைத் தேடி ஒப்பிடுங்கள்.'] },
   '/account': { en: ['Your Account', 'Sign in to manage your DTH Tamizhan account and access saved connections.'], ta: ['உங்கள் கணக்கு', 'உங்கள் கணக்கை நிர்வகிக்கவும் சேமித்த இணைப்புகளை அணுகவும் உள்நுழையுங்கள்.'] },
@@ -28,7 +29,7 @@ export function pageMetadata(path: string, lang: Language = 'en'): PageMetadata 
   if (policy) return { ...base, title: `${policy[lang]} | DTH Tamizhan`, description: policyDescriptions[policy.key][lang === 'ta' ? 1 : 0] };
   if (pages[path]) {
     const [title, description] = pages[path][lang];
-    return { ...base, noindex: path === '/account', title: `${title} | DTH Tamizhan`, description };
+    return { ...base, noindex: path === '/account' || path === '/history', title: `${title} | DTH Tamizhan`, description };
   }
   return { ...base, status: 404, noindex: true, title: `${lang === 'ta' ? 'பக்கம் கிடைக்கவில்லை' : 'Page not found'} (404) | DTH Tamizhan`, description: lang === 'ta' ? 'இந்த முகவரி கிடைக்கவில்லை. முகப்புப் பக்கத்திற்குத் திரும்பவும்.' : 'This address does not exist. Return to the home page to continue.' };
 }
