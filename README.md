@@ -93,7 +93,7 @@ Expiry reflects saved information or recharge-duration calculations, not a live 
 - Several server datasets use in-memory collections and JSON under `data/`, rather than shared database storage. Sandbox sessions are process-local and do not persist financial orders.
 - `.env` files, `data/` and `.local-fixtures/` are ignored by Git.
 
-This is not a complete security audit. Firebase sign-out/auth-state synchronization is unfinished: logout currently clears local application state without signing out the Firebase session.
+This is not a complete security audit. Firebase authentication is the source of truth for account state: refresh restores the Firebase session, auth changes synchronize across tabs, and sign-out ends that session before clearing account UI and local connection cache. Saved profile name/phone fields load from the UID-keyed Firestore user document and synchronize without being overwritten by Google login. Stored profile roles are not used to authorize admin access.
 
 ## Incomplete workflows
 
@@ -103,7 +103,6 @@ This is not a complete security audit. Firebase sign-out/auth-state synchronizat
 | Installation fulfillment | Admin request management, assignment, scheduling and status tracking |
 | AI recommendations | Backend `/api/ai/recommend-plans` exists; frontend does not call it |
 | Optional notifications | SMS and automatic WhatsApp delivery are not implemented. Brevo payment-receipt and manual-recharge-confirmation emails are implemented; configure the sender and server credentials to activate them. |
-| Account lifecycle | Firebase session synchronization/sign-out; load saved profile edits on login rather than rebuilding from Google data |
 | Business information | Replace `[FILL IN]` values in `src/lib/trustContent.ts` and `src/lib/policyTranslations.ts` |
 | Production persistence | Durable shared storage instead of server-local files where required |
 

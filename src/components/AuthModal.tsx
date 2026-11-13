@@ -1,37 +1,21 @@
-import { localizeCustomerError } from '../lib/customerMessages';
+﻿import { localizeCustomerError } from '../lib/customerMessages';
 import React, { useState } from 'react';
 import {
   X,
   ShieldCheck,
   AlertCircle
 } from '../lib/icons';
-import { Language, UserProfile, isSuperAdminEmail } from '../types';
+import { Language } from '../types';
 import { translations } from '../lib/translations';
-import { auth, isFirebaseConfigured, db, sanitizePayload } from '../lib/firebase';
+import { auth, isFirebaseConfigured } from '../lib/firebase';
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
 import { useAccessibleModal } from '../lib/useAccessibleModal';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentLang: Language;
-  onSuccess: (profile: UserProfile) => void;
-  currentUser: UserProfile | null;
-}
-
-function formatNameFromEmail(email?: string, lang: Language = 'en'): string {
-  if (!email) return translations[lang].customer;
-  const prefix = email.split('@')[0];
-  const clean = prefix.replace(/[_.]/g, ' ').replace(/[0-9]/g, '').trim();
-  if (clean.length > 1) {
-    return clean
-      .split(' ')
-      .filter(Boolean)
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-      .join(' ');
-  }
-  return prefix.charAt(0).toUpperCase() + prefix.slice(1);
+  onSuccess: () => void;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
@@ -39,7 +23,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onClose,
   currentLang,
   onSuccess,
-  currentUser,
 }) => {
   const t = translations[currentLang];
   const [isLoading, setIsLoading] = useState(false);
@@ -57,39 +40,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       if (isFirebaseConfigured && auth) {
         const provider = new GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
-        const result = await signInWithPopup(auth, provider);
-        const fbUser = result.user;
-
-        const userEmail = fbUser.email || currentUser?.email || '';
-        const isSuperAdmin = isSuperAdminEmail(userEmail);
-        const finalDisplayName = fbUser.displayName || formatNameFromEmail(userEmail, currentLang);
-
-        const profile: UserProfile = {
-          uid: fbUser.uid,
-          email: userEmail,
-          displayName: finalDisplayName,
-          photoURL: fbUser.photoURL || undefined,
-          phoneNumber: fbUser.phoneNumber || currentUser?.phoneNumber,
-          is_worker: isSuperAdmin,
-          is_plan_admin: isSuperAdmin,
-          role: isSuperAdmin ? 'admin' : 'customer',
-          createdAt: currentUser?.createdAt || new Date().toISOString(),
-          lastLoginAt: new Date().toISOString(),
-          authProviders: ['google.com'],
-        };
-
-        if (isFirebaseConfigured && db) {
-          try {
-            const { is_plan_admin, is_worker, ...publicProfile } = profile;
-            await setDoc(doc(db, 'users', profile.uid), sanitizePayload(publicProfile), { merge: true });
-
-          } catch (e) {
-            console.warn('Firestore user profile save error:', e);
-          }
-        }
+        await signInWithPopup(auth, provider);
 
         setIsLoading(false);
-        onSuccess(profile);
+        onSuccess();
         onClose();
       } else {
         setIsLoading(false);
@@ -197,3 +151,4 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     </div>
   );
 };
+

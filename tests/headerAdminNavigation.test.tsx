@@ -11,7 +11,9 @@ vi.mock('react', async original => ({ ...(await original<any>()),
   useEffect: (action: any) => { harness.effects.push(action); },
 }));
 vi.mock('../src/lib/useAccessibleModal', () => ({ useAccessibleModal: () => ({ modalRef: { current: null } }) }));
-vi.mock('../src/lib/adminNavigationAccess', () => ({ verifyAdminNavigationAccess: harness.verify }));
+vi.mock('../src/lib/adminNavigationAccess', () => ({ verifyAdminNavigationAccess: harness.verify,
+  AdminNavigationError: class extends Error { constructor(public reason: string) { super('Administrator access could not be verified.'); } },
+}));
 import { Header } from '../src/components/Header';
 let props: any;
 const render = () => { harness.index = 0; harness.effects = []; return Header(props); };

@@ -9,7 +9,7 @@ import { PolicyLinks } from './components/TrustContent';
 import { POLICY_ROUTES } from './lib/trustContent';
 import { subscriberError } from './lib/subscriberValidation';
 import { calculateConnectionExpiry, getPackDuration } from './lib/connectionExpiry';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   BrowserRouter,
   Routes,
@@ -47,6 +47,7 @@ import { translations } from './lib/translations';
 import { getOperatorTheme, OPERATOR_THEMES } from './lib/theme';
 import { auth, db, isFirebaseConfigured, sanitizePayload } from './lib/firebase';
 import { saveAccountProfile } from './lib/accountProfile';
+import { observeAccountSession, signOutAccount } from './lib/accountSession';
 import { collection, doc, getDocs, setDoc, deleteDoc, query, where, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import {
   Tv,
@@ -128,14 +129,9 @@ function MainApp() {
   };
 
   // User Authentication State
-  const [user, setUser] = useState<UserProfile | null>(() => {
-    try {
-      const saved = localStorage.getItem('dth_tamizhan_user');
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  });
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [sessionError, setSessionError] = useState('');
+  const signingOut = useRef(false);
 
 
   // Selected Operator / Theme
@@ -185,15 +181,28 @@ function MainApp() {
   const [lastCompletedOrder, setLastCompletedOrder] = useState<RechargeOrder | null>(null);
   const [prefillConn, setPrefillConn] = useState<DthConnection | null>(null);
 
-  // Persist User
+  useEffect(() => {
+    try { localStorage.removeItem('dth_tamizhan_user'); } catch {}
+    if (!auth) return;
+    return observeAccountSession(auth, db, profile => {
+      setSessionError(''); setUser(profile);
+      if (!profile) {
+        setConnections([]); setConnectionOwner(null); setPrefillConn(null);
+        setIsPaymentOpen(false); setIsReceiptOpen(false); setIsNewDishOpen(false);
+        setActivePaymentPlan(null); setActiveSubscriber(null); setActiveOperator(null); setActiveSmartCard('');
+        setLastCompletedOrder(null);
+      }
+    }, setSessionError);
+  }, []);
+
+  // Load saved connections only for the active Firebase-backed account.
   useEffect(() => {
     let cancelled = false;
     if (user) {
-      localStorage.setItem('dth_tamizhan_user', JSON.stringify(user));
       if (isFirebaseConfigured && db && user.uid) {
         const q = query(collection(db, 'dth_connections'), where('user_id', '==', user.uid));
         getDocs(q).then((snap) => {
-          if (cancelled) return;
+          if (cancelled || auth?.currentUser?.uid !== user.uid) return;
           if (!snap.empty) {
             const remoteConns: DthConnection[] = [];
             snap.forEach((docSnap: QueryDocumentSnapshot<DocumentData>) => {
@@ -234,7 +243,7 @@ function MainApp() {
       localStorage.removeItem('dth_tamizhan_user');
     }
     return () => { cancelled = true; };
-  }, [user]);
+  }, [user?.uid]);
 
   // Persist Connections
   useEffect(() => {
@@ -242,31 +251,36 @@ function MainApp() {
     localStorage.setItem(connectionCacheKey(user.uid), JSON.stringify(ownedConnections(storedConnections, user.uid)));
   }, [storedConnections, connectionOwner, user?.uid]);
 
-  const handleAuthSuccess = (profile: UserProfile) => {
-    setUser(profile);
+  const handleAuthSuccess = () => {
     setIsAuthOpen(false);
   };
 
   const handleUpdateProfile = async (updates: Pick<UserProfile, 'displayName' | 'phoneNumber'>) => {
     if (!user) throw new Error(t.uiSignInEdit);
 
-    const updatedProfile = { ...user, ...updates };
-    if (isFirebaseConfigured && db) {
-      await saveAccountProfile(db, auth, user.uid, updates, t.uiSignInEdit);
-    }
-    setUser(updatedProfile);
+    if (!isFirebaseConfigured || !db || !auth) throw new Error(t.uiUnableToSaveProfilePleaseTryAgain);
+    await saveAccountProfile(db, auth, user.uid, updates, t.uiSignInEdit);
+    if (auth?.currentUser?.uid === user.uid) setUser(previous => previous?.uid === user.uid ? { ...previous, ...updates } : previous);
   };
 
-  const handleSignOut = () => {
-    setConnections([]);
-    setConnectionOwner(null);
-    setPrefillConn(null);
-    setIsPaymentOpen(false);
-    setIsReceiptOpen(false);
-    setLastCompletedOrder(null);
-    setUser(null);
-    localStorage.removeItem('dth_tamizhan_user');
-    navigate('/');
+  const handleSignOut = async () => {
+    if (signingOut.current) return;
+    signingOut.current = true; setSessionError('');
+    try {
+      await signOutAccount(auth);
+      try { if (user?.uid) localStorage.removeItem(connectionCacheKey(user.uid)); } catch {}
+      setConnections([]);
+      setConnectionOwner(null);
+      setPrefillConn(null);
+      setIsPaymentOpen(false);
+      setIsReceiptOpen(false);
+      setLastCompletedOrder(null);
+      setUser(null);
+      try { localStorage.removeItem('dth_tamizhan_user'); } catch {}
+      navigate('/');
+    } catch {
+      setSessionError(currentLang === 'ta' ? 'வெளியேற முடியவில்லை. மீண்டும் முயற்சிக்கவும்.' : 'Sign-out did not complete. Please try again.');
+    } finally { signingOut.current = false; }
   };
 
   const handleInitiatePayment = (
@@ -453,6 +467,7 @@ function MainApp() {
 
       {/* Main Content View Container */}
       <main id="main-content" className="app-main">
+        {sessionError && <p role="alert" className="border border-rule rounded-lg p-3 my-3 text-error">{sessionError}</p>}
         <Routes>
           <Route
             path="/"
@@ -516,7 +531,7 @@ function MainApp() {
             }
           />
           {POLICY_ROUTES.map(route => <Route key={route.key} path={route.path} element={<PolicyPage policy={route.key} currentLang={currentLang} />} />)}
-          <Route path="/account" element={<AccountPage user={user} connections={connections} currentLang={currentLang} onOpenAuth={() => setIsAuthOpen(true)} onSignOut={handleSignOut} onUpdateProfile={handleUpdateProfile} />} />
+          <Route path="/account" element={<AccountPage key={user?.uid || 'guest'} user={user} connections={connections} currentLang={currentLang} onOpenAuth={() => setIsAuthOpen(true)} onSignOut={handleSignOut} onUpdateProfile={handleUpdateProfile} />} />
           <Route path="/history" element={<CustomerHistoryPage user={user} currentLang={currentLang} onOpenAuth={() => setIsAuthOpen(true)} />} />
           <Route path="/500" element={<ErrorPage status={500} currentLang={currentLang} />} />
 
@@ -581,7 +596,6 @@ function MainApp() {
         onClose={() => setIsAuthOpen(false)}
         currentLang={currentLang}
         onSuccess={handleAuthSuccess}
-        currentUser={user}
       />
 
       {activeOperator && (
