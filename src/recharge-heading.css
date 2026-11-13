@@ -1,0 +1,7 @@
+.recharge-page .recharge-heading h1 {
+  font-family: 'Oswald', 'Noto Sans Tamil', sans-serif;
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-weight: 700;
+  letter-spacing: normal;
+  line-height: 1.2;
+}

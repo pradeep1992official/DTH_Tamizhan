@@ -25,6 +25,7 @@ import { Header } from './components/Header';
 import { RechargeFlow } from './components/RechargeFlow';
 import { AuthModal } from './components/AuthModal';
 import { PaymentModal } from './components/PaymentModal';
+import { RechargeAssistant } from './components/RechargeAssistant';
 import { ReceiptModal } from './components/ReceiptModal';
 import { SavedConnections } from './components/SavedConnections';
 import { AdminPortal } from './components/AdminPortal';
@@ -472,6 +473,8 @@ function MainApp() {
       {/* Main Content View Container */}
       <main id="main-content" className="app-main">
         {sessionError && <p role="alert" className="border border-rule rounded-lg p-3 my-3 text-error">{sessionError}</p>}
+        {user && ['/', '/recharge', '/connections'].includes(location.pathname) && <RechargeAssistant key={user.uid} currentLang={currentLang} displayName={user.displayName}
+          onCheckout={(plan, box, operator) => handleInitiatePayment(plan, null, operator, box.smartCardNumber, false)} />}
         <Routes>
           <Route
             path="/"

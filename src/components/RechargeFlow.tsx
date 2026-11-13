@@ -1,4 +1,5 @@
 import { CatalogColumnHeadings, PlanCard } from './BrowsePlans/PlanCard';
+import '../recharge-heading.css';
 import { catalogItemToBrowsePlan } from '../lib/browsePlansData';
 import { formatMessage, localizeCustomerError } from '../lib/customerMessages';
 import { OperatorCatalogNotice } from './OperatorCatalogNotice';

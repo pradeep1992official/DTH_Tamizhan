@@ -59,6 +59,12 @@ The build creates frontend assets in `dist/` and the Express bundle at `dist/ser
 
 ## Implemented features
 
+### Recharge assistant
+
+Signed-in customers can open **Ask AI to recharge your box** on Recharge or Saved Boxes and enter, for example, `Recharge 6 month HD for hall box`. The box must already be saved in their account with the nickname `Hall` or `Hall Box`. The assistant asks for missing duration/quality or a box choice, then lists matching catalog packs with their actual prices. **Continue to payment** opens the existing checkout; the customer completes payment there. Verified paid recharges follow the existing manual administrator fulfillment workflow.
+
+`POST /api/ai/recharge` requires a Firebase bearer token and queries only that UID's saved boxes. Gemini extracts preferences from up to 12 customer messages; server code resolves boxes and validates catalog plans. It cannot create paid orders or mark a recharge complete. The existing `GEMINI_FREE_*` configuration, billing verification and quotas also apply to this assistant. When AI is unavailable, a limited English command matcher supports the example syntax and clearly labels that fallback. Flexible English/Tamil interpretation requires configured Gemini credentials. Messages (including box nicknames typed by the customer) are sent to Gemini when enabled; subscriber IDs and saved-box records are resolved locally on the server and are not included in the model request. Chat history stays in page memory and clears on account change or **New request**.
+
 - English/Tamil interface, operator-specific subscriber ID validation and custom recharge amounts.
 - Recommended HD/SD packs, duration selection, catalog filtering, comparison and supplied channel details.
 - Sandbox checkout sessions with simulated success/failure/pending outcomes, expiry and retry handling.

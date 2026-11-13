@@ -38,6 +38,7 @@ import {
   MagnifyingGlassIcon,
   MapPinIcon,
   MonitorIcon,
+  MicrophoneIcon,
   PencilSimpleLineIcon,
   PercentIcon,
   PhoneIcon,
@@ -81,6 +82,7 @@ export const AlertCircle = /* @__PURE__ */ themedIcon(WarningCircleIcon);
 export const AlertTriangle = /* @__PURE__ */ themedIcon(WarningIcon);
 export const ArrowLeft = /* @__PURE__ */ themedIcon(ArrowLeftIcon);
 export const ArrowRight = /* @__PURE__ */ themedIcon(ArrowRightIcon);
+export const Microphone = /* @__PURE__ */ themedIcon(MicrophoneIcon);
 export const ArrowUpDown = /* @__PURE__ */ themedIcon(ArrowsDownUpIcon);
 export const ArrowUpRight = /* @__PURE__ */ themedIcon(ArrowUpRightIcon);
 export const Ban = /* @__PURE__ */ themedIcon(ProhibitIcon);
