@@ -26,12 +26,26 @@ import { readPaymentLedger, recordProviderPayment } from '../models/paymentLedge
 import { razorpayClient } from '../razorpay';
 import { enrichCustomerContacts, missingCustomerName } from '../customerContacts';
 import { customerDetails } from '../models/customerDetails';
+import { receiptEmailStatus, retryRejectedEmails } from '../emailDelivery';
 
 function forbidden(res: Response): void {
   res.status(403).json({ success: false, error: 'Forbidden. Admin privileges required.' });
 }
 
 export const adminController = {
+  async emailStatus(req: Request, res: Response): Promise<void> {
+    const verdict = await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS);
+    if (!verdict.authorized) return forbidden(res);
+    res.setHeader('Cache-Control', 'no-store');
+    try { res.json({ success: true, ...receiptEmailStatus() }); }
+    catch { res.status(503).json({ success: false, error: 'Unable to read email delivery status.' }); }
+  },
+  async retryEmails(req: Request, res: Response): Promise<void> {
+    const verdict = await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS);
+    if (!verdict.authorized || !verdict.isSuperAdmin) return forbidden(res);
+    try { res.json({ success: true, retried: retryRejectedEmails() }); }
+    catch { res.status(503).json({ success: false, error: 'Could not requeue rejected emails. Please retry shortly.' }); }
+  },
   async customerDetails(req: Request, res: Response): Promise<void> {
     const verdict = await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS);
     if (!verdict.authorized) return forbidden(res);

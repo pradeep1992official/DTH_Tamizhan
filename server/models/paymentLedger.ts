@@ -12,6 +12,7 @@ export interface PaymentLedgerEntry {
   packId?: string;
   packValidity?: string;
   customerPhone?: string;
+  customerEmail?: string;
 }
 const ledgerFile = () => path.join(process.cwd(), 'data', 'razorpay_payments.json');
 export function readPaymentLedger(): PaymentLedgerEntry[] {
@@ -37,6 +38,7 @@ export function recordProviderPayment(payment: Payments.RazorpayPayment, order?:
     smartCardNumber: notes.dth_subscriber || previous?.smartCardNumber || '',
     packName: notes.dth_plan || previous?.packName || '',
     customerUid: notes.dth_customer_uid || previous?.customerUid,
+    customerEmail: notes.dth_customer_email || previous?.customerEmail,
     packId: notes.dth_pack_id || previous?.packId,
     packValidity: notes.dth_validity || previous?.packValidity,
     createdAt: new Date(payment.created_at * 1000).toISOString(), operatorRefId: '', testMode, provider: 'Razorpay',

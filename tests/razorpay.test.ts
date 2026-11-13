@@ -41,11 +41,12 @@ describe('Razorpay checkout', () => {
   });
   it('creates an INR order and never returns the secret', async () => {
     provider.create.mockResolvedValue({ id: 'order_123', amount: 100, currency: 'INR' });
-    const result = await request('/api/create-order', { amount: 100 });
+    const result = await request('/api/create-order', { amount: 100, customerEmail: 'untrusted@example.com' });
     expect(result.status).toBe(200); expect(result.body.order_id).toBe('order_123');
     expect(JSON.stringify(result.body)).not.toContain('test-secret');
     expect(provider.create).toHaveBeenCalledWith(expect.objectContaining({ amount: 100, currency: 'INR' }));
     expect(provider.create).toHaveBeenCalledWith(expect.objectContaining({ notes: expect.objectContaining({ dth_customer_uid: 'customer-1' }) }));
+    expect(provider.create).toHaveBeenCalledWith(expect.objectContaining({ notes: expect.objectContaining({ dth_customer_email: 'customer@example.com' }) }));
   });
   it.each([99, -1, 100.1])('rejects invalid amount %s', async amount => {
     expect((await request('/api/create-order', { amount })).status).toBe(400);

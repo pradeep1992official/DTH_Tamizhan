@@ -110,4 +110,11 @@ describe('canonical admin permission policy and API read path', () => {
       expect(res.json.mock.calls[0][0]).not.toHaveProperty('customer');
     }
   });
+  it('restricts receipt delivery controls to administrators', async () => {
+    for (const action of [adminController.emailStatus, adminController.retryEmails]) {
+      const res = response();
+      await action(request('customer'), res as any);
+      expect(res.status).toHaveBeenCalledWith(403);
+    }
+  });
 });

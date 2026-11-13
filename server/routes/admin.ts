@@ -13,6 +13,8 @@ import {
 export const adminRouter = Router();
 
 adminRouter.get('/api/admin/verify-token', adminController.verifyToken);
+adminRouter.get('/api/admin/email/status', adminController.emailStatus);
+adminRouter.post('/api/admin/email/retry', adminLimiter, adminController.retryEmails);
 adminRouter.get('/api/admin/customers', adminController.listCustomers);
 adminRouter.get('/api/admin/customers/:id', adminController.customerDetails);
 adminRouter.post('/api/admin/customers/create', adminLimiter, validateBody(CreateCustomerSchema), adminController.createCustomer);

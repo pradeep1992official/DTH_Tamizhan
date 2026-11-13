@@ -4,6 +4,8 @@ import express, { Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
 import { createServer } from 'node:http';
+import { startReceiptEmailWorker, emailDeliveryConfig } from './server/emailDelivery';
+import { emailRouter } from './server/routes/email';
 import { createServer as createViteServer } from 'vite';
 import dotenv from 'dotenv';
 import helmet from 'helmet';
@@ -66,6 +68,7 @@ async function startServer() {
   app.use(plansRouter);
   app.use(adminRouter);
   app.use(aiRouter);
+  app.use(emailRouter);
 
   app.use('/api', (_req, res) => { res.status(404).json({ success: false, error: 'API route not found.' }); });
 
@@ -93,11 +96,15 @@ async function startServer() {
     });
   } catch (error) { await vite?.close(); throw error; }
   console.log(`[DTH Tamizhan] Unified Server listening on http://0.0.0.0:${PORT}`);
+  const stopEmailWorker = startReceiptEmailWorker();
+  const emailConfig = emailDeliveryConfig();
+  console.log(`[email] Brevo ${emailConfig.enabled && emailConfig.configured ? 'enabled' : 'disabled or not configured'}.`);
 
   let stopping = false;
   const shutdown = async () => {
     if (stopping) return;
     stopping = true;
+    stopEmailWorker();
     const timeout = setTimeout(() => process.exit(1), 5000);
     timeout.unref();
     await vite?.close();

@@ -1,4 +1,4 @@
-# DTH Tamizhan
+﻿# DTH Tamizhan
 
 English and Tamil DTH pack browsing, recharge checkout, saved set-top boxes and administration for Sun Direct, Tata Play, Airtel Digital TV, Dish TV and D2H.
 
@@ -99,10 +99,9 @@ This is not a complete security audit. Firebase sign-out/auth-state synchronizat
 | Feature | Remaining work |
 | --- | --- |
 | Live payment readiness/refunds | Activate and configure live Razorpay keys when ready; add verified webhooks, automatic reconciliation and refund execution. Orders, hosted checkout and server signature/capture verification are implemented. |
-| Receipt enhancements | Checkout provides a downloadable HTML payment receipt with Print / Save as PDF. Automated receipt delivery is not implemented. |
 | Installation fulfillment | Admin request management, assignment, scheduling and status tracking |
 | AI recommendations | Backend `/api/ai/recommend-plans` exists; frontend does not call it |
-| Automatic notifications | SMS, WhatsApp and email delivery; receipt sharing currently opens WhatsApp manually |
+| Optional notifications | SMS and automatic WhatsApp delivery are not implemented. Brevo payment-receipt and manual-recharge-confirmation emails are implemented; configure the sender and server credentials to activate them. |
 | Account lifecycle | Firebase session synchronization/sign-out; load saved profile edits on login rather than rebuilding from Google data |
 | Customer order history | Backend listing exists without a dedicated customer history page |
 | Business information | Replace `[FILL IN]` values in `src/lib/trustContent.ts` and `src/lib/policyTranslations.ts` |
@@ -159,5 +158,38 @@ Admin → Pending Orders and customer order history derive captured recharge req
 
 The manual recharge workflow is implemented: captured payment → Pending Orders → administrator recharges through the operator/distributor portal → administrator confirms success with **Mark Successful** → completed recharge history. An automatic DTH recharge API is not required for this workflow. Before accepting live payments, configure live credentials and add durable reconciliation/webhooks for reliable background payment updates. No database tables were added.
 
+## Automatic receipt email (Brevo)
+
+Brevo sends two transactional emails per eligible order: a payment receipt after provider-confirmed capture, then a recharge confirmation after an administrator clicks **Mark Successful**. Emails include the customer, subscriber ID, operator, pack, validity, amount and payment/order references, plus a customer-friendly PDF receipt attachment with embedded English/Tamil fonts and operator branding. The recipient is the verified Firebase sign-in email, saved server-side when creating the Razorpay order. Client-supplied recipient addresses are ignored. Older transactions without a recorded verified email do not send automatically.
+
+Setup for local development and deployment:
+
+1. Create a Brevo Free account, verify/approve your sender email or domain, and ensure transactional email is activated. Domain authentication may be required by Brevo for your sender.
+2. Generate a Brevo **API key** (not an SMTP password).
+3. Set these **server-only** environment variables in `.env` locally and in your deployed backend's environment:
+
+   ```dotenv
+   BREVO_ENABLED=true
+   BREVO_API_KEY=your_brevo_api_key
+   BREVO_SENDER_EMAIL=your_approved_sender@example.com
+   BREVO_SENDER_NAME="DTH Tamizhan"
+   BREVO_DAILY_LIMIT=300
+   BREVO_SEND_TEST_EMAILS=false
+   ```
+
+4. Restart/redeploy the Express server. Do not use a `VITE_` prefix for any Brevo credentials. Brevo delivery uses Node's built-in `fetch`. PDF receipts use `pdf-lib`, `@pdf-lib/fontkit` and bundled OFL-licensed Noto fonts. Keep `public/assets/fonts` (or the copied `dist/assets/fonts`) in the deployment.
+5. To test with the existing Razorpay test keys, temporarily set `BREVO_SEND_TEST_EMAILS=true`, sign in with a verified email you control, and make a **new** checkout order. After capture, wait about 30 seconds for the payment receipt. Mark the pending request successful and wait for its confirmation email. Test emails are clearly labeled and still consume the email allowance. Turn the test-email flag off afterwards.
+
+The free plan currently includes 300 email sends per day; verify current limits in [Brevo's plan documentation](https://help.brevo.com/hc/en-us/articles/208589409-About-Brevo-s-pricing-plans). The app caps unique delivery attempts at a maximum of 300 per rolling 24 hours, deferring additional jobs. Two emails per order means roughly 150 orders per day if the account sends no other emails. Other apps sharing your Brevo account also consume the provider allowance. Hosting/domain costs are separate. The application does not upgrade your plan or purchase credits.
+
+The persistent outbox is `data/email_outbox.json`. Keep `data/` on a persistent disk and use one server instance with the current file-backed store. A worker runs every 30 seconds; retries reuse a stored idempotency key and frozen email body, and accepted jobs are not resent after restart or repeated payment verification. Network/server errors retry within a conservative 14-minute window; uncertain old sends require checking Brevo logs before resending. Rate limits defer retries. Explicit rejections can be requeued by the super administrator after fixing the sender/credentials.
+
+Check **Admin → Payments → Receipt emails** for configuration, queued, accepted, rejected and review counts. “Accepted” means Brevo accepted the request; inbox delivery/bounces must be checked in Brevo transactional logs. Email failures never undo a payment or saved recharge status. Existing manual receipt downloads remain available. No email is sent until credentials are configured and `BREVO_ENABLED=true`.
+
+For hosts that sleep or pause background CPU, use an external scheduler to `POST /api/internal/email/process` every minute. Set a random `EMAIL_WORKER_TOKEN` of at least 32 characters and send it in the `Authorization: Bearer <token>` header; the endpoint is disabled without that secret. This keeps processing active for the scheduler request. The same persistent-volume/single-instance requirement applies. Do not rely solely on an in-process timer on serverless or ephemeral hosting.
+
+Razorpay webhooks remain separate work: the email worker can only email captured payments already recorded by callback verification or administrator sync. Set up payment webhooks before relying on unattended updates when customers close checkout.
+
 Checks: `npm run lint`, `npx vitest run tests/razorpay.test.ts tests/payments.test.ts tests/copyLocalization.test.tsx`, and `npm run build`.
+
 

@@ -94,6 +94,8 @@ paymentsRouter.post('/api/create-order', orderCreateLimiter, validateBody(orderS
     }
     if (!Number.isSafeInteger(amount) || amount < 100) throw new PaymentError(400, 'Minimum amount is 100 paise.');
     notes.dth_customer_uid = res.locals.customer.uid;
+    // Receipts go only to the verified sign-in email, never a client-supplied recipient.
+    if (res.locals.customer.emailVerified && res.locals.customer.email) notes.dth_customer_email = res.locals.customer.email;
     const order = await razorpayClient().orders.create({ amount, currency: 'INR',
       receipt: input.receipt || randomUUID(), notes });
     res.json({ order_id: order.id, amount: Number(order.amount), currency: order.currency,

@@ -1,4 +1,5 @@
 import { AdminRefreshButton } from '../AdminRefreshButton';
+import { EmailDeliveryPanel } from '../EmailDeliveryPanel';
 import React, { useState } from 'react';
 import { Search, Eye, X } from '../../../lib/icons';
 import { useAccessibleModal } from '../../../lib/useAccessibleModal';
@@ -83,6 +84,7 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
 
   return (
     <div className="admin-tab payments-tab space-y-4">
+      {getAuthHeaders && <EmailDeliveryPanel getAuthHeaders={getAuthHeaders} />}
       {/* Metrics Banner */}
       <section aria-label="Payment summary" className="payments-summary">
       <div className="admin-summary">
