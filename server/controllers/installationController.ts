@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
 import { createInstallationRequest } from '../models/installationRequestModel';
 
-export function submitInstallationRequest(req: Request, res: Response): void {
+export async function submitInstallationRequest(req: Request, res: Response): Promise<void> {
   try {
-    const request = createInstallationRequest(req.body);
+    const request = await createInstallationRequest(req.body);
     res.status(201).json({
       success: true,
       request: {

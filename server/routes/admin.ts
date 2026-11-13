@@ -1,3 +1,4 @@
+import { forwardAsyncErrors } from '../asyncRoutes';
 import { Router } from 'express';
 import { adminController } from '../controllers/adminController';
 import { adminLimiter } from '../middleware/rateLimiter';
@@ -30,3 +31,5 @@ adminRouter.post('/api/admin/approve-user', adminLimiter, validateBody(ApproveUs
 adminRouter.post('/api/admin/revoke-user', adminLimiter, validateBody(RevokeUserSchema), adminController.revokeUser);
 adminRouter.get('/api/admin/operators', adminController.operators);
 adminRouter.post('/api/admin/operators/toggle', adminLimiter, validateBody(ToggleOperatorSchema), adminController.toggleOperator);
+
+forwardAsyncErrors(adminRouter);

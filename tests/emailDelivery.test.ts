@@ -19,7 +19,7 @@ beforeEach(() => {
   vi.stubEnv('BREVO_SEND_TEST_EMAILS', 'false'); vi.stubEnv('BREVO_DAILY_LIMIT', '300');
 });
 afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
-it('queues captured payment receipts and completed recharge confirmations once per event', () => {
+it('queues captured payment receipts and completed recharge confirmations once per event', async () => {
   const orders = [{ orderId: payment.orderId, paymentId: payment.id, rechargeStatus: 'completed', updatedAt: payment.createdAt, testMode: false }] as any;
   const jobs = queueReceiptEmails([], [payment], orders, now);
   expect(jobs.map(job => job.event)).toEqual(['payment', 'recharge']);
@@ -27,12 +27,12 @@ it('queues captured payment receipts and completed recharge confirmations once p
   expect(jobs[0].htmlContent).toContain('Customer &lt;script&gt;'); expect(jobs[0].htmlContent).not.toContain('Customer <script>');
   expect(jobs[0].textContent).toContain('awaiting manual processing'); expect(jobs[1].textContent).toContain('administrator has confirmed');
 });
-it('skips failed, uncaptured, unbound and missing-email payments', () => {
+it('skips failed, uncaptured, unbound and missing-email payments', async () => {
   for (const change of [{ status: 'failed' }, { providerStatus: 'authorized' }, { customerEmail: undefined }, { customerUid: undefined }]) {
     expect(queueReceiptEmails([], [{ ...payment, ...change }], [], now)).toHaveLength(0);
   }
 });
-it('suppresses test emails unless explicitly enabled, then clearly labels them', () => {
+it('suppresses test emails unless explicitly enabled, then clearly labels them', async () => {
   expect(queueReceiptEmails([], [{ ...payment, testMode: true }], [], now)).toHaveLength(0);
   vi.stubEnv('BREVO_SEND_TEST_EMAILS', 'true');
   expect(queueReceiptEmails([], [{ ...payment, testMode: true }], [], now)[0].subject).toContain('[TEST]');
@@ -51,7 +51,7 @@ it('sends the receipt and attachment with a server-side key and persists accepta
   expect(body.to[0].email).toBe('customer@example.com'); expect(body.attachment[0].name).toBe('DTH-Tamizhan-payment-receipt.pdf');
   expect(Buffer.from(body.attachment[0].content, 'base64').toString()).toContain('%PDF');
   expect(body.headers.idempotencyKey).toBeTruthy(); expect(body.htmlContent).not.toContain('fixture-secret');
-  expect(readEmailOutbox()[0]).toMatchObject({ status: 'accepted', messageId: 'message-1' });
+  expect((await readEmailOutbox())[0]).toMatchObject({ status: 'accepted', messageId: 'message-1' });
 });
 it('retries transient failures with the same idempotency key and frozen email body', async () => {
   const fetcher = vi.fn().mockRejectedValueOnce(new Error('Network')).mockResolvedValue(new Response(JSON.stringify({ messageId: 'message-1' }), { status: 201 }));
@@ -59,36 +59,36 @@ it('retries transient failures with the same idempotency key and frozen email bo
   vi.stubEnv('BREVO_SENDER_EMAIL', 'changed@example.com'); await processReceiptEmails(now + 30000);
   expect(fetcher).toHaveBeenCalledTimes(2);
   expect(fetcher.mock.calls[0][1].body).toBe(fetcher.mock.calls[1][1].body);
-  expect(readEmailOutbox()[0].status).toBe('accepted');
+  expect((await readEmailOutbox())[0].status).toBe('accepted');
 });
 it('holds new jobs after the rolling free sending cap and resumes later', async () => {
   vi.stubEnv('BREVO_DAILY_LIMIT', '1'); fixture.payments.push({ ...payment, id: 'pay_2', orderId: 'order_2' });
   const fetcher = vi.fn(async () => new Response(JSON.stringify({ messageId: 'message-1' }), { status: 201 }));
   vi.stubGlobal('fetch', fetcher); await processReceiptEmails(now);
-  expect(fetcher).toHaveBeenCalledTimes(1); expect(readEmailOutbox().filter(job => job.status === 'pending')).toHaveLength(1);
+  expect(fetcher).toHaveBeenCalledTimes(1); expect((await readEmailOutbox()).filter(job => job.status === 'pending')).toHaveLength(1);
   await processReceiptEmails(now + 86400001); expect(fetcher).toHaveBeenCalledTimes(2);
 });
 it('requeues explicit rejections but never automatically resends accepted or uncertain jobs', async () => {
   vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 401 })));
-  await processReceiptEmails(now); expect(readEmailOutbox()[0].status).toBe('failed'); expect(retryRejectedEmails()).toBe(1);
-  expect(readEmailOutbox()[0].status).toBe('pending');
+  await processReceiptEmails(now); expect((await readEmailOutbox())[0].status).toBe('failed'); expect(await retryRejectedEmails()).toBe(1);
+  expect((await readEmailOutbox())[0].status).toBe('pending');
 });
 it('marks an interrupted send outside its deduplication window for review', async () => {
   const fetcher = vi.fn().mockRejectedValue(new Error('Network')); vi.stubGlobal('fetch', fetcher);
   await processReceiptEmails(now); await processReceiptEmails(now + 15 * 60000);
-  expect(fetcher).toHaveBeenCalledTimes(1); expect(readEmailOutbox()[0].status).toBe('review'); expect(retryRejectedEmails()).toBe(0);
+  expect(fetcher).toHaveBeenCalledTimes(1); expect((await readEmailOutbox())[0].status).toBe('review'); expect(await retryRejectedEmails()).toBe(0);
 });
 it('defers provider rate limits without failing payment processing', async () => {
   vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 429 })));
   await processReceiptEmails(now);
-  expect(readEmailOutbox()[0]).toMatchObject({ status: 'pending', nextAttemptAt: now + 3600000 });
+  expect((await readEmailOutbox())[0]).toMatchObject({ status: 'pending', nextAttemptAt: now + 3600000 });
 });
-it('never permits a configured app cap above the free allowance', () => {
+it('never permits a configured app cap above the free allowance', async () => {
   vi.stubEnv('BREVO_DAILY_LIMIT', '999'); expect(emailDeliveryConfig().dailyLimit).toBe(300);
 });
 it('cancels an unsent email if the recorded payment has since been refunded', async () => {
   const fetcher = vi.fn().mockRejectedValue(new Error('Network')); vi.stubGlobal('fetch', fetcher);
   await processReceiptEmails(now); fixture.payments[0].status = 'refunded'; fixture.payments[0].providerStatus = 'refunded';
   await processReceiptEmails(now + 30000);
-  expect(fetcher).toHaveBeenCalledTimes(1); expect(readEmailOutbox()[0].status).toBe('cancelled');
+  expect(fetcher).toHaveBeenCalledTimes(1); expect((await readEmailOutbox())[0].status).toBe('cancelled');
 });

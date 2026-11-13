@@ -1,3 +1,4 @@
+import { forwardAsyncErrors } from '../asyncRoutes';
 import { Router } from 'express';
 import { health, listOperators } from '../controllers/coreController';
 import { submitInstallationRequest } from '../controllers/installationController';
@@ -12,3 +13,5 @@ coreRouter.post(
   validateBody(InstallationRequestSchema),
   submitInstallationRequest,
 );
+
+forwardAsyncErrors(coreRouter);

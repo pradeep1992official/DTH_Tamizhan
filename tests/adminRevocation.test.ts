@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+vi.mock('../server/models/sharedStore', () => ({ readAdminRequests: async () => [], saveAdminRequest: vi.fn() }));
 const fixture = vi.hoisted(() => ({
   registry: {} as Record<string, any>, update: vi.fn(), save: vi.fn(), fail: false,
   lookup: vi.fn(), set: vi.fn(),

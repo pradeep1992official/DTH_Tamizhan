@@ -1,3 +1,4 @@
+import { forwardAsyncErrors } from '../asyncRoutes';
 import { Router } from 'express';
 import { z } from 'zod';
 import { createPaymentService, paymentMode, PaymentError } from '../payments';
@@ -12,7 +13,8 @@ import { recordProviderPayment } from '../models/paymentLedger';
 import { verifyAuthToken } from '../middleware/auth';
 
 export const paymentsRouter = Router();
-const service = createPaymentService(() => planModel.getAll());
+let sandboxPlans: Awaited<ReturnType<typeof planModel.getAll>> = [];
+const service = createPaymentService(() => sandboxPlans);
 const sessionOwners = new Map<string, { uid: string; expiresAt: number }>();
 paymentsRouter.use(['/api/create-order', '/api/verify-payment', '/api/payments/session', '/api/recharge/create'], async (req, res, next) => {
   try {
@@ -46,12 +48,15 @@ paymentsRouter.get('/api/payments/config', (_req, res) => {
   const mode = paymentMode();
   res.json({ mode, provider: mode === 'sandbox' ? 'Local sandbox simulator' : 'Razorpay' });
 });
-paymentsRouter.post('/api/payments/session', orderCreateLimiter, validateBody(prepareSchema), (req, res) => respond(res, () => {
+paymentsRouter.post('/api/payments/session', orderCreateLimiter, validateBody(prepareSchema), async (req, res, next) => {
+  try { sandboxPlans = await planModel.getAll(); } catch (error) { next(error); return; }
+  respond(res, () => {
   for (const [id, entry] of sessionOwners) if (entry.expiresAt <= Date.now()) sessionOwners.delete(id);
   const session = service.prepare({ ...req.body, idempotencyKey: `${res.locals.customer.uid}:${req.body.idempotencyKey}` });
   sessionOwners.set(session.id, { uid: res.locals.customer.uid, expiresAt: session.expiresAt });
   return session;
-}));
+});
+});
 paymentsRouter.post('/api/recharge/create', orderCreateLimiter, validateBody(completeSchema), (req, res) => respond(res, () => {
   if (sessionOwners.get(req.body.sessionId)?.uid !== res.locals.customer.uid) throw new PaymentError(403, 'This checkout belongs to another customer or has expired.');
   return service.complete(req.body.sessionId, req.body.outcome);
@@ -84,7 +89,7 @@ paymentsRouter.post('/api/create-order', orderCreateLimiter, validateBody(orderS
     if ('packId' in input) {
       const error = subscriberError(input.operator, input.smartCardNumber);
       if (error) throw new PaymentError(400, error);
-      const quote = calculatePayment(input, planModel.getAll());
+      const quote = calculatePayment(input, await planModel.getAll());
       amount = quote.amountPaise;
       notes = { dth_operator: input.operator, dth_subscriber: input.smartCardNumber,
         dth_plan: quote.packName.slice(0, 256), dth_pack_id: input.packId.slice(0, 256),
@@ -119,10 +124,12 @@ paymentsRouter.post('/api/verify-payment', orderCreateLimiter, validateBody(sign
     if (order.id !== orderId || payment.order_id !== order.id || Number(payment.amount) !== Number(order.amount) || payment.currency !== order.currency) {
       throw new PaymentError(400, 'Payment does not match the order.');
     }
-    recordProviderPayment(payment, order);
+    await recordProviderPayment(payment, order);
     res.json({ success: true, verified: true, paid: payment.status === 'captured',
       status: payment.status, order_id: order.id, payment_id: payment.id,
       amount: Number(payment.amount), currency: payment.currency, created_at: payment.created_at,
       test_mode: process.env.RAZORPAY_KEY_ID?.startsWith('rzp_test_') === true });
   } catch (error) { providerError(res, error); }
 });
+
+forwardAsyncErrors(paymentsRouter);

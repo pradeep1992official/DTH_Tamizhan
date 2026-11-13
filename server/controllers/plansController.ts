@@ -6,7 +6,7 @@ import { PlanCatalogItem } from '../../src/types';
 import { planModel } from '../models/planModel';
 
 export const plansController = {
-  list(req: Request, res: Response): void {
+  async list(req: Request, res: Response): Promise<void> {
     try {
       const {
         operatorId, operators, category, type, durations, minPrice, maxPrice,
@@ -15,7 +15,7 @@ export const plansController = {
       const isLegacyQuery = operatorId && !operators && !type && !durations && !genres && !minPrice && !maxPrice;
 
       if (isLegacyQuery) {
-        let legacyPlans = planModel.getAll().map(plan => ({ ...catalogItemToBrowsePlan(plan), operatorId: plan.operator, category: 'tamil_base' }));
+        let legacyPlans = (await planModel.getAll()).map(plan => ({ ...catalogItemToBrowsePlan(plan), operatorId: plan.operator, category: 'tamil_base' }));
         if (operatorId) legacyPlans = legacyPlans.filter((plan) => plan.operatorId === operatorId);
         if (category && category !== 'all') legacyPlans = legacyPlans.filter((plan) => plan.category === category);
         res.json({ success: true, count: legacyPlans.length, plans: legacyPlans });
@@ -46,7 +46,7 @@ export const plansController = {
         sort === 'savings_pct_desc' ||
         sort === 'channels_desc'
       ) ? sort : 'recommended';
-      const catalogPlans = planModel.getAll();
+      const catalogPlans = await planModel.getAll();
       const sourcePlans = catalogPlans.map(catalogItemToBrowsePlan);
       const results = filterAndSortPlans(sourcePlans, {
         operators: parsedOperators as any,
@@ -66,16 +66,16 @@ export const plansController = {
     }
   },
 
-  listCatalog(_req: Request, res: Response): void { res.json({ success: true, plans: planModel.getAll() }); },
+  async listCatalog(_req: Request, res: Response): Promise<void> { res.json({ success: true, plans: await planModel.getAll() }); },
   async listAdmin(req: Request, res: Response): Promise<void> {
     if (!(await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS)).authorized) { res.status(403).json({ success: false, error: 'Forbidden' }); return; }
-    const plans = planModel.getAll();
+    const plans = await planModel.getAll();
     res.json({ success: true, count: plans.length, plans });
   },
 
   async listDeleted(req: Request, res: Response): Promise<void> {
     if (!(await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS)).authorized) { res.status(403).json({ success: false, error: 'Forbidden' }); return; }
-    res.json({ success: true, deletedIds: planModel.getDeletedIds() });
+    res.json({ success: true, deletedIds: await planModel.getDeletedIds() });
   },
 
   async save(req: Request, res: Response): Promise<void> {
@@ -95,7 +95,7 @@ export const plansController = {
       updated_at: new Date().toISOString(),
       updated_by: adminCheck.email || 'admin_user',
     };
-    planModel.save(finalItem);
+    await planModel.save(finalItem);
     res.json({ success: true, plan: finalItem });
   },
 
@@ -106,7 +106,7 @@ export const plansController = {
       return;
     }
     const { planId } = req.body;
-    planModel.delete(planId);
+    await planModel.delete(planId);
     res.json({ success: true, deletedPlanId: planId });
   },
 
@@ -117,7 +117,7 @@ export const plansController = {
       return;
     }
     const { plans } = req.body;
-    if (Array.isArray(plans) && plans.length > 0) planModel.sync(plans.map(plan => ({ ...plan, price: plan.amount, is_recommended: Boolean(plan.is_recommended), channel_list: plan.channel_list || [], updated_at: new Date().toISOString(), updated_by: adminCheck.email })));
-    res.json({ success: true, count: planModel.getAll().length });
+    if (Array.isArray(plans) && plans.length > 0) await planModel.sync(plans.map(plan => ({ ...plan, price: plan.amount, is_recommended: Boolean(plan.is_recommended), channel_list: plan.channel_list || [], updated_at: new Date().toISOString(), updated_by: adminCheck.email })));
+    res.json({ success: true, count: (await planModel.getAll()).length });
   },
 };

@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { Payments } from 'razorpay/dist/types/payments';
 import type { Orders } from 'razorpay/dist/types/orders';
+import { collections, mutateRecord, paymentKey, readCollection, usesFirestore } from '../persistence';
 
 export interface PaymentLedgerEntry {
   id: string; orderId: string; paymentMethod: string; amount: number; currency: string;
@@ -15,7 +16,8 @@ export interface PaymentLedgerEntry {
   customerEmail?: string;
 }
 const ledgerFile = () => path.join(process.cwd(), 'data', 'razorpay_payments.json');
-export function readPaymentLedger(): PaymentLedgerEntry[] {
+export async function readPaymentLedger(): Promise<PaymentLedgerEntry[]> {
+  if (usesFirestore()) return readCollection<PaymentLedgerEntry>(collections.payments);
   const file = ledgerFile();
   if (!fs.existsSync(file)) return [];
   const entries = JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -23,26 +25,30 @@ export function readPaymentLedger(): PaymentLedgerEntry[] {
   return entries;
 }
 
-export function recordProviderPayment(payment: Payments.RazorpayPayment, order?: Orders.RazorpayOrder) {
-  const entries = readPaymentLedger();
+export async function recordProviderPayment(payment: Payments.RazorpayPayment, order?: Orders.RazorpayOrder) {
   const testMode = process.env.RAZORPAY_KEY_ID?.startsWith('rzp_test_') === true;
   const notes = (order?.notes || {}) as Record<string, string>;
-  const previous = entries.find(entry => entry.id === payment.id && entry.testMode === testMode);
-  const entry: PaymentLedgerEntry = {
-    id: payment.id, orderId: payment.order_id || '', paymentMethod: payment.method || 'unknown',
-    amount: Number(payment.amount) / 100, currency: payment.currency,
-    status: payment.status === 'captured' ? 'paid' : payment.status === 'failed' ? 'failed' : payment.status === 'refunded' ? 'refunded' : 'initiated',
-    providerStatus: payment.status, operator: notes.dth_operator || previous?.operator || 'unknown',
-    customerName: notes.dth_customer_name || previous?.customerName || 'Subscriber',
-    customerPhone: notes.dth_customer_phone || (payment.contact ? String(payment.contact) : '') || previous?.customerPhone || '',
-    smartCardNumber: notes.dth_subscriber || previous?.smartCardNumber || '',
-    packName: notes.dth_plan || previous?.packName || '',
-    customerUid: notes.dth_customer_uid || previous?.customerUid,
-    customerEmail: notes.dth_customer_email || previous?.customerEmail,
-    packId: notes.dth_pack_id || previous?.packId,
-    packValidity: notes.dth_validity || previous?.packValidity,
-    createdAt: new Date(payment.created_at * 1000).toISOString(), operatorRefId: '', testMode, provider: 'Razorpay',
+  const build = (previous?: PaymentLedgerEntry): PaymentLedgerEntry => {
+    // A stale authorization response must not undo capture or refund already recorded.
+    if (previous && ((previous.providerStatus === 'refunded' && payment.status !== 'refunded') ||
+      (previous.providerStatus === 'captured' && !['captured', 'refunded'].includes(payment.status)))) return previous;
+    return {
+      id: payment.id, orderId: payment.order_id || previous?.orderId || '', paymentMethod: payment.method || previous?.paymentMethod || 'unknown',
+      amount: Number(payment.amount) / 100, currency: payment.currency,
+      status: payment.status === 'captured' ? 'paid' : payment.status === 'failed' ? 'failed' : payment.status === 'refunded' ? 'refunded' : 'initiated',
+      providerStatus: payment.status, operator: notes.dth_operator || previous?.operator || 'unknown',
+      customerName: notes.dth_customer_name || previous?.customerName || 'Subscriber',
+      customerPhone: notes.dth_customer_phone || (payment.contact ? String(payment.contact) : '') || previous?.customerPhone || '',
+      smartCardNumber: notes.dth_subscriber || previous?.smartCardNumber || '', packName: notes.dth_plan || previous?.packName || '',
+      customerUid: notes.dth_customer_uid || previous?.customerUid, customerEmail: notes.dth_customer_email || previous?.customerEmail,
+      packId: notes.dth_pack_id || previous?.packId, packValidity: notes.dth_validity || previous?.packValidity,
+      createdAt: new Date(payment.created_at * 1000).toISOString(), operatorRefId: previous?.operatorRefId || '', testMode, provider: 'Razorpay',
+    };
   };
+  if (usesFirestore()) return mutateRecord<PaymentLedgerEntry>(collections.payments, paymentKey(payment.id, testMode), build);
+  const entries = await readPaymentLedger();
+  const previous = entries.find(entry => entry.id === payment.id && entry.testMode === testMode);
+  const entry = build(previous);
   const index = entries.findIndex(item => item.id === entry.id && item.testMode === testMode);
   if (index >= 0) entries[index] = entry; else entries.unshift(entry);
   // Write synchronously and replace atomically, so verification retries cannot duplicate records.

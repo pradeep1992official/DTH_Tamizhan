@@ -29,7 +29,7 @@ User requested a plan recommendation with:
 - Content Preferences: ${preferences || 'Tamil Movies, Sports & News'}
 - Preferred Language: ${preferredLanguage === 'ta' ? 'Tamil (தமிழ்)' : 'English'}
 
-Available catalog records: ${JSON.stringify(planModel.getAll().filter(pack => !validateCatalogPack(pack).length).map(pack => ({ operator: pack.operator, name: pack.plan_name, amount: pack.amount, duration_months: pack.duration_months })))}
+Available catalog records: ${JSON.stringify((await planModel.getAll()).filter(pack => !validateCatalogPack(pack).length).map(pack => ({ operator: pack.operator, name: pack.plan_name, amount: pack.amount, duration_months: pack.duration_months })))}
 Use only these catalog records. If none match, say so. Do not invent packs, prices, channel counts, statistics, testimonials, rankings, savings or activation times. Use Rs. for currency and month/months for durations. Reply in the requested language with 2-3 plain-language sentences.`;
     const result = await generateContentWithFallback(aiClient, prompt);
     if (!result.text) { res.status(503).json({ success: false, error: customerMessages[preferredLanguage === 'ta' ? 'ta' : 'en'].uiAiUnavailable }); return; }

@@ -90,7 +90,7 @@ Expiry reflects saved information or recharge-duration calculations, not a live 
 - Saved boxes use per-user browser keys: `dth_tamizhan_connections:<uid>`. The legacy shared cache migrates by recorded owner; guest entries are excluded.
 - Logout clears boxes and recharge details from view. Account switches filter visible records and ignore stale remote-loading results.
 - Profile editing checks the Firebase session and writes editable fields without cached role/privilege fields.
-- Several server datasets use in-memory collections and JSON under `data/`, rather than shared database storage. Sandbox sessions are process-local and do not persist financial orders.
+- Production uses shared Firestore persistence for payments, fulfillment, the email outbox, plans, operator settings, customer lookup records, admin access requests and installation requests. Local JSON is an explicit development option. Sandbox simulator sessions remain process-local and never persist financial orders.
 - `.env` files, `data/` and `.local-fixtures/` are ignored by Git.
 
 This is not a complete security audit. Firebase authentication is the source of truth for account state: refresh restores the Firebase session, auth changes synchronize across tabs, and sign-out ends that session before clearing account UI and local connection cache. Saved profile name/phone fields load from the UID-keyed Firestore user document and synchronize without being overwritten by Google login. Stored profile roles are not used to authorize admin access.
@@ -104,7 +104,7 @@ This is not a complete security audit. Firebase authentication is the source of 
 | AI recommendations | Backend `/api/ai/recommend-plans` exists; frontend does not call it |
 | Optional notifications | Manual WhatsApp drafts are available in Admin Payments → View for captured payments and Recharge history → View for completed recharges, plus after Mark Successful. The administrator reviews and presses Send in WhatsApp. Brevo receipt/confirmation emails are implemented; configure server credentials to activate them. SMS and automated WhatsApp delivery are not implemented. |
 | Business information | Replace `[FILL IN]` values in `src/lib/trustContent.ts` and `src/lib/policyTranslations.ts` |
-| Production persistence | Durable shared storage instead of server-local files where required |
+| Production persistence | Implemented with the existing named Firestore database. Configure server credentials and migrate any local records before deployment; see Shared production storage below. |
 
 ## Checks and tests
 
@@ -151,9 +151,9 @@ Run `npm run dev` and open http://localhost:3000. Choose an operator, enter a va
 
 Set the server environment variables in your deployment, serve the unified Express backend (`npm run build` then `npm start`), and configure automatic capture in the Razorpay Dashboard. Static-only hosting and `npm run preview` do not provide these API routes. Never publish `.env` or prefix the secret with `VITE_`. No credentials belong in tracked files.
 
-Verified Razorpay payments are recorded atomically in `data/razorpay_payments.json` and shown in Admin → Payments. Test records are labeled and excluded from live totals. A super administrator can use **Sync recent Razorpay payments** to import the latest 100 provider payments from the configured account and key mode, including older payments and payments completed after the browser closed. Older orders without DTH metadata show unavailable subscriber/plan details; new checkout orders include that metadata. This sync does not initiate or capture payments. Disk storage requires a persistent volume and a single server process; use a shared durable store before deploying multiple instances.
+Verified Razorpay payments are recorded transactionally in Firestore `server_payments` (`data/razorpay_payments.json` only in local file mode) and shown in Admin → Payments. Test records are labeled and excluded from live totals. A super administrator can use **Sync recent Razorpay payments** to import the latest 100 provider payments from the configured account and key mode, including older payments and payments completed after the browser closed. Older orders without DTH metadata show unavailable subscriber/plan details; new checkout orders include that metadata. This sync does not initiate or capture payments. Production reads and writes the shared Firestore database; a failed database operation never falls back to server-local files.
 
-Admin → Pending Orders and customer order history derive captured recharge requests from this same durable ledger. Only payments with a valid operator, subscriber ID, and plan enter the queue; standalone or legacy payments without that metadata stay in Payments. Administrators can mark captured-payment orders successful, including test orders; completion is saved to `data/recharge_orders.json`. Test markers are retained, and completed test orders are excluded from customer recharge totals. Marking an order successful records the administrator's confirmation and does not call an operator recharge API. Payment authorization alone does not queue a recharge. Repeated verification/sync does not duplicate the request or reset an existing fulfillment status.
+Admin → Pending Orders and customer order history derive captured recharge requests from this same durable ledger. Only payments with a valid operator, subscriber ID, and plan enter the queue; standalone or legacy payments without that metadata stay in Payments. Administrators can mark captured-payment orders successful, including test orders; completion is saved transactionally to Firestore `server_recharges` (`data/recharge_orders.json` in local file mode). Test markers are retained, and completed test orders are excluded from customer recharge totals. Marking an order successful records the administrator's confirmation and does not call an operator recharge API. Payment authorization alone does not queue a recharge. Repeated verification/sync does not duplicate the request or reset an existing fulfillment status.
 
 The manual recharge workflow is implemented: captured payment → Pending Orders → administrator recharges through the operator/distributor portal → administrator confirms success with **Mark Successful** → completed recharge history. An automatic DTH recharge API is not required for this workflow. Before accepting live payments, configure live credentials and add durable reconciliation/webhooks for reliable background payment updates. No database tables were added.
 
@@ -213,14 +213,36 @@ Setup for local development and deployment:
 
 The free plan currently includes 300 email sends per day; verify current limits in [Brevo's plan documentation](https://help.brevo.com/hc/en-us/articles/208589409-About-Brevo-s-pricing-plans). The app caps unique delivery attempts at a maximum of 300 per rolling 24 hours, deferring additional jobs. Two emails per order means roughly 150 orders per day if the account sends no other emails. Other apps sharing your Brevo account also consume the provider allowance. Hosting/domain costs are separate. The application does not upgrade your plan or purchase credits.
 
-The persistent outbox is `data/email_outbox.json`. Keep `data/` on a persistent disk and use one server instance with the current file-backed store. A worker runs every 30 seconds; retries reuse a stored idempotency key and frozen email body, and accepted jobs are not resent after restart or repeated payment verification. Network/server errors retry within a conservative 14-minute window; uncertain old sends require checking Brevo logs before resending. Rate limits defer retries. Explicit rejections can be requeued by the super administrator after fixing the sender/credentials.
+The production outbox is Firestore `server_email_outbox`, with PDF payload chunks in `server_email_payloads`. A renewable transactional lease in `server_runtime` permits one sender across all instances and shares the rolling daily cap. Local file mode uses `data/email_outbox.json` and is limited to one development process. A worker runs every 30 seconds; retries reuse a stored idempotency key and frozen email body, and accepted jobs are not resent after restart or repeated payment verification. Network/server errors retry within a conservative 14-minute window; uncertain old sends require checking Brevo logs before resending. Rate limits defer retries. Explicit rejections can be requeued by the super administrator after fixing the sender/credentials.
 
 Check **Admin → Payments → Receipt emails** for configuration, queued, accepted, rejected and review counts. “Accepted” means Brevo accepted the request; inbox delivery/bounces must be checked in Brevo transactional logs. Email failures never undo a payment or saved recharge status. Existing manual receipt downloads remain available. No email is sent until credentials are configured and `BREVO_ENABLED=true`.
 
-For hosts that sleep or pause background CPU, use an external scheduler to `POST /api/internal/email/process` every minute. Set a random `EMAIL_WORKER_TOKEN` of at least 32 characters and send it in the `Authorization: Bearer <token>` header; the endpoint is disabled without that secret. This keeps processing active for the scheduler request. The same persistent-volume/single-instance requirement applies. Do not rely solely on an in-process timer on serverless or ephemeral hosting.
+For hosts that sleep or pause background CPU, use an external scheduler to `POST /api/internal/email/process` every minute. Set a random `EMAIL_WORKER_TOKEN` of at least 32 characters and send it in the `Authorization: Bearer <token>` header; the endpoint is disabled without that secret. This keeps processing active for the scheduler request. Scheduler requests and background workers use the same shared Firestore lease, outbox and sending allowance. Do not rely solely on an in-process timer on serverless or ephemeral hosting.
 
 Razorpay webhooks remain separate work: the email worker can only email captured payments already recorded by callback verification or administrator sync. Set up payment webhooks before relying on unattended updates when customers close checkout.
 
 Checks: `npm run lint`, `npx vitest run tests/razorpay.test.ts tests/payments.test.ts tests/copyLocalization.test.tsx`, and `npm run build`.
 
 
+
+
+## Shared production storage
+
+The existing database `ai-studio-dthtamizhan-ab9bf4ab-c166-4e84-a763-9f8a48360247` in project `gen-lang-client-0168639596` is Firestore Enterprise in native mode. Server collection reads use Enterprise pipelines; document transactions protect payment upserts, fulfillment updates, email-worker leases and access-request deduplication. This migration does not create a new database or change the billing plan.
+
+Set `PERSISTENCE_DRIVER=firestore` on your host. It is also the default when `NODE_ENV=production`; production refuses `file` mode and fails startup when its Firestore access check fails. For isolated local development only, `PERSISTENCE_DRIVER=file` keeps the JSON workflow. Do not run multiple file-mode processes against the same files.
+
+Provide server Application Default Credentials using the hosting service account or a protected `GOOGLE_APPLICATION_CREDENTIALS` file outside the repository. Grant that server identity Firestore data read/write permissions on this project (for example, Datastore User). Never expose service-account keys through frontend environment variables. The existing rules deny browser access to unmatched collections, including all `server_*` collections. Admin SDK access uses IAM; existing user/profile/admin authorization remains in place. No rules deployment is needed for these server-only collections.
+
+Before switching an existing installation, stop payment/admin writers and the old email worker for the cutover, retain a backup of `data/`, then run:
+
+```powershell
+npm run storage:migrate
+npx tsx scripts/migrate-persistence.ts --apply
+```
+
+The first command is a dry run. Apply creates missing documents only, verifies imported records, retains existing cloud values, and leaves all local source files intact. Review any retained conflicts before cutover. Plan deletion markers are preserved; local plans cannot revive a cloud tombstone. Recharge updates must match a provider payment. Old seeded customer lookup rows without matching provider connections are skipped; legacy admin JSON is never imported as authorization. Email status, keys and frozen attachment payloads are preserved so previously accepted emails are not sent again. Source-file changes detected during migration stop the command and require rerunning with writers stopped.
+
+After setting the storage driver, run `npm run storage:check`, then restart/redeploy the server. The check reads counts without sending emails or creating payments. Restart and check Payments, Pending Orders, Recharge history, Receipt emails and the customer History page. Keep any scheduler configured for hosts that pause background CPU.
+
+Storage collections: `server_payments`, `server_recharges`, `server_email_outbox`, `server_email_payloads`, `server_customers`, `server_admin_requests`, `server_installation_requests`, `server_deleted_plans`, and `server_runtime`. Catalog and operator settings reuse `plan_catalog` and `operator_settings`; account/admin profiles already use Firestore. Production does not need a persistent local disk for business records. Preserve static fonts and logo assets for PDF generation. Firestore usage is subject to the project's quotas and billing; monitor it as records grow. The current listing/reporting APIs read complete small-business datasets; pagination should be added before high-volume growth.

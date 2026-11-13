@@ -1,3 +1,4 @@
+import { forwardAsyncErrors } from '../asyncRoutes';
 import { Router } from 'express';
 import { timingSafeEqual } from 'node:crypto';
 import { processReceiptEmails } from '../emailDelivery';
@@ -14,3 +15,5 @@ emailRouter.post('/api/internal/email/process', async (req, res) => {
   try { await processReceiptEmails(); res.json({ success: true }); }
   catch { res.status(503).json({ success: false, error: 'Email outbox processing failed.' }); }
 });
+
+forwardAsyncErrors(emailRouter);

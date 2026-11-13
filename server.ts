@@ -1,3 +1,4 @@
+import { checkPersistence, usesFirestore } from './server/persistence';
 import { pageHandler, globalErrorHandler } from './server/pages';
 import { paymentsRouter } from './server/routes/payments';
 import express, { Request, Response } from 'express';
@@ -35,11 +36,13 @@ if (!getApps().length) {
 }
 
 // Initialize server disk persistence
-initStoreFromDisk();
+if (!usesFirestore()) initStoreFromDisk();
 
 const PORT = Number(process.env.PORT) || 3000;
 
 async function startServer() {
+  await checkPersistence();
+  console.log(`[storage] ${usesFirestore() ? 'Firestore shared persistence' : 'Local development files'}`);
   const app = express();
   const httpServer = createServer(app);
   let vite: Awaited<ReturnType<typeof createViteServer>> | undefined;
@@ -99,7 +102,7 @@ async function startServer() {
       httpServer.listen(PORT, '0.0.0.0', () => { httpServer.off('error', onError); resolve(); });
     });
   } catch (error) { await vite?.close(); throw error; }
-  console.log(`[DTH Tamizhan] Unified Server listening on http://0.0.0.0:${PORT}`);
+  console.log(`[DTH Tamizhan] Unified Server listening on localhost:${PORT}`);
   const stopEmailWorker = startReceiptEmailWorker();
   const emailConfig = emailDeliveryConfig();
   console.log(`[email] Brevo ${emailConfig.enabled && emailConfig.configured ? 'enabled' : 'disabled or not configured'}.`);

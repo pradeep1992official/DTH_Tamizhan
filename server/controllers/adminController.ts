@@ -1,3 +1,6 @@
+import { readLookupCustomers, saveLookupCustomer, deleteLookupCustomer, readOperators, saveOperator, readAdminRequests, saveAdminRequest } from '../models/sharedStore';
+import { usesFirestore } from '../persistence';
+import { randomUUID } from 'node:crypto';
 import { getAuth } from 'firebase-admin/auth';
 import { customersFromPaidRecharges } from '../../src/lib/rechargeCustomers';
 import { getCustomerRechargeOrders, getRechargeOrders } from '../models/paidRechargeOrders';
@@ -5,14 +8,8 @@ import { Request, Response } from 'express';
 import {
   APPROVED_ADMIN_EMAILS,
   MEMORY_ADMINS,
-  MEMORY_ADMIN_REQUESTS,
-  MEMORY_CUSTOMERS,
-  MEMORY_RECHARGE_ORDERS,
-  OPERATORS,
   refreshApprovedAdminEmails,
   saveAdminsToDisk,
-  saveCustomersToDisk,
-  saveOperatorSettingsToDisk,
 } from '../models/store';
 import {
   getAdminFirestore,
@@ -37,13 +34,13 @@ export const adminController = {
     const verdict = await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS);
     if (!verdict.authorized) return forbidden(res);
     res.setHeader('Cache-Control', 'no-store');
-    try { res.json({ success: true, ...receiptEmailStatus() }); }
+    try { res.json({ success: true, ...await receiptEmailStatus() }); }
     catch { res.status(503).json({ success: false, error: 'Unable to read email delivery status.' }); }
   },
   async retryEmails(req: Request, res: Response): Promise<void> {
     const verdict = await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS);
     if (!verdict.authorized || !verdict.isSuperAdmin) return forbidden(res);
-    try { res.json({ success: true, retried: retryRejectedEmails() }); }
+    try { res.json({ success: true, retried: await retryRejectedEmails() }); }
     catch { res.status(503).json({ success: false, error: 'Could not requeue rejected emails. Please retry shortly.' }); }
   },
   async customerDetails(req: Request, res: Response): Promise<void> {
@@ -51,7 +48,7 @@ export const adminController = {
     if (!verdict.authorized) return forbidden(res);
     res.setHeader('Cache-Control', 'no-store');
     try {
-      const details = customerDetails(String(req.params.id), getCustomerRechargeOrders(), readPaymentLedger());
+      const details = customerDetails(String(req.params.id), await getCustomerRechargeOrders(), await readPaymentLedger());
       if (!details) { res.status(404).json({ success: false, error: 'Customer not found.' }); return; }
       await enrichCustomerContacts([details.customer]);
       res.json({ success: true, ...details });
@@ -91,7 +88,7 @@ export const adminController = {
     const auth = await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS);
     if (!auth.authorized) return forbidden(res);
     try {
-      const customers = customersFromPaidRecharges(getCustomerRechargeOrders());
+      const customers = customersFromPaidRecharges(await getCustomerRechargeOrders());
       // Older payments can recover contact details from their bound account.
       const profiles = new Map<string, Promise<{ name?: string; phone?: string }>>();
       for (const customer of customers) {
@@ -126,7 +123,7 @@ export const adminController = {
       currentBalance, expiryDate, registeredCity, registeredPincode, planQuality,
     } = req.body;
     const customer: CustomerRecord = {
-      id: `cust_${Date.now().toString().slice(-6)}`,
+      id: `cust_${randomUUID()}`,
       customerName,
       registeredMobile,
       smartCardNumber,
@@ -142,8 +139,7 @@ export const adminController = {
       lastRechargeAmount: 299,
       lastRechargeDate: new Date().toISOString().slice(0, 10),
     };
-    MEMORY_CUSTOMERS.unshift(customer);
-    saveCustomersToDisk();
+    await saveLookupCustomer(customer);
     res.json({ success: true, customer });
   },
 
@@ -151,11 +147,7 @@ export const adminController = {
     const auth = await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS);
     if (!auth.authorized) return forbidden(res);
     const { customerId } = req.body;
-    const index = MEMORY_CUSTOMERS.findIndex((customer) => customer.id === customerId);
-    if (index >= 0) {
-      MEMORY_CUSTOMERS.splice(index, 1);
-      saveCustomersToDisk();
-    }
+    await deleteLookupCustomer(customerId);
     res.json({ success: true, deletedId: customerId });
   },
 
@@ -163,19 +155,15 @@ export const adminController = {
     const auth = await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS);
     if (!auth.authorized) return forbidden(res);
     const { customers } = req.body;
-    if (Array.isArray(customers) && customers.length > 0) {
-      MEMORY_CUSTOMERS.length = 0;
-      MEMORY_CUSTOMERS.push(...customers);
-      saveCustomersToDisk();
-    }
-    res.json({ success: true, count: MEMORY_CUSTOMERS.length });
+    if (Array.isArray(customers)) for (const customer of customers) await saveLookupCustomer(customer);
+    res.json({ success: true, count: (await readLookupCustomers()).length });
   },
 
   async reports(req: Request, res: Response): Promise<void> {
     const auth = await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS);
     if (!auth.authorized) return forbidden(res);
     try {
-    const orders = getRechargeOrders();
+    const orders = await getRechargeOrders();
     const totalRechargeVolume = orders.filter(order => !order.testMode && order.paymentStatus === 'paid').reduce((sum, order) => sum + (order.amount || 0), 0);
     const completedOrders = orders.filter((order) => order.rechargeStatus === 'completed').length;
     const pendingOrders = orders.filter((order) =>
@@ -199,9 +187,10 @@ export const adminController = {
     const auth = await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS);
     if (!auth.authorized) return forbidden(res);
     try {
-      const ledger = readPaymentLedger();
+      const ledger = await readPaymentLedger();
+      const savedOrders = await getRechargeOrders();
       const resolvedLedger = ledger.map(entry => {
-        const saved = MEMORY_RECHARGE_ORDERS.find(order => order.orderId === entry.orderId || order.paymentId === entry.id);
+        const saved = savedOrders.find(order => order.orderId === entry.orderId || order.paymentId === entry.id);
         return { ...entry, customerName: missingCustomerName(entry.customerName) && saved?.customerName ? saved.customerName : entry.customerName,
           customerUid: entry.customerUid || saved?.user_id, registeredMobile: entry.customerPhone || saved?.registeredMobile };
       });
@@ -225,7 +214,7 @@ export const adminController = {
       for (const payment of result.items) {
         if (!payment.order_id) continue;
         const order = await client.orders.fetch(payment.order_id);
-        recordProviderPayment(payment, order);
+        await recordProviderPayment(payment, order);
         imported++;
       }
       res.json({ success: true, imported, message: `Synced ${imported} of the latest 100 Razorpay payments for the configured account and key mode.` });
@@ -249,7 +238,7 @@ export const adminController = {
       const rootEntries = listedAdmins.filter(record => isSuperAdmin(record.email));
       const rootEntry = rootEntries.find(record => record.uid === auth.uid) || rootEntries[0];
       const admins = listedAdmins.filter(record => !isSuperAdmin(record.email) || record === rootEntry);
-      res.json({ success: true, admins, requests: verdict.isSuperAdmin ? MEMORY_ADMIN_REQUESTS : [], isApprovedAdmin: true });
+      res.json({ success: true, admins, requests: verdict.isSuperAdmin ? await readAdminRequests() : [], isApprovedAdmin: true });
     } catch { res.status(503).json({ success: false, error: 'Administrator registry unavailable.' }); }
   },
 
@@ -260,7 +249,7 @@ export const adminController = {
       return;
     }
     const { reason, userPhone } = req.body;
-    const existing = MEMORY_ADMIN_REQUESTS.find((request) =>
+    const existing = (await readAdminRequests()).find((request) =>
       request.userEmail.toLowerCase() === auth.email!.toLowerCase() && request.status === 'pending',
     );
     if (existing) {
@@ -268,7 +257,7 @@ export const adminController = {
       return;
     }
     const request = {
-      id: `req_${Date.now().toString().slice(-6)}`,
+      id: `req_${randomUUID()}`,
       userId: auth.uid,
       userEmail: auth.email,
       userName: auth.email.split('@')[0],
@@ -277,8 +266,8 @@ export const adminController = {
       status: 'pending' as const,
       requestedAt: new Date().toISOString(),
     };
-    MEMORY_ADMIN_REQUESTS.unshift(request);
-    res.json({ success: true, message: 'Access request submitted successfully.', request });
+    const storedRequest = await saveAdminRequest(request);
+    res.json({ success: true, message: 'Access request submitted successfully.', request: storedRequest });
   },
 
   async approveUser(req: Request, res: Response): Promise<void> {
@@ -320,14 +309,15 @@ export const adminController = {
         approvedAt: new Date().toISOString(),
       });
     }
-    const request = MEMORY_ADMIN_REQUESTS.find((item) => item.userEmail.toLowerCase() === cleanEmail);
+    const request = (await readAdminRequests()).find((item) => item.userEmail.toLowerCase() === cleanEmail);
     if (request) {
       request.status = 'approved';
       request.reviewedBy = auth.email || 'Super Admin';
       request.reviewedAt = new Date().toISOString();
+      await saveAdminRequest(request);
     }
     refreshApprovedAdminEmails();
-    saveAdminsToDisk();
+    if (!usesFirestore()) saveAdminsToDisk();
     res.json({ success: true, message: `Administrator access granted to ${cleanEmail}.` });
   },
 
@@ -375,21 +365,21 @@ export const adminController = {
       admin.notes = `Revoked by ${auth.email} on ${new Date().toISOString()}`;
     }
     refreshApprovedAdminEmails();
-    saveAdminsToDisk();
+    if (!usesFirestore()) saveAdminsToDisk();
     res.json({ success: true, message: `Administrator privileges revoked for ${cleanEmail}.` });
   },
 
   async operators(req: Request, res: Response): Promise<void> {
     const auth = await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS);
     if (!auth.authorized) return forbidden(res);
-    res.json({ success: true, operators: OPERATORS });
+    res.json({ success: true, operators: await readOperators() });
   },
 
   async toggleOperator(req: Request, res: Response): Promise<void> {
     const auth = await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS);
     if (!auth.authorized) return forbidden(res);
     const { operatorId, isEnabled, condition, conditionLabel, maintenanceMessage, expectedRestoration } = req.body;
-    const operator = OPERATORS.find((item) => item.id === operatorId);
+    const operator = (await readOperators()).find((item) => item.id === operatorId);
     if (!operator) {
       res.status(404).json({ success: false, error: 'Operator not found.' });
       return;
@@ -405,7 +395,7 @@ export const adminController = {
     operator.updatedBy = auth.email || 'admin';
 
     try {
-      saveOperatorSettingsToDisk();
+      await saveOperator(operator);
       res.json({ success: true, operator });
     } catch (error) {
       Object.assign(operator, previousState);

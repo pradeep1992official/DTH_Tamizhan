@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({ save: vi.fn(), registry: {} as Record<string, any> }));
+vi.mock('../server/models/sharedStore', () => ({ readLookupCustomers: async () => [], readOperators: async () => [], readAdminRequests: async () => [] }));
 vi.mock('firebase-admin/app', () => ({ getApps: () => [{}] }));
 vi.mock('firebase-admin/auth', () => ({ getAuth: () => ({
   verifyIdToken: vi.fn(async (token: string) => {
@@ -94,10 +95,10 @@ describe('canonical admin permission policy and API read path', () => {
     expect(res.status).toHaveBeenCalledWith(400);
     expect(mocks.save).not.toHaveBeenCalled();
   });
-  it('does not fabricate subscriber/customer data when lookup has no record', () => {
+  it('does not fabricate subscriber/customer data when lookup has no record', async () => {
     const req = request(); req.body = { operator: 'sun_direct', smartCardNumber: '41289456123' };
     const res = response();
-    ordersController.verifySubscriber(req, res as any);
+    await ordersController.verifySubscriber(req, res as any);
     expect(res.status).toHaveBeenCalledWith(404);
     expect(res.json.mock.calls[0][0]).not.toHaveProperty('subscriber');
     expect(mocks.save).not.toHaveBeenCalled();

@@ -6,6 +6,8 @@ import {
   PLANS_FILE,
 } from './store';
 import { PlanCatalogItem } from '../../src/types';
+import { collections, readCollection, usesFirestore, cleanData } from '../persistence';
+import { getAdminFirestore } from '../middleware/auth';
 
 function loadPlans(): { plans: PlanCatalogItem[]; deletedIds: string[] } {
   try {
@@ -41,46 +43,61 @@ function loadPlans(): { plans: PlanCatalogItem[]; deletedIds: string[] } {
   }
 }
 
-let { plans, deletedIds } = loadPlans();
+let loaded: ReturnType<typeof loadPlans> | undefined;
+function local() { return loaded ||= loadPlans(); }
 
 function persistPlans(): void {
-  try {
+    const { plans, deletedIds } = local();
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
     fs.writeFileSync(PLANS_FILE, JSON.stringify(plans, null, 2), 'utf-8');
     fs.writeFileSync(DELETED_PLANS_FILE, JSON.stringify(deletedIds, null, 2), 'utf-8');
-  } catch (error) {
-    console.error('[Server Persistence] Error saving disk plans:', error);
-  }
 }
 
 export const planModel = {
-  getAll(): PlanCatalogItem[] {
-    return plans;
+  async getAll(): Promise<PlanCatalogItem[]> {
+    if (!usesFirestore()) return local().plans;
+    const [plans, deleted] = await Promise.all([readCollection<PlanCatalogItem>(collections.plans), this.getDeletedIds()]);
+    return plans.filter(plan => !deleted.includes(plan.id));
   },
 
-  getDeletedIds(): string[] {
-    return deletedIds;
+  async getDeletedIds(): Promise<string[]> {
+    if (!usesFirestore()) return local().deletedIds;
+    return (await readCollection<{ id: string }>(collections.deletedPlans)).map(item => item.id);
   },
 
-  save(plan: PlanCatalogItem): void {
+  async save(plan: PlanCatalogItem): Promise<void> {
     assertValidCatalogPack(plan);
+    if (usesFirestore()) {
+      const db = getAdminFirestore(); const batch = db.batch();
+      batch.set(db.collection(collections.plans).doc(plan.id), cleanData(plan));
+      batch.delete(db.collection(collections.deletedPlans).doc(plan.id)); await batch.commit(); return;
+    }
+    const { plans } = local();
     const index = plans.findIndex((item) => item.id === plan.id);
     if (index >= 0) plans[index] = plan;
     else plans.unshift(plan);
+    local().deletedIds = local().deletedIds.filter(id => id !== plan.id);
     persistPlans();
   },
 
-  delete(planId: string): void {
-    plans = plans.filter((plan) => plan.id !== planId);
-    if (!deletedIds.includes(planId)) deletedIds.push(planId);
+  async delete(planId: string): Promise<void> {
+    if (usesFirestore()) {
+      const db = getAdminFirestore(); const batch = db.batch();
+      batch.delete(db.collection(collections.plans).doc(planId));
+      batch.set(db.collection(collections.deletedPlans).doc(planId), { id: planId }); await batch.commit(); return;
+    }
+    local().plans = local().plans.filter((plan) => plan.id !== planId);
+    if (!local().deletedIds.includes(planId)) local().deletedIds.push(planId);
     persistPlans();
   },
 
-  sync(seedPlans: PlanCatalogItem[]): void {
+  async sync(seedPlans: PlanCatalogItem[]): Promise<void> {
     seedPlans.forEach(assertValidCatalogPack);
+    if (usesFirestore()) { for (const plan of seedPlans) await this.save(plan); return; }
+    const { plans } = local();
     const merged = new Map(plans.map(plan => [plan.id, plan]));
     seedPlans.forEach(plan => merged.set(plan.id, plan));
-    plans = [...merged.values()];
+    local().plans = [...merged.values()];
     persistPlans();
   },
 };

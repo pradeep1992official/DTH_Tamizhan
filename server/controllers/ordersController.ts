@@ -1,7 +1,7 @@
+import { readLookupCustomers } from '../models/sharedStore';
 import { Request, Response } from 'express';
 import {
   APPROVED_ADMIN_EMAILS,
-  MEMORY_CUSTOMERS,
   OPERATORS,
 } from '../models/store';
 import { isCallerAdminAuthorized, verifyAuthToken } from '../middleware/auth';
@@ -24,7 +24,7 @@ export const ordersController = {
 
     const callerEmail = authCtx.email || '';
     let allOrders;
-    try { allOrders = getRechargeOrders(); }
+    try { allOrders = await getRechargeOrders(); }
     catch { res.status(503).json({ success: false, error: 'Unable to load recorded recharge payments.', orders: [] }); return; }
     const adminCheck = await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS);
     if (adminCheck.authorized && req.query.isWorker === 'true') {
@@ -54,13 +54,13 @@ export const ordersController = {
       return;
     }
     try {
-      const orders = getRechargeOrders();
+      const orders = await getRechargeOrders();
       res.setHeader('Cache-Control', 'no-store');
       res.json({ success: true, count: orders.length, orders });
     } catch { res.status(503).json({ success: false, error: 'Unable to load recorded recharge payments.', orders: [] }); }
   },
 
-  verifySubscriber(req: Request, res: Response): void {
+  async verifySubscriber(req: Request, res: Response): Promise<void> {
     try {
       const { operator, smartCardNumber } = req.body;
       if (!operator || !smartCardNumber) {
@@ -69,7 +69,7 @@ export const ordersController = {
       }
 
       const operatorConfig = OPERATORS.find((item) => item.id === operator);
-      const existing = MEMORY_CUSTOMERS.find((customer) =>
+      const existing = (await readLookupCustomers()).find((customer) =>
         customer.smartCardNumber === smartCardNumber && customer.operator === operator,
       );
       if (!existing) {
@@ -109,7 +109,7 @@ export const ordersController = {
     const parsed = UpdateOrderStatusSchema.safeParse(req.body);
     if (!parsed.success) { res.status(400).json({ success: false, error: 'A valid order and recharge status are required.' }); return; }
     try {
-      const order = updatePaidRechargeStatus(parsed.data.orderId, parsed.data.rechargeStatus, parsed.data.workerNotes);
+      const order = await updatePaidRechargeStatus(parsed.data.orderId, parsed.data.rechargeStatus, parsed.data.workerNotes);
       res.json({ success: true, order });
     } catch (error) {
       res.status(error instanceof PaymentError ? error.status : 500).json({ success: false,
