@@ -68,8 +68,11 @@ export async function refundServiceRequest(ticketId: string, reason: string, by:
 }
 export async function processOverdueServiceRefunds(now = Date.now()) {
   const rows = await queryRecords<Ticket>('tickets', [{ field: 'type', op: 'eq', value: 'service_request' }, { field: 'status', op: 'eq', value: 'paid' }, { field: 'payment.paidAt', op: 'lte', value: new Date(now - 24 * 3_600_000).toISOString() }], { limit: 100 });
+  const cancelled = await queryRecords<Ticket>('tickets', [{ field: 'type', op: 'eq', value: 'service_request' }, { field: 'status', op: 'eq', value: 'paid' }, { field: 'cancelledAt', op: 'gt', value: '' }], { limit: 100 });
   let attempted = 0;
-  for (const ticket of rows) { try { await refundServiceRequest(ticket.id, 'not placed within 24h', 'scheduler', true, now); attempted++; } catch { /* Durable attempts/attention remain for retry and admin review. */ } }
+  for (const ticket of new Map([...rows, ...cancelled].map(ticket => [ticket.id, ticket])).values()) { try {
+    await refundServiceRequest(ticket.id, ticket.cancelledAt ? 'request cancelled before payment confirmation' : 'not placed within 24h', 'scheduler', !ticket.cancelledAt, now); attempted++;
+  } catch { /* Durable attempts/attention remain for retry and admin review. */ } }
   return attempted;
 }
 export async function reconcileServiceRefundWebhook(refundId: string) {

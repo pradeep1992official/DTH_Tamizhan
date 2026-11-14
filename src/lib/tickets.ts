@@ -36,7 +36,7 @@ export const ticketSchema = z.object({
     gatewayOrderId: z.string().nullable(), paymentId: z.string().nullable(), paidAt: z.string().datetime().nullable(),
     refundId: z.string().nullable(), refundedAt: z.string().datetime().nullable() }).strict(),
   receipt: z.object({ number: z.string().nullable(), path: z.string().nullable(), generatedAt: z.string().datetime().nullable() }).strict(),
-  createdAt: z.string().datetime(), updatedAt: z.string().datetime(), checkoutStartedAt: z.string().datetime().optional(),
+  createdAt: z.string().datetime(), updatedAt: z.string().datetime(), checkoutStartedAt: z.string().datetime().optional(), cancelledAt: z.string().datetime().optional(),
 }).strict().superRefine((ticket, context) => {
   const statuses = ticket.type !== 'service_request' ? ['open', 'in_progress', 'resolved', 'closed'] : ['pending_payment', 'paid', 'placed_with_company', 'resolved', 'closed', 'auto_refunded', 'expired'];
   if (!statuses.includes(ticket.status) || ticket.payment.required !== (ticket.type === 'service_request') || ticket.payment.amount !== (ticket.type === 'service_request' ? 50 : 0)) context.addIssue({ code: 'custom', message: 'Invalid ticket lifecycle or amount.' });

@@ -73,11 +73,9 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
 
   return (
     <div className="admin-tab reports-tab space-y-4">
-      {getAuthHeaders && <BrokenLinksPanel getAuthHeaders={getAuthHeaders} currentLang={currentLang} />}
-      <div className="text-xs text-muted space-y-1">
-        <p>Recharge records: {period} ({orders.length} loaded)</p>
-        <p>Paid recharge total includes paid orders in these records. Payments shows paid payment records and applies its own search and method filters.</p>
-      </div>
+      <p className="report-records-note text-sm text-muted" tabIndex={0} title="Paid recharge total includes paid orders in these records. Payments shows paid payment records and applies its own search and method filters.">
+        {orders.length} recharge {orders.length === 1 ? 'record' : 'records'} loaded{orderDates.length > 0 && <> · {period}</>}
+      </p>
       {/* Overview Analytics Cards */}
       <div className="admin-summary admin-summary-four">
         <div className="admin-summary-item">
@@ -91,11 +89,10 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
 
         <div className="admin-summary-item">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">{t.totalSubscribers}</span>
+            <span className="text-sm font-medium">{currentLang === 'ta' ? 'வாடிக்கையாளர் கணக்குகள்' : 'Customer accounts'}</span>
             <Users className="w-4 h-4 text-accent" />
           </div>
           <div className="text-xl font-mono font-bold mt-1">{summary?.totalCustomers ?? customers.length}</div>
-          <div className="text-sm text-ink  mt-1">Customer accounts</div>
         </div>
 
         <div className="admin-summary-item">
@@ -175,6 +172,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
         </div>
         {visibleCount < filteredLogs.length && <button type="button" className="rounded-xl border border-rule px-4 py-2 text-sm font-medium" onClick={() => setVisibleCount((count) => count + 10)}>Load more</button>}
       </div>
+      {getAuthHeaders && <BrokenLinksPanel getAuthHeaders={getAuthHeaders} currentLang={currentLang} />}
     </div>
   );
 };

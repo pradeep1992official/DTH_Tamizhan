@@ -102,8 +102,13 @@ export function AccountPage({ user, currentLang, connections = [], onOpenAuth, o
           </li>)}</ul> : <div className="account-empty"><h3>{copy.empty}</h3><p>{copy.emptyHelp}</p></div>}
           <div className="account-actions"><Link className="account-primary" to="/connections">{copy.manage}</Link><Link className="account-text-link" to="/recharge">{t.navRecharge} &rarr;</Link></div>
         </section>
-        <section className="account-card"><h2>Support tickets</h2><div className="flex gap-4 mt-3"><Link to="/help">Get help</Link><Link to="/my-tickets">My tickets</Link></div></section>
-        <section className="account-card account-help"><h2>{copy.help}</h2><p>{copy.helpText}</p><Link className="account-text-link" to="/contact">{copy.contact} &rarr;</Link></section>
+        <section className="account-card account-help">
+          <h2>{copy.help}</h2><p>{copy.helpText}</p>
+          <div className="account-actions flex-wrap">
+            <Link className="account-text-link" to="/help">{ta ? 'உதவி பெறுக' : 'Get help'} &rarr;</Link>
+            <Link className="account-text-link" to="/my-tickets">{ta ? 'எனது கோரிக்கைகள்' : 'My tickets'} &rarr;</Link>
+          </div>
+        </section>
       </div>
     </div> : <section className="account-card account-guest">
       <h2>{copy.guest}</h2><p>{copy.guestHelp}</p>

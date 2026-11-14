@@ -2,9 +2,9 @@ import express from 'express';
 import type { Server } from 'node:http';
 import { afterAll, beforeAll, beforeEach, expect, it, vi } from 'vitest';
 vi.mock('../server/middleware/ticketProtection', () => ({ ticketProtection: (_req: any, _res: any, next: any) => next(), logTicketBlock: async () => {}, TicketRequestError: class extends Error {} }));
-const f = vi.hoisted(() => ({ create: vi.fn(), owned: vi.fn(), query: vi.fn() }));
+const f = vi.hoisted(() => ({ create: vi.fn(), owned: vi.fn(), query: vi.fn(), cancel: vi.fn() }));
 vi.mock('../server/middleware/auth', () => ({ verifyAuthToken: async (req: any) => req.headers.authorization === 'Bearer owner' ? { uid: 'owner' } : null, getAdminFirestore: vi.fn() }));
-vi.mock('../server/models/help', () => ({ createHelpTicket: f.create, upgradeHelpTicket: vi.fn(), chooseCustomerCare: vi.fn() }));
+vi.mock('../server/models/help', () => ({ createHelpTicket: f.create, upgradeHelpTicket: vi.fn(), chooseCustomerCare: vi.fn(), cancelHelpTicket: f.cancel }));
 vi.mock('../server/models/servicePayments', () => ({ attachServiceCheckout: vi.fn(), resumeServiceCheckout: vi.fn() }));
 vi.mock('firebase-admin/auth', () => ({ getAuth: () => ({ getUser: async () => ({ displayName: 'Customer' }) }) }));
 vi.mock('../server/models/tickets', () => ({ createTicket: f.create, customerTicket: (value: any) => value }));
@@ -36,4 +36,11 @@ it('scopes ticket listing by UID before pagination and returns friendly errors',
   expect(response.headers.get('cache-control')).toBe('no-store');
   expect(f.query).toHaveBeenCalledWith('tickets', [{ field: 'uid', op: 'eq', value: 'owner' }], { limit: 26 });
   expect(await (await post(input)).text()).not.toContain('secret stack');
+});
+
+it('requires authentication for cancellation and passes only the verified UID and ticket ID', async () => {
+  const send = (auth: boolean, body: unknown) => fetch(`${url}/one/cancel`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(auth ? { Authorization: 'Bearer owner' } : {}) }, body: JSON.stringify(body) });
+  expect((await send(false, {})).status).toBe(401); expect(f.cancel).not.toHaveBeenCalled();
+  expect((await send(true, {})).status).toBe(200); expect(f.cancel).toHaveBeenCalledWith('owner', 'one');
+  expect((await send(true, { uid: 'victim' })).status).toBe(400); expect(f.cancel).toHaveBeenCalledTimes(1);
 });

@@ -25,6 +25,7 @@ export async function processTicketNotifications() {
     const eventRef = db.collection('server_ticket_events').doc(event.id);
     try {
       const snapshot = await db.collection('tickets').doc(event.ticketId).get(); const ticket = ticketSchema.parse(snapshot.data());
+      if (ticket.cancelledAt && event.event === 'created') { await eventRef.update({ processed: true, status: 'cancelled' }); continue; }
       if (ticket.type === 'service_request' && !config.testEmails) continue;
       const account = await getAuth().getUser(ticket.uid);
       if (!account.email || !account.emailVerified) continue;

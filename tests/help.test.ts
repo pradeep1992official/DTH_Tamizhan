@@ -2,7 +2,8 @@ import { beforeEach, expect, it, vi } from 'vitest';
 import { helpProblems, helpInputSchema } from '../src/lib/help';
 import { defaultServiceBrands } from '../src/lib/serviceBrands';
 import { fullAddressSchema, pinCodeSchema } from '../src/lib/tickets';
-const f = vi.hoisted(() => ({ records: new Map<string, any>(), recommend: vi.fn(), owned: vi.fn(), query: vi.fn(), chain: Promise.resolve() as Promise<unknown> }));
+const f = vi.hoisted(() => ({ records: new Map<string, any>(), recommend: vi.fn(), owned: vi.fn(), query: vi.fn(), resume: vi.fn(), chain: Promise.resolve() as Promise<unknown> }));
+vi.mock('../server/models/servicePayments', () => ({ resumeServiceCheckout: f.resume }));
 vi.mock('../server/queries', () => ({ queryRecords: f.query }));
 vi.mock('../server/utils/assistantTools', () => ({ executeAssistantTool: f.recommend }));
 vi.mock('../server/models/serviceBrands', () => ({ readServiceBrands: async () => defaultServiceBrands }));
@@ -14,10 +15,10 @@ vi.mock('../server/middleware/auth', () => {
     const result = f.chain.then(() => callback({ get: (value: any) => value.get(), set, create: set, update: (value: any, data: any) => set(value, data, { merge: true }) })); f.chain = result.catch(() => {}); return result;
   } }) };
 });
-import { createHelpTicket, upgradeHelpTicket, chooseCustomerCare, reclassifyHelpTicket } from '../server/models/help';
+import { createHelpTicket, upgradeHelpTicket, chooseCustomerCare, reclassifyHelpTicket, cancelHelpTicket } from '../server/models/help';
 import { expireUnpaidServiceRequests } from '../server/models/serviceSchedule';
 const request = { requestKey: '11111111-1111-4111-8111-111111111111', phone: '9876543210', brand: 'tata_play', subscriberId: '1234567890', fullAddress: '12 East Street, Thirukoilur, Tamil Nadu', pinCode: '605757', problem: 'no_signal', language: 'en' };
-beforeEach(() => { f.records.clear(); f.chain = Promise.resolve(); f.recommend.mockReset(); f.owned.mockReset(); f.owned.mockResolvedValue([]); });
+beforeEach(() => { f.resume.mockReset(); f.records.clear(); f.chain = Promise.resolve(); f.recommend.mockReset(); f.owned.mockReset(); f.owned.mockResolvedValue([]); });
 it('routes every named chip deterministically without Gemini or client route authority', async () => {
   for (const [problem, config] of Object.entries(helpProblems)) {
     f.records.clear();
@@ -92,4 +93,35 @@ it('requires a six-digit PIN code for DTH addresses in intake, upgrades and cust
   await expect(upgradeHelpTicket('owner', ticket.id, { acceptedTerms: true, brand: request.brand, subscriberId: request.subscriberId, fullAddress: '12 East Street, Thirukoilur, Tamil Nadu', pinCode: '' })).rejects.toThrow();
   await expect(chooseCustomerCare('owner', ticket.id, request.brand, '12 East Street, Thirukoilur, Tamil Nadu', '')).rejects.toThrow();
   expect(fullAddressSchema.safeParse(request.fullAddress).success).toBe(true);
+});
+
+it('discards owned unpaid tickets once, suppresses queued creation email and releases the subscriber lock', async () => {
+  const ticket = await createHelpTicket('owner', request, 'Customer');
+  await cancelHelpTicket('owner', ticket.id); await cancelHelpTicket('owner', ticket.id);
+  const stored = f.records.get(`tickets/${ticket.id}`);
+  expect(stored.status).toBe('closed'); expect(stored.cancelledAt).toBeTruthy(); expect(stored.statusHistory).toHaveLength(2);
+  expect(stored.statusHistory.at(-1).event).toBe('customer_cancelled');
+  expect(f.records.get(`server_ticket_events/${ticket.id}_created`).processed).toBe(true);
+  const next = await createHelpTicket('owner', { ...request, requestKey: '22222222-2222-4222-8222-222222222222' }, 'Customer');
+  expect(next.id).not.toBe(ticket.id);
+});
+it('rejects cancellation by another user and refuses paid or provider-pending requests', async () => {
+  const ticket = await createHelpTicket('owner', request, 'Customer');
+  await expect(cancelHelpTicket('other', ticket.id)).rejects.toThrow('not found');
+  await upgradeHelpTicket('owner', ticket.id, { acceptedTerms: true, brand: request.brand, subscriberId: request.subscriberId });
+  f.records.get(`tickets/${ticket.id}`).payment.gatewayOrderId = 'order_1';
+  f.resume.mockResolvedValue({ paid: false, pending: true });
+  await expect(cancelHelpTicket('owner', ticket.id)).rejects.toThrow('pending');
+  const stored = f.records.get(`tickets/${ticket.id}`); stored.payment.paidAt = new Date().toISOString(); stored.payment.status = 'paid'; stored.status = 'paid';
+  await expect(cancelHelpTicket('owner', ticket.id)).rejects.toThrow('Paid requests');
+  expect(stored.cancelledAt).toBeUndefined();
+});
+it('checks the provider before discarding an expired unpaid checkout', async () => {
+  const ticket = await createHelpTicket('owner', request, 'Customer');
+  await upgradeHelpTicket('owner', ticket.id, { acceptedTerms: true, brand: request.brand, subscriberId: request.subscriberId });
+  const stored = f.records.get(`tickets/${ticket.id}`); stored.status = 'expired'; stored.payment.gatewayOrderId = 'order_1';
+  f.resume.mockResolvedValue({ paid: false });
+  await cancelHelpTicket('owner', ticket.id);
+  expect(f.resume).toHaveBeenCalledWith('owner', ticket.id, expect.any(Number), true);
+  expect(f.records.get(`tickets/${ticket.id}`).status).toBe('closed');
 });

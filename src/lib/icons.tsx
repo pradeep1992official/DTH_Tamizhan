@@ -60,6 +60,7 @@ import {
   SquareIcon,
   StackIcon,
   TelevisionIcon,
+  TicketIcon,
   TrashIcon,
   TrendUpIcon,
   TruckIcon,
@@ -125,6 +126,7 @@ export const Power = /* @__PURE__ */ themedIcon(PowerIcon);
 export const Printer = /* @__PURE__ */ themedIcon(PrinterIcon);
 export const QrCode = /* @__PURE__ */ themedIcon(QrCodeIcon);
 export const Radio = /* @__PURE__ */ themedIcon(BroadcastIcon);
+export const Ticket = /* @__PURE__ */ themedIcon(TicketIcon);
 export const RefreshCw = /* @__PURE__ */ themedIcon(ArrowsClockwiseIcon);
 export const RotateCcw = /* @__PURE__ */ themedIcon(ArrowCounterClockwiseIcon);
 export const Scale = /* @__PURE__ */ themedIcon(ScalesIcon);

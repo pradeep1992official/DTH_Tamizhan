@@ -45,12 +45,12 @@ export async function confirmServicePayment(ticketId: string, paymentId: string,
   if (order.id !== ticket.payment.gatewayOrderId || payment.order_id !== order.id || Number(payment.amount) !== 5000 || payment.currency !== 'INR' || Number(order.amount) !== 5000 || order.currency !== 'INR' || notes.ticketId !== ticket.id || notes.uid !== ticket.uid || notes.purpose !== 'service_request') throw new Error('Payment does not match this request.');
   if (payment.status !== 'captured' || order.status !== 'paid') return { paid: false, ticketId };
   const processedRef = db.collection('server_service_payments').doc(documentKey(paymentId));
-  await db.runTransaction(async tx => {
+  const cancelled = await db.runTransaction(async tx => {
     const [currentSnapshot, processed] = await Promise.all([tx.get(ref), tx.get(processedRef)]);
     const current = ticketSchema.parse(currentSnapshot.data());
-    if (processed.exists) { if (processed.data()?.ticketId !== ticketId) throw new Error('Payment already linked.'); return; }
+    if (processed.exists) { if (processed.data()?.ticketId !== ticketId) throw new Error('Payment already linked.'); return !!current.cancelledAt; }
     if (current.payment.paymentId && current.payment.paymentId !== paymentId) throw new Error('Another payment is already linked.');
-    if (!['pending_payment', 'expired'].includes(current.status)) throw new Error('Unexpected payment state.');
+    if (!['pending_payment', 'expired'].includes(current.status) && !(current.status === 'closed' && current.cancelledAt)) throw new Error('Unexpected payment state.');
     const lockRef = db.collection('server_ticket_locks').doc(documentKey(`${current.uid}:${current.brand}:${current.subscriberId}`));
     const held = await tx.get(lockRef);
     const now = new Date().toISOString();
@@ -59,10 +59,17 @@ export async function confirmServicePayment(ticketId: string, paymentId: string,
     tx.create(processedRef, { ticketId, paymentId, createdAt: now });
     // Durable event is consumed by receipt/email workers; no external side effect in transaction.
     tx.set(db.collection('server_ticket_events').doc(`${ticketId}_paid`), { ticketId, event: 'paid', createdAt: now, processed: false });
-    if (held.data()?.active && held.data()?.ticketId !== ticketId) {
+    if (current.cancelledAt) {
+      tx.set(db.collection('server_ticket_private').doc(ticketId), { latePaymentNeedsReview: true, refundNeedsAttention: true }, { merge: true });
+    } else if (held.data()?.active && held.data()?.ticketId !== ticketId) {
       tx.set(db.collection('server_ticket_private').doc(ticketId), { latePaymentNeedsReview: true, refundNeedsAttention: true }, { merge: true });
     } else tx.set(lockRef, { active: true, ticketId });
+    return !!current.cancelledAt;
   });
+  if (cancelled) {
+    try { await (await import('./serviceRefunds')).refundServiceRequest(ticketId, 'request cancelled before payment confirmation', 'cancellation', false); }
+    catch { /* Durable cancellation flag is retried by the refund scheduler. */ }
+  }
   return { paid: true, ticketId };
 }
 export const serviceSignatureSchema = z.object({ ticketId: z.string().regex(/^[\w-]{1,128}$/), razorpay_order_id: z.string().regex(/^order_[a-zA-Z0-9]+$/), razorpay_payment_id: z.string().regex(/^pay_[a-zA-Z0-9]+$/), razorpay_signature: z.string().regex(/^[a-f0-9]{64}$/i) }).strict();
@@ -72,7 +79,7 @@ export async function verifyServiceCheckout(uid: string, input: unknown) {
   if (ticket.uid !== uid || ticket.payment.gatewayOrderId !== value.razorpay_order_id || !verifyPaymentSignature(ticket.payment.gatewayOrderId, value.razorpay_payment_id, value.razorpay_signature, process.env.RAZORPAY_KEY_SECRET!)) throw new Error('Payment signature or ownership could not be verified.');
   return confirmServicePayment(value.ticketId, value.razorpay_payment_id, uid);
 }
-export async function resumeServiceCheckout(uid: string, ticketId: string, now = Date.now()) {
+export async function resumeServiceCheckout(uid: string, ticketId: string, now = Date.now(), cancellationCheck = false) {
   if (!/^[\w-]{1,128}$/.test(ticketId)) throw new Error('Invalid ticket reference.');
   const client = servicePaymentConfig(); const snapshot = await getAdminFirestore().collection('tickets').doc(ticketId).get();
   const ticket = ticketSchema.parse(snapshot.data());
@@ -87,7 +94,7 @@ export async function resumeServiceCheckout(uid: string, ticketId: string, now =
     if (captured) return confirmServicePayment(ticketId, captured.id, uid);
     if (order.status === 'paid' || payments.items.some(payment => payment.status === 'authorized')) return { paid: false, pending: true };
   }
-  if (ticket.status !== 'pending_payment' || now >= Date.parse(ticket.checkoutStartedAt || ticket.createdAt) + 30 * 60_000) throw new Error('This unpaid checkout has expired.');
+  if (!(cancellationCheck && ticket.status === 'expired') && (ticket.status !== 'pending_payment' || (!cancellationCheck && now >= Date.parse(ticket.checkoutStartedAt || ticket.createdAt) + 30 * 60_000))) throw new Error('This unpaid checkout has expired.');
   return { paid: false, ticketId, ticketNo: ticket.ticketNo, order_id: order.id, key_id: process.env.RAZORPAY_KEY_ID, amount: 5000, currency: 'INR' };
 }
 export function verifyServiceWebhook(raw: Buffer, signature: unknown) {

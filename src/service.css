@@ -1,6 +1,17 @@
 ﻿/* Customer service design: burgundy actions, ivory canvas, quiet comparison rows. */
 .app-shell, body { background: var(--color-ivory); color: var(--color-charcoal); }
 .app-main { max-width: 1280px; }
+.reports-tab .admin-summary-item { background: var(--color-theme-muted-soft); padding: 16px; }
+.reports-tab .report-records-note { font-size: 14px; line-height: 1.6; cursor: help; }
+.reports-tab .admin-summary-item > div:last-child:not(:nth-child(2)) { font-size: 13px; }
+.reports-tab .admin-ledger .text-xs { font-size: 13px; }
+.reports-tab .admin-audit-event, .reports-tab .admin-audit-event .text-sm { font-size: 14px; line-height: 1.6; }
+.payments-tab .admin-summary-item { background: var(--color-theme-muted-soft); padding: 16px; }
+.payments-tab .payment-search { min-width: min(100%, 360px); }
+.payments-tab .admin-responsive-table td { font-size: 14px; }
+.payments-tab .admin-responsive-table td.payment-transaction { font-size: 13px; font-weight: 500; }
+.payments-tab .admin-responsive-table td[data-label="Date (IST)"] { font-size: 13px; }
+.payments-tab .compact-plan-pill { font-size: 12px; }
 .app-header { background: var(--color-brand); border-bottom: 0; }
 .app-header-inner { max-width: 1280px; margin-inline: auto; padding-inline: var(--gutter); }
 @media (min-width: 1024px) {
@@ -24,6 +35,9 @@
   .app-footer .footer-link-group nav a { min-height: 32px; }
 }
 .app-header :is(.desktop-navigation,.mobile-navigation) button[aria-current="page"] { background: #FFF9F0; color: var(--color-brand); }
+.app-header .help-navigation-link { color: var(--color-ivory); padding-inline: var(--space-md); font-weight: 700; white-space: nowrap; }
+.app-header .help-navigation-link:hover { background: var(--color-theme-muted); }
+.app-header .help-navigation-link[aria-current="page"] { background: #FFF9F0; color: var(--color-brand); }
 .app-header #brand-logo-btn > div:first-child { background: transparent; }
 .app-header #brand-logo-btn > div:last-child span[style] { color: var(--color-ivory) !important; }
 .app-header #profile-dropdown-trigger-btn { background: var(--color-ivory); }

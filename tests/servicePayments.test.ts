@@ -2,7 +2,8 @@ import { createHmac } from 'node:crypto';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { ticketSchema } from '../src/lib/tickets';
 import { documentKey } from '../server/persistence';
-const f = vi.hoisted(() => ({ records: new Map<string, any>(), payment: vi.fn(), order: vi.fn(), create: vi.fn(), orderPayments: vi.fn() }));
+const f = vi.hoisted(() => ({ records: new Map<string, any>(), payment: vi.fn(), order: vi.fn(), create: vi.fn(), orderPayments: vi.fn(), refund: vi.fn() }));
+vi.mock('../server/models/serviceRefunds', () => ({ refundServiceRequest: f.refund }));
 vi.mock('../server/razorpay', async original => ({ ...await original<typeof import('../server/razorpay')>(), razorpayClient: () => ({ payments: { fetch: f.payment }, orders: { fetch: f.order, create: f.create, fetchPayments: f.orderPayments } }) }));
 vi.mock('../server/middleware/auth', () => {
   const ref = (collection: string, id: string) => ({ id, key: `${collection}/${id}`, get: async () => ({ exists: f.records.has(`${collection}/${id}`), data: () => f.records.get(`${collection}/${id}`) }) });
@@ -14,7 +15,7 @@ vi.mock('../server/middleware/auth', () => {
 import { confirmServicePayment, verifyServiceCheckout, verifyServiceWebhook, servicePaymentConfig, resumeServiceCheckout } from '../server/models/servicePayments';
 const now = '2026-11-14T12:00:00.000Z';
 const ticket = ticketSchema.parse({ id: 'ticket_1', ticketNo: 'SRQ-0001', type: 'service_request', uid: 'owner', name: 'Customer', phone: '9876543210', state: 'Tamil Nadu', brand: 'tata_play', subscriberId: '1234567890', issueCategory: 'no_signal', description: 'There is no signal.', status: 'expired', statusHistory: [], companyRefNo: '', adminNotes: '', payment: { required: true, amount: 50, status: 'pending', gatewayOrderId: 'order_1', paymentId: null, paidAt: null, refundId: null, refundedAt: null }, receipt: { number: null, path: null, generatedAt: null }, createdAt: now, updatedAt: now });
-beforeEach(() => { vi.stubEnv('RAZORPAY_KEY_ID', 'rzp_test_fake'); vi.stubEnv('RAZORPAY_KEY_SECRET', 'testsecret'); f.records.clear(); f.records.set('tickets/ticket_1', structuredClone(ticket));
+beforeEach(() => { vi.stubEnv('RAZORPAY_KEY_ID', 'rzp_test_fake'); vi.stubEnv('RAZORPAY_KEY_SECRET', 'testsecret'); f.refund.mockReset(); f.refund.mockResolvedValue(undefined); f.records.clear(); f.records.set('tickets/ticket_1', structuredClone(ticket));
   f.payment.mockReset(); f.order.mockReset(); f.create.mockClear(); f.orderPayments.mockReset(); f.orderPayments.mockResolvedValue({ items: [{ id: 'pay_1', status: 'captured' }] });
   f.payment.mockResolvedValue({ id: 'pay_1', order_id: 'order_1', amount: 5000, currency: 'INR', status: 'captured' });
   f.order.mockResolvedValue({ id: 'order_1', amount: 5000, currency: 'INR', status: 'paid', notes: { ticketId: 'ticket_1', uid: 'owner', purpose: 'service_request' } });
@@ -68,4 +69,12 @@ it('flags a late capture without overwriting a newer open subscriber lock', asyn
   await confirmServicePayment('ticket_1', 'pay_1', 'owner');
   expect(f.records.get(lockKey).ticketId).toBe('newer_request');
   expect(f.records.get('server_ticket_private/ticket_1').latePaymentNeedsReview).toBe(true);
+});
+
+it('reconciles a late capture on a cancelled ticket and starts the existing idempotent refund path', async () => {
+  const current = f.records.get('tickets/ticket_1'); current.status = 'closed'; current.cancelledAt = new Date().toISOString();
+  await confirmServicePayment('ticket_1', 'pay_1', 'owner');
+  expect(f.refund).toHaveBeenCalledWith('ticket_1', 'request cancelled before payment confirmation', 'cancellation', false);
+  expect(f.records.get('tickets/ticket_1').payment.paidAt).toBeTruthy();
+  expect(f.records.get('tickets/ticket_1').cancelledAt).toBeTruthy();
 });

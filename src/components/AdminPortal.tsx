@@ -1,5 +1,4 @@
 import { AdminAiPanel } from './Admin/AdminAiPanel';
-import { ServiceBrandsPanel } from './Admin/ServiceBrandsPanel';
 import { ServiceReceiptsPanel } from './Admin/ServiceReceiptsPanel';
 import { TicketsPanel } from './Admin/TicketsPanel';
 import React, { useState, useEffect } from 'react';
@@ -12,6 +11,7 @@ import {
   CreditCard,
   ArrowLeft,
   ShieldCheck,
+  Ticket,
   Radio
 } from '../lib/icons';
 import {
@@ -182,7 +182,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const pendingCount = orders.filter((o) => o.rechargeStatus === 'pending' || o.rechargeStatus === 'processing').length;
 
   const NAV_ITEMS: { id: AdminTabId; label: string; icon: React.ReactNode; badge?: number }[] = [
-    { id: 'tickets', label: 'Tickets', icon: <ShieldCheck className="w-4 h-4" /> },
+    { id: 'tickets', label: 'Tickets', icon: <Ticket className="w-4 h-4" /> },
     { id: 'ai', label: 'AI assistant', icon: <ShieldCheck className="w-4 h-4" /> },
     { id: 'customers', label: t.customersTab, icon: <Users className="w-4 h-4" /> },
     { id: 'pending', label: t.pendingOrdersTab, icon: <Clock className="w-4 h-4" />, badge: pendingCount },
@@ -327,7 +327,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         )}
 
         {activeTab === 'operators' && (
-          <><ServiceBrandsPanel getAuthHeaders={getAuthHeaders} />
           <OperatorsTab
             operators={operators}
             operatorsLoading={operatorsLoading}
@@ -337,7 +336,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             currentTheme={currentTheme}
             currentLang={currentLang}
             showToast={showToast}
-          /></>
+          />
         )}
 
         {activeTab === 'approvals' && (

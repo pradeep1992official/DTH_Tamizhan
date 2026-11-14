@@ -93,7 +93,6 @@ export const OperatorsTab: React.FC<OperatorsTabProps> = ({
         className="admin-section-heading flex items-center justify-between gap-3"
       >
         <div>
-          <h3 className="text-base font-bold">{t.operatorAvailability}</h3>
           <p className={`text-sm mt-0.5 ${currentTheme.subText}`}>
             {t.operatorAvailabilityHint}
           </p>
@@ -130,7 +129,7 @@ export const OperatorsTab: React.FC<OperatorsTabProps> = ({
               className="admin-operator-row"
             >
               <div className="admin-operator-info">
-                <h4 className="compact-plan-pill compact-plan-operator" data-operator={op.id}>{op.id === 'airtel_dth' ? 'Airtel DTH' : op.id === 'd2h' ? 'D2H' : op.name}</h4>
+                <h4>{op.id === 'airtel_dth' ? 'Airtel DTH' : op.id === 'd2h' ? 'D2H' : op.name}</h4>
                 <span
                   className={`admin-operator-status ${
                     isActive

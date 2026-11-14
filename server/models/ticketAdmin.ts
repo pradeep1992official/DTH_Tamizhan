@@ -16,6 +16,7 @@ export async function updateAdminTicket(id: string, uid: string, input: unknown,
   return db.runTransaction(async tx => {
     const snapshot = await tx.get(ref); const ticket = ticketSchema.parse(snapshot.data());
     const next = value.status || ticket.status; const companyRefNo = value.companyRefNo ?? ticket.companyRefNo;
+    if (ticket.cancelledAt && next !== ticket.status) throw new Error('Cancelled requests cannot be placed or reopened.');
     validateTicketTransition(ticket.type, ticket.status, next, companyRefNo, ticket.payment.paidAt, now, ticket.payment.status === 'refunding' || ticket.payment.status === 'refunded');
     if (ticket.status !== 'paid' && companyRefNo !== ticket.companyRefNo) throw new Error('Company reference can only be entered when placing a paid request.');
     if (companyRefNo !== ticket.companyRefNo && next !== 'placed_with_company') throw new Error('Save the company reference together with placement.');

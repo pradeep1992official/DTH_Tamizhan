@@ -95,3 +95,30 @@ export async function reclassifyHelpTicket(id: string, by: string, route: 'free'
     return updated;
   });
 }
+export async function cancelHelpTicket(uid: string, id: string) {
+  const db = getAdminFirestore(); const ref = db.collection('tickets').doc(id);
+  const snapshot = await ref.get();
+  if (!snapshot.exists) throw new TicketRequestError(404, 'Ticket not found.');
+  const initial = ticketSchema.parse(snapshot.data());
+  if (initial.uid !== uid) throw new TicketRequestError(404, 'Ticket not found.');
+  if (initial.cancelledAt) return;
+  if (initial.payment.paidAt || ['paid', 'refunding', 'refunded'].includes(initial.payment.status)) throw new TicketRequestError(409, 'Paid requests cannot be cancelled here. Check My tickets.');
+  if (initial.payment.gatewayOrderId) {
+    const { resumeServiceCheckout } = await import('./servicePayments');
+    const payment = await resumeServiceCheckout(uid, id, Date.now(), true);
+    if (payment.paid || ('pending' in payment && payment.pending)) throw new TicketRequestError(409, 'Payment has been received or is pending. Check My tickets before cancelling.');
+  }
+  await db.runTransaction(async tx => {
+    const current = await tx.get(ref); const ticket = ticketSchema.parse(current.data());
+    if (ticket.uid !== uid) throw new TicketRequestError(404, 'Ticket not found.');
+    if (ticket.cancelledAt) return;
+    if (!['open', 'in_progress', 'pending_payment', 'expired'].includes(ticket.status) || ticket.payment.paidAt || !['not_required', 'pending'].includes(ticket.payment.status)) throw new TicketRequestError(409, 'This request can no longer be cancelled. Refresh My tickets.');
+    const lockRef = db.collection('server_ticket_locks').doc(documentKey(`${uid}:${ticket.brand}:${ticket.subscriberId}`)); const lock = await tx.get(lockRef);
+    const eventRef = db.collection('server_ticket_events').doc(`${id}_created`); const event = await tx.get(eventRef);
+    const timestamp = new Date().toISOString();
+    tx.set(ref, { ...ticket, status: 'closed', cancelledAt: timestamp, updatedAt: timestamp,
+      statusHistory: [...ticket.statusHistory, { status: 'closed', timestamp, by: uid, type: ticket.type, event: 'customer_cancelled' }] });
+    if (lock.data()?.ticketId === id) tx.set(lockRef, { active: false, ticketId: id });
+    if (event.exists && !event.data()?.processed) tx.set(eventRef, { ...event.data(), processed: true, status: 'cancelled' });
+  });
+}

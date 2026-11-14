@@ -104,3 +104,10 @@ Tests: select a DTH chip and try an empty/short address (blocked); submit a comp
 PIN code is a separate required input (six digits, starting with 1-9), stored as pinCode. The address textarea no longer requires PIN text. Both fields show individual errors directly beneath the control, on blur or submission, with aria-invalid/aria-describedby and suppressed native validation popups for these controls. Missing, five/seven-digit, zero-prefixed and letter-attached PIN codes are rejected server-side for DTH intake, customer-care follow-up and paid/admin upgrades. Older records may prefill PIN from their saved address when no separate pinCode exists. This validates PIN format, not postal deliverability.
 
 Latest customer-page copy: the direct customer-care call card and network-charge note are removed. The page uses a small free-help disclaimer, keeps the fee/refund terms, and sends customers to My tickets for tracking. WhatsApp/email links and the no-payment-taken sentence are removed from this page. Existing backend customer-care handling remains available for compatibility.
+
+
+## Cancel / discard
+
+Cancel on the initial form leaves without creating anything. Cancel request on the ticket card calls an authenticated, App Check-protected owner endpoint. The server verifies provider status for an existing checkout, rechecks ticket state in a transaction, closes an unpaid request with a customer_cancelled history entry, releases its subscriber lock and suppresses an unsent creation email. The card and route state are cleared; cancelled unpaid requests are omitted from My tickets. Daily abuse counters remain consumed. Closed records are retained for audit/idempotency.
+
+Paid or authorization-pending requests cannot be discarded through this button. A capture racing with cancellation is still verified and reconciled, but cannot be placed: it immediately enters the existing idempotent refund path, with scheduler retries without the usual 24-hour wait. Financial/refund records remain visible for tracking. No payment/record is silently lost or falsely marked cancelled after payment.

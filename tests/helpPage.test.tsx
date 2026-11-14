@@ -14,7 +14,7 @@ it('shows problem chips and profile phone without a support-versus-service choic
   expect(html).toContain('Get Help'); expect(html).toContain('9876543210'); expect(html).toContain('Something else');
   expect(html).not.toContain('Subscriber ID'); expect(html).not.toContain('Let us do it'); expect(html).not.toContain('Service Request');
   expect(html).not.toContain('Full address');
-  expect(html).toContain('aria-pressed="false"');
+  expect(html).toContain('aria-pressed="false"'); expect(html).toContain('>Cancel</button>');
 });
 it('shows subscriber input only for DTH chips and a 1000-character box for other', () => {
   expect(render({ ticketPrefill: { issueCategory: 'no_signal', subscriberId: '1234567890' } })).toContain('Subscriber ID');

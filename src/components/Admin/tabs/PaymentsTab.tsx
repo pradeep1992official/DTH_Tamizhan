@@ -86,7 +86,6 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
 
   return (
     <div className="admin-tab payments-tab space-y-4">
-      {getAuthHeaders && <EmailDeliveryPanel getAuthHeaders={getAuthHeaders} />}
       {/* Metrics Banner */}
       <section aria-label="Payment summary" className="payments-summary">
       <div className="admin-summary">
@@ -107,7 +106,7 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
         isLight ? 'bg-paper border-rule shadow-none' : 'bg-paper-2 border-rule'
       }`}>
         <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 flex-1 min-w-0">
-          <div className="relative w-full sm:flex-1 sm:max-w-md">
+          <div className="payment-search relative w-full sm:flex-1 sm:max-w-md">
             <Search className="w-4 h-4 absolute left-3 top-3 text-muted" />
             <input
               type="text"
@@ -139,7 +138,7 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
         </div>
 
         <select aria-label="Payment environment" value={modeFilter} onChange={event => setModeFilter(event.target.value)} className="border border-rule rounded-lg p-2 bg-paper"><option value="all">All payments</option><option value="live">Live payments</option><option value="test">Test payments</option></select>
-        {getAuthHeaders && <button type="button" disabled={syncing} onClick={() => void syncRazorpay()} className="border border-rule rounded-lg px-3 py-2">{syncing ? 'Syncing…' : 'Sync recent Razorpay payments'}</button>}
+        {getAuthHeaders && <button type="button" disabled={syncing} onClick={() => void syncRazorpay()} className="border border-rule rounded-lg px-3 py-2">{syncing ? 'Syncing…' : 'Sync Razorpay'}</button>}
         <AdminRefreshButton onRefresh={onRefresh} loading={paymentsLoading || syncing} label={t.refresh} />
       </div>
       {syncMessage && <p role="status" className="text-sm">{syncMessage}</p>}
@@ -193,6 +192,7 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
           </table>
         </div>
       </div>
+      {getAuthHeaders && <EmailDeliveryPanel getAuthHeaders={getAuthHeaders} />}
       {selectedPayment && (
         <div className="fixed inset-0 z-50 bg-scrim/70 flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget) setSelectedPayment(null); }}>
           <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="payment-details-title" tabIndex={-1} className="history-details-dialog bg-paper text-ink border border-rule">

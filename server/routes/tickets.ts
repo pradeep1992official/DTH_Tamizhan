@@ -6,7 +6,7 @@ import { queryRecords } from '../queries';
 import { ticketSchema, stripTicketHtml, type Ticket } from '../../src/lib/tickets';
 import { parsePage } from '../models/paymentPages';
 import { ticketProtection, TicketRequestError, logTicketBlock } from '../middleware/ticketProtection';
-import { createHelpTicket, upgradeHelpTicket, chooseCustomerCare } from '../models/help';
+import { createHelpTicket, upgradeHelpTicket, chooseCustomerCare, cancelHelpTicket } from '../models/help';
 import { attachServiceCheckout, resumeServiceCheckout } from '../models/servicePayments';
 import { withAiRequest } from '../utils/aiToolSecurity';
 import { getAuth } from 'firebase-admin/auth';
@@ -43,6 +43,11 @@ ticketsRouter.post('/api/tickets/:id/call', async (req, res) => {
     const { brand, fullAddress, pinCode } = z.object({ brand: z.string().max(50).optional(), fullAddress: z.string().max(500).optional(), pinCode: z.string().max(6).optional() }).strict().parse(req.body); res.json({ success: true, ticket: customerTicket(await chooseCustomerCare(res.locals.ticketUid, req.params.id, brand, fullAddress, pinCode)) });
   } catch { res.status(400).json({ success: false, error: 'Your ticket could not be updated. Please retry.' }); }
 });
+ticketsRouter.post('/api/tickets/:id/cancel', async (req, res) => {
+  try { if (!/^[\w-]{1,128}$/.test(req.params.id)) { res.sendStatus(404); return; }
+    z.object({}).strict().parse(req.body); await cancelHelpTicket(res.locals.ticketUid, req.params.id); res.json({ success: true });
+  } catch (error) { res.status(error instanceof TicketRequestError ? error.status : error instanceof z.ZodError ? 400 : 503).json({ success: false, error: error instanceof TicketRequestError ? error.message : 'Cancellation could not be confirmed. Please retry.' }); }
+});
 ticketsRouter.get('/api/tickets/:id', async (req, res) => {
   try { if (!/^[\w-]{1,128}$/.test(req.params.id)) { res.sendStatus(404); return; }
     const snapshot = await getAdminFirestore().collection('tickets').doc(req.params.id).get();
@@ -55,8 +60,9 @@ ticketsRouter.get('/api/tickets', async (req, res) => {
   try {
     const page = parsePage(req.query as Record<string, unknown>);
     const rows = await queryRecords<Ticket>('tickets', [{ field: 'uid', op: 'eq', value: res.locals.ticketUid }], { ...page, limit: page.limit + 1 });
-    const visible = rows.slice(0, page.limit).filter(row => row.uid === res.locals.ticketUid).map(row => customerTicket(ticketSchema.parse(row)));
-    const last = visible.at(-1);
+    const pageRows = rows.slice(0, page.limit);
+    const visible = pageRows.filter(row => row.uid === res.locals.ticketUid && (!row.cancelledAt || row.payment.paidAt)).map(row => customerTicket(ticketSchema.parse(row)));
+    const last = pageRows.at(-1);
     res.json({ success: true, tickets: visible, nextCursor: rows.length > page.limit && last ? Buffer.from(JSON.stringify({ time: last.createdAt, id: last.id })).toString('base64url') : null });
   } catch { res.status(503).json({ success: false, error: 'Your tickets could not be loaded. Please retry.' }); }
 });
