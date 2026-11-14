@@ -14,10 +14,12 @@ export const helpProblems = {
 export const helpProblemSchema = z.enum(['other', ...Object.keys(helpProblems)]);
 export const helpInputSchema = z.object({ requestKey: z.string().uuid(), phone: phoneSchema, brand: z.string().max(50).default(''),
   subscriberId: z.string().regex(/^\d{0,25}$/).default(''), problem: helpProblemSchema,
+  fullAddress: z.string().max(500).transform(stripTicketHtml).default(''),
   description: z.string().max(1000).transform(stripTicketHtml).default(''), orderId: z.string().regex(/^[\w-]{1,128}$/).optional(),
   language: z.enum(['en', 'ta']).default('en'),
 }).strict().refine(value => value.problem !== 'other' || value.description.length >= 5, 'Describe the problem in at least 5 characters.');
 export const helpPrefillSchema = z.object({ phone: phoneSchema.optional(), brand: z.string().max(50).optional(), subscriberId: z.string().regex(/^\d{1,25}$/).optional(),
+  fullAddress: z.string().max(500).transform(stripTicketHtml).optional(),
   description: z.string().max(1000).transform(stripTicketHtml).optional(), issueCategory: z.string().max(40).optional(),
   orderId: z.string().regex(/^[\w-]{1,128}$/).optional(), name: z.string().max(100).optional(), state: z.string().max(60).optional(),
 }).strict();

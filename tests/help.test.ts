@@ -15,7 +15,7 @@ vi.mock('../server/middleware/auth', () => {
 });
 import { createHelpTicket, upgradeHelpTicket, chooseCustomerCare, reclassifyHelpTicket } from '../server/models/help';
 import { expireUnpaidServiceRequests } from '../server/models/serviceSchedule';
-const request = { requestKey: '11111111-1111-4111-8111-111111111111', phone: '9876543210', brand: 'tata_play', subscriberId: '1234567890', problem: 'no_signal', language: 'en' };
+const request = { requestKey: '11111111-1111-4111-8111-111111111111', phone: '9876543210', brand: 'tata_play', subscriberId: '1234567890', fullAddress: '12 East Street, Thirukoilur, Tamil Nadu 605757', problem: 'no_signal', language: 'en' };
 beforeEach(() => { f.records.clear(); f.chain = Promise.resolve(); f.recommend.mockReset(); f.owned.mockReset(); f.owned.mockResolvedValue([]); });
 it('routes every named chip deterministically without Gemini or client route authority', async () => {
   for (const [problem, config] of Object.entries(helpProblems)) {
@@ -68,4 +68,16 @@ it('starts unpaid expiry at upgrade, not the original free-ticket creation date'
   expect(f.records.get(`tickets/${ticket.id}`).status).toBe('pending_payment');
   await expireUnpaidServiceRequests(now + 31 * 60_000);
   expect(f.records.get(`tickets/${ticket.id}`).status).toBe('expired');
+});
+it('requires a full address for DTH intake and upgrades, but not free help', async () => {
+  await expect(createHelpTicket('owner', { ...request, fullAddress: '' }, 'Customer')).rejects.toThrow('full address');
+  const free = await createHelpTicket('owner', { ...request, problem: 'website_issue', fullAddress: '' }, 'Customer');
+  expect(free.fullAddress).toBe('');
+  f.records.clear();
+  f.recommend.mockResolvedValue({ type: 'support_recommendation', recommendation: { route: 'dth_service', confident: true, category: 'no_signal', summary: 'There is no signal.' } });
+  const ticket = await createHelpTicket('owner', { ...request, problem: 'other', description: 'There is no signal.', fullAddress: '', subscriberId: '' }, 'Customer');
+  const args = { acceptedTerms: true, brand: 'tata_play', subscriberId: '1234567890' };
+  await expect(upgradeHelpTicket('owner', ticket.id, args)).rejects.toThrow();
+  const upgraded = await upgradeHelpTicket('owner', ticket.id, { ...args, fullAddress: '<b>12 East Street</b>, Thirukoilur, Tamil Nadu 605757' });
+  expect(upgraded.fullAddress).toBe('12 East Street, Thirukoilur, Tamil Nadu 605757');
 });

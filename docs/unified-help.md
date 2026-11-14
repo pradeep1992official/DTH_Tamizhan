@@ -92,3 +92,10 @@ Automated checks cover all named chips, Gemini fallback/uncertainty, same-ticket
 - [tests/supportRouting.test.tsx](../tests/supportRouting.test.tsx)
 - [tests/supportTickets.test.ts](../tests/supportTickets.test.ts)
 - [tests/tickets.test.ts](../tests/tickets.test.ts)
+
+
+## Full address for DTH-service issues
+
+The DTH section collects a full address (door/street, locality, city, state and PIN), with Tamil/English labels. Text is sanitized and limited to 15-500 characters. Deterministic DTH intake requires it server-side. If free text is classified as DTH after ticket creation, the options card collects the address before customer-care follow-up or a paid upgrade. Free support does not require or retain an address. Admin upgrades also validate the full address, and ticket details display it. Older records without the field remain readable; no data migration or rule broadening is needed. Address is not sent to Gemini for classification.
+
+Tests: select a DTH chip and try an empty/short address (blocked); submit a complete address (stored); classify Other as DTH then upgrade without address (blocked); add address and retry (same ticket upgraded). Free website/account support still works without an address.
