@@ -174,3 +174,9 @@ it('does not invoke Gemini for unauthenticated or oversized requests', async () 
   f.account = { uid: 'owner' }; await request({ messages: ['x'.repeat(501)] });
   expect(toolTurn).not.toHaveBeenCalled();
 });
+
+it('rejects client-supplied UID before invoking Gemini', async () => {
+  const res = await request({ messages: ['my history'], uid: 'victim' });
+  expect(res.status).toHaveBeenCalledWith(400);
+  expect(toolTurn).not.toHaveBeenCalled();
+});

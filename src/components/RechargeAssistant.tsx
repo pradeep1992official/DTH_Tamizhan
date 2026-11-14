@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { assistantActionSchema, assistantPages, actionNotice, type AssistantAction } from '../lib/assistantActions';
+import { assistantActionSchema, assistantPages, actionNotice, rechargeExplanation, type AssistantAction } from '../lib/assistantActions';
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowRight, Microphone, X } from '../lib/icons';
@@ -172,6 +172,11 @@ export function RechargeAssistant({ currentLang, displayName, onCheckout }: {
         {busy && <p>{text('Thinking…', 'யோசிக்கிறது…')}</p>}
         {reply?.text && <p>{reply.text}</p>}
         {reply?.action && <p role="status">{actionNotice(reply.action)}</p>}
+        {(reply?.action?.type === 'show_history' || reply?.action?.type === 'show_recharge_status') && <ul>{(reply.action.type === 'show_history' ? reply.action.orders : reply.action.order ? [reply.action.order] : []).map(order => <li key={order.orderId} className="space-y-2">
+          <p>{order.orderId} ? {order.packName} ? {formatPrice(order.amount, currentLang)}</p>
+          <p>{rechargeExplanation(order)}</p>
+          {order.status === 'failed' && <button type="button" className="recharge-chat-suggestion" onClick={() => navigate(assistantPages.contact)}>{'Start a refund request with support'}</button>}
+        </li>)}</ul>}
         {reply?.action?.type === 'show_plans' && <ul>{reply.action.plans.map(plan => <li key={plan.id}>{plan.name} ? {formatDuration(plan.duration, currentLang)} ? {formatPrice(plan.amount, currentLang)}</li>)}</ul>}
         {reply && reply.state !== 'awaiting_payment' && reply.state !== 'alternatives' && <p>{notices[reply.state]}</p>}
         {reply?.state === 'alternatives' && <p>{text('I couldn’t find that exact pack for this duration. Would you like one of these alternatives?', 'இந்த காலத்திற்கு அந்த பேக் கிடைக்கவில்லை. இந்த மாற்று பேக்குகளில் ஒன்றைத் தேர்வு செய்ய விரும்புகிறீர்களா?')}</p>}

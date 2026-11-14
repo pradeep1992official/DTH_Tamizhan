@@ -17,7 +17,7 @@ const conversations = new Map<string, { intent: ReturnType<typeof parseRechargeC
 export function clearAssistantReadCache() { boxCache.clear(); conversations.clear(); }
 
 const schema = z.object({ messages: z.array(z.string().max(500).trim().min(1)).min(1).max(12),
-  connectionId: z.string().max(200).optional(), operatorId: z.enum(['sun_direct', 'tata_play', 'airtel_dth', 'dish_tv', 'd2h']).optional() });
+  connectionId: z.string().max(200).optional(), operatorId: z.enum(['sun_direct', 'tata_play', 'airtel_dth', 'dish_tv', 'd2h']).optional() }).strict();
 export async function prepareAssistantRecharge(req: Request, res: Response): Promise<void> {
   res.setHeader('Cache-Control', 'no-store');
   let stage = 'authentication';

@@ -5,15 +5,16 @@ vi.mock('../server/models/planModel', () => ({ planModel: { getForOperator: f.pl
 vi.mock('../server/utils/freeTierAi', () => ({ verifiedFreeKey: async () => 'server-secret', reserveFreeRequest: async () => {}, FREE_RECOMMENDATION_MODEL: 'test', FreeAiUnavailable: class extends Error {} }));
 vi.mock('@google/genai', () => ({ FunctionCallingConfigMode: { AUTO: 'AUTO' }, ThinkingLevel: { MINIMAL: 'MINIMAL' },
   GoogleGenAI: class { models = { generateContent: f.generate }; } }));
-import { executeAssistantTool, toolDefinitions } from '../server/utils/assistantTools';
+import { executeAssistantTool as dispatchTool, toolDefinitions } from '../server/utils/assistantTools';
 import { assistantToolTurn } from '../server/utils/assistantTurn';
 import { assistantActionSchema, assistantPages } from '../src/lib/assistantActions';
 import { POLICY_ROUTES } from '../src/lib/trustContent';
+const executeAssistantTool = (name: unknown, args: unknown) => dispatchTool(name, args, 'owner');
 beforeEach(() => { f.plans.mockReset(); f.generate.mockReset(); });
 it('declares strict schemas and only real public routes', () => {
   const app = fs.readFileSync('src/App.tsx', 'utf8');
   for (const path of Object.values(assistantPages)) expect(app.includes(`path="${path}"`) || POLICY_ROUTES.some(route => route.path === path)).toBe(true);
-  expect(toolDefinitions.map(tool => tool.name)).toEqual(['navigate', 'get_plans']);
+  expect(toolDefinitions.map(tool => tool.name)).toEqual(['get_recharge_status', 'get_my_history', 'navigate', 'get_plans']);
   for (const tool of toolDefinitions) expect(tool.parametersJsonSchema).toMatchObject({ additionalProperties: false });
 });
 it('rejects unknown tools, URLs, extra properties, missing arguments, and invalid numbers before catalog access', async () => {
@@ -46,4 +47,10 @@ it('rejects malicious or multiple model calls and preserves recharge handoff', a
   expect(await assistantToolTurn('owner', ['recharge my hall box'])).toBeNull();
   f.generate.mockResolvedValue({ text: 'Which operator and budget?' });
   expect(await assistantToolTurn('owner', ['show plans'])).toMatchObject({ state: 'assistant_text', text: 'Which operator and budget?' });
+});
+
+it('passes the verified server identity into history tools and uses factual status text', async () => {
+  // The model can supply only limit/order_id, never the account identity.
+  f.generate.mockResolvedValue({ functionCalls: [{ name: 'get_my_history', args: { limit: 5, uid: 'victim' } }] });
+  await expect(assistantToolTurn('owner', ['my history'])).rejects.toThrow('Invalid assistant tool arguments');
 });
