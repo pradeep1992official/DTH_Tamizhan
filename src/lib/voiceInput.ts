@@ -11,6 +11,7 @@ export interface VoiceRecognition {
   abort(): void;
 }
 export function voiceRecognitionConstructor() {
+  if (typeof window === 'undefined') return undefined;
   const browser = window as unknown as {
     SpeechRecognition?: new () => VoiceRecognition;
     webkitSpeechRecognition?: new () => VoiceRecognition;
@@ -24,7 +25,8 @@ export function beginVoiceInput({ language, initialText, onText, onError, onEnd 
 }): VoiceRecognition | null {
   const Recognition = voiceRecognitionConstructor();
   if (!Recognition) { onError('unsupported'); return null; }
-  const recognition = new Recognition();
+  let recognition: VoiceRecognition;
+  try { recognition = new Recognition(); } catch { onError('start_failed'); return null; }
   recognition.lang = language === 'ta' ? 'ta-IN' : 'en-IN';
   recognition.continuous = false;
   recognition.interimResults = true;
@@ -42,5 +44,5 @@ export function beginVoiceInput({ language, initialText, onText, onError, onEnd 
 export function cancelVoiceInput(recognition: VoiceRecognition | null) {
   if (!recognition) return;
   recognition.onresult = null; recognition.onerror = null; recognition.onend = null;
-  recognition.abort();
+  try { recognition.abort(); } catch { /* Already stopped by the browser. */ }
 }

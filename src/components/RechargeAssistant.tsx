@@ -1,3 +1,8 @@
+import { rechargeTarget } from '../lib/rechargeTarget';
+import { AssistantVoiceControls } from './AssistantVoiceControls';
+import { assistantReplyText } from '../lib/assistantReplyText';
+import { resolveAssistantLanguage, assistantLanguageTag, type AssistantLanguage, type AssistantLanguageChoice } from '../lib/assistantLanguage';
+import { tanglishRechargeNotices, tanglishUiText } from '../lib/assistantReplyCopy';
 import { AssistantDraftCard } from './AssistantDraftCard';
 import { draftSupportEmail } from '../lib/supportEmail';
 import { refundDraftSchema, type SupportDraft } from '../lib/assistantDrafts';
@@ -14,6 +19,7 @@ import { formatPrice, formatDuration } from '../lib/catalog';
 
 interface Reply {
   text?: string;
+  language?: AssistantLanguage;
   action?: AssistantAction;
   state: string;
   source?: string;
@@ -31,7 +37,6 @@ export function RechargeAssistant({ currentLang, displayName, onCheckout }: {
   displayName?: string;
   onCheckout: (plan: DthPlan, box: DthConnection, operator: DthOperator) => void;
 }) {
-  const text = (en: string, ta: string) => currentLang === 'ta' ? ta : en;
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState('');
@@ -42,6 +47,11 @@ export function RechargeAssistant({ currentLang, displayName, onCheckout }: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [selectedPlanId, setSelectedPlanId] = useState('');
+  const [languageChoice, setLanguageChoice] = useState<AssistantLanguageChoice>('auto');
+  const replyLanguage = reply?.language || resolveAssistantLanguage(messages, languageChoice, currentLang);
+  const inputLanguage = resolveAssistantLanguage(draft ? [...messages, draft] : messages, languageChoice, currentLang);
+  const voiceLanguage = inputLanguage === 'en' ? 'en' : 'ta';
+  const text = (en: string, ta: string) => replyLanguage === 'ta' ? ta : replyLanguage === 'tanglish' ? tanglishUiText(en) : en;
   const [listening, setListening] = useState(false);
   const [voiceError, setVoiceError] = useState('');
   const voiceRef = useRef<VoiceRecognition | null>(null);
@@ -49,26 +59,14 @@ export function RechargeAssistant({ currentLang, displayName, onCheckout }: {
     setListening(false);
     setVoiceError('');
     return () => { cancelVoiceInput(voiceRef.current); voiceRef.current = null; };
-  }, [open, currentLang]);
+  }, [open, languageChoice]);
   function toggleVoice() {
-    if (voiceRef.current) { voiceRef.current.stop(); return; }
+    if (voiceRef.current) { try { voiceRef.current.stop(); } catch { cancelVoiceInput(voiceRef.current); voiceRef.current = null; setListening(false); } return; }
     setVoiceError(''); setListening(true);
-    const recognition = beginVoiceInput({ language: currentLang, initialText: draft, onText: setDraft,
-      onEnd: () => { voiceRef.current = null; setListening(false); },
+    const recognition = beginVoiceInput({ language: voiceLanguage, initialText: draft, onText: setDraft,
+      onEnd: () => { voiceRef.current = null; setListening(false); document.getElementById('recharge-ai-message')?.focus(); },
       onError: code => {
         setListening(false);
-        async function submitSupportDraft(draft: SupportDraft) {
-    let verified = draft;
-    if (draft.type === 'refund_draft') {
-      const response = await fetch('/api/ai/refund-draft-check', { method: 'POST', headers: await paymentAuthHeaders(), body: JSON.stringify(draft.draft) });
-      const data = await response.json();
-      if (!response.ok || !data.success) throw new Error(data.error || 'Could not verify refund eligibility.');
-      verified = refundDraftSchema.parse(data.action);
-      if (verified.draft.order_id !== draft.draft.order_id) throw new Error('Order verification failed.');
-      if (verified.eligibility.status !== 'eligible') return verified;
-    }
-    window.location.assign(draftSupportEmail(verified));
-  }
   const notices: Record<string, string> = {
           unsupported: text('Voice input is unavailable in this browser. Please type your request.', 'இந்த உலாவியில் குரல் உள்ளீடு கிடைக்கவில்லை. கோரிக்கையைத் தட்டச்சு செய்யவும்.'),
           'not-allowed': text('Microphone access was denied. Allow it in browser settings and try again.', 'மைக்ரோஃபோன் அனுமதி மறுக்கப்பட்டது. உலாவி அமைப்புகளில் அனுமதிக்கவும்.'),
@@ -78,6 +76,7 @@ export function RechargeAssistant({ currentLang, displayName, onCheckout }: {
           network: text('Voice recognition could not connect. Check your connection or type your request.', 'குரல் அறிதல் இணைக்க முடியவில்லை. இணைப்பைச் சரிபார்க்கவும் அல்லது தட்டச்சு செய்யவும்.'),
         };
         if (code !== 'aborted') setVoiceError(notices[code] || text('Voice input could not start. Please try again or type your request.', 'குரல் உள்ளீடு தொடங்க முடியவில்லை. மீண்டும் முயற்சிக்கவும் அல்லது தட்டச்சு செய்யவும்.'));
+        if (code !== 'aborted') { cancelVoiceInput(voiceRef.current); voiceRef.current = null; }
       } });
     voiceRef.current = recognition;
     if (!recognition) setListening(false);
@@ -105,12 +104,14 @@ export function RechargeAssistant({ currentLang, displayName, onCheckout }: {
     inFlight.current = true;
     setBusy(true); setError(''); setReply(null); setSelectedPlanId('');
     const request = new AbortController(); controller.current = request;
-    if (connectionId) confirmedBox.current = connectionId;
+    const target = rechargeTarget(next);
+    if (target.newCustomer) confirmedBox.current = undefined;
+    else if (connectionId) confirmedBox.current = connectionId;
     try {
       const headers = await paymentAuthHeaders();
       if (request.signal.aborted) return;
       const response = await fetch('/api/ai/recharge', { method: 'POST', headers, signal: request.signal,
-        body: JSON.stringify({ messages: next, connectionId: connectionId || confirmedBox.current, operatorId }) });
+        body: JSON.stringify({ messages: next, language: resolveAssistantLanguage(next, languageChoice, currentLang), connectionId: target.newCustomer ? undefined : connectionId || confirmedBox.current, operatorId }) });
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.error || 'Unable to prepare recharge.');
       if (request.signal.aborted) return;
@@ -118,9 +119,10 @@ export function RechargeAssistant({ currentLang, displayName, onCheckout }: {
         data.action = assistantActionSchema.parse(data.action);
         if (data.action.type === 'navigate') navigate(assistantPages[data.action.page as keyof typeof assistantPages]);
       }
+      data.language ||= resolveAssistantLanguage(next, languageChoice, currentLang);
       setReply(data);
       setPastReplies(old => ({ ...old, [next.length - 1]: data }));
-      if (data.box?.id && !data.box.id.startsWith('new-')) confirmedBox.current = data.box.id;
+      if (!target.newCustomer && data.box?.id && !data.box.id.startsWith('new-')) confirmedBox.current = data.box.id;
       if (data.state === 'awaiting_payment' && data.plans?.length === 1) setSelectedPlanId(data.plans[0].id);
     } catch (err) { if (!request.signal.aborted) setError(err instanceof Error ? err.message : 'Unable to prepare recharge.'); }
     finally { inFlight.current = false; if (!request.signal.aborted) setBusy(false); }
@@ -156,9 +158,13 @@ export function RechargeAssistant({ currentLang, displayName, onCheckout }: {
     no_plans: text('No catalog pack matches that duration and quality. Try another duration or quality.', 'இந்த காலம் மற்றும் தரத்திற்கு பேக் கிடைக்கவில்லை. வேறு காலம் அல்லது தரத்தை முயற்சிக்கவும்.'),
     awaiting_payment: text('Ready for payment. Review a matching pack below and continue to secure checkout. Recharge is submitted for manual fulfillment only after payment is verified.', 'கட்டணத்திற்குத் தயார். கீழே பேக்கைச் சரிபார்த்து கட்டணத்தைத் தொடரவும். கட்டணம் உறுதியான பிறகு நிர்வாகி ரீசார்ஜ் செய்வார்.'),
   };
+  if (replyLanguage === 'tanglish') Object.assign(notices, tanglishRechargeNotices);
   const selectedPlan = reply?.plans?.find(plan => plan.id === selectedPlanId);
   const previousReplyText = (previous: Reply) => {
-    if (previous.text) return `${previous.text}${previous.action ? ` ${actionNotice(previous.action)}` : ''}`;
+    if (previous.text) {
+      const notice = previous.action ? actionNotice(previous.action, previous.language || replyLanguage) : '';
+      return [previous.text, notice].filter((value, index, values) => value && values.indexOf(value) === index).join(' ');
+    }
     if (previous.state === 'preferences') return !previous.intent?.quality
       ? text('Would you like HD or SD?', 'HD அல்லது SD வேண்டுமா?')
       : text('How many months: 1, 3, 6 or 12?', 'எத்தனை மாதங்கள்: 1, 3, 6 அல்லது 12?');
@@ -192,20 +198,20 @@ export function RechargeAssistant({ currentLang, displayName, onCheckout }: {
       </div>}
       {messages.length > 0 && <div className="flex flex-col gap-3">{messages.map((message, i) => <React.Fragment key={i}>
         <div className="recharge-chat-user self-end max-w-[90%] rounded-xl px-4 py-2"><p className="text-sm">{message}</p></div>
-        {i < messages.length - 1 && pastReplies[i] && <div className="recharge-chat-reply rounded-xl p-4 text-sm">{previousReplyText(pastReplies[i])}</div>}
+        {i < messages.length - 1 && pastReplies[i] && <div className="recharge-chat-reply recharge-chat-reply-text rounded-xl p-4 text-sm" lang={assistantLanguageTag(pastReplies[i].language || replyLanguage)}>{assistantReplyText(previousReplyText(pastReplies[i]))}</div>}
       </React.Fragment>)}</div>}
-      {(busy || reply || error) && <div aria-live="polite" aria-busy={busy} className="recharge-chat-reply rounded-xl p-4 space-y-3">
+      {(busy || reply || error) && <div aria-live="polite" aria-busy={busy} className="recharge-chat-reply rounded-xl p-4 space-y-3" lang={assistantLanguageTag(replyLanguage)}>
         <p className="text-xs font-semibold text-muted">{text('Recharge assistant', 'ரீசார்ஜ் உதவியாளர்')}</p>
         {busy && <p>{text('Thinking…', 'யோசிக்கிறது…')}</p>}
-        {reply?.text && <p>{reply.text}</p>}
-        {reply?.action && <p role="status">{actionNotice(reply.action)}</p>}
+        {reply?.text && <p className="recharge-chat-reply-text">{assistantReplyText(reply.text)}</p>}
+        {reply?.action && assistantReplyText(reply.text || '') !== assistantReplyText(actionNotice(reply.action, replyLanguage)) && <p role="status">{actionNotice(reply.action, replyLanguage)}</p>}
         {(reply?.action?.type === 'show_history' || reply?.action?.type === 'show_recharge_status') && <ul>{(reply.action.type === 'show_history' ? reply.action.orders : reply.action.order ? [reply.action.order] : []).map(order => <li key={order.orderId} className="space-y-2">
-          <p>{order.orderId} ? {order.packName} ? {formatPrice(order.amount, currentLang)}</p>
-          <p>{rechargeExplanation(order)}</p>
+          <p>{order.orderId} · {order.packName} · {formatPrice(order.amount, currentLang)}</p>
+          <p>{rechargeExplanation(order, replyLanguage)}</p>
           {order.status === 'failed' && <button type="button" className="recharge-chat-suggestion" onClick={() => { setDraft(`Draft a refund request for order ${order.orderId}. Reason: my recharge failed.`); document.getElementById('recharge-ai-message')?.focus(); }}>{'Start a refund request with support'}</button>}
         </li>)}</ul>}
-        {(reply?.action?.type === 'contact_draft' || reply?.action?.type === 'refund_draft') && <AssistantDraftCard key={messages.length} action={reply.action} onSubmit={submitSupportDraft} />}
-        {reply?.action?.type === 'show_plans' && <ul>{reply.action.plans.map(plan => <li key={plan.id}>{plan.name} ? {formatDuration(plan.duration, currentLang)} ? {formatPrice(plan.amount, currentLang)}</li>)}</ul>}
+        {(reply?.action?.type === 'contact_draft' || reply?.action?.type === 'refund_draft') && <AssistantDraftCard key={messages.length} action={reply.action} language={replyLanguage} onSubmit={submitSupportDraft} />}
+        {reply?.action?.type === 'show_plans' && <ul>{reply.action.plans.map(plan => <li key={plan.id}>{plan.name} · {formatDuration(plan.duration, currentLang)} · {formatPrice(plan.amount, currentLang)}</li>)}</ul>}
         {reply && reply.state !== 'awaiting_payment' && reply.state !== 'alternatives' && <p>{notices[reply.state]}</p>}
         {reply?.state === 'alternatives' && <p>{text('I couldn’t find that exact pack for this duration. Would you like one of these alternatives?', 'இந்த காலத்திற்கு அந்த பேக் கிடைக்கவில்லை. இந்த மாற்று பேக்குகளில் ஒன்றைத் தேர்வு செய்ய விரும்புகிறீர்களா?')}</p>}
         {reply?.state === 'awaiting_payment' && !selectedPlan && <p>{text('I found a few matching packs. Which would you like?', 'பொருந்தும் சில பேக்குகள் உள்ளன. எது வேண்டும்?')}</p>}
@@ -268,17 +274,18 @@ export function RechargeAssistant({ currentLang, displayName, onCheckout }: {
       </div>}
       </div>
       <div className="recharge-chat-composer">
+      <AssistantVoiceControls language={replyLanguage} choice={languageChoice} disabled={busy || listening} onChoice={setLanguageChoice} />
       <form className="recharge-chat-input-wrap" onSubmit={event => { event.preventDefault(); if (!draft.trim() || busy || listening) return;
         if (/\b(?:recharge|new box|my|for .+box)\b|\d{8,11}/i.test(draft)) confirmedBox.current = undefined;
         const next = [...messages, draft.trim()]; setMessages(next); setDraft(''); void send(next); }}>
         <label className="sr-only" htmlFor="recharge-ai-message">{text('Recharge request', 'ரீசார்ஜ் கோரிக்கை')}</label>
         <input id="recharge-ai-message" value={draft} maxLength={500} readOnly={listening} disabled={busy || messages.length >= 12} onChange={event => setDraft(event.target.value)} placeholder={text('Type or tap the microphone…', 'தட்டச்சு செய்யவும் அல்லது மைக்ரோஃபோனை அழுத்தவும்…')} />
-        <button type="button" className={`recharge-chat-mic${listening ? ' is-listening' : ''}`} aria-pressed={listening}
+        <button type="button" className={`recharge-chat-mic${listening ? ' is-listening' : ''}`} aria-pressed={listening} aria-describedby={listening || voiceError ? 'recharge-voice-status' : undefined}
           aria-label={listening ? text('Stop voice input', 'குரல் உள்ளீட்டை நிறுத்து') : text('Start voice input', 'குரல் உள்ளீட்டைத் தொடங்கு')}
           title={listening ? text('Stop listening', 'கேட்பதை நிறுத்து') : text('Speak your request', 'உங்கள் கோரிக்கையைப் பேசவும்')} disabled={busy || messages.length >= 12} onClick={toggleVoice}><Microphone size={21} weight="bold" /></button>
         <button type="submit" aria-label={text('Send message', 'செய்தியை அனுப்பு')} disabled={busy || listening || !draft.trim() || messages.length >= 12} className="recharge-chat-send"><ArrowRight size={20} weight="bold" /></button>
       </form>
-      {(listening || voiceError) && <p role="status" className="text-xs text-muted">{listening ? text('Listening… Tap the microphone to stop, then review and send.', 'கேட்கிறது… நிறுத்த மைக்ரோஃபோனை அழுத்தவும். சரிபார்த்து அனுப்பவும்.') : voiceError}</p>}
+      {(listening || voiceError) && <p id="recharge-voice-status" role="status" className="text-xs text-muted">{listening ? text('Listening… Tap the microphone to stop, then review and send.', 'கேட்கிறது… நிறுத்த மைக்ரோஃபோனை அழுத்தவும். சரிபார்த்து அனுப்பவும்.') : voiceError}</p>}
       </div>
     </div>}
     </dialog>

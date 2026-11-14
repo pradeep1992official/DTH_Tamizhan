@@ -180,3 +180,68 @@ it('rejects client-supplied UID before invoking Gemini', async () => {
   expect(res.status).toHaveBeenCalledWith(400);
   expect(toolTurn).not.toHaveBeenCalled();
 });
+
+it('accepts supported reply-language preferences and rejects unsupported values before model use', async () => {
+  toolTurn.mockResolvedValue({ success: true, state: 'assistant_text', language: 'tanglish', text: 'Vanakkam' });
+  const res = await request({ messages: ['Hello'], language: 'tanglish' });
+  expect(toolTurn).toHaveBeenCalledWith('owner', ['Hello'], 'tanglish');
+  expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ language: 'tanglish' }));
+  toolTurn.mockClear();
+  expect((await request({ messages: ['Hello'], language: 'fr' })).status).toHaveBeenCalledWith(400);
+  expect(toolTurn).not.toHaveBeenCalled();
+});
+
+it('looks up the screenshot pack directly without loading saved boxes or extracting recharge intent', async () => {
+  f.storageError = new Error('Saved boxes unavailable');
+  f.plans = [{ ...f.plans[0], plan_name: 'Tamil Super Star HD Pack' }, { ...f.plans[0], id: 'sd', plan_name: 'Tamil Super Star Pack', pack_type: 'SD' }, { ...f.plans[0], id: 'monthly', plan_name: 'Tamil Super Star HD Pack', duration_months: 1 }];
+  const res = await request({ messages: ['6-month HD pack Airtel Tamil Super star HD'] });
+  expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ source: 'catalog', action: { type: 'show_plans', plans: [expect.objectContaining({ id: 'hd6', amount: 1396, duration: 6 })] } }));
+  expect(f.boxReads).toBe(0); expect(f.extract).not.toHaveBeenCalled();
+});
+it('recognizes hyphenated duration in the standard recharge fallback', () => {
+  expect(parseRechargeCommand(['Recharge my hall box for 6-month HD pack'])).toMatchObject({ months: 6, quality: 'HD' });
+});
+
+it('does not silently drop budgets or treat an explicit recharge as catalog-only', async () => {
+  const { assistantCatalogFallback } = await import('../server/utils/assistantCatalog');
+  for (const message of ['Airtel HD packs under 500', 'Recharge my hall box for 6-month HD pack', 'Airtel or Sun Direct HD packs']) {
+    expect(await assistantCatalogFallback(message, 'en')).toBeNull();
+  }
+});
+
+it('matches the screenshot Superstar Plus request to Super Star Plus with its HD-count suffix', async () => {
+  f.plans = [{ ...f.plans[0], plan_name: 'Tamil Super Star HD Pack', amount: 1396 },
+    { ...f.plans[0], id: 'plus', plan_name: 'Tamil Super Star Plus HD Pack (29 HD)', channel_counts_unavailable: false, channel_count: 200, hd_channel_count: 29, amount: 1546 }];
+  f.extract.mockResolvedValue({ boxName: null, packName: 'Tamil Superstar Plus HD', months: 6, quality: 'HD', company: 'airtel_dth' });
+  const res = await request({ messages: ['HD - Airtel - 6m - Tamil Superstar Plus HD'] });
+  expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ state: 'awaiting_payment', plans: [expect.objectContaining({ id: 'plus', amount: 1546 })] }));
+});
+it('recognizes 6m shorthand without mistaking a subscriber ID for duration', () => {
+  expect(parseRechargeCommand(['HD - Airtel - 6m - Tamil Superstar Plus HD'])).toMatchObject({ months: 6, quality: 'HD' });
+  expect(parseRechargeCommand(['3012345678'])).toMatchObject({ months: null });
+});
+
+it('asks for a new subscriber ID before using a saved box or calling Gemini', async () => {
+  const res = await request({ messages: ['Recharge a new customer ID'], connectionId: 'hall' });
+  expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ state: 'enter_subscriber' }));
+  expect(f.boxReads).toBe(0); expect(toolTurn).not.toHaveBeenCalled(); expect(f.extract).not.toHaveBeenCalled();
+});
+it('keeps new-customer mode across plan followups and refuses stale saved-box selection', async () => {
+  const messages = ['Recharge a new customer ID', 'HD - Airtel - 6m - Tamil Superstar Plus HD'];
+  expect((await request({ messages, connectionId: 'hall' })).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'enter_subscriber' }));
+  expect(f.boxReads).toBe(0); expect(f.extract).not.toHaveBeenCalled();
+});
+it('discards earlier subscriber IDs and requires the new customer?s ID', async () => {
+  const res = await request({ messages: ['Recharge 3012345678 Airtel', 'Recharge a new customer ID', 'HD 6 months'], connectionId: 'hall' });
+  expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ state: 'enter_subscriber' }));
+});
+it('uses the typed new ID and operator even with stale saved connection and model box hints', async () => {
+  f.extract.mockResolvedValue({ boxName: 'Hall Box', months: 6, quality: 'HD', company: 'airtel_dth' });
+  const res = await request({ messages: ['Recharge a new customer ID', 'HD Airtel 6 months', '3012586589'], connectionId: 'hall' });
+  expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ state: 'awaiting_payment', box: expect.objectContaining({ id: 'new-airtel_dth-3012586589', smartCardNumber: '3012586589' }) }));
+  expect(f.boxReads).toBe(0);
+});
+it('still asks for the operator when a new ID is supplied without one', async () => {
+  f.extract.mockRejectedValue(new Error('unavailable'));
+  expect((await request({ messages: ['Recharge a new customer ID', '3012586589'], connectionId: 'hall' })).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'choose_operator' }));
+});

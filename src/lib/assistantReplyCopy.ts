@@ -1,0 +1,38 @@
+// Deterministic recharge states stay usable when the optional AI provider is unavailable.
+export const tanglishRechargeNotices: Record<string, string> = {
+  history: 'My History page-la unga pazhaiya recharges, payment status, receipts paarkkalaam.',
+  price: 'Evvalavu amount recharge pannanum? Illa HD/SD-um duration-um sollunga; price kandupidikkuren.',
+  operator_mismatch: 'Indha company unga box operator-oda match aagala. Sariyana box illa operator-ai select pannunga.',
+  invalid_amount: 'Rs.10 mudhal Rs.20,000 varaikkum amount enter pannunga. Rendu decimal places varaikkum podalaam.',
+  enter_subscriber: 'Pudhu box-oda subscriber ID enter pannunga. Aduthu operator-ai ketkuren.',
+  choose_operator: 'Indha pudhu box endha operator-oda box? Operator-ai select pannunga.',
+  invalid_subscriber: 'Indha ID operator format-oda match aagala. ID-ai check pannunga illa operator-ai maathunga.',
+  no_boxes: 'Mudhal-la Saved Boxes-la unga box-ai add pannunga.',
+  choose_box: 'Endha saved box-ku recharge pannanum?',
+  preferences: 'HD illa SD venuma? Duration 1, 3, 6 illa 12 months-nu sollunga.',
+  invalid_box: 'Recharge pannradhukku munnaadi Saved Boxes-la subscriber ID-ai update pannunga.',
+  operator_unavailable: 'Indha operator ippo available illa. Konjam neram kazhichu try pannunga.',
+  no_plans: 'Indha duration-um quality-um match aagura pack illa. Vera duration illa quality try pannunga.',
+  awaiting_payment: 'Payment-ku ready. Keezha pack-ai check pannunga. Payment verify aanadhukku appuram admin recharge process pannuvaar.',
+};
+const tanglishCopy: Record<string, string> = {
+  'Hi': 'Vanakkam',
+  'How can I help you recharge today?': 'Innaikku recharge panna eppadi help pannalaam?',
+  'Thinking…': 'Yosikkuren…',
+  'I found a few matching packs. Which would you like?': 'Sila matching packs kidaichirukku. Edhu venum?',
+  'I couldn’t find that exact pack for this duration. Would you like one of these alternatives?': 'Indha duration-ku adhe pack kidaikkala. Indha alternative packs-la onnu venuma?',
+  'AI is unavailable; using the standard command matcher.': 'AI ippo available illa; standard command matcher-ai use panren.',
+  'Recharge assistant': 'Recharge udhavi',
+  'Recharge my saved box': 'Ennoda saved box-ku recharge pannunga',
+  'Find a 6-month HD pack': '6-month HD pack kaatunga',
+  'Recharge a new customer ID': 'Pudhu customer ID-ku recharge pannunga',
+  'Listening… Tap the microphone to stop, then review and send.': 'Kettuttu irukken… Mic-ai tap panni stop pannunga; text-ai check pannitu anuppunga.',
+  'Voice input is unavailable in this browser. Please type your request.': 'Indha browser-la voice input illa. Unga request-ai type pannunga.',
+  'Microphone access was denied. Allow it in browser settings and try again.': 'Mic permission kidaikkala. Browser settings-la allow pannitu try pannunga.',
+  'Speech recognition is blocked by your browser. Please type your request.': 'Browser voice recognition-ai block pannirukku. Unga request-ai type pannunga.',
+  'No speech detected. Tap the microphone and try again.': 'Pechu edhuvum kekkala. Mic-ai tap panni marubadiyum try pannunga.',
+  'No microphone is available. Connect a microphone and try again.': 'Mic kidaikkala. Mic connect pannitu try pannunga.',
+  'Voice recognition could not connect. Check your connection or type your request.': 'Voice recognition connect aagala. Connection check pannunga illa type pannunga.',
+  'Voice input could not start. Please try again or type your request.': 'Voice input start aagala. Marubadiyum try pannunga illa type pannunga.',
+};
+export function tanglishUiText(en: string): string { return tanglishCopy[en] || en; }

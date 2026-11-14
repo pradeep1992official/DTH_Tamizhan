@@ -54,3 +54,23 @@ it('passes the verified server identity into history tools and uses factual stat
   f.generate.mockResolvedValue({ functionCalls: [{ name: 'get_my_history', args: { limit: 5, uid: 'victim' } }] });
   await expect(assistantToolTurn('owner', ['my history'])).rejects.toThrow('Invalid assistant tool arguments');
 });
+
+it('detects Tanglish and honors explicit Tamil overrides without changing tool enums', async () => {
+  f.generate.mockResolvedValue({ functionCalls: [{ name: 'navigate', args: { page: 'refund' } }] });
+  const tanglish = await assistantToolTurn('owner', ['refund page kaatunga']);
+  expect(tanglish).toMatchObject({ language: 'tanglish', action: { type: 'navigate', page: 'refund' } });
+  expect(tanglish?.text).toContain('thirakkuren');
+  expect(f.generate.mock.calls.at(-1)?.[0].config.systemInstruction).toContain('Tanglish:');
+  const tamil = await assistantToolTurn('owner', ['Open refund page'], 'ta');
+  expect(tamil).toMatchObject({ language: 'ta' }); expect(tamil?.text).toMatch(/[\u0B80-\u0BFF]/);
+});
+
+it('hands off to the existing fallback when Gemini generation times out', async () => {
+  f.generate.mockRejectedValue(new Error('provider timeout'));
+  expect(await assistantToolTurn('owner', ['6-month HD pack Airtel Tamil Super star HD'])).toBeNull();
+});
+it('does not swallow catalog errors from an executed tool', async () => {
+  f.generate.mockResolvedValue({ functionCalls: [{ name: 'get_plans', args: { operator: 'airtel_dth', max_price: 2000 } }] });
+  f.plans.mockRejectedValue(new Error('catalog unavailable'));
+  await expect(assistantToolTurn('owner', ['show Airtel plans under 2000'])).rejects.toThrow('catalog unavailable');
+});

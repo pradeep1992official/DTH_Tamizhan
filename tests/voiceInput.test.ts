@@ -34,3 +34,13 @@ it('handles unsupported browsers and startup failures', () => {
   vi.stubGlobal('window', {});
   expect(beginVoiceInput(callbacks)).toBeNull(); expect(callbacks.onError).toHaveBeenCalledWith('unsupported');
 });
+
+it('supports the unprefixed API and gracefully handles throwing constructors and aborts', () => {
+  const { recognition, callbacks } = setup();
+  vi.stubGlobal('window', { SpeechRecognition: class { constructor() { return recognition; } } });
+  expect(beginVoiceInput(callbacks)).toBe(recognition);
+  recognition.abort.mockImplementation(() => { throw new Error('already stopped'); });
+  expect(() => cancelVoiceInput(recognition)).not.toThrow();
+  vi.stubGlobal('window', { SpeechRecognition: class { constructor() { throw new Error('unavailable'); } } });
+  expect(beginVoiceInput(callbacks)).toBeNull(); expect(callbacks.onError).toHaveBeenCalledWith('start_failed');
+});

@@ -1,3 +1,5 @@
+import { rechargeTarget } from '../../src/lib/rechargeTarget';
+import { assistantCatalogFallback } from '../utils/assistantCatalog';
 import { assistantToolTurn } from '../utils/assistantTurn';
 import { InvalidAssistantTool } from '../utils/assistantTools';
 import { allowAiRequest } from '../middleware/aiRateLimiter';
@@ -16,7 +18,7 @@ const boxCache = new ReadCache<DthConnection[]>(60_000, 200);
 const conversations = new Map<string, { intent: ReturnType<typeof parseRechargeCommand>; expires: number }>();
 export function clearAssistantReadCache() { boxCache.clear(); conversations.clear(); }
 
-const schema = z.object({ messages: z.array(z.string().max(500).trim().min(1)).min(1).max(12),
+const schema = z.object({ language: z.enum(['auto', 'en', 'ta', 'tanglish']).default('auto'), messages: z.array(z.string().max(500).trim().min(1)).min(1).max(12),
   connectionId: z.string().max(200).optional(), operatorId: z.enum(['sun_direct', 'tata_play', 'airtel_dth', 'dish_tv', 'd2h']).optional() }).strict();
 export async function prepareAssistantRecharge(req: Request, res: Response): Promise<void> {
   res.setHeader('Cache-Control', 'no-store');
@@ -27,40 +29,58 @@ export async function prepareAssistantRecharge(req: Request, res: Response): Pro
     if (!await allowAiRequest(account.uid, res)) return;
     const input = schema.safeParse(req.body);
     if (!input.success) { res.status(400).json({ success: false, error: 'Send up to 12 messages, each under 500 characters. Start a new request for a longer conversation.' }); return; }
-    const toolReply = await assistantToolTurn(account.uid, input.data.messages);
+    const target = rechargeTarget(input.data.messages);
+    const messages = target.messages;
+    const subscriberId = [...messages.join(' ').matchAll(/\b\d{8,11}\b/g)].at(-1)?.[0];
+    // Typed subscriber IDs and explicit new requests override stale saved-box hints.
+    const connectionId = target.newCustomer || subscriberId ? undefined : input.data.connectionId;
+    if (target.newCustomer && !subscriberId) {
+      res.json({ success: true, source: 'context', state: 'enter_subscriber' }); return;
+    }
+    stage = 'assistant_tools';
+    const toolReply = await assistantToolTurn(account.uid, messages, input.data.language);
     if (toolReply) { res.json(toolReply); return; }
-    const latestMessage = input.data.messages.at(-1)!;
+    const latestMessage = messages.at(-1)!;
+    stage = 'catalog';
+    const catalogReply = target.newCustomer ? null : await assistantCatalogFallback(latestMessage, input.data.language);
+    if (catalogReply) { res.json(catalogReply); return; }
     if (/\b(?:recharge\s+history|payment\s+history|transaction\s+history|past\s+recharges|previous\s+recharges|my\s+history)\b|ரீசார்ஜ்\s*வரலாறு|கட்டண\s*வரலாறு/i.test(latestMessage)) {
       res.json({ success: true, state: 'history' }); return;
     }
     // Query ownership on the server; client-provided box details are never trusted.
     stage = 'saved_boxes';
-    const boxes = await boxCache.get(account.uid, async () => {
+    const boxes = target.newCustomer ? [] : await boxCache.get(account.uid, async () => {
       const snapshot = await getAdminFirestore().collection('dth_connections').where('user_id', '==', account.uid).get();
       return snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as DthConnection)).filter(box => box.user_id === account.uid);
     });
-    const subscriberId = [...input.data.messages.join(' ').matchAll(/\b\d{8,11}\b/g)].at(-1)?.[0];
     let source = 'ai'; let intent;
     const key = (messages: string[]) => `${account.uid}:${JSON.stringify(messages)}`;
-    const prior = conversations.get(key(input.data.messages.slice(0, -1)));
+    const prior = conversations.get(key(messages.slice(0, -1)));
     try {
       // Short, explicit answers need no model request or AI quota-counter write.
-      const command = parseRechargeCommand(input.data.messages);
-      const simpleFollowUp = input.data.messages.length > 1 && /^(?:(?:make it\s+)?\d+\s*months?|hd|sd|\d{1,5}(?:\.\d{1,2})?|sun\s*direct|airtel(?: digital tv)?|tata\s*play|dish\s*tv|d2h)$/i.test(latestMessage.trim());
+      const command = parseRechargeCommand(messages);
+      const simpleFollowUp = messages.length > 1 && /^(?:(?:make it\s+)?\d+[ -]*(?:months?|m)|hd|sd|\d{1,5}(?:\.\d{1,2})?|sun\s*direct|airtel(?: digital tv)?|tata\s*play|dish\s*tv|d2h)$/i.test(latestMessage.trim());
       intent = simpleFollowUp && prior && prior.expires > Date.now() ? { ...prior.intent, ...Object.fromEntries(Object.entries(command).filter(([, value]) => value !== null)) } :
-        simpleFollowUp ? command : await extractRechargeIntent(account.uid, input.data.messages);
+        simpleFollowUp ? command : await extractRechargeIntent(account.uid, messages);
       if (simpleFollowUp) source = 'context';
     }
-    catch { intent = parseRechargeCommand(input.data.messages); source = 'command'; }
-    const command = parseRechargeCommand(input.data.messages);
+    catch { intent = parseRechargeCommand(messages); source = 'command'; }
+    const command = parseRechargeCommand(messages);
     intent = { ...command, ...Object.fromEntries(Object.entries(intent).filter(([, value]) => value !== null && value !== undefined)) } as typeof command;
+    if (target.newCustomer) {
+      // Keep an already requested duration/quality, but never carry over a
+      // subscriber ID, operator, amount, box name or saved-box selection.
+      const earlierPreferences = parseRechargeCommand(target.priorMessages);
+      intent.months ??= earlierPreferences.months;
+      intent.quality ??= earlierPreferences.quality;
+    }
     if (conversations.size >= 200) conversations.delete(conversations.keys().next().value!);
-    conversations.set(key(input.data.messages), { intent, expires: Date.now() + 15 * 60_000 });
+    conversations.set(key(messages), { intent, expires: Date.now() + 15 * 60_000 });
     stage = 'operators';
     const operators = await readOperators();
     let newBox: DthConnection | undefined;
-    if (subscriberId && !input.data.connectionId) {
-      const operatorWords = [...input.data.messages.join(' ').toLowerCase().matchAll(/\b(sun\s*direct|tata\s*play|airtel(?:\s*digital\s*tv)?|dish\s*tv|d2h)\b/g)].at(-1)?.[1]?.replace(/\s/g, '');
+    if (subscriberId && !connectionId) {
+      const operatorWords = [...messages.join(' ').toLowerCase().matchAll(/\b(sun\s*direct|tata\s*play|airtel(?:\s*digital\s*tv)?|dish\s*tv|d2h)\b/g)].at(-1)?.[1]?.replace(/\s/g, '');
       const ids = { sundirect: 'sun_direct', tataplay: 'tata_play', airtel: 'airtel_dth', airteldigitaltv: 'airtel_dth', dishtv: 'dish_tv', d2h: 'd2h' } as const;
       const selectedId = input.data.operatorId || intent.company || ids[operatorWords as keyof typeof ids];
       // An explicitly typed subscriber ID must never silently recharge the only saved box.
@@ -82,9 +102,9 @@ export async function prepareAssistantRecharge(req: Request, res: Response): Pro
     const amount = intent.priceMode === 'derived' ? undefined : intent.amount ?? undefined;
     if (amount !== undefined && validateTopUpAmount(amount)) { res.json({ success: true, source, state: 'invalid_amount' }); return; }
     const normalized = (value: string) => value.toLowerCase().trim().replace(/\b(?:my|the)\b/g, '').replace(/\b(?:set[ -]?top|setup)\b/g, '').replace(/\bbox\b/g, '').trim().replace(/\s+/g, ' ');
-    const commandBox = parseRechargeCommand(input.data.messages).boxName;
+    const commandBox = parseRechargeCommand(messages).boxName;
     const boxName = intent.boxName || commandBox;
-    const matches = newBox ? [newBox] : input.data.connectionId ? boxes.filter(box => box.id === input.data.connectionId) :
+    const matches = newBox ? [newBox] : connectionId ? boxes.filter(box => box.id === connectionId) :
       boxName ? boxes.filter(box => normalized(box.nickname) === normalized(boxName)) : boxes.length === 1 ? boxes : [];
     const choices = (list: DthConnection[]) => list.map(box => ({ id: box.id, nickname: box.nickname, operatorName: box.operatorName, lastFour: box.smartCardNumber.slice(-4) }));
     if (matches.length !== 1) { res.json({ success: true, source, state: 'choose_box', boxes: choices(matches.length ? matches : boxes), intent }); return; }
@@ -100,7 +120,7 @@ export async function prepareAssistantRecharge(req: Request, res: Response): Pro
     stage = 'catalog';
     let plans = (await planModel.getForOperator(box.operator)).filter(plan => plan.operator === box.operator && plan.duration_months === intent.months &&
       plan.pack_type === intent.quality && (amount === undefined || plan.amount === amount) && !validateCatalogPack(plan).length).sort((a, b) => a.amount - b.amount || a.id.localeCompare(b.id));
-    const normalizePack = (value: string) => value.normalize('NFKC').toLowerCase().replace(/\([^)]*\)/g, ' ').replace(/[^\p{L}\p{N}]+/gu, ' ').replace(/\bpack\b/g, '').trim().replace(/\s+/g, ' ');
+    const normalizePack = (value: string) => value.normalize('NFKC').toLowerCase().replace(/\([^)]*\)/g, ' ').replace(/[^\p{L}\p{N}]+/gu, ' ').replace(/\bpack\b/g, '').trim().replace(/\s+/g, '');
     let alternatives = false;
     if (intent.packName) {
       const exact = plans.filter(plan => [plan.plan_name, plan.tamilName].some(name => name && normalizePack(name) === normalizePack(intent.packName!)));
