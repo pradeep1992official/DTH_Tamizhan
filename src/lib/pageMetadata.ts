@@ -4,6 +4,7 @@ import { POLICY_ROUTES } from './trustContent';
 export interface PageMetadata { title: string; description: string; status: 200 | 404 | 500; noindex: boolean; path: string }
 const pages: Record<string, { en: [string, string]; ta: [string, string] }> = {
   '/support': { en: ['Support', 'Create a free support ticket.'], ta: ['Support', 'Create a free support ticket.'] },
+  '/service-request': { en: ['DTH service request', 'Complaint registration assistance.'], ta: ['DTH service request', 'Complaint registration assistance.'] },
   '/my-tickets': { en: ['My tickets', 'Track your support requests.'], ta: ['My tickets', 'Track your support requests.'] },
   '/auth/email-link': { en: ['Finish Email Sign-in', 'Confirm your email address to securely finish signing in to DTH Tamizhan.'], ta: ['மின்னஞ்சல் உள்நுழைவு', 'DTH Tamizhan உள்நுழைவை முடிக்க உங்கள் மின்னஞ்சலை உறுதிப்படுத்தவும்.'] },
   '/history': { en: ['Your Recharge History', 'Sign in to view your recharge history, payment status and receipts across all your boxes.'], ta: ['உங்கள் ரீசார்ஜ் வரலாறு', 'உங்கள் பாக்ஸ்களின் ரீசார்ஜ் வரலாறு, கட்டண நிலை மற்றும் ரசீதுகளைப் பார்க்க உள்நுழையவும்.'] },

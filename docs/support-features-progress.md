@@ -31,3 +31,14 @@ match /server_ticket_private/{ticketId} { allow read, write: if false; }
 - Admin > Operators > Service request brands edits formats/enabled brands without deployment; server verifies existing admin authority.
 - Shared schema/validation exports are used by the next service form/server. Assistant get_service_brands reads the same persisted source; no model-defined formats.
 - TypeScript and brand/assistant tests passed; database failures fail closed. Config uses default-deny direct Firestore rules and a public read-only server projection.
+
+## Prompt 3
+- Added /service-request with the requested disclosure, dynamic brand formats, refund-terms checkbox and existing Razorpay Checkout loader/library.
+- New isolated service APIs do not change recharge checkout. Price fixed at 5000 paise INR. Service payments require rzp_test_ keys; live service checkout is deliberately blocked pending end-to-end merchant testing.
+- Atomic ticket/duplicate locks and client request keys prevent duplicate requests. Ambiguous provider order creation is never blindly retried; admin recovery is required to avoid duplicate charges.
+- Checkout signature plus fetched order/payment ownership, amount/currency/capture checks; raw-body signed webhook; transaction-backed payment deduplication; durable paid event for subsequent receipt/email work. Late capture after expiration is reconciled as paid.
+- Unpaid expiry runs via POST /api/internal/tickets/run. Configure Cloud Scheduler every 5 minutes, Authorization Bearer TICKET_SCHEDULER_SECRET. This service uses Cloud Run, so no separate Firebase Functions library was added. Scheduler creation/deployment has not been performed.
+- Environment: existing RAZORPAY_KEY_ID (test), RAZORPAY_KEY_SECRET; new SERVICE_RAZORPAY_WEBHOOK_SECRET and TICKET_SCHEDULER_SECRET (server secrets only).
+- Razorpay test Dashboard webhook: /api/webhooks/service-requests, enable payment.captured and order.paid. Use the exact webhook secret above. Test checkout, close/reload, duplicate webhook, wrong amount/signature, late capture after expiry, and forced refund after Prompt 6 before any live rollout.
+- 11 focused tests, TypeScript and production build passed. Live-provider E2E requires merchant test credentials and reachable webhook; it was not simulated as a real payment.
+- Provider references: https://github.com/razorpay/markdown-docs/blob/master/webhooks/validate-test.md and https://github.com/razorpay/markdown-docs/blob/master/payments/payment-gateway/web-integration/custom/best-practices.md

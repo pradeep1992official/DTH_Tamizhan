@@ -4,6 +4,7 @@ import { RouteEffects } from './components/RouteEffects';
 import { AccountPage } from './components/AccountPage';
 import { CustomerHistoryPage } from './components/CustomerHistoryPage';
 import { SupportTicketsPage } from './components/SupportTicketsPage';
+import { ServiceRequestPage } from './components/ServiceRequestPage';
 import { EmailLinkSignInPage } from './components/EmailLinkSignInPage';
 import { ErrorPage } from './components/ErrorPages';
 import { pageMetadata } from './lib/pageMetadata';
@@ -544,6 +545,7 @@ function MainApp() {
           <Route path="/account" element={<AccountPage key={user?.uid || 'guest'} user={user} connections={connections} currentLang={currentLang} onOpenAuth={() => setIsAuthOpen(true)} onSignOut={handleSignOut} onUpdateProfile={handleUpdateProfile} />} />
           <Route path="/history" element={<CustomerHistoryPage user={user} currentLang={currentLang} onOpenAuth={() => setIsAuthOpen(true)} />} />
           <Route path="/support" element={<SupportTicketsPage key={user?.uid || 'guest'} user={user} onOpenAuth={() => setIsAuthOpen(true)} />} />
+          <Route path="/service-request" element={<ServiceRequestPage key={user?.uid || 'guest'} user={user} onOpenAuth={() => setIsAuthOpen(true)} />} />
           <Route path="/my-tickets" element={<SupportTicketsPage key={user?.uid || 'guest'} user={user} list onOpenAuth={() => setIsAuthOpen(true)} />} />
           <Route path="/auth/email-link" element={<EmailLinkSignInPage user={user} currentLang={currentLang} onOpenAuth={() => setIsAuthOpen(true)} />} />
           <Route path="/500" element={<ErrorPage status={500} currentLang={currentLang} />} />

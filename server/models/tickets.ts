@@ -1,16 +1,30 @@
 import { randomUUID } from 'node:crypto';
 import { getAdminFirestore } from '../middleware/auth';
 import { ticketInputSchema, ticketSchema, type Ticket } from '../../src/lib/tickets';
+import { documentKey } from '../persistence';
 
 // Internal repository: callers must verify identity and validate linked-order ownership.
 // No status, UID, payment or receipt fields are accepted in customer input.
-export async function createTicket(uid: string, input: unknown, now = new Date()): Promise<Ticket> {
+export async function createTicket(uid: string, input: unknown, now = new Date(), requestKey?: string): Promise<Ticket> {
   if (!uid) throw new Error('Sign in to create a ticket.');
   const value = ticketInputSchema.parse(input);
   const db = getAdminFirestore();
-  const ref = db.collection('tickets').doc(randomUUID());
+  const ref = db.collection('tickets').doc(requestKey ? documentKey(`${uid}:${requestKey}`) : randomUUID());
   const counter = db.collection('server_ticket_counters').doc(value.type);
   return db.runTransaction(async transaction => {
+    if (requestKey) {
+      const existing = await transaction.get(ref);
+      if (existing.exists) {
+        const ticket = ticketSchema.parse(existing.data());
+        if (ticket.uid !== uid || Object.entries(value).some(([key, field]) => ticket[key as keyof Ticket] !== field)) throw new Error('Request key already used.');
+        return ticket;
+      }
+    }
+    const lock = value.type === 'service_request' ? db.collection('server_ticket_locks').doc(documentKey(`${uid}:${value.brand}:${value.subscriberId}`)) : null;
+    if (lock) {
+      const held = await transaction.get(lock);
+      if (held.exists && held.data()?.active) throw new Error('You already have an open request for this brand and subscriber ID.');
+    }
     const snapshot = await transaction.get(counter);
     const previous = snapshot.exists ? snapshot.data()?.value : 0;
     if (!Number.isSafeInteger(previous) || previous < 0 || previous >= Number.MAX_SAFE_INTEGER) throw new Error('Ticket counter unavailable.');
@@ -27,6 +41,7 @@ export async function createTicket(uid: string, input: unknown, now = new Date()
     });
     transaction.set(counter, { value: sequence });
     transaction.create(ref, ticket);
+    if (lock) transaction.set(lock, { active: true, ticketId: ticket.id });
     return ticket;
   });
 }

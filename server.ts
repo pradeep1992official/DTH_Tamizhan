@@ -22,6 +22,8 @@ import { plansRouter } from './server/routes/plans';
 import { adminRouter } from './server/routes/admin';
 import { ticketsRouter } from './server/routes/tickets';
 import { serviceBrandsRouter } from './server/routes/serviceBrands';
+import { servicePaymentsRouter, serviceWebhookRouter } from './server/routes/servicePayments';
+import { ticketScheduleRouter } from './server/routes/ticketSchedule';
 import { aiRouter } from './server/routes/ai';
 import { coreRouter } from './server/routes/core';
 
@@ -63,6 +65,7 @@ async function startServer() {
   );
 
   // 2. Request Parsing Middleware (Mounted BEFORE route handlers)
+  app.use(serviceWebhookRouter);
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -77,6 +80,8 @@ async function startServer() {
   app.use(adminRouter);
   app.use(ticketsRouter);
   app.use(serviceBrandsRouter);
+  app.use(servicePaymentsRouter);
+  app.use(ticketScheduleRouter);
   app.use(aiRouter);
   app.use(emailRouter);
   app.use(customerHistoryRouter);

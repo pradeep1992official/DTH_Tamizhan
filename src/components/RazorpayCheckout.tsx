@@ -19,7 +19,7 @@ declare global {
 }
 
 let scriptPromise: Promise<void> | undefined;
-function loadCheckout() {
+export function loadCheckout() {
   if (window.Razorpay) return Promise.resolve();
   return scriptPromise ||= new Promise<void>((resolve, reject) => {
     const script = document.createElement('script');
