@@ -157,7 +157,7 @@ Deploy the backend before relying on Hosting rewrites. Deploy Firestore rules se
 ## Demo fixtures
 
 Runtime reads do not create demo customers, orders, connections or catalog records. For isolated fixture export, set `NODE_ENV=development`, run `npx tsx scripts/seed-demo-admin.ts`, and enter the requested confirmation phrase. Files export to `.local-fixtures/` without contacting a database.
-# Razorpay checkout
+## Razorpay checkout
 
 Customers must sign in before opening checkout. Order creation, signature verification, and simulator endpoints require a server-verified Firebase ID token. Razorpay orders store the authenticated customer's UID in server-written notes, and verification rejects orders belonging to another account. Legacy payments without customer ownership metadata remain available to authorized administrators through provider sync but cannot be claimed by customers.
 
@@ -297,7 +297,7 @@ Policy timing references reviewed on 13 November 2026: Razorpay normal refunds (
 
 Retention schedule: account/profile data while needed for the service, subject to verified deletion requests and legal exceptions; closed support correspondence for 2 years (a business policy, not a statutory period); GST-related payment/recharge/refund accounting records for 72 months from the relevant annual-return due date. Proceedings/investigation records are retained until one year after final disposal or the statutory period, whichever is later (CGST Act section 36: https://cbic-gst.gov.in/pdf/CGST-Act-Updated-01082021.pdf). Staff must manually review and remove/anonymise expired records, including provider copies where applicable, after checking legal holds. There is no automatic retention/deletion job. Confirm deployment regions and provider retention/backup settings before launch; the policy does not promise India-only processing.
 
-### AI endpoint request protection
+## AI endpoint request protection
 
 Both `POST /api/ai/recommend-plans` and `POST /api/ai/recharge` verify Firebase ID tokens (including revocation) before processing. They share a per-UID sliding limit of 20 requests per 60 seconds; excess requests return HTTP 429 with `Retry-After: 60`. Production uses atomic Firestore transactions in `server_runtime`; local development uses in-memory counters. Storage failures reject requests with HTTP 503. Existing provider quotas remain in place. Preferences and each recharge message are limited to 500 characters before trimming; recharge history remains limited to 12 messages.
 
@@ -316,3 +316,7 @@ Assistant language and speech: replies detect Tamil script, English, and common 
 The microphone uses the browser Web Speech API (`SpeechRecognition` or its WebKit variant) with `ta-IN` or `en-IN` selected from the single language picker. Tamil/Tanglish use Tamil dictation; English uses English dictation. Auto follows the detected conversation language or site language. Dictation only fills the editable message field (500-character cap); it never auto-sends or submits a draft. Permission, missing-microphone, unsupported-browser and recognition-service failures leave typing available. Read aloud is removed for all languages. No new voice provider or API key is required. Speech processing may use the browser vendor's service. Controls use labels, language tags, live status notices, visible focus indicators and 44-pixel touch targets.
 
 An explicit new-customer/new-box request requires a typed subscriber ID before recharge preparation. Follow-ups remain in that mode; stale saved-box selections and earlier subscriber IDs are ignored on both client and server. The new operator must be supplied or selected. Only previously requested duration and quality may carry over. Saved-box mode resumes when the customer explicitly asks to use a saved box.
+
+## Admin AI panel
+
+The admin console includes `/admin/ai`: read-only safe query tools, suggested priorities/summaries for imported contact/refund tickets, and editable reply drafts requiring explicit admin approval before opening email. It reuses the existing server-verified approved-admin registry policy (this project has no custom admin claim). See [Admin AI setup and imported-ticket format](docs/admin-ai.md). The new `server_support_tickets` source is empty until tickets are imported; customer email requests are not automatically synced.

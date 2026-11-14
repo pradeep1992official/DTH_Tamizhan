@@ -75,6 +75,7 @@ function AdminRouteWrapper({
 
   const mapSubTab = (param?: string): AdminTabId => {
     if (!param) return 'customers';
+    if (param === 'ai') return 'ai';
     if (param === 'customer' || param === 'customers') return 'customers';
     if (param === 'pending' || param === 'worker' || param === 'dealer') return 'pending';
     if (param === 'recharge' || param === 'recharges' || param === 'orders') return 'recharges';

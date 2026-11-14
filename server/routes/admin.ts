@@ -1,3 +1,4 @@
+import { adminAiRouter } from './adminAi';
 import { forwardAsyncErrors } from '../asyncRoutes';
 import { Router } from 'express';
 import { adminController } from '../controllers/adminController';
@@ -12,6 +13,7 @@ import {
 } from '../middleware/validation';
 
 export const adminRouter = Router();
+adminRouter.use('/api/admin/ai', adminAiRouter);
 
 adminRouter.get('/api/admin/verify-token', adminController.verifyToken);
 adminRouter.get('/api/admin/email/status', adminController.emailStatus);
