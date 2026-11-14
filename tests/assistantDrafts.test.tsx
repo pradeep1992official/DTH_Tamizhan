@@ -10,6 +10,7 @@ import { executeAssistantTool } from '../server/utils/assistantTools';
 import { draftRefund } from '../server/models/assistantDrafts';
 import { contactDraftArgs, refundDraftArgs, type ContactDraft } from '../src/lib/assistantDrafts';
 import { draftSupportEmail, supportEmailHref } from '../src/lib/supportEmail';
+import { refundSupportTicketPrefill } from '../src/lib/supportRouting';
 import { AssistantDraftCard } from '../src/components/AssistantDraftCard';
 import { BUSINESS_DETAILS } from '../src/lib/trustContent';
 const order = { user_id: 'owner', orderId: 'order_1', rechargeStatus: 'failed', paymentStatus: 'paid', amount: 299, paymentId: 'pay_1',
@@ -22,7 +23,7 @@ it('recognizes a ledger-backed test order and explains why it cannot receive a r
   const draft = await draftRefund('owner', { order_id: 'order_1', reason: 'cancel test' });
   expect(draft.order).toMatchObject({ orderId: 'order_1', testMode: true });
   expect(draft.eligibility).toEqual({ status: 'ineligible', explanation: 'This is a test order. No real payment refund can be requested.' });
-  expect(() => draftSupportEmail(draft)).toThrow();
+  expect(() => refundSupportTicketPrefill(draft)).toThrow();
   expect(f.writes).not.toHaveBeenCalled();
 });
 it('creates a contact draft without a database read or business write', async () => {
@@ -43,14 +44,28 @@ it('checks refund ownership using the verified UID and creates no persistent rec
   expect(f.query.mock.calls[0][1]).toContainEqual({ field: 'user_id', op: 'eq', value: 'owner' });
   expect(draft.order?.orderId).toBe('order_1');
   expect(draft.eligibility.status).toBe('eligible');
+  expect(refundSupportTicketPrefill(draft)).toEqual({
+    issueCategory: 'refund',
+    orderId: 'order_1',
+    description: 'Refund request for order order_1. Reason: Recharge failed',
+  });
   expect(f.writes).not.toHaveBeenCalled();
+});
+it('allows Support to review an owned order when the captured payment is not in the ledger', async () => {
+  f.query.mockImplementation(async (collection: string) => collection === 'server_recharges' ? [order] : []);
+  const draft = await draftRefund('owner', { order_id: 'order_1', reason: 'Payment was deducted' });
+  expect(draft.eligibility.status).toBe('manual_review_required');
+  expect(refundSupportTicketPrefill(draft)).toMatchObject({
+    orderId: 'order_1',
+    description: 'Refund request for order order_1. Reason: Payment was deducted',
+  });
 });
 it('blocks other-account, missing and test orders', async () => {
   for (const rows of [[], [{ ...order, user_id: 'other' }], [{ ...order, testMode: true }]]) {
     f.query.mockResolvedValue(rows);
     const draft = await draftRefund('owner', { order_id: 'order_1', reason: 'failed' });
     expect(['unavailable', 'ineligible']).toContain(draft.eligibility.status);
-    expect(() => draftSupportEmail(draft)).toThrow();
+    expect(() => refundSupportTicketPrefill(draft)).toThrow();
   }
 });
 it('uses the existing support destination and safely encodes edited fields without sending', () => {
@@ -70,7 +85,10 @@ it('renders confirmation, Edit and Submit, and blocks refund submission before e
   f.query.mockResolvedValue([{ ...order, rechargeStatus: 'completed' }]);
   const draft = await draftRefund('owner', { order_id: 'order_1', reason: 'failed' });
   const refundHtml = renderToStaticMarkup(<AssistantDraftCard action={draft} onSubmit={submit} />);
-  expect(refundHtml).toContain('Eligibility:'); expect(refundHtml).toMatch(/disabled=""[^>]*>Submit/);
+  expect(refundHtml).toContain('Eligibility:'); expect(refundHtml).toContain('Continue to free support form');
+  expect(refundHtml).not.toMatch(/disabled=""[^>]*>Continue to free support form/);
+  const blockedRefundHtml = renderToStaticMarkup(<AssistantDraftCard action={{ ...draft, eligibility: { status: 'ineligible', explanation: 'Already refunded.' } }} onSubmit={submit} />);
+  expect(blockedRefundHtml).toMatch(/disabled=""[^>]*>Continue to free support form/);
   expect(submit).not.toHaveBeenCalled();
 });
 
@@ -79,17 +97,24 @@ it('allows pending/processing/failed recharges before completion and rejects com
   for (const status of ['pending', 'processing', 'failed', 'completed']) {
     f.query.mockImplementation(async (collection: string) => collection === 'server_recharges' ? [{ ...order, rechargeStatus: status }] : [payment]);
     const draft = await draftRefund('owner', { order_id: 'order_1', reason: 'please cancel' });
-    expect(draft.eligibility.status).toBe(status === 'completed' ? 'ineligible' : 'eligible');
-    if (status !== 'completed') expect(draftSupportEmail(draft)).toContain('mailto:');
+    expect(draft.eligibility.status).toBe(status === 'completed' ? 'manual_review_required' : 'eligible');
+    expect(refundSupportTicketPrefill(draft)).toMatchObject({ issueCategory: 'refund', orderId: 'order_1' });
   }
 });
-it('blocks already-refunded, uncaptured, foreign-owner and unmatched payments', async () => {
+it('blocks repeat/test refunds and routes unverified payments for manual review', async () => {
   const payment = { id: 'pay_1', customerUid: 'owner', orderId: 'order_1', amount: 299, currency: 'INR', status: 'paid', providerStatus: 'captured', testMode: false };
-  for (const variant of [{ ...payment, status: 'refunded' }, { ...payment, providerStatus: 'refunded' }, { ...payment, providerStatus: 'authorized' },
-    { ...payment, customerUid: 'victim' }, { ...payment, amount: 1 }, { ...payment, testMode: true }]) {
+  for (const [variant, expected] of [
+    [{ ...payment, status: 'refunded' }, 'ineligible'],
+    [{ ...payment, providerStatus: 'refunded' }, 'ineligible'],
+    [{ ...payment, providerStatus: 'authorized' }, 'manual_review_required'],
+    [{ ...payment, customerUid: 'victim' }, 'manual_review_required'],
+    [{ ...payment, amount: 1 }, 'manual_review_required'],
+    [{ ...payment, testMode: true }, 'ineligible'],
+  ] as const) {
     f.query.mockImplementation(async (collection: string) => collection === 'server_recharges' ? [order] : [variant]);
     const draft = await draftRefund('owner', { order_id: 'order_1', reason: 'failed' });
-    expect(draft.eligibility.status).not.toBe('eligible');
-    expect(() => draftSupportEmail(draft)).toThrow();
+    expect(draft.eligibility.status).toBe(expected);
+    if (expected === 'manual_review_required') expect(refundSupportTicketPrefill(draft).orderId).toBe('order_1');
+    else expect(() => refundSupportTicketPrefill(draft)).toThrow();
   }
 });

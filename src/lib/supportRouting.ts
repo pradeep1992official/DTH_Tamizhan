@@ -1,10 +1,26 @@
 import { z } from 'zod';
 import { phoneSchema, supportCategories, serviceCategories, stripTicketHtml } from './tickets';
+import { refundDraftSchema, type RefundDraft } from './assistantDrafts';
 const summary = z.string().transform(stripTicketHtml).pipe(z.string().min(5).max(160));
 export const supportRecommendationArgs = z.object({ problem_text: z.string().trim().min(5).max(500) }).strict();
 export const supportClassificationSchema = z.object({ option: z.enum(['free_ticket', 'service_request']), category: z.enum([...supportCategories, ...serviceCategories]), summary }).strict().refine(value => (value.option === 'free_ticket' ? [...supportCategories] as string[] : [...serviceCategories] as string[]).includes(value.category), 'Invalid category for recommendation.');
 export const supportPrefillArgs = z.object({ description: summary, issueCategory: z.enum(supportCategories),
   name: z.string().trim().min(1).max(100).optional(), phone: phoneSchema.optional(), orderId: z.string().regex(/^[\w-]{1,128}$/).optional() }).strict();
+export const supportTicketPrefillSchema = z.object({ description: z.string().transform(stripTicketHtml).pipe(z.string().min(5).max(1000)),
+  issueCategory: z.enum(supportCategories), name: z.string().trim().min(1).max(100).optional(), phone: phoneSchema.optional(),
+  orderId: z.string().regex(/^[\w-]{1,128}$/).optional() }).strict();
+export function refundSupportTicketPrefill(value: RefundDraft) {
+  const draft = refundDraftSchema.parse(value);
+  if (!['eligible', 'manual_review_required'].includes(draft.eligibility.status) || !draft.order ||
+      draft.order.orderId !== draft.draft.order_id || draft.order.testMode) {
+    throw new Error('This refund request is not ready for Support review.');
+  }
+  return supportTicketPrefillSchema.parse({
+    issueCategory: 'refund',
+    orderId: draft.draft.order_id,
+    description: `Refund request for order ${draft.draft.order_id}. Reason: ${draft.draft.reason}`,
+  });
+}
 export const servicePrefillArgs = z.object({ description: summary, issueCategory: z.enum(serviceCategories),
   name: z.string().trim().min(1).max(100).optional(), phone: phoneSchema.optional(), state: z.string().trim().min(1).max(60).optional(),
   brand: z.string().regex(/^[a-z][a-z0-9_]{1,49}$/).optional(), subscriberId: z.string().regex(/^\d{1,25}$/).optional() }).strict();

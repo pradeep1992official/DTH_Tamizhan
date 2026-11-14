@@ -7,6 +7,7 @@ import { AssistantDraftCard } from './AssistantDraftCard';
 import { AssistantSupportCard } from './AssistantSupportCard';
 import { draftSupportEmail } from '../lib/supportEmail';
 import { refundDraftSchema, type SupportDraft } from '../lib/assistantDrafts';
+import { refundSupportTicketPrefill } from '../lib/supportRouting';
 import { useNavigate } from 'react-router-dom';
 import { assistantActionSchema, assistantPages, actionNotice, rechargeExplanation, type AssistantAction } from '../lib/assistantActions';
 import React, { useEffect, useRef, useState } from 'react';
@@ -129,16 +130,17 @@ export function RechargeAssistant({ currentLang, displayName, onCheckout }: {
     finally { inFlight.current = false; if (!request.signal.aborted) setBusy(false); }
   }
   async function submitSupportDraft(draft: SupportDraft) {
-    let verified = draft;
     if (draft.type === 'refund_draft') {
       const response = await fetch('/api/ai/refund-draft-check', { method: 'POST', headers: await paymentAuthHeaders(), body: JSON.stringify(draft.draft) });
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.error || 'Could not verify refund eligibility.');
-      verified = refundDraftSchema.parse(data.action);
+      const verified = refundDraftSchema.parse(data.action);
       if (verified.draft.order_id !== draft.draft.order_id) throw new Error('Order verification failed.');
-      if (verified.eligibility.status !== 'eligible') return verified;
+      if (!['eligible', 'manual_review_required'].includes(verified.eligibility.status)) return verified;
+      navigate('/support', { state: { ticketPrefill: refundSupportTicketPrefill(verified) } });
+      return;
     }
-    window.location.assign(draftSupportEmail(verified));
+    window.location.assign(draftSupportEmail(draft));
   }
   const notices: Record<string, string> = {
     history: text('You can view your past recharges, payment status and receipts in My History.', 'என் வரலாறு பக்கத்தில் முந்தைய ரீசார்ஜ்கள், கட்டண நிலை மற்றும் ரசீதுகளைப் பார்க்கலாம்.'),
@@ -209,7 +211,7 @@ export function RechargeAssistant({ currentLang, displayName, onCheckout }: {
         {(reply?.action?.type === 'show_history' || reply?.action?.type === 'show_recharge_status') && <ul>{(reply.action.type === 'show_history' ? reply.action.orders : reply.action.order ? [reply.action.order] : []).map(order => <li key={order.orderId} className="space-y-2">
           <p>{order.orderId} · {order.packName} · {formatPrice(order.amount, currentLang)}</p>
           <p>{rechargeExplanation(order, replyLanguage)}</p>
-          {order.status === 'failed' && <button type="button" className="recharge-chat-suggestion" onClick={() => { setDraft(`Draft a refund request for order ${order.orderId}. Reason: my recharge failed.`); document.getElementById('recharge-ai-message')?.focus(); }}>{'Start a refund request with support'}</button>}
+          {!order.testMode && <button type="button" className="recharge-chat-suggestion" onClick={() => { setDraft(`Draft a refund request for order ${order.orderId}.`); document.getElementById('recharge-ai-message')?.focus(); }}>{'Request refund review'}</button>}
         </li>)}</ul>}
         {(reply?.action?.type === 'contact_draft' || reply?.action?.type === 'refund_draft') && <AssistantDraftCard key={messages.length} action={reply.action} language={replyLanguage} onSubmit={submitSupportDraft} />}
         {(reply?.action?.type === 'support_recommendation' || reply?.action?.type === 'prefill_support' || reply?.action?.type === 'prefill_service_request') && <AssistantSupportCard action={reply.action} />}

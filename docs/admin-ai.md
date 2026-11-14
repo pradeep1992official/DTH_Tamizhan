@@ -4,7 +4,7 @@ Open `/admin/ai` or choose **AI assistant** in the admin console. All `/api/admi
 
 ## Imported tickets
 
-The source is `server_support_tickets` in the app's existing named Firestore database (`firebase-applet-config.json`). Firestore creates the collection when a trusted operator imports its first document. No live documents were created as part of this change. Existing customer contact/refund submissions continue to use email; they do not automatically enter this collection.
+The source is `server_support_tickets` in the app's existing named Firestore database (`firebase-applet-config.json`). Firestore creates the collection when a trusted operator imports its first document. No live documents were created as part of this change. Legacy customer contact drafts continue to use email. Assistant refund requests now recheck the signed-in customer's order and open a prefilled free-support form; the customer reviews and submits the ticket. This does not initiate a refund, and those new tickets use the separate `tickets` collection rather than entering this imported collection.
 
 Use a trusted Admin SDK importer or Firebase Console to import each ticket with a unique document ID of 1?128 letters, digits, underscores or hyphens. Map external fields to this strict contract; the ID is the document ID, not a data field:
 

@@ -1,6 +1,8 @@
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { expect, it } from 'vitest';
 import { adminTicketUpdate, validateTicketTransition } from '../server/models/ticketAdmin';
-import { placementHoursLeft, customerUpdateLink } from '../src/components/Admin/TicketsPanel';
+import { TicketsPanel, placementHoursLeft, customerUpdateLink } from '../src/components/Admin/TicketsPanel';
 import type { Ticket } from '../src/lib/tickets';
 it('enforces support and paid-service lifecycle transitions', () => {
   const now = Date.parse('2026-11-14T12:00:00Z'); const paidAt = '2026-11-14T10:00:00Z';
@@ -22,4 +24,12 @@ it('computes deadline countdowns and safely encodes WhatsApp drafts', () => {
   expect(placementHoursLeft(ticket, Date.parse('2026-11-15T09:00:00Z'))).toBe(1);
   expect(customerUpdateLink(ticket)).toContain('https://wa.me/919876543210?text=');
   expect(decodeURIComponent(customerUpdateLink(ticket))).toContain('COMP & 1');
+});
+it('renders the ticket list as a responsive admin table', () => {
+  const html = renderToStaticMarkup(React.createElement(TicketsPanel, { getAuthHeaders: async () => ({}) }));
+  expect(html).toContain('admin-responsive-table');
+  expect(html).toContain('font-medium">Ticket</th>');
+  expect(html).toContain('font-medium">Actions</th>');
+  expect(html).toContain('aria-label="Show search filters"');
+  expect(html).toContain('aria-expanded="false"');
 });

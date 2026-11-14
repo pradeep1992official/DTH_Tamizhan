@@ -38,6 +38,7 @@ it('passes tools to Gemini and returns text plus a validated structured action',
   f.generate.mockResolvedValue({ functionCalls: [{ name: 'navigate', args: { page: 'refund' } }], text: 'Here is our refund policy.' });
   expect(await assistantToolTurn('owner', ['Open refund page'])).toMatchObject({ state: 'tool_action', text: 'Here is our refund policy.', action: { type: 'navigate', page: 'refund' } });
   expect(f.generate.mock.calls[0][0].config.tools[0].functionDeclarations).toEqual(toolDefinitions);
+  expect(f.generate.mock.calls[0][0].config.systemInstruction).toContain('call get_my_history so they can select an order shown in their account');
 });
 it('rejects malicious or multiple model calls and preserves recharge handoff', async () => {
   f.generate.mockResolvedValue({ functionCalls: [{ name: 'pay', args: {} }] });

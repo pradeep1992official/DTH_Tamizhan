@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { supportPrefillArgs } from '../lib/supportRouting';
+import { supportTicketPrefillSchema } from '../lib/supportRouting';
 import type { UserProfile } from '../types';
 import type { Ticket } from '../lib/tickets';
 import { supportCategories } from '../lib/tickets';
@@ -15,7 +15,7 @@ export function ticketWhatsApp(ticket: Pick<Ticket, 'ticketNo' | 'issueCategory'
   return `https://wa.me/${BUSINESS_DETAILS.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`${ticket.ticketNo}\n${ticket.issueCategory.replace(/_/g, ' ')}\n${ticket.description}`)}`;
 }
 export function SupportTicketsPage({ user, onOpenAuth, list = false }: { user: UserProfile | null; onOpenAuth: () => void; list?: boolean }) {
-  const location = useLocation(); const parsedPrefill = supportPrefillArgs.safeParse(location.state?.ticketPrefill); const prefill = parsedPrefill.success ? parsedPrefill.data : undefined;
+  const location = useLocation(); const parsedPrefill = supportTicketPrefillSchema.safeParse(location.state?.ticketPrefill); const prefill = parsedPrefill.success ? parsedPrefill.data : undefined;
   const [tickets, setTickets] = useState<Ticket[]>([]); const [created, setCreated] = useState<Ticket | null>(null);
   const [orders, setOrders] = useState<{ orderId: string; packName: string }[]>([]);
   const [error, setError] = useState(''); const [busy, setBusy] = useState(false); const [refresh, setRefresh] = useState(0);
