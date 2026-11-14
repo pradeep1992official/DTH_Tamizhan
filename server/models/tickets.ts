@@ -11,7 +11,8 @@ export async function createTicket(uid: string, input: unknown, now = new Date()
   const value = ticketInputSchema.parse(input);
   const db = getAdminFirestore();
   const ref = db.collection('tickets').doc(requestKey ? documentKey(`${uid}:${requestKey}`) : randomUUID());
-  const counter = db.collection('server_ticket_counters').doc(value.type);
+  const quotaType = value.type;
+  const counter = db.collection('server_ticket_counters').doc(value.type === 'service_request' ? 'service_request' : 'support');
   return db.runTransaction(async transaction => {
     if (requestKey) {
       const existing = await transaction.get(ref);
@@ -21,16 +22,16 @@ export async function createTicket(uid: string, input: unknown, now = new Date()
         return ticket;
       }
     }
-    const lock = value.type === 'service_request' ? db.collection('server_ticket_locks').doc(documentKey(`${uid}:${value.brand}:${value.subscriberId}`)) : null;
+    const lock = value.type !== 'support' && value.brand && value.subscriberId ? db.collection('server_ticket_locks').doc(documentKey(`${uid}:${value.brand}:${value.subscriberId}`)) : null;
     if (lock) {
       const held = await transaction.get(lock);
       if (held.exists && held.data()?.active) throw new TicketRequestError(409, 'You already have an open request for this brand and subscriber ID.');
     }
     const snapshot = await transaction.get(counter);
     const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
-    const capRef = db.collection('server_ticket_daily_caps').doc(documentKey(`${uid}:${value.type}:${day}`));
+    const capRef = db.collection('server_ticket_daily_caps').doc(documentKey(`${uid}:${quotaType}:${day}`));
     const usage = await transaction.get(capRef); const used = usage.data()?.count || 0;
-    if (used >= (value.type === 'support' ? 3 : 5)) throw new TicketRequestError(429, value.type === 'support' ? 'You can create up to 3 support tickets per day. Please try again tomorrow.' : 'You can create up to 5 paid requests per day. Please try again tomorrow.');
+    if (used >= (quotaType === 'support' ? 3 : 5)) throw new TicketRequestError(429, quotaType === 'support' ? 'You can create up to 3 help tickets per day. Please try again tomorrow.' : 'You can create up to 5 paid requests per day. Please try again tomorrow.');
     const previous = snapshot.exists ? snapshot.data()?.value : 0;
     if (!Number.isSafeInteger(previous) || previous < 0 || previous >= Number.MAX_SAFE_INTEGER) throw new Error('Ticket counter unavailable.');
     const sequence = previous + 1;

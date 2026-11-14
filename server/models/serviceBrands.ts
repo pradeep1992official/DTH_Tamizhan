@@ -3,7 +3,9 @@ import { defaultServiceBrands, serviceBrandsSchema } from '../../src/lib/service
 export async function readServiceBrands() {
   const snapshot = await getAdminFirestore().collection('server_service_config').doc('brands').get();
   // Only missing config falls back; database or malformed-config errors fail closed.
-  return snapshot.exists ? serviceBrandsSchema.parse(snapshot.data()?.brands) : defaultServiceBrands;
+  if (!snapshot.exists) return defaultServiceBrands;
+  const values = snapshot.data()?.brands;
+  return serviceBrandsSchema.parse(Array.isArray(values) ? values.map(value => ({ ...value, customerCarePhone: value.customerCarePhone ?? defaultServiceBrands.find(brand => brand.id === value.id)?.customerCarePhone ?? '' })) : values);
 }
 export async function saveServiceBrands(input: unknown, uid: string) {
   const brands = serviceBrandsSchema.parse(input);

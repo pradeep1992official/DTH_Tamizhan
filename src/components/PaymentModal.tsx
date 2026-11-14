@@ -170,6 +170,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, pla
           </div>}
           {session && session.status !== 'ready' && <div role="status" className="p-4 rounded-lg border border-rule space-y-3">
             <p>{session.status === 'success' ? translations[currentLang].uiTestPaymentSucceededNoRealPaymentOrRechargeWasMade : session.status === 'failed' ? translations[currentLang].uiTestPaymentFailedNoMoneyWasTaken : translations[currentLang].uiTestPaymentPendingThisIsNotASuccessConfirmationNoRechargeHasStarted}</p>
+            {session.status === 'failed' && <a href="/help">{currentLang === 'ta' ? '\u0b89\u0ba4\u0bb5\u0bbf \u0baa\u0bc6\u0bb1\u0bc1\u0b99\u0bcd\u0b95\u0bb3\u0bcd' : 'Get Help'}</a>}
             <button type="button" onClick={() => void prepare(true)} disabled={busy} className="dialog-primary w-full py-3 rounded-lg">{translations[currentLang].uiStartANewTestSession}</button>
           </div>}
         </div>

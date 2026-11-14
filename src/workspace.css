@@ -39,7 +39,9 @@
 .app-header #brand-logo-btn > div:first-child { border: 0; box-shadow: none; background: var(--color-accent-soft); border-radius: var(--radius-input); }
 .app-header #profile-dropdown-trigger-btn { min-height: 44px; box-shadow: none; border-color: var(--color-rule); border-radius: var(--radius-input); }
 .app-header #profile-dropdown-trigger-btn > div:first-child { background: var(--color-paper-2); }
-.mobile-navigation { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: var(--space-xs) var(--space-md); gap: var(--space-xs); border-top: 1px solid var(--color-rule); }
+.mobile-navigation { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: var(--space-xs) var(--space-md); gap: var(--space-xs); border-top: 1px solid var(--color-rule); }
+.help-navigation-link { display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 44px; padding: .5rem .75rem; border-radius: var(--radius-input); font-size: var(--text-sm); font-weight: 600; text-align: center; text-decoration: none; }
+.help-navigation-link[aria-current="page"] { background: var(--color-paper-2); }
 .mobile-navigation button { min-width: 0; min-height: 44px; font-size: var(--text-sm); padding-inline: var(--space-xs); white-space: normal; overflow-wrap: anywhere; }
 .app-header-inner > * { min-width: 0; }
 .app-header a { color: var(--color-accent-ink); overflow-wrap: anywhere; }

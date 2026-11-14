@@ -7,7 +7,7 @@ export const supportTransitions: Partial<Record<TicketStatus, TicketStatus[]>> =
 export const serviceTransitions: Partial<Record<TicketStatus, TicketStatus[]>> = { paid: ['placed_with_company'], placed_with_company: ['resolved', 'closed'], resolved: ['closed'] };
 export function validateTicketTransition(type: string, current: TicketStatus, next: TicketStatus, companyRefNo: string, paidAt: string | null, now: number, refunding = false) {
   if (next === current) return;
-  const allowed = (type === 'support' ? supportTransitions : serviceTransitions)[current] || [];
+  const allowed = (type !== 'service_request' ? supportTransitions : serviceTransitions)[current] || [];
   if (!allowed.includes(next)) throw new Error('This status change is not allowed.');
   if (next === 'placed_with_company' && (!companyRefNo.trim() || !paidAt || now >= Date.parse(paidAt) + 24 * 3_600_000 || refunding)) throw new Error('A company reference is required and the placement deadline must not have passed or refund begun.');
 }
@@ -20,7 +20,7 @@ export async function updateAdminTicket(id: string, uid: string, input: unknown,
     if (ticket.status !== 'paid' && companyRefNo !== ticket.companyRefNo) throw new Error('Company reference can only be entered when placing a paid request.');
     if (companyRefNo !== ticket.companyRefNo && next !== 'placed_with_company') throw new Error('Save the company reference together with placement.');
     const lock = db.collection('server_ticket_locks').doc(documentKey(`${ticket.uid}:${ticket.brand}:${ticket.subscriberId}`));
-    const held = ticket.type === 'service_request' && ['resolved', 'closed'].includes(next) ? await tx.get(lock) : null;
+    const held = ['resolved', 'closed'].includes(next) ? await tx.get(lock) : null;
     const timestamp = new Date(now).toISOString();
     const updated = { ...ticket, status: next, companyRefNo, updatedAt: timestamp, statusHistory: next === ticket.status ? ticket.statusHistory : [...ticket.statusHistory, { status: next, timestamp, by: uid }] };
     tx.set(ref, updated);

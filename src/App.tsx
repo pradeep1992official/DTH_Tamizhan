@@ -4,7 +4,7 @@ import { RouteEffects } from './components/RouteEffects';
 import { AccountPage } from './components/AccountPage';
 import { CustomerHistoryPage } from './components/CustomerHistoryPage';
 import { SupportTicketsPage } from './components/SupportTicketsPage';
-import { ServiceRequestPage } from './components/ServiceRequestPage';
+import { HelpPage } from './components/HelpPage';
 import { EmailLinkSignInPage } from './components/EmailLinkSignInPage';
 import { ErrorPage } from './components/ErrorPages';
 import { pageMetadata } from './lib/pageMetadata';
@@ -436,6 +436,7 @@ function MainApp() {
   // Determine active tab name for header navigation highlighting
   const getActiveNavTab = () => {
     const path = location.pathname;
+    if (path === '/help') return 'help';
     if (pageMetadata(path).status !== 200) return 'error';
     if (POLICY_ROUTES.some(route => route.path === path)) return 'policies';
     if (path.startsWith('/admin') || path === '/worker' || path === '/dealer') return 'admin-portal';
@@ -545,8 +546,9 @@ function MainApp() {
           {POLICY_ROUTES.map(route => <Route key={route.key} path={route.path} element={<PolicyPage policy={route.key} currentLang={currentLang} />} />)}
           <Route path="/account" element={<AccountPage key={user?.uid || 'guest'} user={user} connections={connections} currentLang={currentLang} onOpenAuth={() => setIsAuthOpen(true)} onSignOut={handleSignOut} onUpdateProfile={handleUpdateProfile} />} />
           <Route path="/history" element={<CustomerHistoryPage user={user} currentLang={currentLang} onOpenAuth={() => setIsAuthOpen(true)} />} />
-          <Route path="/support" element={<SupportTicketsPage key={user?.uid || 'guest'} user={user} onOpenAuth={() => setIsAuthOpen(true)} />} />
-          <Route path="/service-request" element={<ServiceRequestPage key={user?.uid || 'guest'} user={user} onOpenAuth={() => setIsAuthOpen(true)} />} />
+          <Route path="/help" element={<HelpPage key={`${user?.uid || 'guest'}-${location.key}`} user={user} currentLang={currentLang} onOpenAuth={() => setIsAuthOpen(true)} />} />
+          <Route path="/support" element={<Navigate to="/help" replace state={location.state} />} />
+          <Route path="/service-request" element={<Navigate to="/help" replace state={location.state} />} />
           <Route path="/my-tickets" element={<SupportTicketsPage key={user?.uid || 'guest'} user={user} list onOpenAuth={() => setIsAuthOpen(true)} />} />
           <Route path="/auth/email-link" element={<EmailLinkSignInPage user={user} currentLang={currentLang} onOpenAuth={() => setIsAuthOpen(true)} />} />
           <Route path="/500" element={<ErrorPage status={500} currentLang={currentLang} />} />
@@ -594,6 +596,7 @@ function MainApp() {
             <h2>{currentLang === 'ta' ? 'விரைவு இணைப்புகள்' : 'Quick links'}</h2>
             <nav aria-label={currentLang === 'ta' ? 'விரைவு இணைப்புகள்' : 'Quick links'}>
               <Link to="/recharge">{t.navRecharge}</Link>
+              <Link to="/help">{currentLang === 'ta' ? 'உதவி பெறுங்கள்' : 'Get Help'}</Link>
               <Link to="/plans">{t.navPlans}</Link>
               <Link to="/connections">{t.navConnections}</Link>
               <Link to="/account">{currentLang === 'ta' ? 'என் கணக்கு' : 'My account'}</Link>

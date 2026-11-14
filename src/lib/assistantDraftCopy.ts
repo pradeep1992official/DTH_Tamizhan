@@ -1,5 +1,9 @@
 import type { AssistantLanguage } from './assistantLanguage';
 const copy: Record<string, [string, string]> = {
+  'Review this draft. Continue opens Get Help. Nothing has been submitted or paid.': ['வரைவைச் சரிபார்க்கவும். தொடர்ந்தால் உதவிப் படிவம் திறக்கும். எதுவும் சமர்ப்பிக்கப்படவில்லை; கட்டணம் செலுத்தப்படவில்லை.', 'Draft-ai check pannunga. Continue panna Get Help thirakkum. Innum submit pannala, pay pannala.'],
+  'Continue to Get Help': ['உதவி பெறத் தொடரவும்', 'Get Help-ku thodarunga'],
+  'Get Help opened. Review your details before continuing.': ['உதவிப் படிவம் திறக்கப்பட்டது. விவரங்களைச் சரிபார்த்து தொடரவும்.', 'Get Help thirandhirukku. Details check pannitu thodarunga.'],
+  'Could not open Get Help.': ['உதவிப் படிவத்தைத் திறக்க முடியவில்லை.', 'Get Help thirakka mudiyala.'],
   'Draft confirmation': ['வரைவு உறுதிப்படுத்தல்', 'Draft confirmation'],
   'DRAFT': ['வரைவு', 'DRAFT'], 'Contact message': ['தொடர்பு செய்தி', 'Contact seidhi'], 'Refund request': ['பணத்திருப்பல் கோரிக்கை', 'Refund request'],
   'Review this draft. Nothing has been sent or saved. Submit opens your email app; you must send the email there.': ['இந்த வரைவைச் சரிபார்க்கவும். எதுவும் அனுப்பப்படவோ சேமிக்கப்படவோ இல்லை. சமர்ப்பி பொத்தான் மின்னஞ்சல் செயலியைத் திறக்கும்; அங்கிருந்து நீங்கள் அனுப்ப வேண்டும்.', 'Indha draft-ai check pannunga. Edhuvum anuppavo save pannavo illa. Submit email app-ai thirakkum; anga neenga Send pannanum.'],

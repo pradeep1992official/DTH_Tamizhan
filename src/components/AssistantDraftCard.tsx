@@ -25,17 +25,13 @@ export function AssistantDraftCard({ action, onSubmit, language = 'en' }: {
         setNotice(copy('Eligibility changed. Review the updated details. No email was opened.'));
         return;
       }
-      setNotice(copy(draft.type === 'refund_draft'
-        ? 'Free support form opened. Review the order and reason, then submit the ticket. No refund is automatic.'
-        : 'Email draft opened. Review it and press Send in your email app. Delivery is not confirmed here.'));
-    } catch (error) { setNotice(error instanceof Error && error.name !== 'ZodError' && !(error instanceof SyntaxError) && !(error instanceof TypeError) ? copy(error.message) : copy('Could not open the email draft.')); }
+      setNotice(copy('Get Help opened. Review your details before continuing.'));
+    } catch (error) { setNotice(error instanceof Error && error.name !== 'ZodError' && !(error instanceof SyntaxError) && !(error instanceof TypeError) ? copy(error.message) : copy('Could not open Get Help.')); }
     finally { setBusy(false); }
   }
   return <section aria-label={copy('Draft confirmation')} lang={assistantLanguageTag(language)} className="border border-rule rounded-lg p-3 space-y-3">
     <h3 className="font-semibold">{copy('DRAFT')} - {copy(draft.type === 'contact_draft' ? 'Contact message' : 'Refund request')}</h3>
-    <p>{copy(draft.type === 'refund_draft'
-      ? 'Review this draft. Continue opens a free support form; review and submit the ticket there. No refund is automatic.'
-      : 'Review this draft. Nothing has been sent or saved. Submit opens your email app; you must send the email there.')}</p>
+    <p>{copy('Review this draft. Continue opens Get Help. Nothing has been submitted or paid.')}</p>
     {draft.type === 'contact_draft' ? <>
       <label className="block">{copy('Category')} <select disabled={!editing || busy} value={draft.draft.category} onChange={event => setDraft({ ...draft, draft: { ...draft.draft, category: contactCategorySchema.parse(event.target.value) } })}>{contactCategorySchema.options.map(category => <option key={category} value={category}>{copy(category)}</option>)}</select></label>
       <label className="block">{copy('Subject')} <input readOnly={!editing} disabled={busy} maxLength={120} value={draft.draft.subject} onChange={event => setDraft({ ...draft, draft: { ...draft.draft, subject: event.target.value } })} /></label>
@@ -47,7 +43,7 @@ export function AssistantDraftCard({ action, onSubmit, language = 'en' }: {
       <label className="block">{copy('Reason')} <textarea readOnly={!editing} disabled={busy} maxLength={500} value={draft.draft.reason} onChange={event => setDraft({ ...draft, draft: { ...draft.draft, reason: event.target.value } })} /></label>
     </>}
     <button type="button" className="recharge-chat-suggestion" disabled={busy} onClick={() => { setEditing(value => !value); setNotice(''); }}>{copy(editing ? 'Done editing' : 'Edit')}</button>
-    <button type="button" className="recharge-chat-suggestion" disabled={busy || editing || !eligible} onClick={() => void submit()}>{copy(busy ? 'Checking...' : draft.type === 'refund_draft' ? 'Continue to free support form' : 'Submit')}</button>
+    <button type="button" className="recharge-chat-suggestion" disabled={busy || editing || !eligible} onClick={() => void submit()}>{copy(busy ? 'Checking...' : 'Continue to Get Help')}</button>
     {notice && <p role="status">{notice}</p>}
   </section>;
 }

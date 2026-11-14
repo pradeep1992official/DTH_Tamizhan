@@ -35,7 +35,7 @@ it('rejects client authority, malformed input and missing auth before writing', 
 it('enforces daily caps atomically and resets on the next India calendar day', async () => {
   const day = new Date('2026-11-14T12:00:00Z');
   for (let i = 0; i < 3; i++) await createTicket('owner', input, day);
-  await expect(createTicket('owner', input, day)).rejects.toThrow('3 support tickets');
+  await expect(createTicket('owner', input, day)).rejects.toThrow('3 help tickets');
   expect((await createTicket('owner', input, new Date('2026-11-15T12:00:00Z'))).ticketNo).toBe('SUP-0004');
 });
 

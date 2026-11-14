@@ -7,7 +7,7 @@ export async function expireUnpaidServiceRequests(now = Date.now()) {
   const db = getAdminFirestore();
   for (const row of rows) await db.runTransaction(async tx => {
     const ref = db.collection('tickets').doc(row.id); const snapshot = await tx.get(ref); const current = ticketSchema.parse(snapshot.data());
-    if (current.status !== 'pending_payment' || Date.parse(current.createdAt) > now - 30 * 60_000) return;
+    if (current.status !== 'pending_payment' || Date.parse(current.checkoutStartedAt || current.createdAt) > now - 30 * 60_000) return;
     const lock = db.collection('server_ticket_locks').doc(documentKey(`${current.uid}:${current.brand}:${current.subscriberId}`));
     const held = await tx.get(lock); const timestamp = new Date(now).toISOString();
     tx.update(ref, { status: 'expired', updatedAt: timestamp, statusHistory: [...current.statusHistory, { status: 'expired', timestamp, by: 'scheduler' }] });

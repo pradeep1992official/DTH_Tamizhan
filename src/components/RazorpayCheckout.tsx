@@ -120,6 +120,7 @@ export function RazorpayCheckout({ onClose, plan, operator, smartCard, currentLa
           <div className="rzp-total"><span>{label('Total payable', 'செலுத்த வேண்டிய தொகை')}</span><strong>{formatPrice(order.current ? order.current.amount / 100 : plan.price, currentLang)}</strong></div>
         </section>
         {error && <div role="alert" className="rzp-feedback rzp-error">{error}</div>}
+        {error && <a href="/help">{label('Get Help', '\u0b89\u0ba4\u0bb5\u0bbf \u0baa\u0bc6\u0bb1\u0bc1\u0b99\u0bcd\u0b95\u0bb3\u0bcd')}</a>}
         {message && <div role="status" className={`rzp-feedback ${verified ? 'rzp-success' : ''}`}>{verified && <CheckCircle2 size={22} />}<span>{message}</span></div>}
         {!verified && !result && <fieldset className="rzp-contact" disabled={busy || !!order.current}>
           <legend>{label('Customer details', 'வாடிக்கையாளர் விவரங்கள்')}</legend>

@@ -1,12 +1,15 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { verifyAuthToken, getAdminFirestore } from '../middleware/auth';
-import { createTicket, customerTicket } from '../models/tickets';
-import { ownedAssistantOrders } from '../models/assistantHistory';
+import { customerTicket } from '../models/tickets';
 import { queryRecords } from '../queries';
 import { ticketSchema, stripTicketHtml, type Ticket } from '../../src/lib/tickets';
 import { parsePage } from '../models/paymentPages';
 import { ticketProtection, TicketRequestError, logTicketBlock } from '../middleware/ticketProtection';
+import { createHelpTicket, upgradeHelpTicket, chooseCustomerCare } from '../models/help';
+import { attachServiceCheckout, resumeServiceCheckout } from '../models/servicePayments';
+import { withAiRequest } from '../utils/aiToolSecurity';
+import { getAuth } from 'firebase-admin/auth';
 
 export const ticketsRouter = Router();
 ticketsRouter.use('/api/tickets', async (req, res, next) => {
@@ -16,16 +19,38 @@ ticketsRouter.use('/api/tickets', async (req, res, next) => {
   res.locals.ticketUid = account.uid; next();
 });
 ticketsRouter.use('/api/tickets', ticketProtection);
-ticketsRouter.post('/api/tickets/support', async (req, res) => {
+ticketsRouter.post('/api/tickets/help', async (req, res) => {
   try {
-    const value = z.object({ name: z.string(), phone: z.string(), issueCategory: z.string(), description: z.string(), orderId: z.string().optional() }).strict().parse(req.body);
-    const uid = res.locals.ticketUid;
-    if (value.orderId && !(await ownedAssistantOrders(uid, 1, value.orderId)).length) { res.status(400).json({ success: false, error: 'Choose an order from your own account.' }); return; }
-    const ticket = await createTicket(uid, { ...value, type: 'support' });
+    const uid = res.locals.ticketUid; const account = await getAuth().getUser(uid);
+    const ticket = await withAiRequest(req, () => createHelpTicket(uid, req.body, account.displayName || 'Customer'));
     res.status(201).json({ success: true, ticket: customerTicket(ticket) });
-  } catch (error) { try { await logTicketBlock(res.locals.ticketUid, error instanceof TicketRequestError ? error.message : 'invalid_or_failed_support_create', req.path); } catch {}
-    res.status(error instanceof TicketRequestError ? error.status : error instanceof z.ZodError ? 400 : 503).json({ success: false, error: error instanceof TicketRequestError ? error.message : error instanceof z.ZodError ? 'Check your phone, category and description (5 to 1000 characters).' : 'Your ticket could not be created. Please retry.' }); }
+  } catch (error) {
+    try { await logTicketBlock(res.locals.ticketUid, error instanceof TicketRequestError ? error.message : 'help_create_failed', req.path); } catch {}
+    res.status(error instanceof TicketRequestError ? error.status : 400).json({ success: false, error: error instanceof TicketRequestError ? error.message : 'Check your details and try again. Nothing has been charged.' });
+  }
 });
+ticketsRouter.post('/api/tickets/:id/upgrade', async (req, res) => {
+  try {
+    if (!/^[\w-]{1,128}$/.test(req.params.id)) { res.sendStatus(404); return; }
+    const ticket = await upgradeHelpTicket(res.locals.ticketUid, req.params.id, req.body);
+    await attachServiceCheckout(res.locals.ticketUid, ticket);
+    res.json({ success: true, ...await resumeServiceCheckout(res.locals.ticketUid, ticket.id) });
+  } catch (error) { try { await logTicketBlock(res.locals.ticketUid, error instanceof TicketRequestError ? error.message : 'help_upgrade_failed', req.path); } catch {}
+    res.status(error instanceof TicketRequestError ? error.status : 409).json({ success: false, error: error instanceof TicketRequestError ? error.message : 'Checkout could not be opened. Check My tickets before retrying.' }); }
+});
+ticketsRouter.post('/api/tickets/:id/call', async (req, res) => {
+  try { if (!/^[\w-]{1,128}$/.test(req.params.id)) { res.sendStatus(404); return; }
+    const { brand } = z.object({ brand: z.string().max(50).optional() }).strict().parse(req.body); res.json({ success: true, ticket: customerTicket(await chooseCustomerCare(res.locals.ticketUid, req.params.id, brand)) });
+  } catch { res.status(400).json({ success: false, error: 'Your ticket could not be updated. Please retry.' }); }
+});
+ticketsRouter.get('/api/tickets/:id', async (req, res) => {
+  try { if (!/^[\w-]{1,128}$/.test(req.params.id)) { res.sendStatus(404); return; }
+    const snapshot = await getAdminFirestore().collection('tickets').doc(req.params.id).get();
+    if (!snapshot.exists || snapshot.data()?.uid !== res.locals.ticketUid) { res.sendStatus(404); return; }
+    res.json({ success: true, ticket: customerTicket(ticketSchema.parse(snapshot.data())) });
+  } catch { res.status(503).json({ success: false, error: 'Ticket could not be loaded.' }); }
+});
+ticketsRouter.post('/api/tickets/support', (_req, res) => { res.status(410).json({ success: false, error: 'Please use Get Help.' }); });
 ticketsRouter.get('/api/tickets', async (req, res) => {
   try {
     const page = parsePage(req.query as Record<string, unknown>);

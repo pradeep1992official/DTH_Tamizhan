@@ -3,6 +3,7 @@ import { POLICY_ROUTES } from './trustContent';
 
 export interface PageMetadata { title: string; description: string; status: 200 | 404 | 500; noindex: boolean; path: string }
 const pages: Record<string, { en: [string, string]; ta: [string, string] }> = {
+  '/help': { en: ['Get Help', 'Help with recharges, payments and DTH problems.'], ta: ['உதவி பெறுங்கள்', 'ரீசார்ஜ், கட்டணம் மற்றும் DTH பிரச்சனைகளுக்கு உதவி.'] },
   '/support': { en: ['Support', 'Create a free support ticket.'], ta: ['Support', 'Create a free support ticket.'] },
   '/service-request': { en: ['DTH service request', 'Complaint registration assistance.'], ta: ['DTH service request', 'Complaint registration assistance.'] },
   '/my-tickets': { en: ['My tickets', 'Track your support requests.'], ta: ['My tickets', 'Track your support requests.'] },

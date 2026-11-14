@@ -161,6 +161,7 @@ export const Header: React.FC<HeaderProps> = ({
             {t.navConnections}
           </button>
 
+          <a href="/help" aria-current={activeTab === 'help' ? 'page' : undefined} className="help-navigation-link">{currentLang === 'ta' ? 'உதவி பெறுங்கள்' : 'Get Help'}</a>
         </nav>
 
         {/* Right Action: Unified Profile & Settings Dropdown */}
@@ -378,6 +379,7 @@ export const Header: React.FC<HeaderProps> = ({
           {t.navConnections}
         </button>
 
+        <a href="/help" aria-current={activeTab === 'help' ? 'page' : undefined} className="help-navigation-link">{currentLang === 'ta' ? 'உதவி பெறுங்கள்' : 'Get Help'}</a>
       </nav>
     </header>
   );

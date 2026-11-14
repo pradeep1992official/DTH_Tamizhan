@@ -8,7 +8,7 @@ import { documentKey } from '../persistence';
 export function ticketEmail(ticket: Ticket, event: string) {
   const subject = `${ticket.ticketNo}: ${event === 'paid' ? 'Payment received' : event.replace(/_/g, ' ')}`;
   const text = event === 'paid' ? `Your Rs. 50 test payment is verified. Your receipt is attached. No real money was collected. Current request status: ${ticket.status.replace(/_/g, ' ')}.` :
-    event === 'created' ? `Your ${ticket.type === 'support' ? 'free support ticket' : 'service request'} has been created. Current status: ${ticket.status.replace(/_/g, ' ')}.` :
+    event === 'created' ? `Your help ticket has been created. Current status: ${ticket.status.replace(/_/g, ' ')}.` :
     event === 'placed_with_company' ? `Your complaint was registered with the DTH company. Company complaint number: ${ticket.companyRefNo}.` :
     event === 'auto_refunded' ? `Your Rs. 50 test refund has been processed. Refund reference: ${ticket.payment.refundId}. For real normal refunds, bank credit usually takes 5-7 working days and can vary by bank. No real money moved in this test.` :
     `Your request status is ${event.replace(/_/g, ' ')}.`;

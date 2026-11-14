@@ -137,10 +137,10 @@ export function RechargeAssistant({ currentLang, displayName, onCheckout }: {
       const verified = refundDraftSchema.parse(data.action);
       if (verified.draft.order_id !== draft.draft.order_id) throw new Error('Order verification failed.');
       if (!['eligible', 'manual_review_required'].includes(verified.eligibility.status)) return verified;
-      navigate('/support', { state: { ticketPrefill: refundSupportTicketPrefill(verified) } });
+      navigate('/help', { state: { ticketPrefill: refundSupportTicketPrefill(verified) } });
       return;
     }
-    window.location.assign(draftSupportEmail(draft));
+    navigate('/help', { state: { ticketPrefill: { issueCategory: draft.draft.category === 'wrong_operator' ? 'other' : draft.draft.category, description: `${draft.draft.subject}: ${draft.draft.message}`.slice(0, 1000) } } });
   }
   const notices: Record<string, string> = {
     history: text('You can view your past recharges, payment status and receipts in My History.', 'என் வரலாறு பக்கத்தில் முந்தைய ரீசார்ஜ்கள், கட்டண நிலை மற்றும் ரசீதுகளைப் பார்க்கலாம்.'),

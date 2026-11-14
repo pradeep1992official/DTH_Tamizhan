@@ -6,8 +6,10 @@ import { parsePage } from '../models/paymentPages';
 import { analyticsBounds } from '../models/adminAnalytics';
 import { updateAdminTicket } from '../models/ticketAdmin';
 import { replySchema } from './tickets';
-import type { Ticket } from '../../src/lib/tickets';
+import { stripTicketHtml, type Ticket } from '../../src/lib/tickets';
 import { refundServiceRequest } from '../models/serviceRefunds';
+import { reclassifyHelpTicket, upgradeHelpTicket } from '../models/help';
+import { attachServiceCheckout } from '../models/servicePayments';
 export const adminTicketsRouter = Router();
 adminTicketsRouter.use('/api/admin/tickets', async (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -16,11 +18,24 @@ adminTicketsRouter.use('/api/admin/tickets', async (req, res, next) => {
     res.locals.uid = account.uid; next();
   } catch { res.status(503).json({ success: false, error: 'Administrator access could not be verified.' }); }
 });
+adminTicketsRouter.post('/api/admin/tickets/:id/reclassify', async (req, res) => {
+  try { if (!/^[\w-]{1,128}$/.test(req.params.id)) { res.sendStatus(404); return; }
+    const value = z.object({ route: z.enum(['free', 'dth_service']), reason: z.string().transform(stripTicketHtml).pipe(z.string().min(5).max(200)) }).strict().parse(req.body);
+    res.json({ success: true, ticket: await reclassifyHelpTicket(req.params.id, res.locals.uid, value.route, value.reason) });
+  } catch { res.status(409).json({ success: false, error: 'Only open, unpaid tickets can be reclassified.' }); }
+});
+adminTicketsRouter.post('/api/admin/tickets/:id/upgrade', async (req, res) => {
+  try { if (!/^[\w-]{1,128}$/.test(req.params.id)) { res.sendStatus(404); return; }
+    const value = z.object({ brand: z.string(), subscriberId: z.string() }).strict().parse(req.body);
+    const ticket = await upgradeHelpTicket('', req.params.id, { ...value, acceptedTerms: true }, res.locals.uid, true);
+    res.json({ success: true, ticket }); // Never mark paid or charge on an administrator's assertion.
+  } catch { res.status(409).json({ success: false, error: 'Upgrade requires an open ticket and valid subscriber details.' }); }
+});
 const listSchema = z.object({ type: z.enum(['support', 'service_request']), status: z.string().max(30).optional(), brand: z.string().max(50).optional(), from: z.string().optional(), to: z.string().optional(), searchBy: z.enum(['ticketNo', 'phone', 'subscriberId']).optional(), search: z.string().trim().max(128).optional(), cursor: z.string().optional(), limit: z.string().optional() }).strict();
 adminTicketsRouter.get('/api/admin/tickets', async (req, res) => {
   try {
     const value = listSchema.parse(req.query); const page = parsePage({ limit: value.limit || '25', cursor: value.cursor });
-    const filters: Filter[] = [{ field: 'type', op: 'eq', value: value.type }];
+    const filters: Filter[] = [{ field: 'type', op: value.type === 'support' ? 'in' : 'eq', value: value.type === 'support' ? ['support', 'dth_service'] : value.type }];
     if (value.status) filters.push({ field: 'status', op: 'eq', value: value.status });
     if (value.brand) filters.push({ field: 'brand', op: 'eq', value: value.brand });
     if (value.search && value.searchBy) filters.push({ field: value.searchBy, op: 'eq', value: value.search });

@@ -1,7 +1,7 @@
 import express, { Router } from 'express';
 import { z } from 'zod';
 import { verifyAuthToken } from '../middleware/auth';
-import { prepareServiceRequest, verifyServiceCheckout, verifyServiceWebhook, confirmServicePayment, servicePaymentConfig, resumeServiceCheckout } from '../models/servicePayments';
+import { verifyServiceCheckout, verifyServiceWebhook, confirmServicePayment, servicePaymentConfig, resumeServiceCheckout } from '../models/servicePayments';
 import { orderCreateLimiter } from '../middleware/rateLimiter';
 import { reconcileServiceRefundWebhook } from '../models/serviceRefunds';
 import { ticketProtection, TicketRequestError, logTicketBlock } from '../middleware/ticketProtection';
@@ -13,11 +13,7 @@ servicePaymentsRouter.use('/api/service-requests', async (req, res, next) => {
   res.locals.uid = account.uid; next();
 });
 servicePaymentsRouter.use('/api/service-requests', ticketProtection);
-servicePaymentsRouter.post('/api/service-requests', orderCreateLimiter, async (req, res) => {
-  try { res.json({ success: true, ...await prepareServiceRequest(res.locals.uid, req.body) }); }
-  catch (error) { try { await logTicketBlock(res.locals.uid, error instanceof TicketRequestError ? error.message : 'invalid_or_failed_service_create', req.path); } catch {}
-    res.status(error instanceof TicketRequestError ? error.status : error instanceof z.ZodError ? 400 : 409).json({ success: false, error: error instanceof TicketRequestError ? error.message : 'Checkout could not be prepared. Check your details and My tickets for an existing request before retrying.' }); }
-});
+servicePaymentsRouter.post('/api/service-requests', (_req, res) => { res.status(410).json({ success: false, error: 'Create a ticket in Get Help first.' }); });
 servicePaymentsRouter.post('/api/service-requests/verify', orderCreateLimiter, async (req, res) => {
   try { res.json({ success: true, ...await verifyServiceCheckout(res.locals.uid, req.body) }); }
   catch { res.status(400).json({ success: false, error: 'Payment is unconfirmed. Check My tickets or retry verification; do not pay again.' }); }

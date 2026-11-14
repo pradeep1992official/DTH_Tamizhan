@@ -80,15 +80,15 @@ it('uses the existing support destination and safely encodes edited fields witho
 it('renders confirmation, Edit and Submit, and blocks refund submission before eligibility is established', async () => {
   const submit = vi.fn();
   const html = renderToStaticMarkup(<AssistantDraftCard action={contact} onSubmit={submit} />);
-  expect(html).toContain('DRAFT'); expect(html).toContain('Edit'); expect(html).toContain('Submit');
-  expect(html).toContain('you must send the email there');
+  expect(html).toContain('DRAFT'); expect(html).toContain('Edit'); expect(html).toContain('Continue to Get Help');
+  expect(html).toContain('Nothing has been submitted or paid');
   f.query.mockResolvedValue([{ ...order, rechargeStatus: 'completed' }]);
   const draft = await draftRefund('owner', { order_id: 'order_1', reason: 'failed' });
   const refundHtml = renderToStaticMarkup(<AssistantDraftCard action={draft} onSubmit={submit} />);
-  expect(refundHtml).toContain('Eligibility:'); expect(refundHtml).toContain('Continue to free support form');
-  expect(refundHtml).not.toMatch(/disabled=""[^>]*>Continue to free support form/);
+  expect(refundHtml).toContain('Eligibility:'); expect(refundHtml).toContain('Continue to Get Help');
+  expect(refundHtml).not.toMatch(/disabled=""[^>]*>Continue to Get Help/);
   const blockedRefundHtml = renderToStaticMarkup(<AssistantDraftCard action={{ ...draft, eligibility: { status: 'ineligible', explanation: 'Already refunded.' } }} onSubmit={submit} />);
-  expect(blockedRefundHtml).toMatch(/disabled=""[^>]*>Continue to free support form/);
+  expect(blockedRefundHtml).toMatch(/disabled=""[^>]*>Continue to Get Help/);
   expect(submit).not.toHaveBeenCalled();
 });
 

@@ -2,10 +2,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import { getAdminFirestore } from '../middleware/auth';
 import { razorpayClient, verifyPaymentSignature } from '../razorpay';
-import { ticketSchema, ticketInputSchema, type Ticket } from '../../src/lib/tickets';
-import { validateServiceSubscriber } from '../../src/lib/serviceBrands';
-import { readServiceBrands } from './serviceBrands';
-import { createTicket } from './tickets';
+import { ticketSchema, type Ticket } from '../../src/lib/tickets';
 import { documentKey } from '../persistence';
 
 export function servicePaymentConfig() {
@@ -13,21 +10,13 @@ export function servicePaymentConfig() {
   if (!process.env.RAZORPAY_KEY_ID?.startsWith('rzp_test_') || !process.env.RAZORPAY_KEY_SECRET) throw new Error('Service checkout is available only with configured Razorpay test keys.');
   return razorpayClient();
 }
-export const serviceRequestSchema = z.object({ requestKey: z.string().uuid(), acceptedTerms: z.literal(true),
-  name: z.string(), phone: z.string(), state: z.string(), brand: z.string(), subscriberId: z.string(), issueCategory: z.string(), description: z.string(),
-}).strict();
-export async function prepareServiceRequest(uid: string, input: unknown) {
-  const { requestKey, acceptedTerms: _terms, ...value } = serviceRequestSchema.parse(input);
-  const validated = ticketInputSchema.parse({ ...value, type: 'service_request' });
-  const brand = (await readServiceBrands()).find(brand => brand.id === value.brand);
-  if (!validateServiceSubscriber(brand, value.subscriberId)) throw new Error('Check the brand and subscriber ID.');
+export async function attachServiceCheckout(uid: string, ticket: Ticket) {
   const client = servicePaymentConfig();
-  const ticket = await createTicket(uid, validated, new Date(), requestKey);
   const db = getAdminFirestore(); const ref = db.collection('tickets').doc(ticket.id); const privateRef = db.collection('server_ticket_private').doc(ticket.id);
   const claim = await db.runTransaction(async tx => {
     const [snapshot, privateSnapshot] = await Promise.all([tx.get(ref), tx.get(privateRef)]);
     const current = ticketSchema.parse(snapshot.data());
-    if (current.uid !== uid || current.status !== 'pending_payment' || Date.now() - Date.parse(current.createdAt) >= 30 * 60_000) throw new Error('This checkout is no longer available.');
+    if (current.uid !== uid || current.status !== 'pending_payment' || Date.now() - Date.parse(current.checkoutStartedAt || current.createdAt) >= 30 * 60_000) throw new Error('This checkout is no longer available.');
     if (current.payment.gatewayOrderId) return current.payment.gatewayOrderId;
     if (privateSnapshot.data()?.gatewayCreationStarted) throw new Error('Checkout creation is unconfirmed. Contact Support before trying another payment.');
     tx.set(privateRef, { gatewayCreationStarted: true }, { merge: true }); return null;
@@ -98,7 +87,7 @@ export async function resumeServiceCheckout(uid: string, ticketId: string, now =
     if (captured) return confirmServicePayment(ticketId, captured.id, uid);
     if (order.status === 'paid' || payments.items.some(payment => payment.status === 'authorized')) return { paid: false, pending: true };
   }
-  if (ticket.status !== 'pending_payment' || now >= Date.parse(ticket.createdAt) + 30 * 60_000) throw new Error('This unpaid checkout has expired.');
+  if (ticket.status !== 'pending_payment' || now >= Date.parse(ticket.checkoutStartedAt || ticket.createdAt) + 30 * 60_000) throw new Error('This unpaid checkout has expired.');
   return { paid: false, ticketId, ticketNo: ticket.ticketNo, order_id: order.id, key_id: process.env.RAZORPAY_KEY_ID, amount: 5000, currency: 'INR' };
 }
 export function verifyServiceWebhook(raw: Buffer, signature: unknown) {

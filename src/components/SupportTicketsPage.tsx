@@ -1,55 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { supportTicketPrefillSchema } from '../lib/supportRouting';
+import { Link } from 'react-router-dom';
 import type { UserProfile } from '../types';
 import type { Ticket } from '../lib/tickets';
-import { supportCategories } from '../lib/tickets';
 import { ticketApi } from '../lib/ticketApi';
-import { paymentAuthHeaders } from '../lib/paymentAuth';
 import { auth } from '../lib/firebase';
-import { BUSINESS_DETAILS } from '../lib/trustContent';
 import { downloadTicketFile } from '../lib/ticketReceipt';
 import { ServiceTicketPaymentButton } from './ServiceTicketPaymentButton';
-
-export function ticketWhatsApp(ticket: Pick<Ticket, 'ticketNo' | 'issueCategory' | 'description'>) {
-  return `https://wa.me/${BUSINESS_DETAILS.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`${ticket.ticketNo}\n${ticket.issueCategory.replace(/_/g, ' ')}\n${ticket.description}`)}`;
-}
-export function SupportTicketsPage({ user, onOpenAuth, list = false }: { user: UserProfile | null; onOpenAuth: () => void; list?: boolean }) {
-  const location = useLocation(); const parsedPrefill = supportTicketPrefillSchema.safeParse(location.state?.ticketPrefill); const prefill = parsedPrefill.success ? parsedPrefill.data : undefined;
-  const [tickets, setTickets] = useState<Ticket[]>([]); const [created, setCreated] = useState<Ticket | null>(null);
-  const [orders, setOrders] = useState<{ orderId: string; packName: string }[]>([]);
-  const [error, setError] = useState(''); const [busy, setBusy] = useState(false); const [refresh, setRefresh] = useState(0);
-  const [cursor, setCursor] = useState<string | null>(null);
-  useEffect(() => {
-    let active = true; setTickets([]); setCreated(null); setOrders([]); setError(''); setCursor(null);
-    if (user) (async () => { try {
-      if (list) { const data = await ticketApi('?limit=25'); if (active && auth?.currentUser?.uid === user.uid) { setTickets(data.tickets); setCursor(data.nextCursor); } }
-      else { const response = await fetch('/api/my/history?limit=100', { headers: await paymentAuthHeaders(), cache: 'no-store' }); const data = await response.json(); if (!response.ok) throw new Error('Orders could not be loaded. You can submit without linking an order.'); if (active && auth?.currentUser?.uid === user.uid) setOrders(data.orders || []); }
-    } catch (e) { if (active) setError(e instanceof Error ? e.message : 'Please retry.'); } })();
-    return () => { active = false; };
-  }, [user?.uid, list, refresh, location.key]);
-  return <section className="mx-auto max-w-2xl p-4 space-y-4">
-    <h1 className="text-2xl font-semibold">{list ? 'My tickets' : 'Free support ticket'}</h1>
-    <nav className="flex flex-wrap gap-4"><Link to="/support">Free website / recharge support</Link><Link to="/service-request">DTH company complaint assistance</Link><Link to="/my-tickets">My tickets</Link></nav>
-    {!user ? <button className="admin-primary" onClick={onOpenAuth}>Sign in to continue</button> : <>
-      {error && <p role="alert" className="text-error">{error}</p>}
-      {created ? <div role="status" className="rounded-lg border border-rule p-4 space-y-3"><h2>Ticket {created.ticketNo} created</h2><a href={ticketWhatsApp(created)} target="_blank" rel="noopener noreferrer">Chat on WhatsApp</a><p><Link to="/my-tickets">View your tickets</Link></p></div> : !list && <form key={location.key} className="space-y-4" onSubmit={async event => {
-        event.preventDefault(); if (busy) return; const form = event.currentTarget; const values = new FormData(form); const uid = user.uid; setBusy(true); setError('');
-        try { const data = await ticketApi('/support', { website: values.get('website'), name: values.get('name'), phone: values.get('phone'), issueCategory: values.get('issueCategory'), description: values.get('description'), ...(values.get('orderId') ? { orderId: values.get('orderId') } : {}) }); if (auth?.currentUser?.uid === uid) setCreated(data.ticket); }
-        catch (e) { if (auth?.currentUser?.uid === uid) setError(e instanceof Error ? e.message : 'Please retry.'); } finally { setBusy(false); }
-      }}>
-        <p>For website, recharge, payment, refund or account issues. This service is free.</p>
-        <div hidden aria-hidden="true"><label>Website<input name="website" tabIndex={-1} autoComplete="off" /></label></div>
-        <label className="block">Name<input name="name" required maxLength={100} defaultValue={prefill?.name || user.displayName} className="block w-full rounded-lg border border-rule p-3" /></label>
-        <label className="block">Phone<input name="phone" required inputMode="tel" pattern="[6-9][0-9]{9}" maxLength={10} defaultValue={prefill?.phone || user.phoneNumber} className="block w-full rounded-lg border border-rule p-3" /></label>
-        <label className="block">Category<select name="issueCategory" defaultValue={prefill?.issueCategory} className="block w-full rounded-lg border border-rule p-3">{supportCategories.map(category => <option key={category} value={category}>{category.replace(/_/g, ' ')}</option>)}</select></label>
-        <label className="block">Linked order (optional)<select name="orderId" defaultValue={prefill?.orderId} key={orders.length} className="block w-full rounded-lg border border-rule p-3"><option value="">No linked order</option>{orders.map(order => <option key={order.orderId} value={order.orderId}>{order.orderId} - {order.packName}</option>)}</select></label>
-        <label className="block">Description<textarea name="description" defaultValue={prefill?.description} required minLength={5} maxLength={1000} rows={4} className="block w-full rounded-lg border border-rule p-3" /></label>
-        <button className="admin-primary" disabled={busy}>{busy ? 'Creating...' : 'Create free ticket'}</button>
-      </form>}
-      {list && <><button className="admin-quiet" onClick={() => setRefresh(value => value + 1)}>Refresh</button>{!tickets.length && <p>No tickets yet.</p>}{tickets.map(ticket => <TicketThread key={ticket.id} ticket={ticket} />)}
-      {cursor && <button className="admin-primary" disabled={busy} onClick={async () => { setBusy(true); try { const data = await ticketApi(`?limit=25&cursor=${encodeURIComponent(cursor)}`); if (auth?.currentUser?.uid === user.uid) { setTickets(old => [...old, ...data.tickets]); setCursor(data.nextCursor); } } catch { setError('More tickets could not be loaded.'); } finally { setBusy(false); } }}>Load more</button>}</>}
-    </>}
+export function SupportTicketsPage({ user, onOpenAuth }: { user: UserProfile | null; onOpenAuth: () => void; list?: boolean }) {
+  const [tickets, setTickets] = useState<Ticket[]>([]); const [cursor, setCursor] = useState<string | null>(null); const [error, setError] = useState(''); const [busy, setBusy] = useState(false); const [refresh, setRefresh] = useState(0);
+  useEffect(() => { let active = true; setTickets([]); setCursor(null); if (user) ticketApi('?limit=25').then(data => { if (active && auth?.currentUser?.uid === user.uid) { setTickets(data.tickets); setCursor(data.nextCursor); } }).catch(() => { if (active) setError('Your tickets could not be loaded.'); }); return () => { active = false; }; }, [user?.uid, refresh]);
+  return <section className="mx-auto max-w-2xl p-4 space-y-4"><header className="flex items-center justify-between gap-3"><h1 className="text-2xl font-semibold">My tickets</h1><Link to="/help">Get Help</Link></header>
+    {!user ? <button className="admin-primary" onClick={onOpenAuth}>Sign in to continue</button> : <><button className="admin-quiet" onClick={() => setRefresh(value => value + 1)}>Refresh</button>{error && <p role="alert">{error}</p>}{!tickets.length && <p>No tickets yet.</p>}{tickets.map(ticket => <TicketThread key={ticket.id} ticket={ticket} />)}
+    {cursor && <button className="admin-primary" disabled={busy} onClick={async () => { setBusy(true); try { const data = await ticketApi(`?limit=25&cursor=${encodeURIComponent(cursor)}`); if (auth?.currentUser?.uid === user.uid) { setTickets(old => [...old, ...data.tickets]); setCursor(data.nextCursor); } } catch { setError('More tickets could not be loaded.'); } finally { setBusy(false); } }}>Load more</button>}</>}
   </section>;
 }
 function TicketThread({ ticket }: { ticket: Ticket }) {
@@ -59,7 +21,8 @@ function TicketThread({ ticket }: { ticket: Ticket }) {
   return <details className="rounded-lg border border-rule p-4" onToggle={event => { if (event.currentTarget.open) void load(); }}>
     <summary className="cursor-pointer">{ticket.ticketNo} - {ticket.status.replace(/_/g, ' ')}</summary>
     <p className="whitespace-pre-wrap my-3">{ticket.description}</p>
-    {ticket.type === 'service_request' && ['pending_payment', 'expired'].includes(ticket.status) && <ServiceTicketPaymentButton ticketId={ticket.id} />}
+    {ticket.helpRoute === 'dth_service' && ticket.type !== 'service_request' && ['open', 'in_progress'].includes(ticket.status) && <Link to="/help" state={{ ticketId: ticket.id }}>Get Help</Link>}
+    {ticket.type === 'service_request' && ['pending_payment', 'expired'].includes(ticket.status) && <ServiceTicketPaymentButton ticketId={ticket.id} brand={ticket.brand} subscriberId={ticket.subscriberId} unified={!!ticket.helpRoute} />}
     {ticket.payment.paidAt && <div className="my-3"><p>{ticket.payment.status === 'refunded' ? 'Refunded' : 'Payment received'} - Rs. 50</p><button className="admin-quiet" onClick={() => void downloadTicketFile(`/api/tickets/${ticket.id}/receipt`, `${ticket.ticketNo}.pdf`).catch(() => setError('Your receipt is not ready. Please retry shortly.'))}>Download bill</button></div>}
     {ticket.type === 'service_request' && ticket.status === 'paid' && <p className="text-sm">If the complaint is not placed within 24 hours of verified payment, your fee is refunded automatically. Normal bank credit usually takes 5-7 working days after a refund is processed. Test requests do not move real money.</p>}
     {ticket.payment.status === 'refunding' && <p role="status">Refund processing is pending. Please do not request another refund.</p>}
