@@ -1,14 +1,15 @@
+import { runAiTool } from './aiToolSecurity';
 import { z } from 'zod';
 import { openTicketsArgs, rechargeQueryArgs, pendingRechargeArgs, type AdminQueryResult } from '../../src/lib/adminAi';
 import { openSupportTickets, queryAdminRecharges, overallPendingRecharges, adminRechargeTotals, adminRevenueTotals } from '../models/adminAiData';
 export class InvalidAdminTool extends Error {}
-export const adminToolsRegistry = {
+export const adminToolsRegistry = Object.freeze({
   get_revenue_totals: { schema: z.object({}).strict(), description: 'Sum recorded captured INR payments through today, live and test separately. Excludes pending, failed and refunded payments. Use for total revenue or collections, never return order counts. Not accounting profit. No writes.' },
   get_recharge_totals: { schema: z.object({}).strict(), description: 'Count ALL recorded recharge orders across every status through today. Returns live and test counts separately with completed, pending and failed breakdowns. Use for total recharges, not the pending-only list. No arguments or writes.' },
   list_pending_recharges: { schema: pendingRechargeArgs, description: 'Read ALL paid unfinished recharges (live and test) from the same payment-backed source as Pending Orders, through today in Asia/Kolkata, including older pending and processing orders. No start date or 31-day cutoff. Use for overall pending or any pending request without an explicit historical date range. Bounded pages, follow nextCursor for more.' },
   query_recharges: { schema: rechargeQueryArgs, description: 'Read live recharges by exact status and inclusive creation-date range in Asia/Kolkata. Max 31 days and 100 rows. For yesterday use yesterday for both dates. No raw queries.' },
   list_open_tickets: { schema: openTicketsArgs, description: 'Read a bounded set of open imported contact/refund tickets. Never updates a ticket.' },
-} as const;
+} as const);
 export const adminToolDefinitions = Object.entries(adminToolsRegistry).map(([name, tool]) => ({ name, description: tool.description, parametersJsonSchema: z.toJSONSchema(tool.schema) }));
 export function indiaDateRange(start: string, end: string) {
   const dates = rechargeQueryArgs.pick({ start_date: true, end_date: true }).parse({ start_date: start, end_date: end });
@@ -17,6 +18,9 @@ export function indiaDateRange(start: string, end: string) {
   return { after: new Date(from - 1).toISOString(), through: new Date(through - 1).toISOString() };
 }
 export async function executeAdminTool(name: unknown, args: unknown, now = Date.now()): Promise<AdminQueryResult> {
+  return runAiTool('admin', name, args, async () => executeAdminRead(name, args, now));
+}
+async function executeAdminRead(name: unknown, args: unknown, now: number): Promise<AdminQueryResult> {
   if (typeof name !== 'string' || !Object.hasOwn(adminToolsRegistry, name)) throw new InvalidAdminTool('Unknown admin AI tool.');
   const validation = adminToolsRegistry[name as keyof typeof adminToolsRegistry].schema.safeParse(args);
   if (!validation.success) throw new InvalidAdminTool('Invalid admin AI tool arguments.');

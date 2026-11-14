@@ -1,3 +1,4 @@
+import { runAiTool } from './aiToolSecurity';
 import { resolveAssistantLanguage, type AssistantLanguageChoice } from '../../src/lib/assistantLanguage';
 import { actionNotice } from '../../src/lib/assistantActions';
 import { GoogleGenAI, FunctionCallingConfigMode, ThinkingLevel } from '@google/genai';
@@ -29,7 +30,7 @@ export async function assistantToolTurn(uid: string, messages: string[], choice:
     return null;
   }
   const calls = response.functionCalls || [];
-  if (calls.length > 1) throw new InvalidAssistantTool('Only one tool is allowed per turn.');
+  if (calls.length > 1) return runAiTool('customer', 'rejected_tool_batch', { calls }, async () => { throw new InvalidAssistantTool('Only one tool is allowed per turn.'); }, uid);
   if (calls.length) {
     const action = await executeAssistantTool(calls[0].name, calls[0].args, uid);
     return { success: true, state: 'tool_action', language, text: ['show_recharge_status', 'show_history', 'contact_draft', 'refund_draft'].includes(action.type) ? actionNotice(action, language) : response.text?.trim() ||

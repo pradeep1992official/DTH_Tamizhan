@@ -320,3 +320,7 @@ An explicit new-customer/new-box request requires a typed subscriber ID before r
 ## Admin AI panel
 
 The admin console includes `/admin/ai`: read-only safe query tools, suggested priorities/summaries for imported contact/refund tickets, and editable reply drafts requiring explicit admin approval before opening email. It reuses the existing server-verified approved-admin registry policy (this project has no custom admin claim). See [Admin AI setup and imported-ticket format](docs/admin-ai.md). The new `server_support_tickets` source is empty until tickets are imported; customer email requests are not automatically synced.
+
+## AI tool security and audit
+
+Every dispatched AI tool now re-verifies the request token server-side; admin tools also recheck the approved-admin registry, and customer data reads use the freshly verified UID. Mandatory append-only audit events go to `server_ai_tool_audit` with signed UID, tool, redacted/bounded arguments and results. Tools fail closed if audit storage is unavailable. Existing server-collection rules deny browser access. Configure server audit-write IAM and retention before deployment. See [AI security checklist and validation gaps](docs/ai-security-review.md).

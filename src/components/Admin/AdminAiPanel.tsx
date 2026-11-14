@@ -47,7 +47,7 @@ export function AdminAiPanel({ getAuthHeaders, currentLang }: {
       if (request.current === controller) { locked.current = false; setBusy(false); setError('This is taking too long. Please retry. No records were changed.'); }
     }, 45_000);
     try { await task(); if (!controller.signal.aborted && announceCompletion) setNotice(old => old || 'Finished. No records were changed.'); }
-    catch (error) { if (!controller.signal.aborted) setError(error instanceof Error ? error.message : 'Request failed.'); }
+    catch (error) { if (!controller.signal.aborted) setError(error instanceof Error && error.name !== 'ZodError' && !(error instanceof SyntaxError) && !(error instanceof TypeError) ? error.message : 'The assistant reply could not be loaded. Please try again.'); }
     finally { clearTimeout(timeout); if (request.current === controller) { locked.current = false; if (!controller.signal.aborted) setBusy(false); } }
   }
   useEffect(() => {

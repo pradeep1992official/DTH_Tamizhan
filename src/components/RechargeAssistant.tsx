@@ -124,7 +124,7 @@ export function RechargeAssistant({ currentLang, displayName, onCheckout }: {
       setPastReplies(old => ({ ...old, [next.length - 1]: data }));
       if (!target.newCustomer && data.box?.id && !data.box.id.startsWith('new-')) confirmedBox.current = data.box.id;
       if (data.state === 'awaiting_payment' && data.plans?.length === 1) setSelectedPlanId(data.plans[0].id);
-    } catch (err) { if (!request.signal.aborted) setError(err instanceof Error ? err.message : 'Unable to prepare recharge.'); }
+    } catch (err) { if (!request.signal.aborted) setError(err instanceof Error && err.name !== 'ZodError' && !(err instanceof SyntaxError) && !(err instanceof TypeError) ? err.message : 'The assistant reply could not be loaded. Please try again.'); }
     finally { inFlight.current = false; if (!request.signal.aborted) setBusy(false); }
   }
   async function submitSupportDraft(draft: SupportDraft) {

@@ -1,3 +1,4 @@
+import { runAiTool } from './aiToolSecurity';
 import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import { verifiedFreeKey, reserveFreeRequest, FREE_RECOMMENDATION_MODEL } from './freeTierAi';
 import { adminToolDefinitions, executeAdminTool, InvalidAdminTool } from './adminAiTools';
@@ -34,7 +35,7 @@ export async function adminNaturalQuery(uid: string, message: string, now = Date
   });
   const calls = response.functionCalls || [];
   if (!calls.length) return { text: response.text?.slice(0, 1000) || 'Specify a recharge status and date range, or ask for open tickets.' };
-  if (calls.length !== 1) throw new InvalidAdminTool('Only one read-only tool is allowed per query.');
+  if (calls.length !== 1) return runAiTool('admin', 'rejected_tool_batch', { calls }, async () => { throw new InvalidAdminTool('Only one read-only tool is allowed per query.'); }, uid);
   const result = await executeAdminTool(calls[0].name, calls[0].args, now);
   return { text: result.type === 'revenue_totals' ? 'Captured INR collections through today; test money is not real revenue.' : result.type === 'recharge_totals' ? 'Total recharge orders across all statuses, with live and test counts separated.' : result.type === 'pending_recharges' ? `Showing ${result.rows.length} unfinished recharges from all dates through ${result.through_date}. No records changed.` : result.type === 'recharges' ? `Showing ${result.rows.length} matching recharges (creation date, Asia/Kolkata).` : `Showing ${result.tickets.length} open tickets.`, result };
 }

@@ -1,3 +1,4 @@
+vi.mock('../server/utils/aiToolSecurity', () => ({ runAiTool: async (_scope: string, _name: unknown, _args: unknown, execute: (uid: string) => Promise<unknown>, uid = 'admin-test') => execute(uid) }));
 import { beforeEach, expect, it, vi } from 'vitest';
 const f = vi.hoisted(() => ({ recharges: vi.fn(), tickets: vi.fn(), pending: vi.fn() }));
 vi.mock('../server/models/adminAiData', () => ({ overallPendingRecharges: f.pending, queryAdminRecharges: f.recharges, openSupportTickets: f.tickets }));

@@ -1,3 +1,4 @@
+vi.mock('../server/utils/assistantTools', () => ({ executeAssistantTool: async (_name: unknown, args: unknown, uid: string) => f.check(uid, args) }));
 import express from 'express';
 import type { Server } from 'node:http';
 import { afterAll, beforeAll, beforeEach, expect, it, vi } from 'vitest';

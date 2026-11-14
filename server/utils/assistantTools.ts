@@ -1,3 +1,4 @@
+import { runAiTool } from './aiToolSecurity';
 import { contactDraftArgs, refundDraftArgs } from '../../src/lib/assistantDrafts';
 import { draftRefund } from '../models/assistantDrafts';
 import { assistantHistory } from '../models/assistantHistory';
@@ -6,19 +7,22 @@ import { navigateArgs, plansArgs, rechargeStatusArgs, historyArgs, type Assistan
 import { planModel } from '../models/planModel';
 import { validateCatalogPack } from '../../src/lib/catalog';
 
-export const toolsRegistry = {
+export const toolsRegistry = Object.freeze({
   draft_contact_message: { description: 'Create an unsent contact draft for confirmation. Categorize the issue as recharge_failed, wrong_operator, refund, account, or other. Never submit it.', schema: contactDraftArgs },
   draft_refund_request: { description: 'Create an unsent refund request draft. Requires the user-provided order ID and reason. Ownership and eligibility are checked by the server; never promise approval or submit.', schema: refundDraftArgs },
   get_recharge_status: { description: 'Look up the signed-in user?s recharge status by order ID. Never invent a status.', schema: rechargeStatusArgs },
   get_my_history: { description: 'Read the signed-in user?s most recent recharges; limit must be 1 to 20. No UID argument.', schema: historyArgs },
   navigate: { description: 'Open a public site page when the user asks to visit it.', schema: navigateArgs },
   get_plans: { description: 'Find catalog plans for an operator at or below max_price in rupees (total pack price). Ask for missing operator or budget.', schema: plansArgs },
-} as const;
+} as const);
 export const toolDefinitions = Object.entries(toolsRegistry).map(([name, tool]) => ({
   name, description: tool.description, parametersJsonSchema: z.toJSONSchema(tool.schema),
 }));
 export class InvalidAssistantTool extends Error {}
 export async function executeAssistantTool(name: unknown, args: unknown, uid: string): Promise<AssistantAction> {
+  return runAiTool('customer', name, args, async verifiedUid => executeCustomerTool(name, args, verifiedUid), uid);
+}
+async function executeCustomerTool(name: unknown, args: unknown, uid: string): Promise<AssistantAction> {
   if (!uid) throw new InvalidAssistantTool('Authentication required.');
   if (typeof name !== 'string' || !Object.hasOwn(toolsRegistry, name)) throw new InvalidAssistantTool('Unknown assistant tool.');
   const parsed = toolsRegistry[name as keyof typeof toolsRegistry].schema.safeParse(args);

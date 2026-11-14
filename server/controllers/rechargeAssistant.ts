@@ -1,3 +1,4 @@
+import { AiToolAccessDenied } from '../utils/aiToolSecurity';
 import { rechargeTarget } from '../../src/lib/rechargeTarget';
 import { assistantCatalogFallback } from '../utils/assistantCatalog';
 import { assistantToolTurn } from '../utils/assistantTurn';
@@ -130,6 +131,7 @@ export async function prepareAssistantRecharge(req: Request, res: Response): Pro
     res.json({ success: true, source, state: alternatives ? 'alternatives' : plans.length ? 'awaiting_payment' : 'no_plans', intent,
       box, operator, plans });
   } catch (error) {
+    if (error instanceof AiToolAccessDenied) { res.status(error.status).json({ success: false, error: error.message }); return; }
     if (error instanceof InvalidAssistantTool) { res.status(502).json({ success: false, error: 'The assistant returned an invalid action. Please try again.' }); return; }
     const code = (error as { code?: unknown })?.code;
     const quota = code === 8 || code === 'resource-exhausted' || code === 'RESOURCE_EXHAUSTED';

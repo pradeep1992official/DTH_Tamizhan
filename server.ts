@@ -91,6 +91,12 @@ async function startServer() {
     app.use(pageHandler(async req => vite!.transformIndexHtml(req.originalUrl, fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8'))));
   } else {
     const distPath = path.join(process.cwd(), 'dist');
+    app.use((req, res, next) => {
+      let assetPath: string;
+      try { assetPath = decodeURIComponent(req.path); } catch { res.status(400).send('Invalid path.'); return; }
+      if (/\.(?:cjs|map)(?:$|[.:\s])/i.test(assetPath)) { res.status(404).send('Not found.'); return; }
+      next();
+    });
     app.use(express.static(distPath, { index: false }));
     app.use(pageHandler(() => fs.readFileSync(path.join(distPath, 'index.html'), 'utf8')));
   }

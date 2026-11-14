@@ -26,7 +26,7 @@ export function AssistantDraftCard({ action, onSubmit, language = 'en' }: {
         return;
       }
       setNotice(copy('Email draft opened. Review it and press Send in your email app. Delivery is not confirmed here.'));
-    } catch (error) { setNotice(error instanceof Error ? copy(error.message) : copy('Could not open the email draft.')); }
+    } catch (error) { setNotice(error instanceof Error && error.name !== 'ZodError' && !(error instanceof SyntaxError) && !(error instanceof TypeError) ? copy(error.message) : copy('Could not open the email draft.')); }
     finally { setBusy(false); }
   }
   return <section aria-label={copy('Draft confirmation')} lang={assistantLanguageTag(language)} className="border border-rule rounded-lg p-3 space-y-3">

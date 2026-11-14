@@ -7,7 +7,7 @@ vi.mock('firebase-admin/auth', () => ({ getAuth: () => ({ verifyIdToken: async (
   if (token === 'bad') throw new Error('bad');
   return { uid: token, email: token === 'root' ? 'professorpradeeps@gmail.com' : `${token}@example.com`, email_verified: token !== 'unverified', admin: token === 'claim-only' };
 } }) }));
-vi.mock('firebase-admin/firestore', () => ({ getFirestore: () => ({ collection: () => ({ doc: (id: string) => ({ get: async () => ({ data: () => f.registry[id] }) }) }) }) }));
+vi.mock('firebase-admin/firestore', () => ({ getFirestore: () => ({ collection: () => ({ doc: (id: string) => ({ create: async () => {}, get: async () => ({ data: () => f.registry[id] }) }) }) }) }));
 vi.mock('../server/middleware/aiRateLimiter', () => ({ allowAiRequest: async () => true }));
 vi.mock('../server/models/adminAiData', () => ({ overallPendingRecharges: f.pending, openSupportTickets: f.tickets, supportTicket: f.ticket, ticketView: (ticket: unknown) => ticket }));
 vi.mock('../server/utils/adminAiModel', () => ({ adminNaturalQuery: f.query, summarizeAdminTickets: f.summary, draftAdminReply: f.draft }));

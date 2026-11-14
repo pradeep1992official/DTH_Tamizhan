@@ -1,3 +1,4 @@
+import { aiRequestScope, runAiTool, AiToolAccessDenied } from '../utils/aiToolSecurity';
 import { Router, type Response } from 'express';
 import { verifyAuthToken, isCallerAdminAuthorized } from '../middleware/auth';
 import { allowAiRequest } from '../middleware/aiRateLimiter';
@@ -7,6 +8,7 @@ import { openSupportTickets, supportTicket, ticketView } from '../models/adminAi
 import { adminNaturalQuery, summarizeAdminTickets, draftAdminReply } from '../utils/adminAiModel';
 import { executeAdminTool, InvalidAdminTool } from '../utils/adminAiTools';
 export const adminAiRouter = Router();
+adminAiRouter.use(aiRequestScope);
 adminAiRouter.use(async (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
   try {
@@ -20,11 +22,13 @@ adminAiRouter.use(async (req, res, next) => {
   } catch { res.status(503).json({ success: false, error: 'Administrator access could not be verified.' }); }
 });
 function unavailable(res: Response, error: unknown) {
-  res.status(error instanceof InvalidAdminTool ? 502 : 503).json({ success: false,
-    error: error instanceof InvalidAdminTool ? 'The AI returned an unsupported query. Use a status and date range.' : 'AI or ticket data is unavailable. Please retry. No reply has been sent.' });
+  res.status(error instanceof AiToolAccessDenied || error instanceof TicketActionError ? error.status : error instanceof InvalidAdminTool ? 502 : 503).json({ success: false,
+    error: error instanceof AiToolAccessDenied || error instanceof TicketActionError ? error.message : error instanceof InvalidAdminTool ? 'The AI returned an unsupported query. Use a status and date range.' : 'AI or ticket data is unavailable. Please retry. No reply has been sent.' });
 }
 adminAiRouter.get('/tickets', async (_req, res) => {
-  try { const tickets = await openSupportTickets('all', 20); res.json({ success: true, tickets, limited: tickets.length === 20 }); }
+  try { const result = await executeAdminTool('list_open_tickets', { kind: 'all', limit: 20 });
+    if (result.type !== 'tickets') throw new Error('Unexpected tool result');
+    const tickets = result.tickets; res.json({ success: true, tickets, limited: tickets.length === 20 }); }
   catch (error) { unavailable(res, error); }
 });
 adminAiRouter.post('/pending', async (req, res) => {
@@ -42,29 +46,42 @@ adminAiRouter.post('/query', async (req, res) => {
 adminAiRouter.post('/summarize', async (req, res) => {
   const parsed = ticketSummaryRequest.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ success: false, error: 'Choose 1 to 20 tickets.' }); return; }
-  try { const tickets = await openSupportTickets('all', parsed.data.limit);
-    res.json({ success: true, tickets, analysis: await summarizeAdminTickets(res.locals.adminAiUid, tickets), limited: tickets.length === parsed.data.limit }); }
+  try { const output = await runAiTool('admin', 'summarize_tickets', parsed.data, async uid => {
+      const tickets = await openSupportTickets('all', parsed.data.limit);
+      return { tickets, analysis: await summarizeAdminTickets(uid, tickets), limited: tickets.length === parsed.data.limit };
+    });
+    res.json({ success: true, ...output }); }
   catch (error) { unavailable(res, error); }
 });
+class TicketActionError extends Error {
+  constructor(public status: 404 | 409, message: string) { super(message); }
+}
 adminAiRouter.post('/tickets/:id/draft', async (req, res) => {
   const id = ticketIdSchema.safeParse(req.params.id); const parsed = replyDraftRequest.safeParse(req.body);
   if (!id.success || !parsed.success) { res.status(400).json({ success: false, error: 'Invalid ticket or draft instruction.' }); return; }
-  try { const ticket = await supportTicket(id.data);
-    if (!ticket) { res.status(404).json({ success: false, error: 'Ticket not found.' }); return; }
-    if (ticket.status !== 'open') { res.status(409).json({ success: false, error: 'This ticket is no longer open.' }); return; }
-    res.json({ success: true, draft: await draftAdminReply(res.locals.adminAiUid, ticketView(ticket), parsed.data.instruction) });
+  try {
+    const result = await runAiTool('admin', 'draft_ticket_reply', { ticketId: id.data, ...parsed.data }, async uid => {
+      const ticket = await supportTicket(id.data);
+      if (!ticket) throw new TicketActionError(404, 'Ticket not found.');
+      if (ticket.status !== 'open') throw new TicketActionError(409, 'This ticket is no longer open.');
+      return { draft: await draftAdminReply(uid, ticketView(ticket), parsed.data.instruction) };
+    });
+    res.json({ success: true, ...result });
   } catch (error) { unavailable(res, error); }
 });
 adminAiRouter.post('/tickets/:id/approve', async (req, res) => {
   const id = ticketIdSchema.safeParse(req.params.id); const parsed = replyApprovalSchema.safeParse(req.body);
   if (!id.success || !parsed.success) { res.status(400).json({ success: false, error: 'Review the reply and explicitly approve it.' }); return; }
-  try { const ticket = await supportTicket(id.data);
-    if (!ticket) { res.status(404).json({ success: false, error: 'Ticket not found.' }); return; }
-    if (ticket.status !== 'open') { res.status(409).json({ success: false, error: 'This ticket is no longer open.' }); return; }
-    // Recipient comes only from the trusted imported ticket, never from model/client.
-    const recipient = encodeURIComponent(ticket.replyEmail).replace(/%40/g, '@');
-    const emailUrl = `mailto:${recipient}?subject=${encodeURIComponent(parsed.data.subject)}&body=${encodeURIComponent(parsed.data.body)}`;
-    res.json({ success: true, emailUrl, recipient: ticket.replyEmail, delivery: 'email_app_required' });
+  try {
+    const result = await runAiTool('admin', 'approve_ticket_reply', { ticketId: id.data, ...parsed.data }, async () => {
+      const ticket = await supportTicket(id.data);
+      if (!ticket) throw new TicketActionError(404, 'Ticket not found.');
+      if (ticket.status !== 'open') throw new TicketActionError(409, 'This ticket is no longer open.');
+      const recipient = encodeURIComponent(ticket.replyEmail).replace(/%40/g, '@');
+      return { emailUrl: `mailto:${recipient}?subject=${encodeURIComponent(parsed.data.subject)}&body=${encodeURIComponent(parsed.data.body)}`,
+        recipient: ticket.replyEmail, delivery: 'email_app_required' };
+    });
+    res.json({ success: true, ...result });
   } catch (error) { unavailable(res, error); }
 });
 forwardAsyncErrors(adminAiRouter);

@@ -5,7 +5,9 @@
       "firebase.json",
       "**/.*",
       "**/node_modules/**",
-      "index.html"
+      "index.html",
+      "**/*.cjs",
+      "**/*.map"
     ],
     "rewrites": [
       {

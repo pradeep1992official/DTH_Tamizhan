@@ -1,3 +1,4 @@
+vi.mock('../server/utils/aiToolSecurity', () => ({ runAiTool: async (_scope: string, _name: unknown, _args: unknown, execute: (uid: string) => Promise<unknown>, uid = 'admin-test') => execute(uid) }));
 import { beforeEach, expect, it, vi } from 'vitest';
 import fs from 'node:fs';
 const f = vi.hoisted(() => ({ plans: vi.fn(), generate: vi.fn() }));

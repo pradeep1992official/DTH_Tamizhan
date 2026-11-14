@@ -1,3 +1,4 @@
+vi.mock('../server/utils/aiToolSecurity', async importOriginal => ({ ...await importOriginal<typeof import('../server/utils/aiToolSecurity')>(), runAiTool: async (_scope: string, _name: unknown, _args: unknown, execute: (uid: string) => Promise<unknown>) => execute('owner') }));
 const toolTurn = vi.hoisted(() => vi.fn());
 vi.mock('../server/utils/assistantTurn', () => ({ assistantToolTurn: toolTurn }));
 vi.mock('../server/middleware/aiRateLimiter', () => ({ allowAiRequest: async () => true }));
