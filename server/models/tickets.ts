@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { getAdminFirestore } from '../middleware/auth';
 import { ticketInputSchema, ticketSchema, type Ticket } from '../../src/lib/tickets';
 import { documentKey } from '../persistence';
+import { TicketRequestError } from '../middleware/ticketProtection';
 
 // Internal repository: callers must verify identity and validate linked-order ownership.
 // No status, UID, payment or receipt fields are accepted in customer input.
@@ -23,9 +24,13 @@ export async function createTicket(uid: string, input: unknown, now = new Date()
     const lock = value.type === 'service_request' ? db.collection('server_ticket_locks').doc(documentKey(`${uid}:${value.brand}:${value.subscriberId}`)) : null;
     if (lock) {
       const held = await transaction.get(lock);
-      if (held.exists && held.data()?.active) throw new Error('You already have an open request for this brand and subscriber ID.');
+      if (held.exists && held.data()?.active) throw new TicketRequestError(409, 'You already have an open request for this brand and subscriber ID.');
     }
     const snapshot = await transaction.get(counter);
+    const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+    const capRef = db.collection('server_ticket_daily_caps').doc(documentKey(`${uid}:${value.type}:${day}`));
+    const usage = await transaction.get(capRef); const used = usage.data()?.count || 0;
+    if (used >= (value.type === 'support' ? 3 : 5)) throw new TicketRequestError(429, value.type === 'support' ? 'You can create up to 3 support tickets per day. Please try again tomorrow.' : 'You can create up to 5 paid requests per day. Please try again tomorrow.');
     const previous = snapshot.exists ? snapshot.data()?.value : 0;
     if (!Number.isSafeInteger(previous) || previous < 0 || previous >= Number.MAX_SAFE_INTEGER) throw new Error('Ticket counter unavailable.');
     const sequence = previous + 1;
@@ -40,6 +45,7 @@ export async function createTicket(uid: string, input: unknown, now = new Date()
       receipt: { number: null, path: null, generatedAt: null }, createdAt: timestamp, updatedAt: timestamp,
     });
     transaction.set(counter, { value: sequence });
+    transaction.set(capRef, { count: used + 1, expiresAt: new Date(now.getTime() + 3 * 86_400_000) });
     transaction.create(ref, ticket);
     transaction.set(db.collection('server_ticket_events').doc(`${ticket.id}_created`), { ticketId: ticket.id, event: 'created', createdAt: timestamp, processed: false });
     if (lock) transaction.set(lock, { active: true, ticketId: ticket.id });

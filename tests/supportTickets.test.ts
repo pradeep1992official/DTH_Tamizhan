@@ -1,6 +1,7 @@
 import express from 'express';
 import type { Server } from 'node:http';
 import { afterAll, beforeAll, beforeEach, expect, it, vi } from 'vitest';
+vi.mock('../server/middleware/ticketProtection', () => ({ ticketProtection: (_req: any, _res: any, next: any) => next(), logTicketBlock: async () => {}, TicketRequestError: class extends Error {} }));
 const f = vi.hoisted(() => ({ create: vi.fn(), owned: vi.fn(), query: vi.fn() }));
 vi.mock('../server/middleware/auth', () => ({ verifyAuthToken: async (req: any) => req.headers.authorization === 'Bearer owner' ? { uid: 'owner' } : null, getAdminFirestore: vi.fn() }));
 vi.mock('../server/models/tickets', () => ({ createTicket: f.create, customerTicket: (value: any) => value }));

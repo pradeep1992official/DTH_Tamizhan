@@ -1,13 +1,14 @@
 import { z } from 'zod';
+export function stripTicketHtml(value: string) { return value.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, '').replace(/<[^>]*>/g, '').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '').trim(); }
 
 export const supportCategories = ['recharge_failed', 'payment_deducted', 'refund', 'account', 'website_issue', 'other'] as const;
 export const serviceCategories = ['no_signal', 'wrong_pack', 'missing_channels', 'box_issue', 'other'] as const;
 export const phoneSchema = z.string().regex(/^[6-9]\d{9}$/, 'Enter a valid 10-digit Indian mobile number.');
 export const ticketInputSchema = z.object({
-  type: z.enum(['support', 'service_request']), name: z.string().trim().min(1).max(100),
+  type: z.enum(['support', 'service_request']), name: z.string().transform(stripTicketHtml).pipe(z.string().min(1).max(100)),
   phone: phoneSchema, state: z.string().trim().min(1).max(60).default('Tamil Nadu'),
   brand: z.string().trim().max(50).default(''), subscriberId: z.string().trim().max(25).default(''),
-  issueCategory: z.string().max(40), description: z.string().trim().min(5).max(1000),
+  issueCategory: z.string().max(40), description: z.string().transform(stripTicketHtml).pipe(z.string().min(5).max(1000)),
   orderId: z.string().regex(/^[\w-]{1,128}$/).optional(),
 }).strict().superRefine((value, context) => {
   const categories: readonly string[] = value.type === 'support' ? supportCategories : serviceCategories;

@@ -29,6 +29,10 @@ adminTicketsRouter.get('/api/admin/tickets', async (req, res) => {
     res.json({ success: true, tickets, nextCursor: rows.length > page.limit && last ? Buffer.from(JSON.stringify({ time: last.createdAt, id: last.id })).toString('base64url') : null });
   } catch { res.status(400).json({ success: false, error: 'Tickets could not be loaded. Check the filters and retry.' }); }
 });
+adminTicketsRouter.get('/api/admin/tickets/blocked', async (_req, res) => {
+  try { res.json({ success: true, attempts: await queryRecords('server_ticket_blocks', [], { limit: 100 }) }); }
+  catch { res.status(503).json({ success: false, error: 'Blocked attempts could not be loaded.' }); }
+});
 adminTicketsRouter.get('/api/admin/tickets/:id', async (req, res) => {
   try {
     if (!/^[\w-]{1,128}$/.test(req.params.id)) { res.sendStatus(404); return; }

@@ -4,16 +4,18 @@ import { verifyAuthToken, getAdminFirestore } from '../middleware/auth';
 import { createTicket, customerTicket } from '../models/tickets';
 import { ownedAssistantOrders } from '../models/assistantHistory';
 import { queryRecords } from '../queries';
-import { ticketSchema, type Ticket } from '../../src/lib/tickets';
+import { ticketSchema, stripTicketHtml, type Ticket } from '../../src/lib/tickets';
 import { parsePage } from '../models/paymentPages';
+import { ticketProtection, TicketRequestError, logTicketBlock } from '../middleware/ticketProtection';
 
 export const ticketsRouter = Router();
 ticketsRouter.use('/api/tickets', async (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
   const account = await verifyAuthToken(req);
-  if (!account) { res.status(401).json({ success: false, error: 'Please sign in to view or create tickets.' }); return; }
+  if (!account) { try { await logTicketBlock(null, 'unauthenticated', req.path); } catch {} res.status(401).json({ success: false, error: 'Please sign in to view or create tickets.' }); return; }
   res.locals.ticketUid = account.uid; next();
 });
+ticketsRouter.use('/api/tickets', ticketProtection);
 ticketsRouter.post('/api/tickets/support', async (req, res) => {
   try {
     const value = z.object({ name: z.string(), phone: z.string(), issueCategory: z.string(), description: z.string(), orderId: z.string().optional() }).strict().parse(req.body);
@@ -21,7 +23,8 @@ ticketsRouter.post('/api/tickets/support', async (req, res) => {
     if (value.orderId && !(await ownedAssistantOrders(uid, 1, value.orderId)).length) { res.status(400).json({ success: false, error: 'Choose an order from your own account.' }); return; }
     const ticket = await createTicket(uid, { ...value, type: 'support' });
     res.status(201).json({ success: true, ticket: customerTicket(ticket) });
-  } catch (error) { res.status(error instanceof z.ZodError ? 400 : 503).json({ success: false, error: error instanceof z.ZodError ? 'Check your phone, category and description (5 to 1000 characters).' : 'Your ticket could not be created. Please retry.' }); }
+  } catch (error) { try { await logTicketBlock(res.locals.ticketUid, error instanceof TicketRequestError ? error.message : 'invalid_or_failed_support_create', req.path); } catch {}
+    res.status(error instanceof TicketRequestError ? error.status : error instanceof z.ZodError ? 400 : 503).json({ success: false, error: error instanceof TicketRequestError ? error.message : error instanceof z.ZodError ? 'Check your phone, category and description (5 to 1000 characters).' : 'Your ticket could not be created. Please retry.' }); }
 });
 ticketsRouter.get('/api/tickets', async (req, res) => {
   try {
@@ -32,7 +35,7 @@ ticketsRouter.get('/api/tickets', async (req, res) => {
     res.json({ success: true, tickets: visible, nextCursor: rows.length > page.limit && last ? Buffer.from(JSON.stringify({ time: last.createdAt, id: last.id })).toString('base64url') : null });
   } catch { res.status(503).json({ success: false, error: 'Your tickets could not be loaded. Please retry.' }); }
 });
-export const replySchema = z.object({ message: z.string().trim().min(1).max(1000) }).strict();
+export const replySchema = z.object({ message: z.string().transform(stripTicketHtml).pipe(z.string().min(1).max(1000)) }).strict();
 ticketsRouter.get('/api/tickets/:id/messages', async (req, res) => {
   try {
     if (!/^[\w-]{1,128}$/.test(req.params.id)) { res.sendStatus(404); return; }

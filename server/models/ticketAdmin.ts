@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { getAdminFirestore } from '../middleware/auth';
-import { ticketSchema, ticketStatusSchema, type TicketStatus } from '../../src/lib/tickets';
+import { ticketSchema, ticketStatusSchema, stripTicketHtml, type TicketStatus } from '../../src/lib/tickets';
 import { documentKey } from '../persistence';
-export const adminTicketUpdate = z.object({ status: ticketStatusSchema.optional(), companyRefNo: z.string().trim().max(120).optional(), adminNotes: z.string().max(3000).optional() }).strict();
+export const adminTicketUpdate = z.object({ status: ticketStatusSchema.optional(), companyRefNo: z.string().transform(stripTicketHtml).pipe(z.string().max(120)).optional(), adminNotes: z.string().transform(stripTicketHtml).pipe(z.string().max(3000)).optional() }).strict();
 export const supportTransitions: Partial<Record<TicketStatus, TicketStatus[]>> = { open: ['in_progress', 'resolved', 'closed'], in_progress: ['resolved', 'closed'], resolved: ['closed'] };
 export const serviceTransitions: Partial<Record<TicketStatus, TicketStatus[]>> = { paid: ['placed_with_company'], placed_with_company: ['resolved', 'closed'], resolved: ['closed'] };
 export function validateTicketTransition(type: string, current: TicketStatus, next: TicketStatus, companyRefNo: string, paidAt: string | null, now: number, refunding = false) {

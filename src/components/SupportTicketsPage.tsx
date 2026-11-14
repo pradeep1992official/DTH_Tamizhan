@@ -32,10 +32,11 @@ export function SupportTicketsPage({ user, onOpenAuth, list = false }: { user: U
       {error && <p role="alert" className="text-error">{error}</p>}
       {created ? <div role="status" className="rounded-lg border border-rule p-4 space-y-3"><h2>Ticket {created.ticketNo} created</h2><a href={ticketWhatsApp(created)} target="_blank" rel="noopener noreferrer">Chat on WhatsApp</a><p><Link to="/my-tickets">View your tickets</Link></p></div> : !list && <form className="space-y-4" onSubmit={async event => {
         event.preventDefault(); if (busy) return; const form = event.currentTarget; const values = new FormData(form); const uid = user.uid; setBusy(true); setError('');
-        try { const data = await ticketApi('/support', { name: values.get('name'), phone: values.get('phone'), issueCategory: values.get('issueCategory'), description: values.get('description'), ...(values.get('orderId') ? { orderId: values.get('orderId') } : {}) }); if (auth?.currentUser?.uid === uid) setCreated(data.ticket); }
+        try { const data = await ticketApi('/support', { website: values.get('website'), name: values.get('name'), phone: values.get('phone'), issueCategory: values.get('issueCategory'), description: values.get('description'), ...(values.get('orderId') ? { orderId: values.get('orderId') } : {}) }); if (auth?.currentUser?.uid === uid) setCreated(data.ticket); }
         catch (e) { if (auth?.currentUser?.uid === uid) setError(e instanceof Error ? e.message : 'Please retry.'); } finally { setBusy(false); }
       }}>
         <p>For website, recharge, payment, refund or account issues. This service is free.</p>
+        <div hidden aria-hidden="true"><label>Website<input name="website" tabIndex={-1} autoComplete="off" /></label></div>
         <label className="block">Name<input name="name" required maxLength={100} defaultValue={user.displayName} className="block w-full rounded-lg border border-rule p-3" /></label>
         <label className="block">Phone<input name="phone" required inputMode="tel" pattern="[6-9][0-9]{9}" maxLength={10} defaultValue={user.phoneNumber} className="block w-full rounded-lg border border-rule p-3" /></label>
         <label className="block">Category<select name="issueCategory" className="block w-full rounded-lg border border-rule p-3">{supportCategories.map(category => <option key={category} value={category}>{category.replace(/_/g, ' ')}</option>)}</select></label>

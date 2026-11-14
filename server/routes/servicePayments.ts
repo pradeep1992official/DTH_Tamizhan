@@ -4,16 +4,19 @@ import { verifyAuthToken } from '../middleware/auth';
 import { prepareServiceRequest, verifyServiceCheckout, verifyServiceWebhook, confirmServicePayment, servicePaymentConfig } from '../models/servicePayments';
 import { orderCreateLimiter } from '../middleware/rateLimiter';
 import { reconcileServiceRefundWebhook } from '../models/serviceRefunds';
+import { ticketProtection, TicketRequestError, logTicketBlock } from '../middleware/ticketProtection';
 export const servicePaymentsRouter = Router();
 servicePaymentsRouter.use('/api/service-requests', async (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
   const account = await verifyAuthToken(req);
-  if (!account) { res.status(401).json({ success: false, error: 'Please sign in to continue.' }); return; }
+  if (!account) { try { await logTicketBlock(null, 'unauthenticated', req.path); } catch {} res.status(401).json({ success: false, error: 'Please sign in to continue.' }); return; }
   res.locals.uid = account.uid; next();
 });
+servicePaymentsRouter.use('/api/service-requests', ticketProtection);
 servicePaymentsRouter.post('/api/service-requests', orderCreateLimiter, async (req, res) => {
   try { res.json({ success: true, ...await prepareServiceRequest(res.locals.uid, req.body) }); }
-  catch (error) { res.status(error instanceof z.ZodError ? 400 : 409).json({ success: false, error: 'Checkout could not be prepared. Check your details and My tickets for an existing request before retrying.' }); }
+  catch (error) { try { await logTicketBlock(res.locals.uid, error instanceof TicketRequestError ? error.message : 'invalid_or_failed_service_create', req.path); } catch {}
+    res.status(error instanceof TicketRequestError ? error.status : error instanceof z.ZodError ? 400 : 409).json({ success: false, error: error instanceof TicketRequestError ? error.message : 'Checkout could not be prepared. Check your details and My tickets for an existing request before retrying.' }); }
 });
 servicePaymentsRouter.post('/api/service-requests/verify', orderCreateLimiter, async (req, res) => {
   try { res.json({ success: true, ...await verifyServiceCheckout(res.locals.uid, req.body) }); }

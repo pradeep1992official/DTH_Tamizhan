@@ -66,3 +66,13 @@ match /server_ticket_private/{ticketId} { allow read, write: if false; }
 - Add refund.processed and refund.failed to the service webhook subscriptions. /api/internal/tickets/run handles expiry/receipts/email and overdue refunds; schedule at least hourly (every 5 minutes recommended for unpaid expiry). Cloud Scheduler/webhook/secrets deployment remains an operator step.
 - 15 focused tests and TypeScript passed, including concurrent refund calls, existing refunds, stable idempotency after network failure, deadline/placed exclusion. No real refunds or emails were sent.
 - Refund contract reference: https://raw.githubusercontent.com/razorpay/markdown-docs/master/api/refunds/normal-refunds-idempotent.md
+
+## Prompt 7
+- All customer ticket/service POSTs require Firebase ID token plus an App Check token for this exact web app. No production bypass. Public GET config and signed provider webhooks are appropriately separate.
+- Register this web app with reCAPTCHA Enterprise in Firebase App Check, authorize deployment domains, set public VITE_FIREBASE_APPCHECK_SITE_KEY at build time and rebuild. No App Check registration tool is connected, and no site key was present, so actual Firebase-console registration/enforcement rollout is not falsely claimed complete. The new APIs fail closed without valid attestation.
+- Persistent transactional rate limits: 20 writes/user/minute and 40/IP/minute. Daily caps are in the ticket-creation transaction: 3 support tickets and 5 service requests per Asia/Kolkata day. Idempotent requests return before counter increments. Existing duplicate-open subscriber locks are atomic.
+- Both forms have hidden honeypots; server rejects filled honeypots, strips HTML/control characters, applies strict schemas/size limits, and logs blocked attempts without raw submitted bodies. Admin Tickets > Blocked attempts loads latest 100 logs.
+- Optional Firestore TTL housekeeping: expiresAt on server_ticket_limits and server_ticket_daily_caps; correctness does not depend on TTL. Decide retention for server_ticket_blocks before rollout.
+- Test: omit/forge X-Firebase-AppCheck or use another app's token (403); fill website honeypot (400); fourth support/sixth unique service request same day (429); 21st user or 41st IP POST/minute (429); same brand/subscriber open request (409); HTML descriptions stored as text. Next India day resets caps. Use Firebase's registered debug provider locally, never a production bypass token in source.
+- 16 focused tests and TypeScript passed. .env.example lists new public/site and server-only settings.
+- References: https://firebase.google.com/docs/app-check/web/recaptcha-enterprise-provider and https://firebase.google.com/docs/app-check/custom-resource-backend
