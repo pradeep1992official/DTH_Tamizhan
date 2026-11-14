@@ -37,6 +37,22 @@ service cloud.firestore {
       return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
+    // tickets: server-generated support/service-request records (see src/lib/tickets.ts).
+    // All mutations, including admin actions, use authenticated server endpoints.
+    // adminNotes remains empty here; real internal notes use server_ticket_private.
+    // Firestore cannot redact fields, so private notes must not enter this document.
+    match /tickets/{ticketId} {
+      allow read: if isSignedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow create, update, delete: if false;
+    }
+
+    match /server_ticket_counters/{counterId} {
+      allow read, write: if false;
+    }
+    match /server_ticket_private/{ticketId} {
+      allow read, write: if false;
+    }
+
     // Connection test document
     match /test/connection {
       allow read: if true;
