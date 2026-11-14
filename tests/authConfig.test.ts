@@ -1,18 +1,27 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import express from 'express';
+vi.mock('../firebase-applet-config.json', () => ({ default: { appCheckSiteKey: '' } }));
 import { authConfigRouter } from '../server/routes/authConfig';
 afterEach(() => vi.unstubAllEnvs());
-async function configuration() {
+async function configuration(path = '/api/auth/config') {
   const app = express(); app.use(authConfigRouter); const server = app.listen(0, '127.0.0.1');
   await new Promise<void>(resolve => server.once('listening', resolve));
   try {
-    const response = await fetch(`http://127.0.0.1:${(server.address() as { port: number }).port}/api/auth/config`);
+    const response = await fetch(`http://127.0.0.1:${(server.address() as { port: number }).port}${path}`);
     return { headers: response.headers, data: await response.json() };
   } finally { server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve())); }
 }
 it('keeps SMS sign-in off unless explicitly opted in', async () => {
   vi.stubEnv('FIREBASE_PHONE_AUTH_ENABLED', 'false'); expect((await configuration()).data).toEqual({ phoneEnabled: false });
   vi.stubEnv('FIREBASE_PHONE_AUTH_ENABLED', 'TRUE'); expect((await configuration()).data).toEqual({ phoneEnabled: false });
+});
+it('exposes only the public runtime App Check key, with no secrets and no caching', async () => {
+  vi.stubEnv('FIREBASE_APPCHECK_SITE_KEY', 'public_recaptcha_site_key_fixture'); vi.stubEnv('RAZORPAY_KEY_SECRET', 'never-public');
+  const response = await configuration('/api/support/config');
+  expect(response.data).toEqual({ appCheckSiteKey: 'public_recaptcha_site_key_fixture' });
+  expect(response.headers.get('Cache-Control')).toBe('no-store');
+  vi.stubEnv('FIREBASE_APPCHECK_SITE_KEY', ''); vi.stubEnv('VITE_FIREBASE_APPCHECK_SITE_KEY', '');
+  expect((await configuration('/api/support/config')).data).toEqual({ appCheckSiteKey: null });
 });
 it('exposes only the phone availability flag and no credentials', async () => {
   vi.stubEnv('FIREBASE_PHONE_AUTH_ENABLED', 'true'); vi.stubEnv('BREVO_API_KEY', 'private-fixture');
