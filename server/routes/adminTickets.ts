@@ -7,6 +7,7 @@ import { analyticsBounds } from '../models/adminAnalytics';
 import { updateAdminTicket } from '../models/ticketAdmin';
 import { replySchema } from './tickets';
 import type { Ticket } from '../../src/lib/tickets';
+import { refundServiceRequest } from '../models/serviceRefunds';
 export const adminTicketsRouter = Router();
 adminTicketsRouter.use('/api/admin/tickets', async (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -51,4 +52,12 @@ adminTicketsRouter.post('/api/admin/tickets/:id/reply', async (req, res) => {
     const snapshot = await ref.get(); if (!snapshot.exists) { res.sendStatus(404); return; }
     const messageRef = ref.collection('messages').doc(); await messageRef.create({ id: messageRef.id, message, author: 'admin', createdAt: new Date().toISOString() }); res.json({ success: true });
   } catch { res.status(400).json({ success: false, error: 'Reply could not be posted. Check its length and retry.' }); }
+});
+adminTicketsRouter.post('/api/admin/tickets/:id/refund', async (req, res) => {
+  try {
+    if (!/^[\w-]{1,128}$/.test(req.params.id)) { res.sendStatus(404); return; }
+    const { reason } = z.object({ reason: z.string().trim().min(5).max(200), confirmed: z.literal(true) }).strict().parse(req.body);
+    await refundServiceRequest(req.params.id, reason, res.locals.uid);
+    res.json({ success: true });
+  } catch { res.status(409).json({ success: false, error: 'Refund could not be confirmed. Refresh this ticket; the same refund will be reconciled safely.' }); }
 });

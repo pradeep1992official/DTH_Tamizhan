@@ -57,3 +57,12 @@ match /server_ticket_private/{ticketId} { allow read, write: if false; }
 - All endpoints enforce existing server admin policy. Lifecycle transitions, reference requirement, pre-24h placement deadline and refund-in-progress exclusion are checked inside the update transaction.
 - Internal notes never enter owner-readable ticket documents. Paid requests under 6 hours from deadline are highlighted; countdown refreshes every minute.
 - 11 focused tests, TypeScript and build passed; no customer messages, WhatsApp messages or status changes sent to live systems.
+
+## Prompt 6
+- Added ticket-created, payment/receipt, placed-with-company/reference, resolved/closed and confirmed-refund email templates in one place using the existing Brevo transport approach. HTML escapes dynamic values. No new email service/library.
+- Scheduled overdue refunds scan unplaced paid requests older than 24h. Per-ticket transaction lease excludes placement, keeps stable refund reason/body, reconciles existing provider refunds, stores returned refund IDs, and uses X-Refund-Idempotency. The installed SDK strips this header, so only the refund POST uses native fetch; SDK is reused for reads/reconciliation.
+- Pending refunds stay processing; only provider-confirmed processed refunds become auto_refunded, invalidate the cached PDF status, release duplicate locks and trigger confirmation email. Late failed/pending webhooks cannot regress a processed refund.
+- Third failure flags refund needs attention; retries reconcile safely. Admin manual refunds use the same path with reason + explicit confirmation. Customer view explains status and typical bank-credit timing; service test payments/refunds are labelled honestly.
+- Add refund.processed and refund.failed to the service webhook subscriptions. /api/internal/tickets/run handles expiry/receipts/email and overdue refunds; schedule at least hourly (every 5 minutes recommended for unpaid expiry). Cloud Scheduler/webhook/secrets deployment remains an operator step.
+- 15 focused tests and TypeScript passed, including concurrent refund calls, existing refunds, stable idempotency after network failure, deadline/placed exclusion. No real refunds or emails were sent.
+- Refund contract reference: https://raw.githubusercontent.com/razorpay/markdown-docs/master/api/refunds/normal-refunds-idempotent.md

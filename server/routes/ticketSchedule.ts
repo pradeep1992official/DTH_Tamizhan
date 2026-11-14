@@ -4,6 +4,7 @@ import { expireUnpaidServiceRequests } from '../models/serviceSchedule';
 import { queryRecords } from '../queries';
 import { ensureServiceReceipt } from '../models/serviceReceipts';
 import { processTicketNotifications } from '../models/ticketNotifications';
+import { processOverdueServiceRefunds } from '../models/serviceRefunds';
 export const ticketScheduleRouter = Router();
 ticketScheduleRouter.post('/api/internal/tickets/run', async (req, res) => {
   const secret = process.env.TICKET_SCHEDULER_SECRET;
@@ -14,7 +15,7 @@ ticketScheduleRouter.post('/api/internal/tickets/run', async (req, res) => {
     const waiting = await queryRecords<{ id: string }>('tickets', [{ field: 'payment.status', op: 'eq', value: 'paid' }, { field: 'receipt.generatedAt', op: 'eq', value: null }], { limit: 50 });
     let receipts = 0;
     for (const ticket of waiting) { try { await ensureServiceReceipt(ticket.id); receipts++; } catch { /* Retained for next scheduled retry. */ } }
-    res.json({ success: true, expired, receipts, emails: await processTicketNotifications() });
+    res.json({ success: true, expired, receipts, refunds: await processOverdueServiceRefunds(), emails: await processTicketNotifications() });
   }
   catch { res.status(503).json({ success: false, error: 'Ticket maintenance failed. Retry the scheduled job.' }); }
 });

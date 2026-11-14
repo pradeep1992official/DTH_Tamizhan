@@ -18,6 +18,7 @@ export async function updateAdminTicket(id: string, uid: string, input: unknown,
     const next = value.status || ticket.status; const companyRefNo = value.companyRefNo ?? ticket.companyRefNo;
     validateTicketTransition(ticket.type, ticket.status, next, companyRefNo, ticket.payment.paidAt, now, ticket.payment.status === 'refunding' || ticket.payment.status === 'refunded');
     if (ticket.status !== 'paid' && companyRefNo !== ticket.companyRefNo) throw new Error('Company reference can only be entered when placing a paid request.');
+    if (companyRefNo !== ticket.companyRefNo && next !== 'placed_with_company') throw new Error('Save the company reference together with placement.');
     const lock = db.collection('server_ticket_locks').doc(documentKey(`${ticket.uid}:${ticket.brand}:${ticket.subscriberId}`));
     const held = ticket.type === 'service_request' && ['resolved', 'closed'].includes(next) ? await tx.get(lock) : null;
     const timestamp = new Date(now).toISOString();

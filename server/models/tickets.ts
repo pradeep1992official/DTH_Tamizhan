@@ -41,6 +41,7 @@ export async function createTicket(uid: string, input: unknown, now = new Date()
     });
     transaction.set(counter, { value: sequence });
     transaction.create(ref, ticket);
+    transaction.set(db.collection('server_ticket_events').doc(`${ticket.id}_created`), { ticketId: ticket.id, event: 'created', createdAt: timestamp, processed: false });
     if (lock) transaction.set(lock, { active: true, ticketId: ticket.id });
     return ticket;
   });

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { verifyAuthToken } from '../middleware/auth';
 import { prepareServiceRequest, verifyServiceCheckout, verifyServiceWebhook, confirmServicePayment, servicePaymentConfig } from '../models/servicePayments';
 import { orderCreateLimiter } from '../middleware/rateLimiter';
+import { reconcileServiceRefundWebhook } from '../models/serviceRefunds';
 export const servicePaymentsRouter = Router();
 servicePaymentsRouter.use('/api/service-requests', async (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -24,6 +25,7 @@ serviceWebhookRouter.post('/api/webhooks/service-requests', express.raw({ type: 
   if (!Buffer.isBuffer(req.body) || !verifyServiceWebhook(req.body, req.headers['x-razorpay-signature'])) { res.sendStatus(401); return; }
   try {
     const event = JSON.parse(req.body.toString('utf8'));
+    if (['refund.processed', 'refund.failed'].includes(event.event) && event.payload?.refund?.entity?.id) await reconcileServiceRefundWebhook(event.payload.refund.entity.id);
     if (['payment.captured', 'order.paid'].includes(event.event)) {
       const payment = event.payload?.payment?.entity;
       let order = event.payload?.order?.entity;
