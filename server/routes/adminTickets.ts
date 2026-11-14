@@ -26,7 +26,7 @@ adminTicketsRouter.post('/api/admin/tickets/:id/reclassify', async (req, res) =>
 });
 adminTicketsRouter.post('/api/admin/tickets/:id/upgrade', async (req, res) => {
   try { if (!/^[\w-]{1,128}$/.test(req.params.id)) { res.sendStatus(404); return; }
-    const value = z.object({ brand: z.string(), subscriberId: z.string(), fullAddress: z.string().max(500).optional() }).strict().parse(req.body);
+    const value = z.object({ brand: z.string(), subscriberId: z.string(), fullAddress: z.string().max(500).optional(), pinCode: z.string().max(6).optional() }).strict().parse(req.body);
     const ticket = await upgradeHelpTicket('', req.params.id, { ...value, acceptedTerms: true }, res.locals.uid, true);
     res.json({ success: true, ticket }); // Never mark paid or charge on an administrator's assertion.
   } catch { res.status(409).json({ success: false, error: 'Upgrade requires an open ticket and valid subscriber details.' }); }

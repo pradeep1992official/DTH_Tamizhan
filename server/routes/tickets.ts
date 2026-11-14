@@ -40,7 +40,7 @@ ticketsRouter.post('/api/tickets/:id/upgrade', async (req, res) => {
 });
 ticketsRouter.post('/api/tickets/:id/call', async (req, res) => {
   try { if (!/^[\w-]{1,128}$/.test(req.params.id)) { res.sendStatus(404); return; }
-    const { brand, fullAddress } = z.object({ brand: z.string().max(50).optional(), fullAddress: z.string().max(500).optional() }).strict().parse(req.body); res.json({ success: true, ticket: customerTicket(await chooseCustomerCare(res.locals.ticketUid, req.params.id, brand, fullAddress)) });
+    const { brand, fullAddress, pinCode } = z.object({ brand: z.string().max(50).optional(), fullAddress: z.string().max(500).optional(), pinCode: z.string().max(6).optional() }).strict().parse(req.body); res.json({ success: true, ticket: customerTicket(await chooseCustomerCare(res.locals.ticketUid, req.params.id, brand, fullAddress, pinCode)) });
   } catch { res.status(400).json({ success: false, error: 'Your ticket could not be updated. Please retry.' }); }
 });
 ticketsRouter.get('/api/tickets/:id', async (req, res) => {

@@ -1,7 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 import { helpProblems, helpInputSchema } from '../src/lib/help';
 import { defaultServiceBrands } from '../src/lib/serviceBrands';
-import { fullAddressSchema } from '../src/lib/tickets';
+import { fullAddressSchema, pinCodeSchema } from '../src/lib/tickets';
 const f = vi.hoisted(() => ({ records: new Map<string, any>(), recommend: vi.fn(), owned: vi.fn(), query: vi.fn(), chain: Promise.resolve() as Promise<unknown> }));
 vi.mock('../server/queries', () => ({ queryRecords: f.query }));
 vi.mock('../server/utils/assistantTools', () => ({ executeAssistantTool: f.recommend }));
@@ -16,7 +16,7 @@ vi.mock('../server/middleware/auth', () => {
 });
 import { createHelpTicket, upgradeHelpTicket, chooseCustomerCare, reclassifyHelpTicket } from '../server/models/help';
 import { expireUnpaidServiceRequests } from '../server/models/serviceSchedule';
-const request = { requestKey: '11111111-1111-4111-8111-111111111111', phone: '9876543210', brand: 'tata_play', subscriberId: '1234567890', fullAddress: '12 East Street, Thirukoilur, Tamil Nadu 605757', problem: 'no_signal', language: 'en' };
+const request = { requestKey: '11111111-1111-4111-8111-111111111111', phone: '9876543210', brand: 'tata_play', subscriberId: '1234567890', fullAddress: '12 East Street, Thirukoilur, Tamil Nadu', pinCode: '605757', problem: 'no_signal', language: 'en' };
 beforeEach(() => { f.records.clear(); f.chain = Promise.resolve(); f.recommend.mockReset(); f.owned.mockReset(); f.owned.mockResolvedValue([]); });
 it('routes every named chip deterministically without Gemini or client route authority', async () => {
   for (const [problem, config] of Object.entries(helpProblems)) {
@@ -85,11 +85,11 @@ it('requires a full address for DTH intake and upgrades, but not free help', asy
 it('requires a six-digit PIN code for DTH addresses in intake, upgrades and customer-care follow-up', async () => {
   for (const pin of ['', '60575', '6057571', '005757', 'ABC605757']) {
     const address = `12 East Street, Thirukoilur, Tamil Nadu ${pin}`;
-    expect(fullAddressSchema.safeParse(address).success).toBe(false);
-    await expect(createHelpTicket('owner', { ...request, fullAddress: address }, 'Customer')).rejects.toThrow('PIN code');
+    expect(pinCodeSchema.safeParse(pin).success).toBe(false);
+    await expect(createHelpTicket('owner', { ...request, fullAddress: address, pinCode: pin }, 'Customer')).rejects.toThrow();
   }
   const ticket = await createHelpTicket('owner', request, 'Customer');
-  await expect(upgradeHelpTicket('owner', ticket.id, { acceptedTerms: true, brand: request.brand, subscriberId: request.subscriberId, fullAddress: '12 East Street, Thirukoilur, Tamil Nadu' })).rejects.toThrow();
-  await expect(chooseCustomerCare('owner', ticket.id, request.brand, '12 East Street, Thirukoilur, Tamil Nadu')).rejects.toThrow();
+  await expect(upgradeHelpTicket('owner', ticket.id, { acceptedTerms: true, brand: request.brand, subscriberId: request.subscriberId, fullAddress: '12 East Street, Thirukoilur, Tamil Nadu', pinCode: '' })).rejects.toThrow();
+  await expect(chooseCustomerCare('owner', ticket.id, request.brand, '12 East Street, Thirukoilur, Tamil Nadu', '')).rejects.toThrow();
   expect(fullAddressSchema.safeParse(request.fullAddress).success).toBe(true);
 });

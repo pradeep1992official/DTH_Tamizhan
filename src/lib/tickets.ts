@@ -1,7 +1,8 @@
 import { z } from 'zod';
 export function stripTicketHtml(value: string) { return value.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, '').replace(/<[^>]*>/g, '').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '').trim(); }
-export const fullAddressSchema = z.string().max(500).transform(stripTicketHtml).pipe(z.string().min(15, 'Enter your full address, including locality, city and PIN code.').max(500)
-  .regex(/\b[1-9]\d{5}\b/, 'Include a valid six-digit Indian PIN code in your address.'));
+export const fullAddressSchema = z.string().max(500).transform(stripTicketHtml).pipe(z.string().min(15, 'Enter your full address, including locality and city.').max(500));
+export const pinCodeSchema = z.string().trim().regex(/^[1-9]\d{5}$/, 'Enter a valid six-digit Indian PIN code.');
+export function savedPinCode(ticket: { pinCode?: string; fullAddress?: string }) { return ticket.pinCode !== undefined ? ticket.pinCode : ticket.fullAddress?.match(/\b[1-9]\d{5}\b/)?.[0] || ''; }
 
 export const supportCategories = ['recharge_failed', 'payment_deducted', 'refund', 'account', 'website_issue', 'other'] as const;
 export const serviceCategories = ['no_signal', 'wrong_pack', 'missing_channels', 'box_issue', 'company_billing', 'other'] as const;
@@ -10,6 +11,7 @@ export const ticketInputSchema = z.object({
   type: z.enum(['support', 'dth_service', 'service_request']), name: z.string().transform(stripTicketHtml).pipe(z.string().min(1).max(100)),
   helpRoute: z.enum(['free', 'dth_service']).optional(),
   fullAddress: z.string().max(500).transform(stripTicketHtml).default(''),
+  pinCode: z.string().max(6).default(''),
   phone: phoneSchema, state: z.string().trim().min(1).max(60).default('Tamil Nadu'),
   brand: z.string().trim().max(50).default(''), subscriberId: z.string().trim().max(25).default(''),
   issueCategory: z.string().max(40), description: z.string().transform(stripTicketHtml).pipe(z.string().min(5).max(1000)),
@@ -26,6 +28,7 @@ export const ticketSchema = z.object({
   id: z.string(), ticketNo: z.string().regex(/^(SUP|SRQ)-\d{4,}$/), type: z.enum(['support', 'dth_service', 'service_request']), helpRoute: z.enum(['free', 'dth_service']).optional(),
   uid: z.string().min(1), name: z.string(), phone: phoneSchema, state: z.string(), brand: z.string(), subscriberId: z.string(),
   fullAddress: z.string().max(500).optional(),
+  pinCode: z.string().max(6).optional(),
   issueCategory: z.string(), description: z.string().max(1000), orderId: z.string().optional(),
   status: ticketStatusSchema, statusHistory: z.array(z.object({ status: ticketStatusSchema, timestamp: z.string().datetime(), by: z.string(), type: z.enum(['support', 'dth_service', 'service_request']).optional(), event: z.string().max(100).optional() }).strict()),
   companyRefNo: z.string().max(120), adminNotes: z.string().max(3000),

@@ -22,6 +22,7 @@ function TicketThread({ ticket }: { ticket: Ticket }) {
     <summary className="cursor-pointer">{ticket.ticketNo} - {ticket.status.replace(/_/g, ' ')}</summary>
     <p className="whitespace-pre-wrap my-3">{ticket.description}</p>
     {ticket.fullAddress && <p className="whitespace-pre-wrap my-3">Full address: {ticket.fullAddress}</p>}
+    {ticket.pinCode && <p>PIN code: {ticket.pinCode}</p>}
     {ticket.helpRoute === 'dth_service' && ticket.type !== 'service_request' && ['open', 'in_progress'].includes(ticket.status) && <Link to="/help" state={{ ticketId: ticket.id }}>Get Help</Link>}
     {ticket.type === 'service_request' && ['pending_payment', 'expired'].includes(ticket.status) && <ServiceTicketPaymentButton ticketId={ticket.id} brand={ticket.brand} subscriberId={ticket.subscriberId} unified={!!ticket.helpRoute} />}
     {ticket.payment.paidAt && <div className="my-3"><p>{ticket.payment.status === 'refunded' ? 'Refunded' : 'Payment received'} - Rs. 50</p><button className="admin-quiet" onClick={() => void downloadTicketFile(`/api/tickets/${ticket.id}/receipt`, `${ticket.ticketNo}.pdf`).catch(() => setError('Your receipt is not ready. Please retry shortly.'))}>Download bill</button></div>}

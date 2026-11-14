@@ -70,6 +70,7 @@ Automated checks cover all named chips, Gemini fallback/uncertainty, same-ticket
 - [src/components/AssistantSupportCard.tsx](../src/components/AssistantSupportCard.tsx)
 - [src/components/CustomerHistoryPage.tsx](../src/components/CustomerHistoryPage.tsx)
 - [src/components/Header.tsx](../src/components/Header.tsx)
+- [src/components/HelpAddressFields.tsx](../src/components/HelpAddressFields.tsx)
 - [src/components/HelpPage.tsx](../src/components/HelpPage.tsx)
 - [src/components/PaymentModal.tsx](../src/components/PaymentModal.tsx)
 - [src/components/RazorpayCheckout.tsx](../src/components/RazorpayCheckout.tsx)
@@ -100,4 +101,4 @@ The DTH section collects a full address (door/street, locality, city, state and 
 
 Tests: select a DTH chip and try an empty/short address (blocked); submit a complete address (stored); classify Other as DTH then upgrade without address (blocked); add address and retry (same ticket upgraded). Free website/account support still works without an address.
 
-The full address must include a standalone six-digit Indian PIN code, starting with 1-9. Missing, five/seven-digit, zero-prefixed and letter-attached codes are rejected for DTH intake, customer-care follow-up and paid/admin upgrades. The page explains this in English/Tamil. This validates the PIN format; it does not verify a postal delivery address.
+PIN code is a separate required input (six digits, starting with 1-9), stored as pinCode. The address textarea no longer requires PIN text. Both fields show individual errors directly beneath the control, on blur or submission, with aria-invalid/aria-describedby and suppressed native validation popups for these controls. Missing, five/seven-digit, zero-prefixed and letter-attached PIN codes are rejected server-side for DTH intake, customer-care follow-up and paid/admin upgrades. Older records may prefill PIN from their saved address when no separate pinCode exists. This validates PIN format, not postal deliverability.

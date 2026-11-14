@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Search } from '../../lib/icons';
-import { fullAddressSchema, type Ticket, type TicketStatus } from '../../lib/tickets';
+import { fullAddressSchema, pinCodeSchema, savedPinCode, type Ticket, type TicketStatus } from '../../lib/tickets';
+import { HelpAddressFields } from '../HelpAddressFields';
 import type { ServiceBrand } from '../../lib/serviceBrands';
 const transitions: Partial<Record<TicketStatus, TicketStatus[]>> = { open: ['in_progress', 'resolved', 'closed'], in_progress: ['resolved', 'closed'], paid: ['placed_with_company'], placed_with_company: ['resolved', 'closed'], resolved: ['closed'] };
 export function placementHoursLeft(ticket: Ticket, now: number) { return ticket.status === 'paid' && ticket.payment.paidAt ? Math.max(0, (Date.parse(ticket.payment.paidAt) + 24 * 3_600_000 - now) / 3_600_000) : null; }
@@ -22,6 +23,7 @@ export function TicketsPanel({ getAuthHeaders }: { getAuthHeaders: () => Promise
     Phone: selected.phone,
     Category: selected.issueCategory.replace(/_/g, ' '),
     ...(selected.fullAddress ? { 'Full address': selected.fullAddress } : {}),
+    ...(savedPinCode(selected) ? { 'PIN code': savedPinCode(selected) } : {}),
     Created: new Date(selected.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
     ...(selected.orderId ? { 'Linked order': selected.orderId } : {}),
     ...(selected.type === 'service_request' ? {
@@ -82,8 +84,8 @@ export function TicketsPanel({ getAuthHeaders }: { getAuthHeaders: () => Promise
       }}><h4 className="text-sm font-semibold">Classification</h4><label className="block text-sm">Route<select name="route" defaultValue={selected.helpRoute || 'free'} className="block w-full rounded border border-rule p-2"><option value="free">Free help</option><option value="dth_service">DTH service problem</option></select></label><label className="block text-sm">Reason<input name="reason" required minLength={5} maxLength={200} className="block w-full rounded border border-rule p-2" /></label><button className="admin-quiet" disabled={busy}>Reclassify</button>
         <label className="block text-sm">Brand<select value={selected.brand} onChange={event => setSelected({ ...selected, brand: event.target.value })} className="block w-full rounded border border-rule p-2"><option value="">Select brand</option>{brands.filter(brand => brand.enabled).map(brand => <option key={brand.id} value={brand.id}>{brand.displayName}</option>)}</select></label>
         <label className="block text-sm">Subscriber ID<input value={selected.subscriberId} onChange={event => setSelected({ ...selected, subscriberId: event.target.value })} inputMode="numeric" maxLength={25} className="block w-full rounded border border-rule p-2" /></label>
-        <label className="block text-sm">Full address<textarea value={selected.fullAddress || ''} onChange={event => setSelected({ ...selected, fullAddress: event.target.value })} minLength={15} maxLength={500} rows={3} className="block w-full rounded border border-rule p-2" /></label>
-        <button type="button" className="admin-primary" disabled={busy || !selected.brand || !selected.subscriberId || !fullAddressSchema.safeParse(selected.fullAddress || '').success} onClick={async () => { if (!window.confirm('Upgrade this same ticket? Payment will still require customer confirmation.')) return; setBusy(true); try { await api(`/${selected.id}/upgrade`, { brand: selected.brand, subscriberId: selected.subscriberId, fullAddress: selected.fullAddress }); setSelected(null); await load(query); } catch { setError('Upgrade failed. Check subscriber details, full address and daily limits.'); } finally { setBusy(false); } }}>Mark upgraded — awaiting payment</button>
+        <HelpAddressFields address={selected.fullAddress || ''} pinCode={savedPinCode(selected)} onAddressChange={fullAddress => setSelected({ ...selected, fullAddress })} onPinChange={pinCode => setSelected({ ...selected, pinCode })} language="en" />
+        <button type="button" className="admin-primary" disabled={busy || !selected.brand || !selected.subscriberId || !fullAddressSchema.safeParse(selected.fullAddress || '').success || !pinCodeSchema.safeParse(savedPinCode(selected)).success} onClick={async () => { if (!window.confirm('Upgrade this same ticket? Payment will still require customer confirmation.')) return; setBusy(true); try { await api(`/${selected.id}/upgrade`, { brand: selected.brand, subscriberId: selected.subscriberId, fullAddress: selected.fullAddress, pinCode: savedPinCode(selected) }); setSelected(null); await load(query); } catch { setError('Upgrade failed. Check subscriber details, full address and daily limits.'); } finally { setBusy(false); } }}>Mark upgraded — awaiting payment</button>
       </form>}
       <section className="space-y-2"><h4 className="text-sm font-semibold">Ticket details</h4>
         <dl className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">{detailEntries.map(([key, value]) => <div key={key} className="min-w-0 rounded border border-rule bg-paper-2 p-2"><dt className="text-xs text-muted">{key}</dt><dd className="break-words">{value || '-'}{key === 'Phone' && value && <button className="admin-quiet ml-1" onClick={() => void navigator.clipboard.writeText(value).catch(() => setError('Copy is unavailable in this browser. Select the value to copy it.'))}>Copy</button>}</dd></div>)}</dl>
