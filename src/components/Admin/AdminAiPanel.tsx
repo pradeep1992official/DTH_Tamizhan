@@ -1,5 +1,6 @@
 import type { AdminHistory } from '../../lib/adminAnalytics';
 import { AdminRechargeTotals } from './AdminRechargeTotals';
+import { AdminAnalyticsResult } from './AdminAnalyticsResult';
 import React, { useEffect, useRef, useState } from 'react';
 import type { Language } from '../../types';
 import type { AdminQueryResult, TicketAnalysis, TicketView } from '../../lib/adminAi';
@@ -83,7 +84,7 @@ export function AdminAiPanel({ getAuthHeaders, currentLang }: {
       <button type="submit" className="admin-primary" disabled={busy || blocked || !message.trim()}>{text('Ask', 'AI-யிடம் கேள்')}</button>
     </form>
     {answer && (!result || result.type === 'analytics') && <p className="whitespace-pre-line" role="status">{assistantReplyText(answer)}</p>}
-    {result?.type === 'analytics' && <details className="text-sm"><summary className="cursor-pointer">Data</summary><pre className="overflow-x-auto whitespace-pre-wrap break-words p-2">{JSON.stringify(result.data, null, 2)}</pre></details>}
+    {result?.type === 'analytics' && <AdminAnalyticsResult result={result} />}
     {result?.type === 'revenue_totals'  && <section className="space-y-2" aria-label="Revenue">
       <div className="flex flex-wrap items-center justify-between gap-2"><h3 role="status" className="font-semibold">Revenue</h3><span className="text-xs text-muted">Through {result.through_date} (IST)</span></div>
       <dl className="flex flex-wrap gap-6">{([['Live collections', result.live], ['Test payments', result.test]] as const).map(([label, amount]) => <div key={label}>
