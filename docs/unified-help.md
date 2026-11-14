@@ -34,11 +34,11 @@ Requires configured Firebase credentials, App Check site key, test Razorpay cred
 
 | Route/action | Test | Expected result |
 |---|---|---|
-| Free chips | Submit each of recharge failed, money deducted, refund, website/app, account/login | Open free ticket, number + WhatsApp/email follow-up; no checkout or subscriber input. Optional linked orders must belong to the caller. |
-| DTH chips | Select each of no signal/box, wrong pack, missing channels, billing/balance; enter valid brand/subscriber | Open unpaid DTH ticket, then customer-care/assistance options. Gemini is not called. |
+| Free chips | Submit each of recharge failed, money deducted, refund, website/app, account/login | Open free ticket, number and My tickets tracking; no checkout or subscriber input. Optional linked orders must belong to the caller. |
+| DTH chips | Select each of no signal/box, wrong pack, missing channels, billing/balance; enter valid brand/subscriber | Open unpaid DTH ticket, then assistance details and the free-help disclaimer. Gemini is not called. |
 | Other, confident DTH | Enter a clear DTH issue with Gemini available | Open DTH ticket with cleaned summary. If brand/subscriber is missing, collect it in the options card before upgrade. |
 | Other, free/uncertain/outage | Describe a website issue; mock uncertain output, malformed JSON, or unavailable Gemini | Open free ticket; admin can reclassify. Never reuse a paid suggestion or silently charge. |
-| Free company call | Tap the brand customer-care option | Configured tel link opens; same ticket stays free; customer_care_selected history event; no Razorpay order. |
+| Free-help disclaimer | Open the DTH assistance card | Small note directs the customer to their DTH provider for free help. No call card, WhatsApp/email links or no-payment-taken text. |
 | Paid assistance | Accept fee/refund terms and tap assistance; complete test checkout | Same ticket ID AND number; pending_payment then paid only after verification; paidAt, receipt, timer and admin queue follow existing flow. Retry creates no second ticket/order. |
 | Resume/expiry/refund | Close checkout, resume via My tickets; upgrade a two-day-old free ticket; force 24h-overdue paid ticket in a test fixture | Resume reuses order; old creation date does not immediately expire a new upgrade; signed webhook/worker reconciles capture/refund and receipt status. |
 | Admin reclassification | As approved admin reclassify an open free ticket, then mark it upgraded with valid brand/subscriber | Same ticket/history; payment still unconfirmed until customer checkout. Customer/guest calls to admin endpoints get 401/403. |
@@ -102,3 +102,5 @@ The DTH section collects a full address (door/street, locality, city, state and 
 Tests: select a DTH chip and try an empty/short address (blocked); submit a complete address (stored); classify Other as DTH then upgrade without address (blocked); add address and retry (same ticket upgraded). Free website/account support still works without an address.
 
 PIN code is a separate required input (six digits, starting with 1-9), stored as pinCode. The address textarea no longer requires PIN text. Both fields show individual errors directly beneath the control, on blur or submission, with aria-invalid/aria-describedby and suppressed native validation popups for these controls. Missing, five/seven-digit, zero-prefixed and letter-attached PIN codes are rejected server-side for DTH intake, customer-care follow-up and paid/admin upgrades. Older records may prefill PIN from their saved address when no separate pinCode exists. This validates PIN format, not postal deliverability.
+
+Latest customer-page copy: the direct customer-care call card and network-charge note are removed. The page uses a small free-help disclaimer, keeps the fee/refund terms, and sends customers to My tickets for tracking. WhatsApp/email links and the no-payment-taken sentence are removed from this page. Existing backend customer-care handling remains available for compatibility.
