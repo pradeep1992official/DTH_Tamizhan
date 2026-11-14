@@ -1,5 +1,6 @@
 import { AdminAiPanel } from './Admin/AdminAiPanel';
 import { ServiceBrandsPanel } from './Admin/ServiceBrandsPanel';
+import { ServiceReceiptsPanel } from './Admin/ServiceReceiptsPanel';
 import React, { useState, useEffect } from 'react';
 import {
   Users,
@@ -243,6 +244,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       <div className="admin-workspace">
         <div className="admin-workspace-heading"><h2>{NAV_ITEMS.find((item) => item.id === activeTab)?.label}</h2></div>
         {activeTab === 'ai' && <AdminAiPanel key={user.uid} getAuthHeaders={getAuthHeaders} currentLang={currentLang} />}
+        {activeTab === 'payments' && <ServiceReceiptsPanel getAuthHeaders={getAuthHeaders} />}
         {activeTab === 'customers' && (
           <CustomersTab
             customers={customers}

@@ -7,6 +7,7 @@ import { ticketApi } from '../lib/ticketApi';
 import { paymentAuthHeaders } from '../lib/paymentAuth';
 import { auth } from '../lib/firebase';
 import { BUSINESS_DETAILS } from '../lib/trustContent';
+import { downloadTicketFile } from '../lib/ticketReceipt';
 
 export function ticketWhatsApp(ticket: Pick<Ticket, 'ticketNo' | 'issueCategory' | 'description'>) {
   return `https://wa.me/${BUSINESS_DETAILS.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`${ticket.ticketNo}\n${ticket.issueCategory.replace(/_/g, ' ')}\n${ticket.description}`)}`;
@@ -54,6 +55,7 @@ function TicketThread({ ticket }: { ticket: Ticket }) {
   return <details className="rounded-lg border border-rule p-4" onToggle={event => { if (event.currentTarget.open) void load(); }}>
     <summary className="cursor-pointer">{ticket.ticketNo} - {ticket.status.replace(/_/g, ' ')}</summary>
     <p className="whitespace-pre-wrap my-3">{ticket.description}</p>
+    {ticket.payment.paidAt && <div className="my-3"><p>{ticket.payment.status === 'refunded' ? 'Refunded' : 'Payment received'} - Rs. 50</p><button className="admin-quiet" onClick={() => void downloadTicketFile(`/api/tickets/${ticket.id}/receipt`, `${ticket.ticketNo}.pdf`).catch(() => setError('Your receipt is not ready. Please retry shortly.'))}>Download bill</button></div>}
     {messages.map(message => <p key={message.id} className="whitespace-pre-wrap my-2"><strong>{message.author === 'admin' ? 'Support' : 'You'}:</strong> {message.message}</p>)}
     {error && <p role="alert">{error}</p>}
     {!['closed', 'resolved'].includes(ticket.status) && <form className="mt-3 space-y-2" onSubmit={async event => { event.preventDefault(); if (busy) return; const form = event.currentTarget; const message = new FormData(form).get('message'); setBusy(true); setError(''); try { await ticketApi(`/${ticket.id}/messages`, { message }); form.reset(); await load(); } catch { setError('Your reply could not be added. Please retry.'); } finally { setBusy(false); } }}>

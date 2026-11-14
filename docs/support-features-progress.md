@@ -42,3 +42,11 @@ match /server_ticket_private/{ticketId} { allow read, write: if false; }
 - Razorpay test Dashboard webhook: /api/webhooks/service-requests, enable payment.captured and order.paid. Use the exact webhook secret above. Test checkout, close/reload, duplicate webhook, wrong amount/signature, late capture after expiry, and forced refund after Prompt 6 before any live rollout.
 - 11 focused tests, TypeScript and production build passed. Live-provider E2E requires merchant test credentials and reachable webhook; it was not simulated as a real payment.
 - Provider references: https://github.com/razorpay/markdown-docs/blob/master/webhooks/validate-test.md and https://github.com/razorpay/markdown-docs/blob/master/payments/payment-gateway/web-integration/custom/best-practices.md
+
+## Prompt 4
+- Added atomic financial-year receipt allocation, repeatable PDF generation using the existing PDF renderer, masked subscriber IDs and private Firebase Storage files. Allocation commits counter + ticket together, retaining reserved numbers through upload retries; no deleted receipt numbers or PDF-failure gaps.
+- Owner/admin authenticated downloads, My tickets Download bill, Admin > Payments service receipts/date-range CSV (max 500; narrower range required above this). Formula-safe quoted CSV.
+- Receipt emails use existing Brevo configuration, queued paid events and explicit BREVO_SEND_TEST_EMAILS=true; verified account email required. Ambiguous old send attempts enter review rather than risk duplicate mail.
+- Business details reuse BUSINESS_DETAILS; set website there or APP_URL on server. Optional TICKET_STORAGE_BUCKET overrides the configured Firebase bucket. Existing BREVO_ENABLED/API_KEY/SENDER_EMAIL/SENDER_NAME settings remain server-only.
+- Added storage.rules and firebase.json storage mapping: default deny direct bucket access; owner/admin downloads use the server. These prototype rules require review before deployment; no rules or bucket changes have been deployed.
+- 7 receipt/payment tests and TypeScript passed. Storage, email and real PDFs are not live-tested by mocked unit checks; the existing PDF renderer is reused.
