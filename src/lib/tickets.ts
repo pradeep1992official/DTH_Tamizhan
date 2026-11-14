@@ -1,6 +1,7 @@
 import { z } from 'zod';
 export function stripTicketHtml(value: string) { return value.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, '').replace(/<[^>]*>/g, '').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '').trim(); }
-export const fullAddressSchema = z.string().max(500).transform(stripTicketHtml).pipe(z.string().min(15, 'Enter your full address, including locality, city and PIN code.').max(500));
+export const fullAddressSchema = z.string().max(500).transform(stripTicketHtml).pipe(z.string().min(15, 'Enter your full address, including locality, city and PIN code.').max(500)
+  .regex(/\b[1-9]\d{5}\b/, 'Include a valid six-digit Indian PIN code in your address.'));
 
 export const supportCategories = ['recharge_failed', 'payment_deducted', 'refund', 'account', 'website_issue', 'other'] as const;
 export const serviceCategories = ['no_signal', 'wrong_pack', 'missing_channels', 'box_issue', 'company_billing', 'other'] as const;

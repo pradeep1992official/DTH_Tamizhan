@@ -24,7 +24,7 @@ export async function createHelpTicket(uid: string, input: unknown, name: string
   const brand = (await readServiceBrands()).find(brand => brand.id === value.brand && brand.enabled);
   if (value.brand && !brand) throw new TicketRequestError(400, 'Choose an available brand.');
   if (route === 'dth_service' && chip && !validateServiceSubscriber(brand, value.subscriberId)) throw new TicketRequestError(400, 'Check your brand and subscriber ID.');
-  if (route === 'dth_service' && chip && !fullAddressSchema.safeParse(value.fullAddress).success) throw new TicketRequestError(400, 'Enter your full address, including locality, city and PIN code.');
+  if (route === 'dth_service' && chip && !fullAddressSchema.safeParse(value.fullAddress).success) throw new TicketRequestError(400, 'Enter your full address with a valid six-digit Indian PIN code.');
   if (value.subscriberId && !validateServiceSubscriber(brand, value.subscriberId)) throw new TicketRequestError(400, 'Check your subscriber ID.');
   if (value.orderId && !(await ownedAssistantOrders(uid, 1, value.orderId)).length) throw new TicketRequestError(400, 'Choose an order from your own account.');
   return createTicket(uid, { type: route === 'free' ? 'support' : 'dth_service', helpRoute: route, name, phone: value.phone,

@@ -1,6 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 import { helpProblems, helpInputSchema } from '../src/lib/help';
 import { defaultServiceBrands } from '../src/lib/serviceBrands';
+import { fullAddressSchema } from '../src/lib/tickets';
 const f = vi.hoisted(() => ({ records: new Map<string, any>(), recommend: vi.fn(), owned: vi.fn(), query: vi.fn(), chain: Promise.resolve() as Promise<unknown> }));
 vi.mock('../server/queries', () => ({ queryRecords: f.query }));
 vi.mock('../server/utils/assistantTools', () => ({ executeAssistantTool: f.recommend }));
@@ -80,4 +81,15 @@ it('requires a full address for DTH intake and upgrades, but not free help', asy
   await expect(upgradeHelpTicket('owner', ticket.id, args)).rejects.toThrow();
   const upgraded = await upgradeHelpTicket('owner', ticket.id, { ...args, fullAddress: '<b>12 East Street</b>, Thirukoilur, Tamil Nadu 605757' });
   expect(upgraded.fullAddress).toBe('12 East Street, Thirukoilur, Tamil Nadu 605757');
+});
+it('requires a six-digit PIN code for DTH addresses in intake, upgrades and customer-care follow-up', async () => {
+  for (const pin of ['', '60575', '6057571', '005757', 'ABC605757']) {
+    const address = `12 East Street, Thirukoilur, Tamil Nadu ${pin}`;
+    expect(fullAddressSchema.safeParse(address).success).toBe(false);
+    await expect(createHelpTicket('owner', { ...request, fullAddress: address }, 'Customer')).rejects.toThrow('PIN code');
+  }
+  const ticket = await createHelpTicket('owner', request, 'Customer');
+  await expect(upgradeHelpTicket('owner', ticket.id, { acceptedTerms: true, brand: request.brand, subscriberId: request.subscriberId, fullAddress: '12 East Street, Thirukoilur, Tamil Nadu' })).rejects.toThrow();
+  await expect(chooseCustomerCare('owner', ticket.id, request.brand, '12 East Street, Thirukoilur, Tamil Nadu')).rejects.toThrow();
+  expect(fullAddressSchema.safeParse(request.fullAddress).success).toBe(true);
 });
