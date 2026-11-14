@@ -62,13 +62,17 @@ export async function confirmServicePayment(ticketId: string, paymentId: string,
     if (processed.exists) { if (processed.data()?.ticketId !== ticketId) throw new Error('Payment already linked.'); return; }
     if (current.payment.paymentId && current.payment.paymentId !== paymentId) throw new Error('Another payment is already linked.');
     if (!['pending_payment', 'expired'].includes(current.status)) throw new Error('Unexpected payment state.');
+    const lockRef = db.collection('server_ticket_locks').doc(documentKey(`${current.uid}:${current.brand}:${current.subscriberId}`));
+    const held = await tx.get(lockRef);
     const now = new Date().toISOString();
     tx.update(ref, { status: 'paid', payment: { ...current.payment, status: 'paid', paymentId, paidAt: now }, updatedAt: now,
       statusHistory: [...current.statusHistory, { status: 'paid', timestamp: now, by: 'payment_verification' }] });
     tx.create(processedRef, { ticketId, paymentId, createdAt: now });
     // Durable event is consumed by receipt/email workers; no external side effect in transaction.
     tx.set(db.collection('server_ticket_events').doc(`${ticketId}_paid`), { ticketId, event: 'paid', createdAt: now, processed: false });
-    tx.set(db.collection('server_ticket_locks').doc(documentKey(`${current.uid}:${current.brand}:${current.subscriberId}`)), { active: true, ticketId });
+    if (held.data()?.active && held.data()?.ticketId !== ticketId) {
+      tx.set(db.collection('server_ticket_private').doc(ticketId), { latePaymentNeedsReview: true, refundNeedsAttention: true }, { merge: true });
+    } else tx.set(lockRef, { active: true, ticketId });
   });
   return { paid: true, ticketId };
 }
@@ -78,6 +82,24 @@ export async function verifyServiceCheckout(uid: string, input: unknown) {
   const snapshot = await getAdminFirestore().collection('tickets').doc(value.ticketId).get(); const ticket = ticketSchema.parse(snapshot.data());
   if (ticket.uid !== uid || ticket.payment.gatewayOrderId !== value.razorpay_order_id || !verifyPaymentSignature(ticket.payment.gatewayOrderId, value.razorpay_payment_id, value.razorpay_signature, process.env.RAZORPAY_KEY_SECRET!)) throw new Error('Payment signature or ownership could not be verified.');
   return confirmServicePayment(value.ticketId, value.razorpay_payment_id, uid);
+}
+export async function resumeServiceCheckout(uid: string, ticketId: string, now = Date.now()) {
+  if (!/^[\w-]{1,128}$/.test(ticketId)) throw new Error('Invalid ticket reference.');
+  const client = servicePaymentConfig(); const snapshot = await getAdminFirestore().collection('tickets').doc(ticketId).get();
+  const ticket = ticketSchema.parse(snapshot.data());
+  if (ticket.uid !== uid || ticket.type !== 'service_request') throw new Error('Request unavailable.');
+  if (ticket.payment.paidAt) return { paid: true };
+  if (!ticket.payment.gatewayOrderId) throw new Error('Checkout creation is unconfirmed. Contact Support.');
+  const order = await client.orders.fetch(ticket.payment.gatewayOrderId); const notes = order.notes as Record<string, string>;
+  if (Number(order.amount) !== 5000 || order.currency !== 'INR' || notes.uid !== uid || notes.ticketId !== ticketId || notes.purpose !== 'service_request') throw new Error('Checkout mismatch.');
+  // Reconcile a captured payment before showing a payment button after reload.
+  if (order.status === 'paid' || order.status === 'attempted') {
+    const payments = await client.orders.fetchPayments(order.id); const captured = payments.items.find(payment => payment.status === 'captured');
+    if (captured) return confirmServicePayment(ticketId, captured.id, uid);
+    if (order.status === 'paid' || payments.items.some(payment => payment.status === 'authorized')) return { paid: false, pending: true };
+  }
+  if (ticket.status !== 'pending_payment' || now >= Date.parse(ticket.createdAt) + 30 * 60_000) throw new Error('This unpaid checkout has expired.');
+  return { paid: false, ticketId, ticketNo: ticket.ticketNo, order_id: order.id, key_id: process.env.RAZORPAY_KEY_ID, amount: 5000, currency: 'INR' };
 }
 export function verifyServiceWebhook(raw: Buffer, signature: unknown) {
   const secret = process.env.SERVICE_RAZORPAY_WEBHOOK_SECRET;

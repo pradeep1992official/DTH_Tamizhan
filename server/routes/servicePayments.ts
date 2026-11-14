@@ -1,7 +1,7 @@
 import express, { Router } from 'express';
 import { z } from 'zod';
 import { verifyAuthToken } from '../middleware/auth';
-import { prepareServiceRequest, verifyServiceCheckout, verifyServiceWebhook, confirmServicePayment, servicePaymentConfig } from '../models/servicePayments';
+import { prepareServiceRequest, verifyServiceCheckout, verifyServiceWebhook, confirmServicePayment, servicePaymentConfig, resumeServiceCheckout } from '../models/servicePayments';
 import { orderCreateLimiter } from '../middleware/rateLimiter';
 import { reconcileServiceRefundWebhook } from '../models/serviceRefunds';
 import { ticketProtection, TicketRequestError, logTicketBlock } from '../middleware/ticketProtection';
@@ -21,6 +21,10 @@ servicePaymentsRouter.post('/api/service-requests', orderCreateLimiter, async (r
 servicePaymentsRouter.post('/api/service-requests/verify', orderCreateLimiter, async (req, res) => {
   try { res.json({ success: true, ...await verifyServiceCheckout(res.locals.uid, req.body) }); }
   catch { res.status(400).json({ success: false, error: 'Payment is unconfirmed. Check My tickets or retry verification; do not pay again.' }); }
+});
+servicePaymentsRouter.post('/api/service-requests/:id/checkout', orderCreateLimiter, async (req, res) => {
+  try { z.object({}).strict().parse(req.body); res.json({ success: true, ...await resumeServiceCheckout(res.locals.uid, req.params.id) }); }
+  catch { res.status(409).json({ success: false, error: 'Checkout is unavailable or expired. Refresh My tickets and check payment status before paying again.' }); }
 });
 // Mounted before express.json: signature is over exact request bytes.
 export const serviceWebhookRouter = Router();

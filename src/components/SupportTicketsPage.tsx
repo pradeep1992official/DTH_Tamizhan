@@ -9,6 +9,7 @@ import { paymentAuthHeaders } from '../lib/paymentAuth';
 import { auth } from '../lib/firebase';
 import { BUSINESS_DETAILS } from '../lib/trustContent';
 import { downloadTicketFile } from '../lib/ticketReceipt';
+import { ServiceTicketPaymentButton } from './ServiceTicketPaymentButton';
 
 export function ticketWhatsApp(ticket: Pick<Ticket, 'ticketNo' | 'issueCategory' | 'description'>) {
   return `https://wa.me/${BUSINESS_DETAILS.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`${ticket.ticketNo}\n${ticket.issueCategory.replace(/_/g, ' ')}\n${ticket.description}`)}`;
@@ -58,6 +59,7 @@ function TicketThread({ ticket }: { ticket: Ticket }) {
   return <details className="rounded-lg border border-rule p-4" onToggle={event => { if (event.currentTarget.open) void load(); }}>
     <summary className="cursor-pointer">{ticket.ticketNo} - {ticket.status.replace(/_/g, ' ')}</summary>
     <p className="whitespace-pre-wrap my-3">{ticket.description}</p>
+    {ticket.type === 'service_request' && ['pending_payment', 'expired'].includes(ticket.status) && <ServiceTicketPaymentButton ticketId={ticket.id} />}
     {ticket.payment.paidAt && <div className="my-3"><p>{ticket.payment.status === 'refunded' ? 'Refunded' : 'Payment received'} - Rs. 50</p><button className="admin-quiet" onClick={() => void downloadTicketFile(`/api/tickets/${ticket.id}/receipt`, `${ticket.ticketNo}.pdf`).catch(() => setError('Your receipt is not ready. Please retry shortly.'))}>Download bill</button></div>}
     {ticket.type === 'service_request' && ticket.status === 'paid' && <p className="text-sm">If the complaint is not placed within 24 hours of verified payment, your fee is refunded automatically. Normal bank credit usually takes 5-7 working days after a refund is processed. Test requests do not move real money.</p>}
     {ticket.payment.status === 'refunding' && <p role="status">Refund processing is pending. Please do not request another refund.</p>}

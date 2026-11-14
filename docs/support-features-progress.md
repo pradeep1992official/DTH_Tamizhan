@@ -1,4 +1,4 @@
-﻿# Support feature implementation progress
+# Support feature implementation progress
 
 Build order: 1, 2, 3B, 3, 4, 5, 6, 7, 8. Commit and push each before proceeding.
 
@@ -47,7 +47,7 @@ match /server_ticket_private/{ticketId} { allow read, write: if false; }
 - Added atomic financial-year receipt allocation, repeatable PDF generation using the existing PDF renderer, masked subscriber IDs and private Firebase Storage files. Allocation commits counter + ticket together, retaining reserved numbers through upload retries; no deleted receipt numbers or PDF-failure gaps.
 - Owner/admin authenticated downloads, My tickets Download bill, Admin > Payments service receipts/date-range CSV (max 500; narrower range required above this). Formula-safe quoted CSV.
 - Receipt emails use existing Brevo configuration, queued paid events and explicit BREVO_SEND_TEST_EMAILS=true; verified account email required. Ambiguous old send attempts enter review rather than risk duplicate mail.
-- Business details reuse BUSINESS_DETAILS; set website there or APP_URL on server. Optional TICKET_STORAGE_BUCKET overrides the configured Firebase bucket. Existing BREVO_ENABLED/API_KEY/SENDER_EMAIL/SENDER_NAME settings remain server-only.
+- Business details reuse BUSINESS_DETAILS through server/serviceBusiness.ts; set APP_URL on the server for the website. Optional TICKET_STORAGE_BUCKET overrides the configured Firebase bucket. Existing BREVO_ENABLED/API_KEY/SENDER_EMAIL/SENDER_NAME settings remain server-only.
 - Added storage.rules and firebase.json storage mapping: default deny direct bucket access; owner/admin downloads use the server. These prototype rules require review before deployment; no rules or bucket changes have been deployed.
 - 7 receipt/payment tests and TypeScript passed. Storage, email and real PDFs are not live-tested by mocked unit checks; the existing PDF renderer is reused.
 
@@ -84,3 +84,18 @@ match /server_ticket_private/{ticketId} { allow read, write: if false; }
 - Forms consume validated draft state, leave payment acceptance unchecked, and still pass through all server/App Check validation. Tamil/Tanglish explanation support retained.
 - 26 assistant/routing tests and build passed. Full suite: 657 passed, 6 failed, 2 skipped; the same six failing tests reproduce at starting commit 542655f (savings one-month-rate expectations, global-boundary retry URL expectation, checkout localization mock, policy terms paragraph parity). Removed an empty website translation introduced during receipts; business details now reuse a server config wrapper and APP_URL. Existing unrelated failures were not edited.
 - Live Gemini, Firebase, Storage, Brevo and Razorpay test E2E remain deployment checks; mocks are not reported as real provider verification.
+
+
+## Final recovery checks
+- Added owner-verified resume/check-payment action for existing requests from My tickets. It reuses the same provider order, reconciles captured late payments before showing checkout, and blocks a second payment while authorization awaits capture.
+- Late captures preserve a newer subscriber lock and flag the older request for admin review rather than overwriting it.
+- Final focused run: 37 support/payment/receipt/abuse/routing tests passed; production build passed with existing chunk-size and CJS import.meta warnings. TypeScript passed.
+- Other simultaneous workspace edits to refund drafting and admin presentation were preserved and excluded from this recovery commit.
+
+## Rollout still required
+1. Register App Check/reCAPTCHA Enterprise and set the public build-time site key; custom ticket POSTs fail closed until attested.
+2. Provision backend Firebase credentials/database/bucket permissions; review and deploy Firestore/Storage rules. Java is missing locally, so emulator integration tests remain skipped.
+3. Set server-only test Razorpay, webhook and scheduler secrets; configure auto-capture and the four webhook events listed above.
+4. Configure Cloud Scheduler for the protected maintenance endpoint. Enable Brevo and explicitly opt in to service test emails; use verified customer emails.
+5. Run the real test checkout/webhook/PDF/email/forced-refund flow in a deployed test environment. Live service keys remain blocked in code until this is verified.
+6. The document's accounting/CA review and real brand-format review remain merchant decisions.
