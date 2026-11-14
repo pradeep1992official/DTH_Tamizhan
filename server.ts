@@ -25,6 +25,7 @@ import { serviceBrandsRouter } from './server/routes/serviceBrands';
 import { servicePaymentsRouter, serviceWebhookRouter } from './server/routes/servicePayments';
 import { ticketScheduleRouter } from './server/routes/ticketSchedule';
 import { serviceReceiptsRouter } from './server/routes/serviceReceipts';
+import { adminTicketsRouter } from './server/routes/adminTickets';
 import { aiRouter } from './server/routes/ai';
 import { coreRouter } from './server/routes/core';
 
@@ -84,6 +85,7 @@ async function startServer() {
   app.use(servicePaymentsRouter);
   app.use(ticketScheduleRouter);
   app.use(serviceReceiptsRouter);
+  app.use(adminTicketsRouter);
   app.use(aiRouter);
   app.use(emailRouter);
   app.use(customerHistoryRouter);

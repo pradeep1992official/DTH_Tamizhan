@@ -50,3 +50,10 @@ match /server_ticket_private/{ticketId} { allow read, write: if false; }
 - Business details reuse BUSINESS_DETAILS; set website there or APP_URL on server. Optional TICKET_STORAGE_BUCKET overrides the configured Firebase bucket. Existing BREVO_ENABLED/API_KEY/SENDER_EMAIL/SENDER_NAME settings remain server-only.
 - Added storage.rules and firebase.json storage mapping: default deny direct bucket access; owner/admin downloads use the server. These prototype rules require review before deployment; no rules or bucket changes have been deployed.
 - 7 receipt/payment tests and TypeScript passed. Storage, email and real PDFs are not live-tested by mocked unit checks; the existing PDF renderer is reused.
+
+## Prompt 5
+- Added /admin/tickets and Tickets navigation: support/service tabs, fixed server-side filters, exact phone/subscriber/ticket search and pagination.
+- Detail view, copy phone/subscriber, company reference, private internal notes, status history, customer reply posting and WhatsApp draft updates.
+- All endpoints enforce existing server admin policy. Lifecycle transitions, reference requirement, pre-24h placement deadline and refund-in-progress exclusion are checked inside the update transaction.
+- Internal notes never enter owner-readable ticket documents. Paid requests under 6 hours from deadline are highlighted; countdown refreshes every minute.
+- 11 focused tests, TypeScript and build passed; no customer messages, WhatsApp messages or status changes sent to live systems.

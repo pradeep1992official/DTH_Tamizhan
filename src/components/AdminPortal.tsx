@@ -1,6 +1,7 @@
 import { AdminAiPanel } from './Admin/AdminAiPanel';
 import { ServiceBrandsPanel } from './Admin/ServiceBrandsPanel';
 import { ServiceReceiptsPanel } from './Admin/ServiceReceiptsPanel';
+import { TicketsPanel } from './Admin/TicketsPanel';
 import React, { useState, useEffect } from 'react';
 import {
   Users,
@@ -181,6 +182,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const pendingCount = orders.filter((o) => o.rechargeStatus === 'pending' || o.rechargeStatus === 'processing').length;
 
   const NAV_ITEMS: { id: AdminTabId; label: string; icon: React.ReactNode; badge?: number }[] = [
+    { id: 'tickets', label: 'Tickets', icon: <ShieldCheck className="w-4 h-4" /> },
     { id: 'ai', label: 'AI assistant', icon: <ShieldCheck className="w-4 h-4" /> },
     { id: 'customers', label: t.customersTab, icon: <Users className="w-4 h-4" /> },
     { id: 'pending', label: t.pendingOrdersTab, icon: <Clock className="w-4 h-4" />, badge: pendingCount },
@@ -244,6 +246,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       <div className="admin-workspace">
         <div className="admin-workspace-heading"><h2>{NAV_ITEMS.find((item) => item.id === activeTab)?.label}</h2></div>
         {activeTab === 'ai' && <AdminAiPanel key={user.uid} getAuthHeaders={getAuthHeaders} currentLang={currentLang} />}
+        {activeTab === 'tickets' && <TicketsPanel key={user.uid} getAuthHeaders={getAuthHeaders} />}
         {activeTab === 'payments' && <ServiceReceiptsPanel getAuthHeaders={getAuthHeaders} />}
         {activeTab === 'customers' && (
           <CustomersTab
