@@ -3,7 +3,6 @@ import type { Language } from '../types';
 
 // Draft Tamil for every value and paragraph in this file: native Tamil and legal review required.
 export const BUSINESS_DETAILS_TA: Record<keyof typeof BUSINESS_DETAILS, string> = {
-  website: BUSINESS_DETAILS.website,
   legalName: BUSINESS_DETAILS.legalName,
   address: 'I, 68/72C, கிழக்குத் தெரு, திருக்கோயிலூர் - 605757',
   phone: BUSINESS_DETAILS.phone,

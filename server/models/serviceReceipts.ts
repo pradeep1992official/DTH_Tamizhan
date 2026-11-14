@@ -1,7 +1,7 @@
 import { getStorage } from 'firebase-admin/storage';
 import { getAdminFirestore } from '../middleware/auth';
 import firebaseConfig from '../../firebase-applet-config.json';
-import { BUSINESS_DETAILS } from '../../src/lib/trustContent';
+import { serviceBusinessDetails } from '../serviceBusiness';
 import { ticketSchema, type Ticket } from '../../src/lib/tickets';
 import { receiptPdf } from '../receiptPdf';
 
@@ -10,10 +10,11 @@ export function receiptFinancialYear(paidAt: string) {
   const start = month >= 4 ? year : year - 1; return `${start}-${String(start + 1).slice(-2)}`;
 }
 export function serviceReceiptData(ticket: Ticket, brandName: string) {
+  const business = serviceBusinessDetails();
   if (!ticket.payment.paidAt || !ticket.payment.paymentId || !ticket.receipt.number) throw new Error('Verified payment and receipt number required.');
   return { title: 'Service payment receipt', testMode: true,
     rows: [
-      ['Business', `DTH Tamizhan / ${BUSINESS_DETAILS.legalName}`], ['Address', BUSINESS_DETAILS.address], ['Phone', BUSINESS_DETAILS.phone], ['Email', BUSINESS_DETAILS.email], ['Website', BUSINESS_DETAILS.website || process.env.APP_URL || 'DTH Tamizhan'],
+      ['Business', `DTH Tamizhan / ${business.legalName}`], ['Address', business.address], ['Phone', business.phone], ['Email', business.email], ['Website', business.website],
       ['Receipt number', ticket.receipt.number], ['Paid at (IST)', new Date(ticket.payment.paidAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })],
       ['Customer', ticket.name], ['Customer phone', ticket.phone], ['Request', ticket.ticketNo], ['Brand', brandName],
       ['Subscriber ID', `${'*'.repeat(Math.max(0, ticket.subscriberId.length - 4))}${ticket.subscriberId.slice(-4)}`],

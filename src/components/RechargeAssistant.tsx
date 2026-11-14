@@ -4,6 +4,7 @@ import { assistantReplyText } from '../lib/assistantReplyText';
 import { resolveAssistantLanguage, assistantLanguageTag, type AssistantLanguage, type AssistantLanguageChoice } from '../lib/assistantLanguage';
 import { tanglishRechargeNotices, tanglishUiText } from '../lib/assistantReplyCopy';
 import { AssistantDraftCard } from './AssistantDraftCard';
+import { AssistantSupportCard } from './AssistantSupportCard';
 import { draftSupportEmail } from '../lib/supportEmail';
 import { refundDraftSchema, type SupportDraft } from '../lib/assistantDrafts';
 import { useNavigate } from 'react-router-dom';
@@ -211,6 +212,7 @@ export function RechargeAssistant({ currentLang, displayName, onCheckout }: {
           {order.status === 'failed' && <button type="button" className="recharge-chat-suggestion" onClick={() => { setDraft(`Draft a refund request for order ${order.orderId}. Reason: my recharge failed.`); document.getElementById('recharge-ai-message')?.focus(); }}>{'Start a refund request with support'}</button>}
         </li>)}</ul>}
         {(reply?.action?.type === 'contact_draft' || reply?.action?.type === 'refund_draft') && <AssistantDraftCard key={messages.length} action={reply.action} language={replyLanguage} onSubmit={submitSupportDraft} />}
+        {(reply?.action?.type === 'support_recommendation' || reply?.action?.type === 'prefill_support' || reply?.action?.type === 'prefill_service_request') && <AssistantSupportCard action={reply.action} />}
         {reply?.action?.type === 'show_plans' && <ul>{reply.action.plans.map(plan => <li key={plan.id}>{plan.name} · {formatDuration(plan.duration, currentLang)} · {formatPrice(plan.amount, currentLang)}</li>)}</ul>}
         {reply && reply.state !== 'awaiting_payment' && reply.state !== 'alternatives' && <p>{notices[reply.state]}</p>}
         {reply?.state === 'alternatives' && <p>{text('I couldn’t find that exact pack for this duration. Would you like one of these alternatives?', 'இந்த காலத்திற்கு அந்த பேக் கிடைக்கவில்லை. இந்த மாற்று பேக்குகளில் ஒன்றைத் தேர்வு செய்ய விரும்புகிறீர்களா?')}</p>}

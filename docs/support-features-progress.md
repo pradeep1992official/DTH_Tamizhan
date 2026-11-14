@@ -76,3 +76,11 @@ match /server_ticket_private/{ticketId} { allow read, write: if false; }
 - Test: omit/forge X-Firebase-AppCheck or use another app's token (403); fill website honeypot (400); fourth support/sixth unique service request same day (429); 21st user or 41st IP POST/minute (429); same brand/subscriber open request (409); HTML descriptions stored as text. Next India day resets caps. Use Firebase's registered debug provider locally, never a production bypass token in source.
 - 16 focused tests and TypeScript passed. .env.example lists new public/site and server-only settings.
 - References: https://firebase.google.com/docs/app-check/web/recaptcha-enterprise-provider and https://firebase.google.com/docs/app-check/custom-resource-backend
+
+## Prompt 8
+- Added recommend_support_option, prefill_support_form and prefill_service_request to the existing audited customer tool registry.
+- Constrained Gemini classification chooses a free ticket or optional paid DTH-company assistance; strict code validation rejects invalid category/option combinations. Current brand config and linked-order ownership are checked server-side for prefills.
+- Assistant cards explain free customer care versus the Rs.50 convenience option and offer Review (plus free-support alternative). Only a customer click opens the chosen form; no tool can create a ticket, accept terms, start checkout, pay or submit. Safe route state carries editable fields, never URL query PII or authority fields.
+- Forms consume validated draft state, leave payment acceptance unchecked, and still pass through all server/App Check validation. Tamil/Tanglish explanation support retained.
+- 26 assistant/routing tests and build passed. Full suite: 657 passed, 6 failed, 2 skipped; the same six failing tests reproduce at starting commit 542655f (savings one-month-rate expectations, global-boundary retry URL expectation, checkout localization mock, policy terms paragraph parity). Removed an empty website translation introduced during receipts; business details now reuse a server config wrapper and APP_URL. Existing unrelated failures were not edited.
+- Live Gemini, Firebase, Storage, Brevo and Razorpay test E2E remain deployment checks; mocks are not reported as real provider verification.

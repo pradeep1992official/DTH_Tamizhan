@@ -1,0 +1,40 @@
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { MemoryRouter } from 'react-router-dom';
+import { beforeEach, expect, it, vi } from 'vitest';
+const f = vi.hoisted(() => ({ generate: vi.fn(), owned: vi.fn(), brands: vi.fn() }));
+vi.mock('../server/utils/aiToolSecurity', () => ({ runAiTool: async (_scope: string, _name: unknown, _args: unknown, execute: any) => execute('owner') }));
+vi.mock('../server/models/planModel', () => ({ planModel: {} }));
+vi.mock('../server/models/assistantHistory', () => ({ ownedAssistantOrders: f.owned }));
+vi.mock('../server/models/serviceBrands', () => ({ readServiceBrands: f.brands }));
+vi.mock('../server/utils/freeTierAi', () => ({ verifiedFreeKey: async () => 'test', reserveFreeRequest: async () => {}, FREE_RECOMMENDATION_MODEL: 'test' }));
+vi.mock('@google/genai', () => ({ ThinkingLevel: { MINIMAL: 'MINIMAL' }, GoogleGenAI: class { models = { generateContent: f.generate }; } }));
+import { executeAssistantTool } from '../server/utils/assistantTools';
+import { assistantActionSchema, actionNotice } from '../src/lib/assistantActions';
+import { AssistantSupportCard } from '../src/components/AssistantSupportCard';
+import { defaultServiceBrands } from '../src/lib/serviceBrands';
+beforeEach(() => { vi.clearAllMocks(); f.brands.mockResolvedValue(defaultServiceBrands); f.owned.mockResolvedValue([]); });
+it('uses constrained Gemini classification and returns a suggestion without a business write', async () => {
+  f.generate.mockResolvedValue({ text: JSON.stringify({ option: 'service_request', category: 'no_signal', summary: 'My DTH box has no signal.' }) });
+  const action = await executeAssistantTool('recommend_support_option', { problem_text: 'No signal on my DTH box.' }, 'owner');
+  expect(action.type).toBe('support_recommendation');
+  expect(actionNotice(action)).toContain('customer care for free'); expect(actionNotice(action)).toContain('Rs. 50');
+  const html = renderToStaticMarkup(<MemoryRouter><AssistantSupportCard action={action as any} /></MemoryRouter>);
+  expect(html).toContain('Review service request'); expect(html).toContain('Use free support instead'); expect(html).not.toContain('<form');
+});
+it('rejects forged classifications, authority, submissions and amounts', async () => {
+  f.generate.mockResolvedValue({ text: JSON.stringify({ option: 'service_request', category: 'refund', summary: 'Refund my payment.' }) });
+  await expect(executeAssistantTool('recommend_support_option', { problem_text: 'Refund my payment.' }, 'owner')).rejects.toThrow();
+  const fields = { description: 'There is no signal.', issueCategory: 'no_signal' };
+  for (const extra of [{ uid: 'other' }, { amount: 1 }, { acceptedTerms: true }, { status: 'paid' }]) await expect(executeAssistantTool('prefill_service_request', { ...fields, ...extra }, 'owner')).rejects.toThrow();
+  expect(assistantActionSchema.safeParse({ type: 'prefill_service_request', fields: { ...fields, url: '/admin' } }).success).toBe(false);
+});
+it('checks linked order ownership and current dynamic brand settings before prefilling', async () => {
+  await expect(executeAssistantTool('prefill_support_form', { description: 'Please review my payment.', issueCategory: 'refund', orderId: 'order_other' }, 'owner')).rejects.toThrow();
+  expect(f.owned).toHaveBeenCalledWith('owner', 1, 'order_other');
+  f.brands.mockResolvedValue([{ ...defaultServiceBrands[0], enabled: false }]);
+  await expect(executeAssistantTool('prefill_service_request', { description: 'There is no signal.', issueCategory: 'no_signal', brand: 'tata_play', subscriberId: '1234567890' }, 'owner')).rejects.toThrow();
+  f.brands.mockResolvedValue(defaultServiceBrands);
+  const action = await executeAssistantTool('prefill_service_request', { description: 'There is no signal.', issueCategory: 'no_signal', brand: 'tata_play', subscriberId: '1234567890' }, 'owner');
+  expect(action.type).toBe('prefill_service_request'); expect(assistantActionSchema.safeParse(action).success).toBe(true);
+});

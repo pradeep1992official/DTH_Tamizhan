@@ -1,5 +1,6 @@
 import { contactDraftSchema, refundDraftSchema } from './assistantDrafts';
 import { serviceBrandsSchema } from './serviceBrands';
+import { supportRecommendationAction, supportPrefillAction, servicePrefillAction, supportOptionExplanation } from './supportRouting';
 import { orderIdSchema, rechargeSummarySchema, type RechargeSummary } from './assistantOrderSchemas';
 export { rechargeSummarySchema, type RechargeSummary } from './assistantOrderSchemas';
 import { z } from 'zod';
@@ -9,6 +10,7 @@ export const assistantPages = {
   home: '/', recharge: '/recharge', plans: '/plans', connections: '/connections',
   contact: '/contact', refund: '/refund-policy', privacy: '/privacy-policy', terms: '/terms',
   account: '/account', history: '/history',
+  support: '/support', my_tickets: '/my-tickets', service_request: '/service-request',
 } as const;
 export const pageSchema = z.enum(Object.keys(assistantPages) as [keyof typeof assistantPages, ...(keyof typeof assistantPages)[]]);
 export const navigateArgs = z.object({ page: pageSchema }).strict();
@@ -34,6 +36,7 @@ export function rechargeExplanation(order: RechargeSummary, language: AssistantL
   return prefix + 'The recharge status could not be confirmed. Please contact support.';
 }
 export const assistantActionSchema = z.discriminatedUnion('type', [
+  supportRecommendationAction, supportPrefillAction, servicePrefillAction,
   z.object({ type: z.literal('show_service_brands'), brands: serviceBrandsSchema }).strict(),
   contactDraftSchema, refundDraftSchema,
   z.object({ type: z.literal('show_recharge_status'), order: rechargeSummarySchema.nullable() }).strict(),
@@ -44,6 +47,8 @@ export const assistantActionSchema = z.discriminatedUnion('type', [
 ]);
 export type AssistantAction = z.infer<typeof assistantActionSchema>;
 export function actionNotice(action: AssistantAction, language: AssistantLanguage = 'en'): string {
+  if (action.type === 'support_recommendation') return `${action.recommendation.summary}\n${supportOptionExplanation(action.recommendation.option, language)}`;
+  if (action.type === 'prefill_support' || action.type === 'prefill_service_request') return languageText(language, 'Form draft ready. Review and edit before submitting. Nothing has been sent or paid.', 'படிவ வரைவு தயார். சரிபார்த்து திருத்திய பிறகு சமர்ப்பிக்கவும். எதுவும் அனுப்பப்படவில்லை; பணம் செலுத்தப்படவில்லை.', 'Form draft ready. Check panni edit pannitu submit pannunga. Innum anuppala, panamum seluthala.');
   if (action.type === 'show_service_brands') return action.brands.filter(brand => brand.enabled).map(brand => `${brand.displayName}: ${brand.subscriberIdLabel}, ${brand.minLength}-${brand.maxLength} digits`).join('\n');
   if (language !== 'en') {
     const say = (ta: string, tanglish: string) => languageText(language, '', ta, tanglish);
@@ -53,6 +58,7 @@ export function actionNotice(action: AssistantAction, language: AssistantLanguag
     if (action.type === 'show_history') return action.orders.length ? say(`உங்கள் சமீபத்திய ${action.orders.length} ரீசார்ஜ்களைக் காட்டுகிறேன்.`, `Unga latest ${action.orders.length} recharges-ai kaatturen.`) : say('உங்கள் கணக்கில் ரீசார்ஜ் வரலாறு இல்லை.', 'Unga account-la recharge history illa.');
     if (action.type === 'show_plans') return say(`${action.plans.length} பொருத்தமான திட்டங்களைக் காட்டுகிறேன்.`, `${action.plans.length} matching plans-ai kaatturen.`);
     const pages = {
+      support: ['உதவி', 'Support'], my_tickets: ['எனது கோரிக்கைகள்', 'My tickets'], service_request: ['சேவை கோரிக்கை', 'Service request'],
       home: ['முகப்பு', 'Home'], recharge: ['ரீசார்ஜ்', 'Recharge'], plans: ['திட்டங்கள்', 'Plans'], connections: ['சேமித்த பாக்ஸ்கள்', 'Saved boxes'],
       contact: ['தொடர்பு', 'Contact'], refund: ['பணத்திருப்பல் கொள்கை', 'Refund policy'], privacy: ['தனியுரிமைக் கொள்கை', 'Privacy policy'], terms: ['விதிமுறைகள்', 'Terms'], account: ['கணக்கு', 'Account'], history: ['வரலாறு', 'History'],
     };

@@ -1,5 +1,4 @@
 export const BUSINESS_DETAILS = {
-  website: '', // Set the public URL here, or provide APP_URL on the server.
   legalName: 'SMP Enterprises',
   address: 'I, 68/72C, East Street, Thirukoilur - 605757',
   phone: '+91 8144404504',

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { supportPrefillArgs } from '../lib/supportRouting';
 import type { UserProfile } from '../types';
 import type { Ticket } from '../lib/tickets';
 import { supportCategories } from '../lib/tickets';
@@ -13,6 +14,7 @@ export function ticketWhatsApp(ticket: Pick<Ticket, 'ticketNo' | 'issueCategory'
   return `https://wa.me/${BUSINESS_DETAILS.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`${ticket.ticketNo}\n${ticket.issueCategory.replace(/_/g, ' ')}\n${ticket.description}`)}`;
 }
 export function SupportTicketsPage({ user, onOpenAuth, list = false }: { user: UserProfile | null; onOpenAuth: () => void; list?: boolean }) {
+  const location = useLocation(); const parsedPrefill = supportPrefillArgs.safeParse(location.state?.ticketPrefill); const prefill = parsedPrefill.success ? parsedPrefill.data : undefined;
   const [tickets, setTickets] = useState<Ticket[]>([]); const [created, setCreated] = useState<Ticket | null>(null);
   const [orders, setOrders] = useState<{ orderId: string; packName: string }[]>([]);
   const [error, setError] = useState(''); const [busy, setBusy] = useState(false); const [refresh, setRefresh] = useState(0);
@@ -24,24 +26,24 @@ export function SupportTicketsPage({ user, onOpenAuth, list = false }: { user: U
       else { const response = await fetch('/api/my/history?limit=100', { headers: await paymentAuthHeaders(), cache: 'no-store' }); const data = await response.json(); if (!response.ok) throw new Error('Orders could not be loaded. You can submit without linking an order.'); if (active && auth?.currentUser?.uid === user.uid) setOrders(data.orders || []); }
     } catch (e) { if (active) setError(e instanceof Error ? e.message : 'Please retry.'); } })();
     return () => { active = false; };
-  }, [user?.uid, list, refresh]);
+  }, [user?.uid, list, refresh, location.key]);
   return <section className="mx-auto max-w-2xl p-4 space-y-4">
     <h1 className="text-2xl font-semibold">{list ? 'My tickets' : 'Free support ticket'}</h1>
-    <nav className="flex gap-4"><Link to="/support">New support ticket</Link><Link to="/my-tickets">My tickets</Link></nav>
+    <nav className="flex flex-wrap gap-4"><Link to="/support">Free website / recharge support</Link><Link to="/service-request">DTH company complaint assistance</Link><Link to="/my-tickets">My tickets</Link></nav>
     {!user ? <button className="admin-primary" onClick={onOpenAuth}>Sign in to continue</button> : <>
       {error && <p role="alert" className="text-error">{error}</p>}
-      {created ? <div role="status" className="rounded-lg border border-rule p-4 space-y-3"><h2>Ticket {created.ticketNo} created</h2><a href={ticketWhatsApp(created)} target="_blank" rel="noopener noreferrer">Chat on WhatsApp</a><p><Link to="/my-tickets">View your tickets</Link></p></div> : !list && <form className="space-y-4" onSubmit={async event => {
+      {created ? <div role="status" className="rounded-lg border border-rule p-4 space-y-3"><h2>Ticket {created.ticketNo} created</h2><a href={ticketWhatsApp(created)} target="_blank" rel="noopener noreferrer">Chat on WhatsApp</a><p><Link to="/my-tickets">View your tickets</Link></p></div> : !list && <form key={location.key} className="space-y-4" onSubmit={async event => {
         event.preventDefault(); if (busy) return; const form = event.currentTarget; const values = new FormData(form); const uid = user.uid; setBusy(true); setError('');
         try { const data = await ticketApi('/support', { website: values.get('website'), name: values.get('name'), phone: values.get('phone'), issueCategory: values.get('issueCategory'), description: values.get('description'), ...(values.get('orderId') ? { orderId: values.get('orderId') } : {}) }); if (auth?.currentUser?.uid === uid) setCreated(data.ticket); }
         catch (e) { if (auth?.currentUser?.uid === uid) setError(e instanceof Error ? e.message : 'Please retry.'); } finally { setBusy(false); }
       }}>
         <p>For website, recharge, payment, refund or account issues. This service is free.</p>
         <div hidden aria-hidden="true"><label>Website<input name="website" tabIndex={-1} autoComplete="off" /></label></div>
-        <label className="block">Name<input name="name" required maxLength={100} defaultValue={user.displayName} className="block w-full rounded-lg border border-rule p-3" /></label>
-        <label className="block">Phone<input name="phone" required inputMode="tel" pattern="[6-9][0-9]{9}" maxLength={10} defaultValue={user.phoneNumber} className="block w-full rounded-lg border border-rule p-3" /></label>
-        <label className="block">Category<select name="issueCategory" className="block w-full rounded-lg border border-rule p-3">{supportCategories.map(category => <option key={category} value={category}>{category.replace(/_/g, ' ')}</option>)}</select></label>
-        <label className="block">Linked order (optional)<select name="orderId" className="block w-full rounded-lg border border-rule p-3"><option value="">No linked order</option>{orders.map(order => <option key={order.orderId} value={order.orderId}>{order.orderId} - {order.packName}</option>)}</select></label>
-        <label className="block">Description<textarea name="description" required minLength={5} maxLength={1000} rows={4} className="block w-full rounded-lg border border-rule p-3" /></label>
+        <label className="block">Name<input name="name" required maxLength={100} defaultValue={prefill?.name || user.displayName} className="block w-full rounded-lg border border-rule p-3" /></label>
+        <label className="block">Phone<input name="phone" required inputMode="tel" pattern="[6-9][0-9]{9}" maxLength={10} defaultValue={prefill?.phone || user.phoneNumber} className="block w-full rounded-lg border border-rule p-3" /></label>
+        <label className="block">Category<select name="issueCategory" defaultValue={prefill?.issueCategory} className="block w-full rounded-lg border border-rule p-3">{supportCategories.map(category => <option key={category} value={category}>{category.replace(/_/g, ' ')}</option>)}</select></label>
+        <label className="block">Linked order (optional)<select name="orderId" defaultValue={prefill?.orderId} key={orders.length} className="block w-full rounded-lg border border-rule p-3"><option value="">No linked order</option>{orders.map(order => <option key={order.orderId} value={order.orderId}>{order.orderId} - {order.packName}</option>)}</select></label>
+        <label className="block">Description<textarea name="description" defaultValue={prefill?.description} required minLength={5} maxLength={1000} rows={4} className="block w-full rounded-lg border border-rule p-3" /></label>
         <button className="admin-primary" disabled={busy}>{busy ? 'Creating...' : 'Create free ticket'}</button>
       </form>}
       {list && <><button className="admin-quiet" onClick={() => setRefresh(value => value + 1)}>Refresh</button>{!tickets.length && <p>No tickets yet.</p>}{tickets.map(ticket => <TicketThread key={ticket.id} ticket={ticket} />)}

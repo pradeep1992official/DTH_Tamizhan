@@ -1,5 +1,7 @@
 import { runAiTool } from './aiToolSecurity';
 import { readServiceBrands } from '../models/serviceBrands';
+import { supportRecommendationArgs, supportPrefillArgs, servicePrefillArgs } from '../../src/lib/supportRouting';
+import { recommendSupport, prefillSupport, prefillService } from './supportRouting';
 import { contactDraftArgs, refundDraftArgs } from '../../src/lib/assistantDrafts';
 import { draftRefund } from '../models/assistantDrafts';
 import { assistantHistory } from '../models/assistantHistory';
@@ -9,6 +11,9 @@ import { planModel } from '../models/planModel';
 import { validateCatalogPack } from '../../src/lib/catalog';
 
 export const toolsRegistry = Object.freeze({
+  recommend_support_option: { description: 'Suggest free support for website/payment/recharge/refund/account issues or the optional Rs.50 DTH complaint-assistance service for signal/channels/box issues. Pass the user problem, never submit or pay. User confirms the suggestion.', schema: supportRecommendationArgs },
+  prefill_support_form: { description: 'Prepare the free support form with user-provided fields and a clear one-line description. No invented identities or order IDs; no submission. User must review and submit.', schema: supportPrefillArgs },
+  prefill_service_request: { description: 'Prepare the optional Rs.50 complaint-assistance form with user-provided fields and a clear one-line description. Read get_service_brands first if brand format is needed. No submission or payment. User must confirm and pay.', schema: servicePrefillArgs },
   get_service_brands: { description: 'Read the current admin-configured service request brands and subscriber ID formats. Use this source rather than guessing formats.', schema: z.object({}).strict() },
   draft_contact_message: { description: 'Create an unsent contact draft for confirmation. Categorize the issue as recharge_failed, wrong_operator, refund, account, or other. Never submit it.', schema: contactDraftArgs },
   draft_refund_request: { description: 'Create an unsent refund request draft. Requires the user-provided order ID and reason. Ownership and eligibility are checked by the server; never promise approval or submit.', schema: refundDraftArgs },
@@ -29,6 +34,9 @@ async function executeCustomerTool(name: unknown, args: unknown, uid: string): P
   if (typeof name !== 'string' || !Object.hasOwn(toolsRegistry, name)) throw new InvalidAssistantTool('Unknown assistant tool.');
   const parsed = toolsRegistry[name as keyof typeof toolsRegistry].schema.safeParse(args);
   if (!parsed.success) throw new InvalidAssistantTool('Invalid assistant tool arguments.');
+  if (name === 'recommend_support_option') return recommendSupport(uid, args);
+  if (name === 'prefill_support_form') return prefillSupport(uid, args);
+  if (name === 'prefill_service_request') return prefillService(args);
   if (name === 'get_service_brands') return { type: 'show_service_brands', brands: await readServiceBrands() };
   if (name === 'draft_contact_message') return { type: 'contact_draft', draft: contactDraftArgs.parse(args) };
   if (name === 'draft_refund_request') return draftRefund(uid, args);
