@@ -1,3 +1,4 @@
+import { allowAiRequest } from '../middleware/aiRateLimiter';
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { planModel } from '../models/planModel';
@@ -9,13 +10,14 @@ import { customerMessages } from '../../src/lib/customerMessages';
 const schema = z.object({ operator: z.enum(['any', 'sun_direct', 'airtel_dth', 'tata_play', 'dish_tv', 'd2h']).default('any'),
   monthlyBudget: z.number().finite().min(100).max(10000).default(300), quality: z.enum(['all', 'HD', 'SD']).default('all'),
   duration: z.union([z.literal(0), z.literal(1), z.literal(3), z.literal(6), z.literal(12)]).default(0),
-  preferences: z.string().trim().max(200).default(''), preferredLanguage: z.enum(['en', 'ta']).default('en') });
+  preferences: z.string().max(500).trim().default(''), preferredLanguage: z.enum(['en', 'ta']).default('en') });
 
 export async function recommendPlans(req: Request, res: Response): Promise<void> {
   res.setHeader('Cache-Control', 'no-store');
   try {
     const account = await verifyAuthToken(req);
     if (!account) { res.status(401).json({ success: false, error: 'Sign in to get plan suggestions.' }); return; }
+    if (!await allowAiRequest(account.uid, res)) return;
     const input = schema.safeParse(req.body);
     if (!input.success) { res.status(400).json({ success: false, error: 'Check your budget and plan preferences.' }); return; }
     const { operator, monthlyBudget, quality, duration, preferences, preferredLanguage } = input.data;

@@ -1,3 +1,4 @@
+import { allowAiRequest } from '../middleware/aiRateLimiter';
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { getAdminFirestore, verifyAuthToken } from '../middleware/auth';
@@ -13,7 +14,7 @@ const boxCache = new ReadCache<DthConnection[]>(60_000, 200);
 const conversations = new Map<string, { intent: ReturnType<typeof parseRechargeCommand>; expires: number }>();
 export function clearAssistantReadCache() { boxCache.clear(); conversations.clear(); }
 
-const schema = z.object({ messages: z.array(z.string().trim().min(1).max(500)).min(1).max(12),
+const schema = z.object({ messages: z.array(z.string().max(500).trim().min(1)).min(1).max(12),
   connectionId: z.string().max(200).optional(), operatorId: z.enum(['sun_direct', 'tata_play', 'airtel_dth', 'dish_tv', 'd2h']).optional() });
 export async function prepareAssistantRecharge(req: Request, res: Response): Promise<void> {
   res.setHeader('Cache-Control', 'no-store');
@@ -21,6 +22,7 @@ export async function prepareAssistantRecharge(req: Request, res: Response): Pro
   try {
     const account = await verifyAuthToken(req);
     if (!account) { res.status(401).json({ success: false, error: 'Please sign in to use the recharge assistant.' }); return; }
+    if (!await allowAiRequest(account.uid, res)) return;
     const input = schema.safeParse(req.body);
     if (!input.success) { res.status(400).json({ success: false, error: 'Send up to 12 messages, each under 500 characters. Start a new request for a longer conversation.' }); return; }
     const latestMessage = input.data.messages.at(-1)!;

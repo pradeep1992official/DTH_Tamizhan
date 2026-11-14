@@ -1,3 +1,4 @@
+vi.mock('../server/middleware/aiRateLimiter', () => ({ allowAiRequest: async () => true }));
 import { beforeEach, expect, it, vi } from 'vitest';
 const f = vi.hoisted(() => ({ account: { uid: 'owner' } as any, extract: vi.fn(), boxes: [] as any[], plans: [] as any[], storageError: null as any, boxReads: 0 }));
 vi.mock('../server/middleware/auth', () => ({ verifyAuthToken: async () => f.account,

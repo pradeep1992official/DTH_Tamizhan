@@ -1,3 +1,4 @@
+vi.mock('../server/middleware/aiRateLimiter', () => ({ allowAiRequest: async () => true }));
 import { beforeEach, expect, it, vi } from 'vitest';
 const fixture = vi.hoisted(() => ({ account: { uid: 'customer' } as any, rank: vi.fn(), plans: [] as any[] }));
 vi.mock('../server/middleware/auth', () => ({ verifyAuthToken: async () => fixture.account }));
@@ -52,4 +53,11 @@ it('includes all valid Malayalam durations for a generous budget and any duratio
   const res = await request({ preferences: 'Malayalam', monthlyBudget: 5000, duration: 0 });
   expect(fixture.rank.mock.calls[0][1].map((plan: any) => plan.id).sort()).toEqual(['malayalam-1', 'malayalam-3', 'malayalam-6']);
   expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ source: 'ai', plans: expect.arrayContaining([expect.objectContaining({ name: 'Tamil Malayalam Jodi', amount: 327 })]) }));
+});
+
+it('accepts 500 preference characters and rejects 501 including whitespace padding', async () => {
+  expect((await request({ preferences: 'x'.repeat(500) })).status).not.toHaveBeenCalledWith(400);
+  fixture.rank.mockClear();
+  for (const preferences of ['x'.repeat(501), ' '.repeat(501)]) expect((await request({ preferences })).status).toHaveBeenCalledWith(400);
+  expect(fixture.rank).not.toHaveBeenCalled();
 });
