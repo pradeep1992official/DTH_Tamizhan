@@ -40,7 +40,7 @@ adminAiRouter.post('/pending', async (req, res) => {
 adminAiRouter.post('/query', async (req, res) => {
   const parsed = queryMessageSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ success: false, error: 'Enter a query of at most 500 characters.' }); return; }
-  try { res.json({ success: true, ...await adminNaturalQuery(res.locals.adminAiUid, parsed.data.message) }); }
+  try { res.json({ success: true, ...await adminNaturalQuery(res.locals.adminAiUid, parsed.data.message, Date.now(), parsed.data.history) }); }
   catch (error) { unavailable(res, error); }
 });
 adminAiRouter.post('/summarize', async (req, res) => {

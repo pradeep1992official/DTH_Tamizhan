@@ -1,3 +1,4 @@
+import type { AdminAnalyticsResult } from './adminAnalytics';
 import { z } from 'zod';
 export const ticketIdSchema = z.string().min(1).max(128).regex(/^[A-Za-z0-9_-]+$/);
 export const importedTicketSchema = z.object({
@@ -17,7 +18,8 @@ export const rechargeQueryArgs = z.object({ status: z.enum(['failed', 'pending',
   start_date: calendarDateSchema, end_date: calendarDateSchema, limit: z.number().int().min(1).max(100) }).strict();
 export const pendingRechargeArgs = z.object({ limit: z.number().int().min(1).max(100),
   cursor: z.object({ time: z.iso.datetime(), id: ticketIdSchema }).strict().optional() }).strict();
-export const queryMessageSchema = z.object({ message: z.string().max(500).trim().min(1) }).strict();
+export const adminConversationSchema = z.array(z.object({ role: z.enum(['user', 'assistant']), content: z.string().max(2000).trim().min(1) }).strict()).max(12);
+export const queryMessageSchema = z.object({ message: z.string().max(500).trim().min(1), history: adminConversationSchema.default([]) }).strict();
 export const ticketSummaryRequest = z.object({ limit: z.number().int().min(1).max(20).default(20) }).strict();
 export const replyDraftRequest = z.object({ instruction: z.string().max(500).trim().default('') }).strict();
 export const replyContentSchema = z.object({ subject: z.string().max(120).trim().min(1).regex(/^[^\r\n]*$/), body: z.string().max(3000).trim().min(1) }).strict();
@@ -28,6 +30,6 @@ export const ticketAnalysisSchema = z.object({ entries: z.array(z.object({ ticke
 export type TicketAnalysis = z.infer<typeof ticketAnalysisSchema>['entries'][number];
 export interface AdminRechargeRow { testMode: boolean; orderId: string; operator: string; amount: number; status: string; createdAt: string }
 export interface RechargeCounts { total: number; completed: number; pending: number; failed: number; other: number }
-export type AdminQueryResult = { type: 'revenue_totals'; live: number; test: number; currency: 'INR'; through_date: string; timezone: 'Asia/Kolkata' } | { type: 'recharge_totals'; live: RechargeCounts; test: RechargeCounts; through_date: string; timezone: 'Asia/Kolkata' } | { type: 'recharges'; rows: AdminRechargeRow[]; parameters: z.infer<typeof rechargeQueryArgs>; timezone: 'Asia/Kolkata'; limited: boolean } |
+export type AdminQueryResult = AdminAnalyticsResult | { type: 'revenue_totals'; live: number; test: number; currency: 'INR'; through_date: string; timezone: 'Asia/Kolkata' } | { type: 'recharge_totals'; live: RechargeCounts; test: RechargeCounts; through_date: string; timezone: 'Asia/Kolkata' } | { type: 'recharges'; rows: AdminRechargeRow[]; parameters: z.infer<typeof rechargeQueryArgs>; timezone: 'Asia/Kolkata'; limited: boolean } |
   { type: 'pending_recharges'; rows: AdminRechargeRow[]; through_date: string; timezone: 'Asia/Kolkata'; nextCursor: { time: string; id: string } | null } |
   { type: 'tickets'; tickets: TicketView[]; limited: boolean };

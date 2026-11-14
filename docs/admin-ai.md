@@ -31,12 +31,66 @@ The panel initially loads up to 20 oldest open tickets; a tool query may request
 
 An administrator edits the reply, checks **I reviewed and approve this reply**, then clicks **Approve & open email**. Editing resets approval. The server reauthorizes the admin, rechecks that the ticket remains open, validates the edited reply, and uses only the current imported ticket's recipient. This reuses the site's email-app handoff: the admin must press Send in their email app. The app does not claim delivery, close the ticket, execute a refund, change an order, or write draft/approval data.
 
-## Fixed query tools
+## Data questions and fixed tools
 
-- `query_recharges(status, start_date, end_date, limit)`: fixed `server_recharges` collection, exact recharge status (`failed`, `pending`, `processing`, `completed`), `testMode == false`, inclusive creation-date range in Asia/Kolkata, maximum 31 calendar days and 100 rows. ISO UTC boundary parameters are computed by server code. Returned fields are only order ID, operator, amount, status and creation date.
-- `list_open_tickets(kind, limit)`: fixed `server_support_tickets` collection and open status; kind is `all`, `contact` or `refund`, maximum 50 rows.
+Natural-language data questions now use Gemini function calling, not keyword routing. Only these six strict tools are exposed to the data planner:
 
-For example, **failed recharges yesterday** maps to `query_recharges` with yesterday as both dates in Asia/Kolkata. These queries use order creation time; the project has no separate failure-transition timestamp. Results are bounded rows, not aggregate totals. The model cannot select collection names, fields, operators, raw SQL, scripts, query text, writes or destructive actions. Unknown tools, multiple calls, additional arguments, invalid dates and oversized ranges are rejected before database execution. Clarification responses are text only and are never executed.
+- `get_total_orders(from, to, status)` counts orders, separating live/test. Status: all, pending, processing, completed, failed. Pending includes processing.
+- `get_total_revenue(from, to)` sums completed live recharges with matching captured, paid INR payments. Pending, failed, refunded and test records are excluded.
+- `get_failed_recharges(from, to)` returns a computed count and up to 100 rows, with a subset flag.
+- `get_top_plans(limit)` ranks successful live plans across all dates through today; limit 1 to 20.
+- `get_orders_by_operator(from, to)` computes operator/status and live/test counts.
+- `get_pending_refunds()` reads up to 50 open imported refund tickets, explicitly flagging a potentially incomplete backlog. It never executes refunds.
+
+Dates are inclusive YYYY-MM-DD in Asia/Kolkata, based on recorded payment creation time, not completion/failure-transition time. `from: null` means all earlier dates. Future or reversed ranges and extra arguments are rejected. The system prompt includes today's India date; weeks start Monday. Firestore collection names, predicates, sorting and joins are fixed in server code. The existing payment-backed order merger matches the admin queue; local ledger fallback is for configured development storage. Aggregate scans fail instead of returning partial totals above 20,000 payment records. Monetary sums use integer paise. The model never calculates totals or rankings.
+
+Each request sends at most 12 validated user/assistant history turns plus the current question. Gemini selects exactly one tool, the server reauthorizes and audits it, then a second generation receives the actual function response and phrases the already computed result. Unknown/multiple tools are rejected; no suitable tool returns a fixed cannot-answer response. Legacy internal queue/ticket helpers remain for existing direct endpoints and are not exposed to the data planner. There is no cross-question response cache; HTTP remains no-store. Editing the question clears the previous displayed answer.
+
+### Repeated-answer diagnosis (before this change)
+
+- `server/utils/adminAiModel.ts:20`: revenue/collections/income/earnings/sales regex bypassed Gemini and used all-time revenue. It did not honor "this week". Lines 24 and 28 similarly routed totals and pending questions.
+- `server/utils/adminAiModel.ts:32`: only the current message was sent, without conversation history. Line 10 serialized the request object, not a fixed database snapshot.
+- `src/components/Admin/AdminAiPanel.tsx:78`: changing the question retained the previous result until submission (line 72), displaying stale data under the new question.
+- No response cache or fixed snapshot was found: client fetch line 32 and router line 13 already used no-store. The exact phrase "what is total revenue" would have matched the old revenue branch if submitted; repeated network responses for that exact phrase cannot be attributed to order routing without a captured request. The confirmed defects were stale display, keyword routing/date loss, and missing history.
+
+These line numbers refer to the original source before this fix.
+
+### Example: total revenue this week
+
+Illustrative only; no production query was executed. On 2026-11-14:
+
+```http
+POST /api/admin/ai/query
+Authorization: Bearer <Firebase-admin-ID-token>
+Content-Type: application/json
+
+{"message":"total revenue this week","history":[]}
+```
+
+Gemini selects `get_total_revenue({"from":"2026-11-09","to":"2026-11-14"})`. Example response when there are no successful live recharges:
+
+```json
+{
+  "success": true,
+  "requestId": "unique-per-request",
+  "text": "Revenue from successful live recharges this week is Rs. 0.00.",
+  "result": {
+    "type": "analytics",
+    "tool": "get_total_revenue",
+    "parameters": {"from": "2026-11-09", "to": "2026-11-14"},
+    "timezone": "Asia/Kolkata",
+    "data": {
+      "currency": "INR",
+      "revenuePaise": 0,
+      "revenue": 0,
+      "formattedRevenue": "\u20b90.00",
+      "successfulRecharges": 0,
+      "testExcluded": true,
+      "definition": "Completed live recharges with matching captured paid INR payments; excludes pending, failed, refunded and test records."
+    }
+  }
+}
+```
 
 ## Runtime configuration and verification
 

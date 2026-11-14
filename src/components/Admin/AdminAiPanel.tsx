@@ -1,3 +1,4 @@
+import type { AdminHistory } from '../../lib/adminAnalytics';
 import { AdminRechargeTotals } from './AdminRechargeTotals';
 import React, { useEffect, useRef, useState } from 'react';
 import type { Language } from '../../types';
@@ -13,6 +14,7 @@ export function AdminAiPanel({ getAuthHeaders, currentLang }: {
   const [analysis, setAnalysis] = useState<TicketAnalysis[]>([]);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [message, setMessage] = useState('');
+  const [history, setHistory] = useState<AdminHistory>([]);
   const [result, setResult] = useState<AdminQueryResult | null>(null);
   const [answer, setAnswer] = useState('');
   const [busy, setBusy] = useState(false);
@@ -33,7 +35,7 @@ export function AdminAiPanel({ getAuthHeaders, currentLang }: {
     const data = await response.json();
     if (signal?.aborted) throw new DOMException('Cancelled', 'AbortError');
     if (response.status === 401 || response.status === 403) {
-      setBlocked(true); setTickets([]); setAnalysis([]); setDrafts({}); setResult(null); setAnswer('');
+      setBlocked(true); setTickets([]); setAnalysis([]); setDrafts({}); setResult(null); setAnswer(''); setHistory([]);
     }
     if (!response.ok || !data.success) throw new Error(data.error || 'The admin AI request failed.');
     return data;
@@ -45,7 +47,7 @@ export function AdminAiPanel({ getAuthHeaders, currentLang }: {
     const timeout = setTimeout(() => {
       controller.abort();
       if (request.current === controller) { locked.current = false; setBusy(false); setError('This is taking too long. Please retry. No records were changed.'); }
-    }, 45_000);
+    }, 90_000);
     try { await task(); if (!controller.signal.aborted && announceCompletion) setNotice(old => old || 'Finished. No records were changed.'); }
     catch (error) { if (!controller.signal.aborted) setError(error instanceof Error && error.name !== 'ZodError' && !(error instanceof SyntaxError) && !(error instanceof TypeError) ? error.message : 'The assistant reply could not be loaded. Please try again.'); }
     finally { clearTimeout(timeout); if (request.current === controller) { locked.current = false; if (!controller.signal.aborted) setBusy(false); } }
@@ -69,18 +71,20 @@ export function AdminAiPanel({ getAuthHeaders, currentLang }: {
     {notice && <p role="status">{notice}</p>}
     <div className="rounded-lg border border-rule p-3 space-y-3">
     <form className="flex items-end gap-2" onSubmit={event => { event.preventDefault(); if (!message.trim()) return;
-      void run(async () => { setResult(null); setAnswer(''); const data = await api('/query', { message }); setAnswer(data.text); setResult(data.result || null);
+      void run(async () => { setResult(null); setAnswer(''); const data = await api('/query', { message, history }); setAnswer(data.text);
+        setHistory(old => [...old, { role: 'user' as const, content: message }, { role: 'assistant' as const, content: String(data.text).slice(0, 2000) }].slice(-12)); setResult(data.result || null);
         if (data.result?.type === 'tickets') { setTickets(data.result.tickets); setAnalysis([]); setLimited(data.result.limited); }
       }, 'Searching recharges and tickets...', false);
     }}>
       <label className="block min-w-0 flex-1"><span className="sr-only">{text('Ask about recharges or tickets', 'ரீசார்ஜ் அல்லது கோரிக்கைகள் பற்றி கேளுங்கள்')}</span>
         <input className="w-full rounded-lg border border-rule p-3" maxLength={500} value={message} disabled={busy || blocked}
-          placeholder="Ask about recharges or tickets..." onChange={event => setMessage(event.target.value)} />
+          placeholder="Ask about recharges or tickets..." onChange={event => { setMessage(event.target.value); setResult(null); setAnswer(''); setError(''); setNotice(''); }} />
       </label>
       <button type="submit" className="admin-primary" disabled={busy || blocked || !message.trim()}>{text('Ask', 'AI-யிடம் கேள்')}</button>
     </form>
-    {answer && !result && <p className="whitespace-pre-line" role="status">{assistantReplyText(answer)}</p>}
-    {result?.type === 'revenue_totals' && <section className="space-y-2" aria-label="Revenue">
+    {answer && (!result || result.type === 'analytics') && <p className="whitespace-pre-line" role="status">{assistantReplyText(answer)}</p>}
+    {result?.type === 'analytics' && <details className="text-sm"><summary className="cursor-pointer">Data</summary><pre className="overflow-x-auto whitespace-pre-wrap break-words p-2">{JSON.stringify(result.data, null, 2)}</pre></details>}
+    {result?.type === 'revenue_totals'  && <section className="space-y-2" aria-label="Revenue">
       <div className="flex flex-wrap items-center justify-between gap-2"><h3 role="status" className="font-semibold">Revenue</h3><span className="text-xs text-muted">Through {result.through_date} (IST)</span></div>
       <dl className="flex flex-wrap gap-6">{([['Live collections', result.live], ['Test payments', result.test]] as const).map(([label, amount]) => <div key={label}>
         <dt className="text-sm text-muted">{label}</dt><dd className="text-xl font-semibold">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount)}</dd>

@@ -75,7 +75,7 @@ it('scopes an actual customer status tool to the verified owner and suppresses f
 });
 it('rejects prompt-injected permission/query fields and admin tools in the customer registry', async () => {
   await expect(withAiRequest(req, () => executeAssistantTool('get_my_history', { limit: 5, uid: 'victim', permissions: 'admin', query: 'users' }, 'owner'))).rejects.toThrow();
-  await expect(withAiRequest(req, () => executeAssistantTool('get_revenue_totals', {}, 'owner'))).rejects.toThrow();
+  await expect(withAiRequest(req, () => executeAssistantTool('get_total_revenue', { from: null, to: '2026-11-14' }, 'owner'))).rejects.toThrow();
   expect(f.query).not.toHaveBeenCalled();
   expect(f.events.filter(event => event.phase === 'result').every(event => event.status === 'failed')).toBe(true);
 });

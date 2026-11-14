@@ -2,8 +2,9 @@ vi.mock('../server/utils/aiToolSecurity', () => ({ runAiTool: async (_scope: str
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, expect, it, vi } from 'vitest';
-const f = vi.hoisted(() => ({ query: vi.fn(), writes: vi.fn() }));
+const f = vi.hoisted(() => ({ query: vi.fn(), writes: vi.fn(), backed: vi.fn() }));
 vi.mock('../server/queries', () => ({ queryRecords: f.query }));
+vi.mock('../server/models/paymentPages', () => ({ ordersForPayments: f.backed }));
 vi.mock('../server/persistence', async importOriginal => ({ ...await importOriginal<typeof import('../server/persistence')>(), mutateRecord: f.writes, setRecord: f.writes }));
 import { executeAssistantTool } from '../server/utils/assistantTools';
 import { draftRefund } from '../server/models/assistantDrafts';
@@ -14,7 +15,16 @@ import { BUSINESS_DETAILS } from '../src/lib/trustContent';
 const order = { user_id: 'owner', orderId: 'order_1', rechargeStatus: 'failed', paymentStatus: 'paid', amount: 299, paymentId: 'pay_1',
   packName: 'Tamil HD', createdAt: '2026-11-14T00:00:00Z' };
 const contact: ContactDraft = { type: 'contact_draft', draft: { category: 'recharge_failed', subject: 'Recharge failed', message: 'Please check my order.' } };
-beforeEach(() => { f.query.mockReset(); f.writes.mockClear(); f.query.mockImplementation(async (collection: string) => collection === 'server_recharges' ? [order] : [{ id: 'pay_1', customerUid: 'owner', orderId: 'order_1', amount: 299, currency: 'INR', status: 'paid', providerStatus: 'captured', testMode: false }]); });
+beforeEach(() => { f.query.mockReset(); f.writes.mockClear(); f.backed.mockReset(); f.backed.mockResolvedValue([]); f.query.mockImplementation(async (collection: string) => collection === 'server_recharges' ? [order] : [{ id: 'pay_1', customerUid: 'owner', orderId: 'order_1', amount: 299, currency: 'INR', status: 'paid', providerStatus: 'captured', testMode: false }]); });
+it('recognizes a ledger-backed test order and explains why it cannot receive a real refund', async () => {
+  f.query.mockImplementation(async (collection: string) => collection === 'server_recharges' ? [] : [{ id: 'pay_1', customerUid: 'owner', orderId: 'order_1', testMode: true }]);
+  f.backed.mockResolvedValue([{ ...order, testMode: true }]);
+  const draft = await draftRefund('owner', { order_id: 'order_1', reason: 'cancel test' });
+  expect(draft.order).toMatchObject({ orderId: 'order_1', testMode: true });
+  expect(draft.eligibility).toEqual({ status: 'ineligible', explanation: 'This is a test order. No real payment refund can be requested.' });
+  expect(() => draftSupportEmail(draft)).toThrow();
+  expect(f.writes).not.toHaveBeenCalled();
+});
 it('creates a contact draft without a database read or business write', async () => {
   expect(await executeAssistantTool('draft_contact_message', contact.draft, 'owner')).toEqual(contact);
   expect(f.query).not.toHaveBeenCalled(); expect(f.writes).not.toHaveBeenCalled();

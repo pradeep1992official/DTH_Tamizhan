@@ -2,10 +2,10 @@ vi.mock('../server/utils/aiToolSecurity', () => ({ runAiTool: async (_scope: str
 import { beforeEach, expect, it, vi } from 'vitest';
 const f = vi.hoisted(() => ({ recharges: vi.fn(), tickets: vi.fn(), pending: vi.fn() }));
 vi.mock('../server/models/adminAiData', () => ({ overallPendingRecharges: f.pending, queryAdminRecharges: f.recharges, openSupportTickets: f.tickets }));
-import { executeAdminTool, indiaDateRange, adminToolDefinitions } from '../server/utils/adminAiTools';
+import { executeAdminTool, indiaDateRange, adminToolDefinitions, adminDataToolDefinitions } from '../server/utils/adminAiTools';
 beforeEach(() => { f.recharges.mockReset(); f.tickets.mockReset(); f.recharges.mockResolvedValue([]); f.tickets.mockResolvedValue([]); });
 it('only exposes strict read-only tools', () => {
-  expect(adminToolDefinitions.map(tool => tool.name)).toEqual(['get_revenue_totals', 'get_recharge_totals', 'list_pending_recharges', 'query_recharges', 'list_open_tickets']);
+  expect(adminDataToolDefinitions.map(tool => tool.name)).toEqual(['get_total_orders', 'get_total_revenue', 'get_failed_recharges', 'get_top_plans', 'get_orders_by_operator', 'get_pending_refunds']);
   for (const tool of adminToolDefinitions) expect(tool.parametersJsonSchema).toMatchObject({ additionalProperties: false });
 });
 it('rejects raw queries, extra fields, unknown tools and invalid limits before data reads', async () => {
