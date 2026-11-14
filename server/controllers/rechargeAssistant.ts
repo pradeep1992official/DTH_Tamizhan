@@ -1,3 +1,5 @@
+import { assistantToolTurn } from '../utils/assistantTurn';
+import { InvalidAssistantTool } from '../utils/assistantTools';
 import { allowAiRequest } from '../middleware/aiRateLimiter';
 import type { Request, Response } from 'express';
 import { z } from 'zod';
@@ -25,6 +27,8 @@ export async function prepareAssistantRecharge(req: Request, res: Response): Pro
     if (!await allowAiRequest(account.uid, res)) return;
     const input = schema.safeParse(req.body);
     if (!input.success) { res.status(400).json({ success: false, error: 'Send up to 12 messages, each under 500 characters. Start a new request for a longer conversation.' }); return; }
+    const toolReply = await assistantToolTurn(account.uid, input.data.messages);
+    if (toolReply) { res.json(toolReply); return; }
     const latestMessage = input.data.messages.at(-1)!;
     if (/\b(?:recharge\s+history|payment\s+history|transaction\s+history|past\s+recharges|previous\s+recharges|my\s+history)\b|ரீசார்ஜ்\s*வரலாறு|கட்டண\s*வரலாறு/i.test(latestMessage)) {
       res.json({ success: true, state: 'history' }); return;
@@ -106,6 +110,7 @@ export async function prepareAssistantRecharge(req: Request, res: Response): Pro
     res.json({ success: true, source, state: alternatives ? 'alternatives' : plans.length ? 'awaiting_payment' : 'no_plans', intent,
       box, operator, plans });
   } catch (error) {
+    if (error instanceof InvalidAssistantTool) { res.status(502).json({ success: false, error: 'The assistant returned an invalid action. Please try again.' }); return; }
     const code = (error as { code?: unknown })?.code;
     const quota = code === 8 || code === 'resource-exhausted' || code === 'RESOURCE_EXHAUSTED';
     // Log only the stage and code, never credentials, customer text or subscriber IDs.

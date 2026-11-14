@@ -1,3 +1,4 @@
+import { assistantPages } from './lib/assistantActions';
 import { connectionCacheKey, ownedConnections, readConnectionCache } from './lib/connectionCache';
 import { RouteEffects } from './components/RouteEffects';
 import { AccountPage } from './components/AccountPage';
@@ -473,7 +474,7 @@ function MainApp() {
       {/* Main Content View Container */}
       <main id="main-content" className="app-main">
         {sessionError && <p role="alert" className="border border-rule rounded-lg p-3 my-3 text-error">{sessionError}</p>}
-        {user && ['/', '/recharge', '/connections'].includes(location.pathname) && <RechargeAssistant key={user.uid} currentLang={currentLang} displayName={user.displayName}
+        {user && (Object.values(assistantPages) as string[]).includes(location.pathname) && <RechargeAssistant key={user.uid} currentLang={currentLang} displayName={user.displayName}
           onCheckout={(plan, box, operator) => handleInitiatePayment(plan, null, operator, box.smartCardNumber, false)} />}
         <Routes>
           <Route

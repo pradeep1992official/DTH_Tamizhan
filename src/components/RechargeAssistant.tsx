@@ -1,3 +1,5 @@
+import { useNavigate } from 'react-router-dom';
+import { assistantActionSchema, assistantPages, actionNotice, type AssistantAction } from '../lib/assistantActions';
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowRight, Microphone, X } from '../lib/icons';
@@ -8,6 +10,8 @@ import { paymentAuthHeaders } from '../lib/paymentAuth';
 import { formatPrice, formatDuration } from '../lib/catalog';
 
 interface Reply {
+  text?: string;
+  action?: AssistantAction;
   state: string;
   source?: string;
   intent?: { months: number | null; quality: string | null };
@@ -25,6 +29,7 @@ export function RechargeAssistant({ currentLang, displayName, onCheckout }: {
   onCheckout: (plan: DthPlan, box: DthConnection, operator: DthOperator) => void;
 }) {
   const text = (en: string, ta: string) => currentLang === 'ta' ? ta : en;
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState('');
   const [messages, setMessages] = useState<string[]>([]);
@@ -93,6 +98,11 @@ export function RechargeAssistant({ currentLang, displayName, onCheckout }: {
         body: JSON.stringify({ messages: next, connectionId: connectionId || confirmedBox.current, operatorId }) });
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.error || 'Unable to prepare recharge.');
+      if (request.signal.aborted) return;
+      if (data.action) {
+        data.action = assistantActionSchema.parse(data.action);
+        if (data.action.type === 'navigate') navigate(assistantPages[data.action.page as keyof typeof assistantPages]);
+      }
       setReply(data);
       setPastReplies(old => ({ ...old, [next.length - 1]: data }));
       if (data.box?.id && !data.box.id.startsWith('new-')) confirmedBox.current = data.box.id;
@@ -121,6 +131,7 @@ export function RechargeAssistant({ currentLang, displayName, onCheckout }: {
   };
   const selectedPlan = reply?.plans?.find(plan => plan.id === selectedPlanId);
   const previousReplyText = (previous: Reply) => {
+    if (previous.text) return `${previous.text}${previous.action ? ` ${actionNotice(previous.action)}` : ''}`;
     if (previous.state === 'preferences') return !previous.intent?.quality
       ? text('Would you like HD or SD?', 'HD அல்லது SD வேண்டுமா?')
       : text('How many months: 1, 3, 6 or 12?', 'எத்தனை மாதங்கள்: 1, 3, 6 அல்லது 12?');
@@ -159,6 +170,9 @@ export function RechargeAssistant({ currentLang, displayName, onCheckout }: {
       {(busy || reply || error) && <div aria-live="polite" aria-busy={busy} className="recharge-chat-reply rounded-xl p-4 space-y-3">
         <p className="text-xs font-semibold text-muted">{text('Recharge assistant', 'ரீசார்ஜ் உதவியாளர்')}</p>
         {busy && <p>{text('Thinking…', 'யோசிக்கிறது…')}</p>}
+        {reply?.text && <p>{reply.text}</p>}
+        {reply?.action && <p role="status">{actionNotice(reply.action)}</p>}
+        {reply?.action?.type === 'show_plans' && <ul>{reply.action.plans.map(plan => <li key={plan.id}>{plan.name} ? {formatDuration(plan.duration, currentLang)} ? {formatPrice(plan.amount, currentLang)}</li>)}</ul>}
         {reply && reply.state !== 'awaiting_payment' && reply.state !== 'alternatives' && <p>{notices[reply.state]}</p>}
         {reply?.state === 'alternatives' && <p>{text('I couldn’t find that exact pack for this duration. Would you like one of these alternatives?', 'இந்த காலத்திற்கு அந்த பேக் கிடைக்கவில்லை. இந்த மாற்று பேக்குகளில் ஒன்றைத் தேர்வு செய்ய விரும்புகிறீர்களா?')}</p>}
         {reply?.state === 'awaiting_payment' && !selectedPlan && <p>{text('I found a few matching packs. Which would you like?', 'பொருந்தும் சில பேக்குகள் உள்ளன. எது வேண்டும்?')}</p>}

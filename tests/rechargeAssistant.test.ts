@@ -1,3 +1,5 @@
+const toolTurn = vi.hoisted(() => vi.fn());
+vi.mock('../server/utils/assistantTurn', () => ({ assistantToolTurn: toolTurn }));
 vi.mock('../server/middleware/aiRateLimiter', () => ({ allowAiRequest: async () => true }));
 import { beforeEach, expect, it, vi } from 'vitest';
 const f = vi.hoisted(() => ({ account: { uid: 'owner' } as any, extract: vi.fn(), boxes: [] as any[], plans: [] as any[], storageError: null as any, boxReads: 0 }));
@@ -14,6 +16,7 @@ vi.mock('../server/utils/rechargeIntent', async importOriginal => {
 import { prepareAssistantRecharge, clearAssistantReadCache } from '../server/controllers/rechargeAssistant';
 import { parseRechargeCommand } from '../server/utils/rechargeIntent';
 beforeEach(() => {
+  toolTurn.mockReset(); toolTurn.mockResolvedValue(null);
   clearAssistantReadCache();
   f.boxReads = 0;
   f.storageError = null;
@@ -157,4 +160,17 @@ it('accepts a bare amount as an answer and supports switching back to derived pr
   f.extract.mockRejectedValue(new Error('Disabled'));
   expect((await request({ messages: ['For Hall box', '279'], connectionId: 'hall' })).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'awaiting_topup_payment', topUpAmount: 279 }));
   expect((await request({ messages: ['For Hall box', '279', 'instead HD for 6 months'], connectionId: 'hall' })).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'awaiting_payment' }));
+});
+
+it('returns tool actions before reading saved boxes or preparing a recharge', async () => {
+  const action = { success: true, state: 'tool_action', text: 'Here is the refund policy.', action: { type: 'navigate', page: 'refund' } };
+  toolTurn.mockResolvedValue(action);
+  const res = await request({ messages: ['Open refund page'] });
+  expect(res.json).toHaveBeenCalledWith(action);
+  expect(f.boxReads).toBe(0); expect(f.extract).not.toHaveBeenCalled();
+});
+it('does not invoke Gemini for unauthenticated or oversized requests', async () => {
+  f.account = null; await request(); expect(toolTurn).not.toHaveBeenCalled();
+  f.account = { uid: 'owner' }; await request({ messages: ['x'.repeat(501)] });
+  expect(toolTurn).not.toHaveBeenCalled();
 });
