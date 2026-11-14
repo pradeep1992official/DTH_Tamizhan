@@ -1,0 +1,40 @@
+import express from 'express';
+import type { Server } from 'node:http';
+import { afterAll, beforeAll, beforeEach, expect, it, vi } from 'vitest';
+const f = vi.hoisted(() => ({ account: { uid: 'verified-owner' } as { uid: string } | null, check: vi.fn(), allow: vi.fn() }));
+vi.mock('../server/middleware/auth', () => ({ verifyAuthToken: async () => f.account }));
+vi.mock('../server/middleware/aiRateLimiter', () => ({ allowAiRequest: f.allow }));
+vi.mock('../server/middleware/rateLimiter', () => ({ apiLimiter: (_req: unknown, _res: unknown, next: () => void) => next() }));
+vi.mock('../server/models/assistantDrafts', () => ({ draftRefund: f.check }));
+vi.mock('../server/controllers/aiController', () => ({ recommendPlans: () => {} }));
+vi.mock('../server/controllers/rechargeAssistant', () => ({ prepareAssistantRecharge: () => {} }));
+import { aiRouter } from '../server/routes/ai';
+let server: Server; let url: string;
+beforeAll(async () => { const app = express(); app.use(express.json()); app.use(aiRouter);
+  server = await new Promise<Server>(resolve => { const active = app.listen(0, '127.0.0.1', () => resolve(active)); });
+  const address = server.address(); if (!address || typeof address === 'string') throw new Error('No test address');
+  url = `http://127.0.0.1:${address.port}/api/ai/refund-draft-check`;
+});
+afterAll(async () => { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); });
+beforeEach(() => { f.account = { uid: 'verified-owner' }; f.allow.mockReset(); f.allow.mockResolvedValue(true); f.check.mockReset(); });
+const post = (body: unknown) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+it('authenticates submit preflight and rejects model/client identities', async () => {
+  f.account = null;
+  expect((await post({ order_id: 'order_1', reason: 'failed' })).status).toBe(401);
+  expect(f.check).not.toHaveBeenCalled();
+  f.account = { uid: 'verified-owner' };
+  expect((await post({ order_id: 'order_1', reason: 'failed', uid: 'victim' })).status).toBe(400);
+  expect(f.check).not.toHaveBeenCalled();
+});
+it('rechecks eligibility using only the authenticated UID and returns changed eligibility', async () => {
+  const changed = { type: 'refund_draft', draft: { order_id: 'order_1', reason: 'failed' }, eligibility: { status: 'ineligible', explanation: 'Already completed' }, order: null };
+  f.check.mockResolvedValue(changed);
+  const response = await post(changed.draft);
+  expect(response.status).toBe(200);
+  expect(f.check).toHaveBeenCalledWith('verified-owner', changed.draft);
+  expect(await response.json()).toEqual({ success: true, action: changed });
+});
+it('fails closed when the database cannot verify the order', async () => {
+  f.check.mockRejectedValue(new Error('offline'));
+  expect((await post({ order_id: 'order_1', reason: 'failed' })).status).toBe(503);
+});

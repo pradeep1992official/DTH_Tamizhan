@@ -1,3 +1,4 @@
+import { supportEmailHref } from '../lib/supportEmail';
 import { businessDetails } from '../lib/policyTranslations';
 import { translations } from '../lib/translations';
 import React from 'react';
@@ -26,7 +27,7 @@ export function SupportDetails({ currentLang, full = false }: { currentLang: Lan
   ];
   return <dl className="space-y-2 text-sm break-words">{rows.map(([label, value]) => {
     const href = value === details.phone && /^\+?[\d\s()-]{7,}$/.test(value) ? `tel:${value.replace(/[^\d+]/g, '')}` :
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? `mailto:${value}` : null;
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? (value === details.email ? supportEmailHref() : `mailto:${value}`) : null;
     return <div key={label}><dt className="font-medium inline">{label}: </dt><dd className="inline">{href ? <a href={href} className="underline underline-offset-4">{value}</a> : value}</dd></div>;
   })}</dl>;
 }

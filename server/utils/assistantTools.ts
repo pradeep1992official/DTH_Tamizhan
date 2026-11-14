@@ -1,3 +1,5 @@
+import { contactDraftArgs, refundDraftArgs } from '../../src/lib/assistantDrafts';
+import { draftRefund } from '../models/assistantDrafts';
 import { assistantHistory } from '../models/assistantHistory';
 import { z } from 'zod';
 import { navigateArgs, plansArgs, rechargeStatusArgs, historyArgs, type AssistantAction } from '../../src/lib/assistantActions';
@@ -5,6 +7,8 @@ import { planModel } from '../models/planModel';
 import { validateCatalogPack } from '../../src/lib/catalog';
 
 export const toolsRegistry = {
+  draft_contact_message: { description: 'Create an unsent contact draft for confirmation. Categorize the issue as recharge_failed, wrong_operator, refund, account, or other. Never submit it.', schema: contactDraftArgs },
+  draft_refund_request: { description: 'Create an unsent refund request draft. Requires the user-provided order ID and reason. Ownership and eligibility are checked by the server; never promise approval or submit.', schema: refundDraftArgs },
   get_recharge_status: { description: 'Look up the signed-in user?s recharge status by order ID. Never invent a status.', schema: rechargeStatusArgs },
   get_my_history: { description: 'Read the signed-in user?s most recent recharges; limit must be 1 to 20. No UID argument.', schema: historyArgs },
   navigate: { description: 'Open a public site page when the user asks to visit it.', schema: navigateArgs },
@@ -19,6 +23,8 @@ export async function executeAssistantTool(name: unknown, args: unknown, uid: st
   if (typeof name !== 'string' || !Object.hasOwn(toolsRegistry, name)) throw new InvalidAssistantTool('Unknown assistant tool.');
   const parsed = toolsRegistry[name as keyof typeof toolsRegistry].schema.safeParse(args);
   if (!parsed.success) throw new InvalidAssistantTool('Invalid assistant tool arguments.');
+  if (name === 'draft_contact_message') return { type: 'contact_draft', draft: contactDraftArgs.parse(args) };
+  if (name === 'draft_refund_request') return draftRefund(uid, args);
   if (name === 'get_recharge_status') {
     const { order_id } = rechargeStatusArgs.parse(args);
     const orders = await assistantHistory(uid, 1, order_id);

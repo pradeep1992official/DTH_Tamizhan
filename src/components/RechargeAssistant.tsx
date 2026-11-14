@@ -1,3 +1,6 @@
+import { AssistantDraftCard } from './AssistantDraftCard';
+import { draftSupportEmail } from '../lib/supportEmail';
+import { refundDraftSchema, type SupportDraft } from '../lib/assistantDrafts';
 import { useNavigate } from 'react-router-dom';
 import { assistantActionSchema, assistantPages, actionNotice, rechargeExplanation, type AssistantAction } from '../lib/assistantActions';
 import React, { useEffect, useRef, useState } from 'react';
@@ -54,7 +57,19 @@ export function RechargeAssistant({ currentLang, displayName, onCheckout }: {
       onEnd: () => { voiceRef.current = null; setListening(false); },
       onError: code => {
         setListening(false);
-        const notices: Record<string, string> = {
+        async function submitSupportDraft(draft: SupportDraft) {
+    let verified = draft;
+    if (draft.type === 'refund_draft') {
+      const response = await fetch('/api/ai/refund-draft-check', { method: 'POST', headers: await paymentAuthHeaders(), body: JSON.stringify(draft.draft) });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || 'Could not verify refund eligibility.');
+      verified = refundDraftSchema.parse(data.action);
+      if (verified.draft.order_id !== draft.draft.order_id) throw new Error('Order verification failed.');
+      if (verified.eligibility.status !== 'eligible') return verified;
+    }
+    window.location.assign(draftSupportEmail(verified));
+  }
+  const notices: Record<string, string> = {
           unsupported: text('Voice input is unavailable in this browser. Please type your request.', 'இந்த உலாவியில் குரல் உள்ளீடு கிடைக்கவில்லை. கோரிக்கையைத் தட்டச்சு செய்யவும்.'),
           'not-allowed': text('Microphone access was denied. Allow it in browser settings and try again.', 'மைக்ரோஃபோன் அனுமதி மறுக்கப்பட்டது. உலாவி அமைப்புகளில் அனுமதிக்கவும்.'),
           'service-not-allowed': text('Speech recognition is blocked by your browser. Please type your request.', 'உலாவி குரல் அறிதலைத் தடுத்துள்ளது. கோரிக்கையைத் தட்டச்சு செய்யவும்.'),
@@ -109,6 +124,18 @@ export function RechargeAssistant({ currentLang, displayName, onCheckout }: {
       if (data.state === 'awaiting_payment' && data.plans?.length === 1) setSelectedPlanId(data.plans[0].id);
     } catch (err) { if (!request.signal.aborted) setError(err instanceof Error ? err.message : 'Unable to prepare recharge.'); }
     finally { inFlight.current = false; if (!request.signal.aborted) setBusy(false); }
+  }
+  async function submitSupportDraft(draft: SupportDraft) {
+    let verified = draft;
+    if (draft.type === 'refund_draft') {
+      const response = await fetch('/api/ai/refund-draft-check', { method: 'POST', headers: await paymentAuthHeaders(), body: JSON.stringify(draft.draft) });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || 'Could not verify refund eligibility.');
+      verified = refundDraftSchema.parse(data.action);
+      if (verified.draft.order_id !== draft.draft.order_id) throw new Error('Order verification failed.');
+      if (verified.eligibility.status !== 'eligible') return verified;
+    }
+    window.location.assign(draftSupportEmail(verified));
   }
   const notices: Record<string, string> = {
     history: text('You can view your past recharges, payment status and receipts in My History.', 'என் வரலாறு பக்கத்தில் முந்தைய ரீசார்ஜ்கள், கட்டண நிலை மற்றும் ரசீதுகளைப் பார்க்கலாம்.'),
@@ -175,8 +202,9 @@ export function RechargeAssistant({ currentLang, displayName, onCheckout }: {
         {(reply?.action?.type === 'show_history' || reply?.action?.type === 'show_recharge_status') && <ul>{(reply.action.type === 'show_history' ? reply.action.orders : reply.action.order ? [reply.action.order] : []).map(order => <li key={order.orderId} className="space-y-2">
           <p>{order.orderId} ? {order.packName} ? {formatPrice(order.amount, currentLang)}</p>
           <p>{rechargeExplanation(order)}</p>
-          {order.status === 'failed' && <button type="button" className="recharge-chat-suggestion" onClick={() => navigate(assistantPages.contact)}>{'Start a refund request with support'}</button>}
+          {order.status === 'failed' && <button type="button" className="recharge-chat-suggestion" onClick={() => { setDraft(`Draft a refund request for order ${order.orderId}. Reason: my recharge failed.`); document.getElementById('recharge-ai-message')?.focus(); }}>{'Start a refund request with support'}</button>}
         </li>)}</ul>}
+        {(reply?.action?.type === 'contact_draft' || reply?.action?.type === 'refund_draft') && <AssistantDraftCard key={messages.length} action={reply.action} onSubmit={submitSupportDraft} />}
         {reply?.action?.type === 'show_plans' && <ul>{reply.action.plans.map(plan => <li key={plan.id}>{plan.name} ? {formatDuration(plan.duration, currentLang)} ? {formatPrice(plan.amount, currentLang)}</li>)}</ul>}
         {reply && reply.state !== 'awaiting_payment' && reply.state !== 'alternatives' && <p>{notices[reply.state]}</p>}
         {reply?.state === 'alternatives' && <p>{text('I couldn’t find that exact pack for this duration. Would you like one of these alternatives?', 'இந்த காலத்திற்கு அந்த பேக் கிடைக்கவில்லை. இந்த மாற்று பேக்குகளில் ஒன்றைத் தேர்வு செய்ய விரும்புகிறீர்களா?')}</p>}

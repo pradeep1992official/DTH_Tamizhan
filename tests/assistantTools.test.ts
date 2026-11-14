@@ -14,7 +14,7 @@ beforeEach(() => { f.plans.mockReset(); f.generate.mockReset(); });
 it('declares strict schemas and only real public routes', () => {
   const app = fs.readFileSync('src/App.tsx', 'utf8');
   for (const path of Object.values(assistantPages)) expect(app.includes(`path="${path}"`) || POLICY_ROUTES.some(route => route.path === path)).toBe(true);
-  expect(toolDefinitions.map(tool => tool.name)).toEqual(['get_recharge_status', 'get_my_history', 'navigate', 'get_plans']);
+  expect(toolDefinitions.map(tool => tool.name)).toEqual(['draft_contact_message', 'draft_refund_request', 'get_recharge_status', 'get_my_history', 'navigate', 'get_plans']);
   for (const tool of toolDefinitions) expect(tool.parametersJsonSchema).toMatchObject({ additionalProperties: false });
 });
 it('rejects unknown tools, URLs, extra properties, missing arguments, and invalid numbers before catalog access', async () => {
