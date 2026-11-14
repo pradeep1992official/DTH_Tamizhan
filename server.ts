@@ -21,6 +21,7 @@ import { ordersRouter } from './server/routes/orders';
 import { plansRouter } from './server/routes/plans';
 import { adminRouter } from './server/routes/admin';
 import { ticketsRouter } from './server/routes/tickets';
+import { serviceBrandsRouter } from './server/routes/serviceBrands';
 import { aiRouter } from './server/routes/ai';
 import { coreRouter } from './server/routes/core';
 
@@ -75,6 +76,7 @@ async function startServer() {
   app.use(plansRouter);
   app.use(adminRouter);
   app.use(ticketsRouter);
+  app.use(serviceBrandsRouter);
   app.use(aiRouter);
   app.use(emailRouter);
   app.use(customerHistoryRouter);

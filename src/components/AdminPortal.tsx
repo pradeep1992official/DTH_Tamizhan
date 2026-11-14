@@ -1,4 +1,5 @@
 import { AdminAiPanel } from './Admin/AdminAiPanel';
+import { ServiceBrandsPanel } from './Admin/ServiceBrandsPanel';
 import React, { useState, useEffect } from 'react';
 import {
   Users,
@@ -321,6 +322,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         )}
 
         {activeTab === 'operators' && (
+          <><ServiceBrandsPanel getAuthHeaders={getAuthHeaders} />
           <OperatorsTab
             operators={operators}
             operatorsLoading={operatorsLoading}
@@ -330,7 +332,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             currentTheme={currentTheme}
             currentLang={currentLang}
             showToast={showToast}
-          />
+          /></>
         )}
 
         {activeTab === 'approvals' && (

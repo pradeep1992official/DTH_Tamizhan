@@ -1,4 +1,5 @@
 import { runAiTool } from './aiToolSecurity';
+import { readServiceBrands } from '../models/serviceBrands';
 import { contactDraftArgs, refundDraftArgs } from '../../src/lib/assistantDrafts';
 import { draftRefund } from '../models/assistantDrafts';
 import { assistantHistory } from '../models/assistantHistory';
@@ -8,6 +9,7 @@ import { planModel } from '../models/planModel';
 import { validateCatalogPack } from '../../src/lib/catalog';
 
 export const toolsRegistry = Object.freeze({
+  get_service_brands: { description: 'Read the current admin-configured service request brands and subscriber ID formats. Use this source rather than guessing formats.', schema: z.object({}).strict() },
   draft_contact_message: { description: 'Create an unsent contact draft for confirmation. Categorize the issue as recharge_failed, wrong_operator, refund, account, or other. Never submit it.', schema: contactDraftArgs },
   draft_refund_request: { description: 'Create an unsent refund request draft. Requires the user-provided order ID and reason. Ownership and eligibility are checked by the server; never promise approval or submit.', schema: refundDraftArgs },
   get_recharge_status: { description: 'Look up the signed-in user?s recharge status by order ID. Never invent a status.', schema: rechargeStatusArgs },
@@ -27,6 +29,7 @@ async function executeCustomerTool(name: unknown, args: unknown, uid: string): P
   if (typeof name !== 'string' || !Object.hasOwn(toolsRegistry, name)) throw new InvalidAssistantTool('Unknown assistant tool.');
   const parsed = toolsRegistry[name as keyof typeof toolsRegistry].schema.safeParse(args);
   if (!parsed.success) throw new InvalidAssistantTool('Invalid assistant tool arguments.');
+  if (name === 'get_service_brands') return { type: 'show_service_brands', brands: await readServiceBrands() };
   if (name === 'draft_contact_message') return { type: 'contact_draft', draft: contactDraftArgs.parse(args) };
   if (name === 'draft_refund_request') return draftRefund(uid, args);
   if (name === 'get_recharge_status') {

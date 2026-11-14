@@ -1,4 +1,5 @@
 import { contactDraftSchema, refundDraftSchema } from './assistantDrafts';
+import { serviceBrandsSchema } from './serviceBrands';
 import { orderIdSchema, rechargeSummarySchema, type RechargeSummary } from './assistantOrderSchemas';
 export { rechargeSummarySchema, type RechargeSummary } from './assistantOrderSchemas';
 import { z } from 'zod';
@@ -33,6 +34,7 @@ export function rechargeExplanation(order: RechargeSummary, language: AssistantL
   return prefix + 'The recharge status could not be confirmed. Please contact support.';
 }
 export const assistantActionSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('show_service_brands'), brands: serviceBrandsSchema }).strict(),
   contactDraftSchema, refundDraftSchema,
   z.object({ type: z.literal('show_recharge_status'), order: rechargeSummarySchema.nullable() }).strict(),
   z.object({ type: z.literal('show_history'), orders: z.array(rechargeSummarySchema).max(20) }).strict(),
@@ -42,6 +44,7 @@ export const assistantActionSchema = z.discriminatedUnion('type', [
 ]);
 export type AssistantAction = z.infer<typeof assistantActionSchema>;
 export function actionNotice(action: AssistantAction, language: AssistantLanguage = 'en'): string {
+  if (action.type === 'show_service_brands') return action.brands.filter(brand => brand.enabled).map(brand => `${brand.displayName}: ${brand.subscriberIdLabel}, ${brand.minLength}-${brand.maxLength} digits`).join('\n');
   if (language !== 'en') {
     const say = (ta: string, tanglish: string) => languageText(language, '', ta, tanglish);
     if (action.type === 'contact_draft') return say('தொடர்பு வரைவு தயார். திருத்தி சரிபார்த்த பிறகு சமர்ப்பிக்கவும். இன்னும் எதுவும் அனுப்பப்படவில்லை.', 'Contact draft ready. Edit panni check pannitu Submit pannunga. Innum edhuvum anuppala.');

@@ -25,3 +25,9 @@ match /server_ticket_private/{ticketId} { allow read, write: if false; }
 - WhatsApp opens an encoded draft to the existing business support number; no message is sent automatically.
 - Strict server input prevents changing UID/type/payment/status. Responses omit private notes and use no-store. Existing email support remains available.
 - 7 focused tests and production build passed (existing chunk-size/CJS warnings remain). No live tickets created.
+
+## Prompt 3B
+- Added validated, admin-editable service brand config in server_service_config/brands, defaulting to the five requested brands only when the config document is absent.
+- Admin > Operators > Service request brands edits formats/enabled brands without deployment; server verifies existing admin authority.
+- Shared schema/validation exports are used by the next service form/server. Assistant get_service_brands reads the same persisted source; no model-defined formats.
+- TypeScript and brand/assistant tests passed; database failures fail closed. Config uses default-deny direct Firestore rules and a public read-only server projection.
