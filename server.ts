@@ -20,6 +20,7 @@ import { apiLimiter } from './server/middleware/rateLimiter';
 import { ordersRouter } from './server/routes/orders';
 import { plansRouter } from './server/routes/plans';
 import { adminRouter } from './server/routes/admin';
+import { ticketsRouter } from './server/routes/tickets';
 import { aiRouter } from './server/routes/ai';
 import { coreRouter } from './server/routes/core';
 
@@ -73,6 +74,7 @@ async function startServer() {
   app.use(paymentsRouter);
   app.use(plansRouter);
   app.use(adminRouter);
+  app.use(ticketsRouter);
   app.use(aiRouter);
   app.use(emailRouter);
   app.use(customerHistoryRouter);

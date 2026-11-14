@@ -19,3 +19,9 @@ match /tickets/{ticketId} {
 match /server_ticket_counters/{counterId} { allow read, write: if false; }
 match /server_ticket_private/{ticketId} { allow read, write: if false; }
 ```
+
+## Prompt 2
+- Added /support and /my-tickets, reachable from Account. Free-ticket creation, owned-order validation, paginated owner-only lists and server-mediated reply threads.
+- WhatsApp opens an encoded draft to the existing business support number; no message is sent automatically.
+- Strict server input prevents changing UID/type/payment/status. Responses omit private notes and use no-store. Existing email support remains available.
+- 7 focused tests and production build passed (existing chunk-size/CJS warnings remain). No live tickets created.
