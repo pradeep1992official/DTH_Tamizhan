@@ -139,6 +139,11 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
   const validCustomAmount = parseTopUpAmount(customAmount);
   const showAmountError = amountTouched && !!amountError;
   const [saveConnection, setSaveConnection] = useState(true);
+  useEffect(() => {
+    setCustomSelectedPlan(null); setCustomAmount(''); setAmountTouched(false);
+    setPlanTab('recommended'); setSelectedPackType(requestCustomTopUp ? 'CUSTOM' : 'HD');
+  }, [selectedOpId]);
+
 
   const visibleOperators = operators;
 
@@ -237,6 +242,11 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
   // Filtered catalog for customer's selected operator
   const uniqueCatalogIds = new Set(deduplicateBrowsePlans(catalogPlans.map(catalogItemToBrowsePlan)).map(plan => plan.id));
   const operatorCatalog = catalogPlans.filter((p) => uniqueCatalogIds.has(p.id) && isSameDthOperatorGroup(p.operator, selectedOpId));
+  const noCatalog = !isCatalogLoading && !catalogError && operatorCatalog.length === 0;
+  const effectivePackType = noCatalog ? 'CUSTOM' : selectedPackType;
+  useEffect(() => {
+    if (noCatalog) { setCustomSelectedPlan(null); setPlanTab('recommended'); setSelectedPackType('CUSTOM'); }
+  }, [noCatalog]);
   const visibleBouquets = operatorCatalog
     .filter((plan) =>
       (catalogTypeFilter === 'all' || plan.pack_type === catalogTypeFilter) &&
@@ -262,18 +272,18 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
 
   // Active chosen plan calculation
   const activePlan = planTab === 'recommended'
-    ? (selectedPackType === 'HD' ? (recHDPlan || null) : selectedPackType === 'SD' ? (recSDPlan || null) : null)
+    ? (effectivePackType === 'HD' ? (recHDPlan || null) : effectivePackType === 'SD' ? (recSDPlan || null) : null)
     : (customSelectedPlan && isSameDthOperatorGroup(customSelectedPlan.operator, selectedOpId)
       ? operatorCatalog.find(plan => plan.id === customSelectedPlan.id) || null
       : recHDPlan || null);
 
-  const payablePrice = selectedPackType === 'CUSTOM'
+  const payablePrice = effectivePackType === 'CUSTOM'
     ? (validCustomAmount ?? NaN)
     : (activePlan?.amount ?? 0);
-  const canProceed = selectedPackType === 'CUSTOM' ? validCustomAmount !== null : activePlan !== null;
+  const canProceed = effectivePackType === 'CUSTOM' ? validCustomAmount !== null : activePlan !== null;
 
   const handlePayClick = () => {
-    if (selectedPackType === 'CUSTOM' && amountError) {
+    if (effectivePackType === 'CUSTOM' && amountError) {
       setAmountTouched(true);
       document.getElementById('custom-amount-input')?.focus();
       return;
@@ -286,7 +296,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
       document.getElementById('smart-card-input')?.focus();
       return;
     }
-    if (selectedPackType !== 'CUSTOM' && !activePlan) {
+    if (effectivePackType !== 'CUSTOM' && !activePlan) {
       setValidationError(
         translations[currentLang].uiNoCatalogPackIsAvailableForThisOperatorChooseACustomTopUpInstead
       );
@@ -302,7 +312,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
       return;
     }
 
-    if (selectedPackType === 'CUSTOM') {
+    if (effectivePackType === 'CUSTOM') {
       const amountNum = validCustomAmount!;
       onInitiatePayment(
         {
@@ -545,7 +555,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                 aria-pressed={planTab === 'change_plan'}
                 onClick={() => {
                   setPlanTab('change_plan');
-                  if (selectedPackType === 'CUSTOM') setSelectedPackType('HD');
+                  if (effectivePackType === 'CUSTOM') setSelectedPackType('HD');
                 }}
               >
                 {t.changePacks.replace('{brand}', currentLang === 'ta' ? currentOp?.tamilName || '' : currentOp?.shortName || currentOp?.name || '')}
@@ -613,15 +623,15 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
           ) : planTab === 'recommended' ? (
             /* VIEW 1: RECOMMENDED 3-CARD BALANCED GRID */
             <div className="space-y-4">
-              <div className="recharge-pack-options">
+              <div className={`recharge-pack-options ${noCatalog ? 'is-top-up-only' : ''}`}>
 
                 {/* 1. RECOMMENDED HD PACK CARD */}
-                <PackCard
+                {!noCatalog && <PackCard
                   currentLang={currentLang}
                   id="recommended-hd-card"
                   type="HD"
                   operatorTheme={currentTheme}
-                  isSelected={Boolean(recHDPlan) && selectedPackType === 'HD'}
+                  isSelected={Boolean(recHDPlan) && effectivePackType === 'HD'}
                   isUnavailable={!hasHDOptions}
                   onClick={() => {
                     if (!recHDPlan) return;
@@ -632,7 +642,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                   <div>
                     {/* Card Title */}
                     <div className="space-y-1 mb-3">
-                      <h3 className={`text-xl sm:text-2xl font-bold flex items-center gap-2 ${selectedPackType === 'HD' ? currentTheme.cardActiveText : currentTheme.cardInactiveText}`}>
+                      <h3 className={`text-xl sm:text-2xl font-bold flex items-center gap-2 ${effectivePackType === 'HD' ? currentTheme.cardActiveText : currentTheme.cardInactiveText}`}>
                         <span>
                           {recHDPlan?.plan_name || (hasHDOptions ? chooseDurationLabel :
                             (translations[currentLang].uiHDPackUnavailable))}
@@ -726,7 +736,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                         setCustomAmount('');
                       }}
                       disabled={!hasHDOptions}
-                      aria-pressed={Boolean(recHDPlan) && selectedPackType === 'HD'}
+                      aria-pressed={Boolean(recHDPlan) && effectivePackType === 'HD'}
                       className="mt-3 w-full py-2.5 rounded-xl font-bold text-sm transition-colors shadow-md flex items-center justify-center"
                       style={{
                         backgroundColor: currentTheme.packHdBandBg,
@@ -735,20 +745,20 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                     >
                       <span>
                         {recHDPlan
-                          ? (selectedPackType === 'HD' ? t.selectedAction : t.selectThisPack)
+                          ? (effectivePackType === 'HD' ? t.selectedAction : t.selectThisPack)
                           : hasHDOptions ? chooseDurationLabel : (translations[currentLang].uiUnavailable)}
                       </span>
                     </button>
                   </div>
-                </PackCard>
+                </PackCard>}
 
                 {/* 2. RECOMMENDED SD PACK CARD */}
-                <PackCard
+                {!noCatalog && <PackCard
                   currentLang={currentLang}
                   id="recommended-sd-card"
                   type="SD"
                   operatorTheme={currentTheme}
-                  isSelected={Boolean(recSDPlan) && selectedPackType === 'SD'}
+                  isSelected={Boolean(recSDPlan) && effectivePackType === 'SD'}
                   isUnavailable={!hasSDOptions}
                   onClick={() => {
                     if (!recSDPlan) return;
@@ -759,7 +769,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                   <div>
                     {/* Card Title */}
                     <div className="space-y-1 mb-3">
-                      <h3 className={`text-xl sm:text-2xl font-bold flex items-center gap-2 ${selectedPackType === 'SD' ? currentTheme.cardActiveText : currentTheme.cardInactiveText}`}>
+                      <h3 className={`text-xl sm:text-2xl font-bold flex items-center gap-2 ${effectivePackType === 'SD' ? currentTheme.cardActiveText : currentTheme.cardInactiveText}`}>
                         <span>
                           {recSDPlan?.plan_name || (hasSDOptions ? chooseDurationLabel :
                             (translations[currentLang].uiSDPackUnavailable))}
@@ -856,7 +866,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                         setCustomAmount('');
                       }}
                       disabled={!hasSDOptions}
-                      aria-pressed={Boolean(recSDPlan) && selectedPackType === 'SD'}
+                      aria-pressed={Boolean(recSDPlan) && effectivePackType === 'SD'}
                       className="mt-3 w-full py-2.5 rounded-xl font-bold text-sm transition-colors shadow-md flex items-center justify-center"
                       style={{
                         backgroundColor: currentTheme.packSdBandBg,
@@ -865,12 +875,12 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                     >
                       <span>
                         {recSDPlan
-                          ? (selectedPackType === 'SD' ? t.selectedAction : t.selectThisPack)
+                          ? (effectivePackType === 'SD' ? t.selectedAction : t.selectThisPack)
                           : hasSDOptions ? chooseDurationLabel : (translations[currentLang].uiUnavailable)}
                       </span>
                     </button>
                   </div>
-                </PackCard>
+                </PackCard>}
 
                 {/* 3. FLEXIBLE TOP-UP CARD */}
                 <PackCard
@@ -878,7 +888,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                   id="custom-recharge-card"
                   type="FLEXIBLE"
                   operatorTheme={currentTheme}
-                  isSelected={selectedPackType === 'CUSTOM'}
+                  isSelected={effectivePackType === 'CUSTOM'}
                   onClick={() => {
                     setSelectedPackType('CUSTOM');
                   }}
@@ -886,7 +896,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                   <div>
                     {/* Card Title & Description */}
                     <div className="space-y-1 mb-3">
-                      <h3 className={`text-xl sm:text-2xl font-bold flex items-center gap-2 ${selectedPackType === 'CUSTOM' ? currentTheme.cardActiveText : currentTheme.cardInactiveText}`}>
+                      <h3 className={`text-xl sm:text-2xl font-bold flex items-center gap-2 ${effectivePackType === 'CUSTOM' ? currentTheme.cardActiveText : currentTheme.cardInactiveText}`}>
                         <span>{t.customPack}</span>
                       </h3>
                       <p className={`text-xs sm:text-sm font-medium ${currentTheme.subText}`}>
@@ -917,7 +927,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                           onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); handlePayClick(); } }}
                           className={`w-full ${currentTheme.inputBg} ${currentTheme.inputText} ${currentTheme.inputPlaceholder} rounded-xl pl-14 pr-3 py-2 font-mono text-base font-bold border-2 focus:outline-none transition-colors shadow-inner`}
                           style={{
-                            borderColor: selectedPackType === 'CUSTOM' ? currentTheme.packFlexibleBandBg : undefined,
+                            borderColor: effectivePackType === 'CUSTOM' ? currentTheme.packFlexibleBandBg : undefined,
                           }}
                         />
                       </div>
@@ -930,20 +940,20 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                           <button
                             key={quick}
                             type="button"
-                            aria-pressed={customAmount === String(quick) && selectedPackType === 'CUSTOM'}
+                            aria-pressed={customAmount === String(quick) && effectivePackType === 'CUSTOM'}
                             onClick={() => {
                               setCustomAmount(String(quick));
                               setAmountTouched(true);
                               setSelectedPackType('CUSTOM');
                             }}
                             className={`py-1.5 px-1 rounded-lg text-xs font-mono font-bold transition-colors border ${
-                              customAmount === String(quick) && selectedPackType === 'CUSTOM'
+                              customAmount === String(quick) && effectivePackType === 'CUSTOM'
                                 ? 'text-accent-ink shadow-sm font-bold'
                                 : `${currentTheme.durationPillInactive} ${currentTheme.inputBorder}`
                             }`}
                             style={{
-                              backgroundColor: customAmount === String(quick) && selectedPackType === 'CUSTOM' ? currentTheme.packFlexibleBandBg : undefined,
-                              borderColor: customAmount === String(quick) && selectedPackType === 'CUSTOM' ? currentTheme.packFlexibleBandBg : undefined,
+                              backgroundColor: customAmount === String(quick) && effectivePackType === 'CUSTOM' ? currentTheme.packFlexibleBandBg : undefined,
+                              borderColor: customAmount === String(quick) && effectivePackType === 'CUSTOM' ? currentTheme.packFlexibleBandBg : undefined,
                             }}
                           >
                             Rs. {quick}
@@ -965,7 +975,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                             {validCustomAmount !== null ? formatPrice(validCustomAmount, currentLang) : '-'}
                           </span>
                           <span className={`text-xs font-medium ${currentTheme.subText}`}>
-                            / Top-up
+                            / {t.uiCustomTopUp}
                           </span>
                         </div>
                       </div>
@@ -978,7 +988,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                           color: currentTheme.packFlexibleBandBg
                         }}
                       >
-                        Flexible
+                        {t.uiFlexible}
                       </span>
                     </div>
 
@@ -992,7 +1002,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                         color: currentTheme.packFlexibleBandText,
                       }}
                     >
-                      <span>{selectedPackType === 'CUSTOM' ? t.selectedAction : t.customPack}</span>
+                      <span>{effectivePackType === 'CUSTOM' ? t.selectedAction : t.customPack}</span>
                     </button>
                   </div>
                 </PackCard>
@@ -1049,7 +1059,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                       {!collapsedBouquetTypes[type] && <div className="catalog-plans">
                         <CatalogColumnHeadings currentLang={currentLang} />
                         {plans.map(plan => {
-                          const isSelected = activePlan?.id === plan.id && selectedPackType !== 'CUSTOM';
+                          const isSelected = activePlan?.id === plan.id && effectivePackType !== 'CUSTOM';
                           const isExpanded = !!expandedPlanChannels[plan.id];
                           return <PlanCard key={plan.id} plan={catalogItemToBrowsePlan(plan)} currentLang={currentLang} currentTheme={currentTheme}
                             showCompare={false} isSelected={isSelected}
@@ -1086,7 +1096,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                 <span key={`${payablePrice}-${canProceed}`}>{canProceed && Number.isFinite(payablePrice) && payablePrice > 0 ? formatPrice(payablePrice, currentLang) : '-'}</span>
               </span>
               <span className={`text-xs font-medium ${currentTheme.headingText}`}>
-                ({selectedPackType === 'CUSTOM' ? t.customPack : `${activePlan?.pack_type || selectedPackType} ${t.pack} • ${formatDuration(activePlan?.duration_months || (selectedPackType === 'HD' ? hdDuration : sdDuration), currentLang)}`})
+                ({effectivePackType === 'CUSTOM' ? (canProceed ? t.customPack : t.uiNoPackSelected) : activePlan ? `${activePlan.pack_type} ${t.pack} \u00b7 ${formatDuration(activePlan.duration_months, currentLang)}` : t.uiNoPackSelected})
               </span>
             </div>
         {/* Save Connection Checkbox for Logged In User */}

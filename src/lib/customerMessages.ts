@@ -115,7 +115,7 @@ const pairs = {
   uiGoogleSignInWasNotCompletedPleaseTryAgain: ["Google Sign-In was not completed. Please try again.", "Google உள்நுழைவு நிறைவடையவில்லை. மீண்டும் முயற்சிக்கவும்."], // Native Tamil review required.
   uiSomethingWentWrongPleaseTryAgain: ["Something went wrong. Please try again.", "ஏதோ சிக்கல் ஏற்பட்டுள்ளது. மீண்டும் முயற்சிக்கவும்."], // Native Tamil review required.
   uiOperatorTermsApply: ["Operator terms apply", "ஆபரேட்டரின் விதிமுறைகள் பொருந்தும்"], // Native Tamil review required.
-  uiCustomTopUp: ["Custom top-up", "விருப்பத் தொகை ரீசார்ஜ்"], // Native Tamil review required.
+  uiCustomTopUp: ["Custom top-up", "ரீசார்ஜ் தொகை"], // Native Tamil review required.
   uiLocalSandboxSimulator: ["Local sandbox simulator", "உள்ளூர் சோதனைச் சேவை"], // Native Tamil review required.
   uiSuccess2: ["success", "வெற்றி"], // Native Tamil review required.
   uiFailed: ["failed", "தோல்வி"], // Native Tamil review required.
@@ -178,7 +178,8 @@ const pairs = {
   uiAmountHelp: ['Rs. {min}–Rs. {max}; up to {decimals} decimal places.', 'Rs. {min} முதல் Rs. {max} வரை; அதிகபட்சம் {decimals} தசம இடங்கள்.'], // Native Tamil review required.
   uiPolicyDraft: ['Effective date: {date}.', 'நடைமுறைக்கு வரும் தேதி: {date}.'], // Native Tamil review required.
   uiSetTopBox: ['Set-top box', 'செட்-டாப் பாக்ஸ்'], // Native Tamil review required.
-  uiNoCatalogPacks: ['{operator} has no catalog packs here. You can choose a custom top-up from {range} instead.', '{operator} பேக்குகள் இங்கு இல்லை. {range} வரம்பில் உங்கள் விருப்பத் தொகையில் ரீசார்ஜ் செய்யலாம்.'], // Native Tamil review required.
+  uiNoCatalogPacks: ['{operator} packs aren’t listed yet. You can still recharge a custom amount.', '{operator} பேக்குகள் இன்னும் பட்டியலிடப்படவில்லை. உங்கள் விருப்பத் தொகையில் ரீசார்ஜ் செய்யலாம்.'], // Native Tamil review required.
+  uiNoSuggestionCatalogPacks: ['We haven’t listed packs for this operator yet. Recharge a custom amount instead.', 'இந்த ஆபரேட்டருக்கான பேக்குகள் இன்னும் பட்டியலிடப்படவில்லை. உங்கள் விருப்பத் தொகையில் ரீசார்ஜ் செய்யுங்கள்.'],
   uiNoProviderOrder: ['No provider order created', 'கட்டணச் சேவை ஆர்டர் இன்னும் உருவாக்கப்படவில்லை'], // Native Tamil review required.
   uiSandboxExplanation: ['Test results stay in this dialog. No recharge, receipt, saved-box update or real order is created.', 'சோதனை முடிவுகள் இந்தப் பக்கத்தில் மட்டுமே இருக்கும். ரீசார்ஜ், ரசீது, சேமித்த பெட்டி மாற்றம் அல்லது உண்மையான ஆர்டர் எதுவும் உருவாக்கப்படாது.'], // Native Tamil review required.
   uiPaymentExplanation: ['Payment must be confirmed by the provider before recharge processing begins. Closing this dialog does not prove payment success.', 'ரீசார்ஜ் தொடங்கும் முன் கட்டணச் சேவை பணம் செலுத்தப்பட்டதை உறுதிசெய்ய வேண்டும். இந்தப் பக்கத்தை மூடுவது கட்டண வெற்றிக்கான சான்று அல்ல.'], // Native Tamil review required.
@@ -235,6 +236,11 @@ const pairs = {
   uiSecurityThisPageSummarizesProjectDocumentationItIsNotAnIndependentSecurit: ["This page summarizes project documentation; it is not an independent security assessment. Effective protection depends on deployment and configuration.", "இந்தப் பக்கம் திட்ட ஆவணங்களின் சுருக்கம் மட்டுமே; தனியான பாதுகாப்பு ஆய்வு அல்ல. பாதுகாப்பின் செயல்திறன் நிறுவல் மற்றும் அமைப்புகளைப் பொறுத்தது."], // Native Tamil review required.
   uiOffline: ['Offline', 'சேவை கிடைக்கவில்லை'], // Native Tamil review required.
   uiMaintenance: ['Maintenance', 'பராமரிப்பு'], // Native Tamil review required.
+  uiNoPackSelected: ['Choose a recharge amount', 'ரீசார்ஜ் தொகையைத் தேர்ந்தெடுக்கவும்'],
+  uiMobileRecharge: ['Recharge', 'ரீசார்ஜ்'],
+  uiMobilePacks: ['Packs', 'பேக்குகள்'],
+  uiMobileBoxes: ['My boxes', 'பாக்ஸ்கள்'],
+  uiMobileHelp: ['Help', 'உதவி'],
   uiFlexible: ['Flexible', 'விருப்பத் தொகை'], // Native Tamil review required.
   uiSunSetup: ['Sun Direct HD dish, set-top box and remote', 'சன் டைரக்ட் HD டிஷ், செட்-டாப் பாக்ஸ் மற்றும் ரிமோட்'], // Native Tamil review required.
   uiAirtelSetup: ['Airtel Digital TV setup', 'ஏர்டெல் டிஜிட்டல் டிவி அமைப்பு'], // Native Tamil review required.

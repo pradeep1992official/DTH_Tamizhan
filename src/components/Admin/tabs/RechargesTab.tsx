@@ -84,6 +84,7 @@ export const RechargesTab: React.FC<RechargesTabProps> = ({
             <Search className="w-4 h-4 absolute left-3 top-3 text-muted" />
             <input
               type="text"
+              aria-label={t.searchOrders}
               placeholder={t.searchOrders}
               value={orderSearch}
               onChange={(e) => setOrderSearch(e.target.value)}
@@ -94,6 +95,7 @@ export const RechargesTab: React.FC<RechargesTabProps> = ({
           </div>
 
           <select
+            aria-label={t.status}
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className={`w-full sm:w-auto border text-sm rounded-xl px-3 py-2 focus-visible:outline focus-visible:outline-2 ${
@@ -107,6 +109,7 @@ export const RechargesTab: React.FC<RechargesTabProps> = ({
           </select>
 
           <select
+            aria-label={t.operatorLabel}
             value={opFilter}
             onChange={(e) => setOpFilter(e.target.value)}
             className={`w-full sm:w-auto border text-sm rounded-xl px-3 py-2 focus-visible:outline focus-visible:outline-2 ${

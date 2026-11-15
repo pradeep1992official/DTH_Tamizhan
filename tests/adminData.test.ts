@@ -60,3 +60,15 @@ describe('admin section navigation (QA-05 / QA-06)', () => {
     expect(data.adminAuthorized).toBe(false); expect(data.orders).toEqual([]); expect(fetch).not.toHaveBeenCalled();
   });
 });
+
+it.each([true, false])('keeps authorization pending until a definitive response (approved=%s)', async approved => {
+  let finish!: (response: Response) => void;
+  vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(resolve => { finish = resolve; })));
+  expect(render(user).adminChecking).toBe(true);
+  harness.effects.forEach(effect => effect()); await flush();
+  expect(render(user).adminChecking).toBe(true);
+  finish(new Response(JSON.stringify({ isApprovedAdmin: approved, uid: user.uid }), { status: approved ? 200 : 403 }));
+  await flush();
+  const result = render(user);
+  expect(result.adminChecking).toBe(false); expect(result.adminAuthorized).toBe(approved);
+});

@@ -95,13 +95,8 @@ describe('canonical admin permission policy and API read path', () => {
     expect(res.status).toHaveBeenCalledWith(400);
     expect(mocks.save).not.toHaveBeenCalled();
   });
-  it('does not fabricate subscriber/customer data when lookup has no record', async () => {
-    const req = request(); req.body = { operator: 'sun_direct', smartCardNumber: '41289456123' };
-    const res = response();
-    await ordersController.verifySubscriber(req, res as any);
-    expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.json.mock.calls[0][0]).not.toHaveProperty('subscriber');
-    expect(mocks.save).not.toHaveBeenCalled();
+  it('exposes no legacy unauthenticated subscriber lookup handler', () => {
+    expect(ordersController).not.toHaveProperty('verifySubscriber');
   });
   it('protects the customer details endpoint from non-admin users', async () => {
     for (const token of [undefined, 'bad', 'customer', 'unverified']) {

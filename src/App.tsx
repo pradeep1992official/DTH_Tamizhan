@@ -58,12 +58,14 @@ import {
 } from './lib/icons';
 
 function AdminRouteWrapper({
+  authChecking,
   currentLang,
   user,
   onOpenAuth,
   onUpdateUserRole,
   currentTheme,
 }: {
+  authChecking: boolean;
   currentLang: Language;
   user: UserProfile | null;
   onOpenAuth: () => void;
@@ -95,6 +97,7 @@ function AdminRouteWrapper({
 
   return (
     <AdminPortal
+      authChecking={authChecking}
       currentLang={currentLang}
       user={user}
       onOpenAuth={onOpenAuth}
@@ -137,6 +140,7 @@ function MainApp() {
 
   // User Authentication State
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [authInitializing, setAuthInitializing] = useState(!!auth);
   const [sessionError, setSessionError] = useState('');
   const signingOut = useRef(false);
 
@@ -190,16 +194,16 @@ function MainApp() {
 
   useEffect(() => {
     try { localStorage.removeItem('dth_tamizhan_user'); } catch {}
-    if (!auth) return;
+    if (!auth) { setAuthInitializing(false); return; }
     return observeAccountSession(auth, db, profile => {
-      setSessionError(''); setUser(profile);
+      setAuthInitializing(false); setSessionError(''); setUser(profile);
       if (!profile) {
         setConnections([]); setConnectionOwner(null); setPrefillConn(null);
         setIsPaymentOpen(false); setIsReceiptOpen(false); setIsNewDishOpen(false);
         setActivePaymentPlan(null); setActiveSubscriber(null); setActiveOperator(null); setActiveSmartCard('');
         setLastCompletedOrder(null);
       }
-    }, setSessionError);
+    }, error => { setAuthInitializing(false); setSessionError(error); });
   }, []);
 
   // Load saved connections only for the active Firebase-backed account.
@@ -564,6 +568,7 @@ function MainApp() {
             path="/admin/:tab"
             element={
               <AdminRouteWrapper
+                authChecking={authInitializing}
                 currentLang={currentLang}
                 user={user}
                 onOpenAuth={() => setIsAuthOpen(true)}

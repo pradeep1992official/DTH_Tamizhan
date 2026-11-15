@@ -3,10 +3,10 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import type { DthOperatorId, Language } from '../types';
 import { customTopUpUrl, operatorCatalogMessage } from '../lib/catalogAvailability';
-export function OperatorCatalogNotice({ operator, currentLang, onChoose }: { operator: DthOperatorId; currentLang: Language; onChoose?: () => void }) {
+export function OperatorCatalogNotice({ operator, currentLang, onChoose, context }: { operator: DthOperatorId; currentLang: Language; context?: 'suggestions'; onChoose?: () => void }) {
   const label = translations[currentLang].uiChooseCustomTopUp;
   return <div role="status" className="p-4 rounded-2xl border border-rule bg-paper text-ink space-y-3 text-sm">
-    <p>{operatorCatalogMessage(operator, currentLang)}</p>
+    <p>{context === 'suggestions' ? translations[currentLang].uiNoSuggestionCatalogPacks : operatorCatalogMessage(operator, currentLang)}</p>
     {onChoose ? <button type="button" onClick={onChoose} className="dialog-primary rounded-lg px-4 py-2">{label}</button> : <Link to={customTopUpUrl(operator)} className="underline underline-offset-4">{label}</Link>}
   </div>;
 }

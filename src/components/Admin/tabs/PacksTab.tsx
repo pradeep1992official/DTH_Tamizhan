@@ -1,7 +1,7 @@
 import { catalogItemToBrowsePlan, deduplicateBrowsePlans } from '../../../lib/browsePlansData';
 import { formatPrice, formatMonthlyEquivalent, formatDuration, validateCatalogPack } from '../../../lib/catalog';
 import { AdminRefreshButton } from '../AdminRefreshButton';
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import {
   Plus,
   Search,
@@ -104,6 +104,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
 
   const [channelInput, setChannelInput] = useState('');
 
+  const packFieldId = useId();
   const operatorNames: Record<string, string> = { sun_direct: 'Sun Direct', tata_play: 'Tata Play', airtel_dth: 'Airtel DTH', dish_tv: 'Dish TV', d2h: 'D2H' };
 
   const [showDuplicates, setShowDuplicates] = useState(false);
@@ -442,8 +443,8 @@ export const PacksTab: React.FC<PacksTabProps> = ({
               {editingPack && <p className="text-xs text-muted break-all">ID: {editingPack.id}</p>}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-medium block mb-1 text-ink ">DTH Operator</label>
-                  <select
+                  <label htmlFor={`${packFieldId}-operator`} className="font-medium block mb-1 text-ink ">DTH Operator</label>
+                  <select id={`${packFieldId}-operator`}
                     value={formData.operator}
                     onChange={(e) => setFormData({ ...formData, operator: e.target.value as DthOperatorId })}
                     className="w-full rounded-xl px-3 py-2 border bg-ink/20 focus:outline-none"
@@ -456,8 +457,8 @@ export const PacksTab: React.FC<PacksTabProps> = ({
                 </div>
 
                 <div>
-                  <label className="font-medium block mb-1 text-ink ">Quality Type</label>
-                  <select
+                  <label htmlFor={`${packFieldId}-quality`} className="font-medium block mb-1 text-ink ">Quality Type</label>
+                  <select id={`${packFieldId}-quality`}
                     value={formData.pack_type}
                     onChange={(e) => setFormData({ ...formData, pack_type: e.target.value as any })}
                     className="w-full rounded-xl px-3 py-2 border bg-ink/20 focus:outline-none"
@@ -469,11 +470,12 @@ export const PacksTab: React.FC<PacksTabProps> = ({
               </div>
 
               <div>
-                <label className="font-medium block mb-1 text-ink ">Duration (Months)</label>
-                <div className="grid grid-cols-4 gap-2">
+                <span id={`${packFieldId}-duration`} className="font-medium block mb-1 text-ink">Duration (Months)</span>
+                <div role="group" aria-labelledby={`${packFieldId}-duration`} className="grid grid-cols-4 gap-2">
                   {([1, 3, 6, 12] as const).map((d) => (
                     <button
                       key={d}
+                      aria-pressed={formData.duration_months === d}
                       type="button"
                       onClick={() => setFormData({ ...formData, duration_months: d })}
                       className={`py-2 rounded-xl font-bold border transition-colors ${
@@ -492,8 +494,8 @@ export const PacksTab: React.FC<PacksTabProps> = ({
               </div>
 
               <div>
-                <label className="font-medium block mb-1 text-ink ">Pack Name</label>
-                <input
+                <label htmlFor={`${packFieldId}-name`} className="font-medium block mb-1 text-ink ">Pack Name</label>
+                <input id={`${packFieldId}-name`}
                   type="text"
                   required
                   value={formData.plan_name}
@@ -504,8 +506,8 @@ export const PacksTab: React.FC<PacksTabProps> = ({
               </div>
 
               <div>
-                <label className="font-medium block mb-1 text-ink ">Amount (Rs.)</label>
-                <input
+                <label htmlFor={`${packFieldId}-amount`} className="font-medium block mb-1 text-ink ">Amount (Rs.)</label>
+                <input id={`${packFieldId}-amount`}
                   type="number"
                   required
                   min={0.01}
@@ -540,9 +542,9 @@ export const PacksTab: React.FC<PacksTabProps> = ({
               }
               {/* Channels List Editor */}
               <div className="space-y-2">
-                <label className="font-medium block text-ink ">Channel Highlights</label>
+                <label htmlFor={`${packFieldId}-channel`} className="font-medium block text-ink ">Channel Highlights</label>
                 <div className="flex gap-2">
-                  <input
+                  <input id={`${packFieldId}-channel`}
                     type="text"
                     value={channelInput}
                     onChange={(e) => setChannelInput(e.target.value)}

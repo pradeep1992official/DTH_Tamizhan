@@ -1,10 +1,13 @@
+import { OperatorCatalogNotice } from '../OperatorCatalogNotice';
+import type { DthOperatorId } from '../../types';
 import { useEffect, useRef, useState } from 'react';
 import type { Language, UserProfile } from '../../types';
 import { paymentAuthHeaders } from '../../lib/paymentAuth';
 
 interface Suggestion { id: string; name: string; operator: string; quality: string; amount: number; duration: number; monthlyRate: number }
 const operators: Record<string, string> = { airtel_dth: 'Airtel Digital TV', sun_direct: 'Sun Direct', tata_play: 'Tata Play', dish_tv: 'Dish TV', d2h: 'D2H' };
-export function PlanSuggestions({ user, currentLang, onOpenAuth, onSelect }: {
+export function PlanSuggestions({ user, currentLang, onOpenAuth, onSelect, catalogOperators }: {
+  catalogOperators?: DthOperatorId[];
   user: UserProfile | null; currentLang: Language; onOpenAuth: () => void; onSelect: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false); const [budget, setBudget] = useState('300');
@@ -12,15 +15,16 @@ export function PlanSuggestions({ user, currentLang, onOpenAuth, onSelect }: {
   const [duration, setDuration] = useState('0'); const [preferences, setPreferences] = useState('');
   const [busy, setBusy] = useState(false); const [error, setError] = useState('');
   const [result, setResult] = useState<{ source: string; notice: string; plans: Suggestion[]; monthlyBudget?: number } | null>(null);
+  const noCatalog = operator !== 'any' && catalogOperators !== undefined && !catalogOperators.includes(operator as DthOperatorId);
   const request = useRef<AbortController | null>(null); const locked = useRef(false);
   const ta = currentLang === 'ta'; const text = (en: string, tamil: string) => ta ? tamil : en;
   useEffect(() => {
     const old = request.current; request.current = null; old?.abort();
     locked.current = false; setBusy(false); setResult(null); setError('');
     return () => { const active = request.current; request.current = null; active?.abort(); };
-  }, [user?.uid, currentLang]);
+  }, [user?.uid, currentLang, operator, budget, quality, duration, preferences]);
   async function suggest(event: React.FormEvent) {
-    event.preventDefault(); if (!user) { onOpenAuth(); return; } if (locked.current) return;
+    event.preventDefault(); if (noCatalog) return; if (!user) { onOpenAuth(); return; } if (locked.current) return;
     locked.current = true; setBusy(true); setError(''); setResult(null);
     const controller = new AbortController(); request.current = controller;
     const timeout = setTimeout(() => controller.abort(), 45000);
@@ -51,11 +55,12 @@ export function PlanSuggestions({ user, currentLang, onOpenAuth, onSelect }: {
           <label className="text-sm font-medium sm:col-span-2 lg:col-span-4">{text('What do you enjoy watching? (optional)', 'எதைப் பார்க்க விரும்புகிறீர்கள்? (விருப்பத்தேர்வு)')}<input className={inputClass} maxLength={500} value={preferences} onChange={event => setPreferences(event.target.value)} placeholder={text('Tamil movies, news, sports…', 'தமிழ் திரைப்படங்கள், செய்திகள், விளையாட்டு…')} /></label>
         </fieldset>
         <p className="text-xs text-muted">{text('AI may send your preferences and plan names to Google. Do not include personal information.', 'AI உங்கள் விருப்பங்களையும் திட்டப் பெயர்களையும் Google க்கு அனுப்பலாம். தனிப்பட்ட தகவல்களைச் சேர்க்க வேண்டாம்.')}</p>
-        <button type="submit" disabled={busy} aria-busy={busy} className="rounded-lg bg-accent text-accent-ink px-4 py-2.5 font-semibold text-sm disabled:opacity-50">{busy ? text('Finding matching plans…', 'பொருத்தமான திட்டங்களைத் தேடுகிறது…') : user ? text('Find my plans', 'எனது திட்டங்களைக் கண்டறியுங்கள்') : text('Sign in for suggestions', 'பரிந்துரைகளுக்கு உள்நுழையுங்கள்')}</button>
+        <button type="submit" disabled={busy || noCatalog} aria-busy={busy} className="rounded-lg bg-accent text-accent-ink px-4 py-2.5 font-semibold text-sm disabled:opacity-50">{busy ? text('Finding matching plans…', 'பொருத்தமான திட்டங்களைத் தேடுகிறது…') : user ? text('Find my plans', 'எனது திட்டங்களைக் கண்டறியுங்கள்') : text('Sign in for suggestions', 'பரிந்துரைகளுக்கு உள்நுழையுங்கள்')}</button>
       </form>
+      {noCatalog && <OperatorCatalogNotice context="suggestions" operator={operator as DthOperatorId} currentLang={currentLang} />}
       {error && <p role="alert" className="text-sm text-error">{error}</p>}
       {result && <div aria-live="polite" className="space-y-3">
-        {!result.plans.length && <p className="text-sm text-muted">{text('No packs match this budget and selection. Try a higher budget or another duration.', 'இந்த பட்ஜெட் மற்றும் தேர்வுக்குப் பொருத்தமான திட்டங்கள் இல்லை. பட்ஜெட் அல்லது கால அளவை மாற்றவும்.')}</p>}
+        {!noCatalog && !result.plans.length && <p className="text-sm text-muted">{text('No packs match this budget and selection. Try a higher budget or another duration.', 'இந்த பட்ஜெட் மற்றும் தேர்வுக்குப் பொருத்தமான திட்டங்கள் இல்லை. பட்ஜெட் அல்லது கால அளவை மாற்றவும்.')}</p>}
         {result.plans.length > 0 && <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${result.source === 'ai' ? 'border-accent bg-accent text-accent-ink' : 'border-rule bg-paper-2 text-ink'}`}>
           {result.source === 'ai' ? text('AI recommendations', 'AI பரிந்துரைகள்') : text('Catalog suggestions', 'பட்டியல் பரிந்துரைகள்')}
         </span>}

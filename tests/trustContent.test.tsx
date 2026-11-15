@@ -25,7 +25,7 @@ describe('trust and legal routes (QA-07)', () => {
   });
   it('publishes confirmed business details and an effective date', () => {
     expect(BUSINESS_DETAILS.policyDate).toBe('15 November 2026');
-    expect(BUSINESS_DETAILS.installation).toContain('recharges only');
+    expect(BUSINESS_DETAILS.installation).toContain('provides DTH recharges');
     expect(BUSINESS_DETAILS.processors).toContain('Netlify');
     expect(BUSINESS_DETAILS.retention).toContain('72 months from the due date');
     expect(BUSINESS_DETAILS.retention).toContain('automatic deletion is not implemented');

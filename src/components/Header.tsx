@@ -346,7 +346,7 @@ export const Header: React.FC<HeaderProps> = ({
               : `${currentTheme.navContainerBg} ${currentTheme.navInactiveText}`
           }`}
         >
-          {t.navRecharge}
+          {t.uiMobileRecharge}
         </button>
         <button
           id="mobile-nav-plans-btn"
@@ -358,7 +358,7 @@ export const Header: React.FC<HeaderProps> = ({
               : `${currentTheme.navContainerBg} ${currentTheme.navInactiveText}`
           }`}
         >
-          {t.navPlans}
+          {t.uiMobilePacks}
         </button>
         <button
           id="mobile-nav-connections-btn"
@@ -370,11 +370,12 @@ export const Header: React.FC<HeaderProps> = ({
               : `${currentTheme.navContainerBg} ${currentTheme.navInactiveText}`
           }`}
         >
-          {t.navConnections}
+          {t.uiMobileBoxes}
         </button>
 
-        <a href="/help" aria-current={activeTab === 'help' ? 'page' : undefined} className="help-navigation-link">{currentLang === 'ta' ? 'உதவி பெறுங்கள்' : 'Get Help'}</a>
+        <a href="/help" aria-current={activeTab === 'help' ? 'page' : undefined} className="help-navigation-link">{t.uiMobileHelp}</a>
       </nav>
+      <div id="mobile-assistance-control" className="mobile-assistance-slot" />
     </header>
   );
 };

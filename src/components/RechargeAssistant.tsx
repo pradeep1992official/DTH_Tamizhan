@@ -176,11 +176,18 @@ export function RechargeAssistant({ currentLang, displayName, onCheckout }: {
       return `${previous.box?.nickname || ''} · ₹${previous.topUpAmount}. ${text('Ready for payment.', 'கட்டணத்திற்குத் தயார்.')}`;
     return notices[previous.state] || text('I found the recharge details. Please review the latest summary below.', 'ரீசார்ஜ் விவரங்கள் கிடைத்தன. கீழே உள்ள சமீபத்திய விவரங்களைச் சரிபார்க்கவும்.');
   };
+  const [launcherHost, setLauncherHost] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    const mobile = window.matchMedia('(max-width: 1023px)');
+    const syncHost = () => setLauncherHost(mobile.matches ? document.getElementById('mobile-assistance-control') : null);
+    syncHost(); mobile.addEventListener('change', syncHost);
+    return () => mobile.removeEventListener('change', syncHost);
+  }, []);
   const paymentPrice = (amount: number) => `₹${new Intl.NumberFormat(currentLang === 'ta' ? 'ta-IN' : 'en-IN', { maximumFractionDigits: 2 }).format(amount)}`;
   return createPortal(<>
-    <button type="button" className="recharge-chat-launcher" aria-haspopup="dialog" aria-controls="recharge-chat-panel" aria-expanded={open} onClick={() => setOpen(true)}>
-      <span aria-hidden="true">✦</span> {text('Ask AI', 'AI உதவி')}
-    </button>
+    {createPortal(<button type="button" className="recharge-chat-launcher" aria-haspopup="dialog" aria-controls="recharge-chat-panel" aria-expanded={open} onClick={() => setOpen(true)}>
+      <span aria-hidden="true">✦</span> {text('Need help choosing?', 'பேக் தேர்வு செய்ய உதவி வேண்டுமா?')}
+    </button>, launcherHost || document.body)}
     <dialog ref={panelRef} id="recharge-chat-panel" className="recharge-chat-panel" aria-labelledby="recharge-chat-title"
       onCancel={() => setOpen(false)} onClose={() => setOpen(false)} onClick={event => { if (event.target === event.currentTarget) {
         const bounds = event.currentTarget.getBoundingClientRect();

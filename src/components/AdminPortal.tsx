@@ -38,6 +38,7 @@ import { ApprovalsTab } from './Admin/tabs/ApprovalsTab';
 interface AdminPortalProps {
   currentLang: Language;
   user: UserProfile | null;
+  authChecking?: boolean;
   onOpenAuth: () => void;
   onUpdateUserRole?: (updated: UserProfile) => void;
   onBackToCustomerFlow?: () => void;
@@ -49,6 +50,7 @@ interface AdminPortalProps {
 export const AdminPortal: React.FC<AdminPortalProps> = ({
   currentLang,
   user,
+  authChecking = false,
   onOpenAuth,
   onUpdateUserRole,
   onBackToCustomerFlow,
@@ -112,6 +114,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const adminData = useAdminData(user, showToast);
   const {
     adminAuthorized,
+    adminChecking,
     adminError,
     getAuthHeaders,
     customers,
@@ -176,6 +179,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   }, [activeTab, user?.uid, adminAuthorized, fetchCustomers, fetchOrders, fetchPacks, fetchPayments, fetchReports, fetchOperators, fetchAccessList]);
 
   const isAdmin = adminAuthorized;
+
+  if (authChecking || adminChecking) return <div className="admin-access" role="status" aria-live="polite" aria-busy="true">
+    <h2 className="text-xl font-bold">{currentLang === 'ta' ? 'நிர்வாக அணுகல் சரிபார்க்கப்படுகிறது' : 'Checking administrator access...'}</h2>
+  </div>;
 
   if (!user || !isAdmin) {
     return (

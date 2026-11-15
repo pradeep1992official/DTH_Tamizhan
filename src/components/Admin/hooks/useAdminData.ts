@@ -54,6 +54,8 @@ export interface PaymentReportItem {
 export function useAdminData(user: UserProfile | null, showToast: (msg: string) => void) {
   const [authorizedUid, setAuthorizedUid] = useState<string | null>(null);
   const adminAuthorized = !!user && authorizedUid === user.uid;
+  const [checkedUid, setCheckedUid] = useState<string | null>(null);
+  const adminChecking = !!user && checkedUid !== user.uid;
   const [adminError, setAdminError] = useState<string | null>(null);
   // 1. Customer State
   const [customers, setCustomers] = useState<CustomerRecord[]>([]);
@@ -106,7 +108,7 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
 
   useEffect(() => {
     let active = true;
-    setAuthorizedUid(null); setAdminError(null);
+    setAuthorizedUid(null); setAdminError(null); setCheckedUid(null);
     setOrdersNext(null); setPaymentsNext(null); setCustomersNext(null);
     setReportSummary(null);
     setCustomers([]); setOrders([]); setPlans([]); setAuditLogs([]); setPayments([]);
@@ -116,7 +118,8 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
         .then(async response => {
           const data = await response.json();
           if (active && response.ok && data.isApprovedAdmin === true && data.uid === user.uid) setAuthorizedUid(user.uid);
-        }).catch(() => { if (active) setAdminError('Unable to verify administrator access. Please sign in again.'); });
+        }).catch(() => { if (active) setAdminError('Unable to verify administrator access. Please sign in again.'); })
+        .finally(() => { if (active) setCheckedUid(user.uid); });
     }
     return () => { active = false; };
   }, [user?.uid, getAuthHeaders]);
@@ -292,6 +295,7 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
   return {
     ordersNext, paymentsNext, customersNext,
     adminAuthorized,
+    adminChecking,
     adminError,
     getAuthHeaders,
     customers,

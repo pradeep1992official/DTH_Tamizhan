@@ -194,7 +194,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
         </div>
       </div>
 
-      <PlanSuggestions user={user} currentLang={currentLang} onOpenAuth={onOpenAuth} onSelect={id => {
+      <PlanSuggestions catalogOperators={!isLoading && !fetchError ? [...new Set(allPlans.map(plan => plan.operator))] : undefined} user={user} currentLang={currentLang} onOpenAuth={onOpenAuth} onSelect={id => {
         const plan = allPlans.find(item => item.id === id);
         if (plan) setSelectedPlanForApply(plan);
         else fetchLivePlans();

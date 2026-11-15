@@ -19,7 +19,7 @@ export const BUSINESS_DETAILS = {
   policyDate: '15 November 2026',
   retention: 'Account profiles and saved boxes are kept while needed to provide the account service; verified deletion requests are reviewed by support, subject to required records. Closed support correspondence is retained for 2 years after closure as our business retention period. Payment, recharge and refund records needed for GST accounts are retained for 72 months from the due date for the annual return for the relevant year. Records involved in proceedings or investigations are retained until one year after final disposal or the statutory retention period, whichever is later. Other applicable legal holds may extend retention. Removal or anonymisation of records no longer needed is handled through manual review; automatic deletion is not implemented',
   processors: 'Netlify is the current hosting provider selected for deployment. Google/Firebase provides authentication and database storage; Razorpay processes payments; Brevo sends transactional emails. Optional AI pack suggestions send preferences and plan information to Google Gemini. Information shared with each provider is limited to its service purpose. Hosting, logs and provider processing may occur in India or other countries according to deployment configuration and provider terms; India-only processing is not promised',
-  installation: 'Not applicable. DTH Tamizhan provides DTH recharges only; installation services, installation service areas and installation quotations are not offered',
+  installation: 'DTH Tamizhan provides DTH recharges. Installation services are not offered',
 } as const;
 
 export const POLICY_ROUTES = [
