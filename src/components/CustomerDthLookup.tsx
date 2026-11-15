@@ -57,8 +57,7 @@ export function CustomerDthLookup({ operator, subscriberId, user, currentLang, o
         } finally {
           if (request.current === controller && !controller.signal.aborted) { locked.current = false; setBusy(false); }
         }
-      }}>{busy ? say('Checking…', 'சரிபார்க்கிறது…') : say('Check details', 'விவரங்களைச் சரிபார்க்கவும்')}</button>
-      <p className="text-xs text-muted">{say('Optional. You can continue manually if details are unavailable.', 'விருப்பமானது. விவரங்கள் கிடைக்காவிட்டால் கைமுறையாகத் தொடரலாம்.')}</p>
+      }}>{busy ? say('Checking…', 'சரிபார்க்கிறது…') : say('Check account details', 'விவரங்களைச் சரிபார்க்கவும்')}</button>
     </>}
     {error && <p role="alert" className="text-sm text-error">{error}</p>}
     {result?.details && <div className="customer-lookup-result"><p role="status" className="font-semibold">{say('Account details', 'கணக்கு விவரங்கள்')}{result.cached && <span className="text-xs text-muted"> · {say('Recently checked', 'சமீபத்தில் சரிபார்க்கப்பட்டது')}</span>}</p>

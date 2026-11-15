@@ -35,7 +35,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
   const [custOpFilter, setCustOpFilter] = useState<string>('all');
   type CustomerSortKey = 'customerName' | 'operator' | 'smartCardNumber' | 'activePackName';
   const [sort, setSort] = useState<{ key: CustomerSortKey; direction: 'asc' | 'desc' }>({ key: 'customerName', direction: 'asc' });
-  const operatorNames: Record<string, string> = { sun_direct: 'Sun Direct', tata_play: 'Tata Play', airtel_dth: 'Airtel DTH', dish_tv: 'Dish TV & D2H', d2h: 'Dish TV & D2H' };
+  const operatorNames: Record<string, string> = { sun_direct: 'Sun Direct', tata_play: 'Tata Play', airtel_dth: 'Airtel DTH', dish_tv: 'Dish TV', d2h: 'D2H' };
   const heading = (key: CustomerSortKey, label: string, hidden = '') => <th scope="col" className={`p-3.5 font-medium ${hidden}`} aria-sort={sort.key === key ? (sort.direction === 'asc' ? 'ascending' : 'descending') : undefined}><button type="button" className="catalog-sort-heading" onClick={() => setSort((prev) => ({ key, direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc' }))}>{label}<span aria-hidden="true">{sort.key === key ? (sort.direction === 'asc' ? '\u2191' : '\u2193') : '\u2195'}</span></button></th>;
   const filteredCustomers = customers.filter((c) => {
     const matchSearch =
@@ -82,7 +82,7 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
             <option value="sun_direct">Sun Direct</option>
             <option value="tata_play">Tata Play</option>
             <option value="airtel_dth">Airtel DTH</option>
-            <option value="dish_tv">Dish TV &amp; D2H</option>
+            <option value="dish_tv">Dish TV</option><option value="d2h">D2H</option>
           </select>
         </div>
 

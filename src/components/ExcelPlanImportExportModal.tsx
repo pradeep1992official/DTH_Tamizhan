@@ -718,7 +718,7 @@ export const ExcelPlanImportExportModal: React.FC<ExcelPlanImportExportModalProp
                         <option value="sun_direct">Sun Direct ({plans.filter(p => p.operator === 'sun_direct').length} packs)</option>
                         <option value="tata_play">Tata Play ({plans.filter(p => p.operator === 'tata_play').length} packs)</option>
                         <option value="airtel_dth">Airtel Digital TV ({plans.filter(p => p.operator === 'airtel_dth').length} packs)</option>
-                        <option value="dish_tv">Dish TV &amp; D2H ({plans.filter(p => isSameDthOperatorGroup(p.operator, 'dish_tv')).length} packs)</option>
+                        <option value="dish_tv">Dish TV ({plans.filter(p => isSameDthOperatorGroup(p.operator, 'dish_tv')).length} packs)</option><option value="d2h">D2H ({plans.filter(p => isSameDthOperatorGroup(p.operator, 'd2h')).length} packs)</option>
                       </select>
                     </div>
 

@@ -72,13 +72,13 @@ it('protects configuration and lookups against anonymous and non-admin access', 
   auth.signedIn = true; auth.admin = false;
   expect((await route('test', live)).status).toBe(403);
 });
-it('exposes only credential availability and serves demo results without provider calls', async () => {
+it('exposes only credential availability and rejects demo mode without provider calls', async () => {
   const config = await route('config'); expect(config.body).toMatchObject({ success: true, configured: true, providers: [{ id: 'way2api', ready: true }, { id: 'planapi', ready: false }, { id: 'datayuge', ready: false }] });
   expect(JSON.stringify(config.body)).not.toContain('test-server-secret');
   expect(config.headers.get('cache-control')).toBe('no-store');
   const provider = vi.fn(); vi.stubGlobal('fetch', provider);
   const demo = await route('test', { ...live, mode: 'demo', consent: false });
-  expect(demo.body.mode).toBe('demo'); expect(provider).not.toHaveBeenCalled();
+  expect(demo.status).toBe(400); expect(provider).not.toHaveBeenCalled();
   expect((await route('test', { ...live, consent: false })).status).toBe(400);
   vi.stubEnv('WAY2API_API_KEY', ''); expect((await route('test', live)).status).toBe(503);
 });

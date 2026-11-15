@@ -13,7 +13,7 @@ import {
   CreditCard,
   X
 } from '../lib/icons';
-import { DthConnection, DthOperatorId, Language, UserProfile, resolveDishFamilyOperatorId } from '../types';
+import { DthConnection, DthOperatorId, Language, UserProfile } from '../types';
 import { translations } from '../lib/translations';
 import { OperatorTheme, getOperatorTheme } from '../lib/theme';
 import { useAccessibleModal } from '../lib/useAccessibleModal';
@@ -61,7 +61,7 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
 
   const handleSubmitNew = (e: React.FormEvent) => {
     e.preventDefault();
-    const error = subscriberError(operator, smartCard, true, currentLang);
+    const error = subscriberError(operator, smartCard, false, currentLang);
     setIdError(error);
     if (error) { document.getElementById('saved-box-id')?.focus(); return; }
 
@@ -73,9 +73,7 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
       d2h: 'D2H',
     };
     const cleanCard = normalizeSubscriberId(smartCard);
-    const selectedOperator = operator === 'dish_tv' || operator === 'd2h'
-      ? resolveDishFamilyOperatorId(cleanCard)
-      : operator;
+    const selectedOperator = operator;
 
     onAddConnection({
       ...(editing || {}),
@@ -138,13 +136,13 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
       {connections.length > 0 ? (
         <div className="connection-list">
           {connections.map((conn) => {
-            const normalizedOp = conn.operator === 'd2h' ? 'dish_tv' : conn.operator;
+            const normalizedOp = conn.operator;
             const expiry = getConnectionExpiry(conn);
             const expiryDate = expiry ? new Date(`${expiry.slice(0, 10)}T00:00:00+05:30`) : null;
             const validExpiry = expiryDate && Number.isFinite(expiryDate.getTime());
             const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
             const expired = validExpiry && expiry!.slice(0, 10) < today;
-            const operatorNames: Record<string, string> = { sun_direct: 'Sun Direct', tata_play: 'Tata Play', airtel_dth: 'Airtel Digital TV', dish_tv: 'Dish TV & D2H' };
+            const operatorNames: Record<string, string> = { sun_direct: 'Sun Direct', tata_play: 'Tata Play', airtel_dth: 'Airtel Digital TV', dish_tv: 'Dish TV', d2h: 'D2H' };
             const connectionError = subscriberError(conn.operator, conn.smartCardNumber, false, currentLang);
             const editConnection = () => {
               setEditing(conn); setOperator(normalizedOp); setSmartCard(conn.smartCardNumber);
@@ -309,13 +307,14 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
                   <option value="sun_direct">{t.uiSunDirect}</option>
                   <option value="tata_play">{t.uiTataPlay}</option>
                   <option value="airtel_dth">{t.uiAirtel}</option>
-                  <option value="dish_tv">{t.uiDishD2h}</option>
+                  <option value="dish_tv">Dish TV</option>
+                  <option value="d2h">D2H</option>
                 </select>
               </div>
 
               <div>
                 <label className={`block font-medium mb-1.5 ${currentTheme.subText}`}>
-                  {subscriberLabel(operator, true, currentLang)}
+                  {subscriberLabel(operator, false, currentLang)}
                 </label>
                 <input
                   type="text"
@@ -324,12 +323,12 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
                   aria-describedby="saved-box-help"
                   value={smartCard}
                   onChange={(e) => setSmartCard(e.target.value.replace(/[^0-9]/g, ''))}
-                  placeholder={subscriberPlaceholder(operator, true, currentLang)}
+                  placeholder={subscriberPlaceholder(operator, false, currentLang)}
                   className={`w-full ${currentTheme.inputBg} ${currentTheme.inputBorder} ${currentTheme.inputFocusBorder} ${currentTheme.inputText} ${currentTheme.inputPlaceholder} rounded-xl px-3.5 py-2.5 font-mono font-bold focus:outline-none border transition-colors`}
                 />
               </div>
 
-              <p id="saved-box-help" role={idError ? "alert" : undefined} className={idError ? "text-error" : ""}>{(idError && subscriberError(operator, smartCard, true, currentLang)) || subscriberHelp(operator, true, currentLang)}</p>
+              <p id="saved-box-help" role={idError ? "alert" : undefined} className={idError ? "text-error" : ""}>{(idError && subscriberError(operator, smartCard, false, currentLang)) || subscriberHelp(operator, false, currentLang)}</p>
               <CustomerDthLookup operator={operator} subscriberId={smartCard} user={user} currentLang={currentLang} onOpenAuth={onOpenAuth} onUseName={setCustomerName} />
               <div>
                 <label className={`block font-medium mb-1.5 ${currentTheme.subText}`}>

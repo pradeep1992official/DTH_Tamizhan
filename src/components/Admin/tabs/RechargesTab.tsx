@@ -45,7 +45,7 @@ export const RechargesTab: React.FC<RechargesTabProps> = ({
   const [sort, setSort] = useState<{ key: OrderSortKey; direction: 'asc' | 'desc' }>({ key: 'createdAt', direction: 'desc' });
   const [selectedOrder, setSelectedOrder] = useState<RechargeOrder | null>(null);
   const { modalRef } = useAccessibleModal({ isOpen: Boolean(selectedOrder), onClose: () => setSelectedOrder(null) });
-  const operatorNames: Record<string, string> = { sun_direct: 'Sun Direct', tata_play: 'Tata Play', airtel_dth: 'Airtel DTH', dish_tv: 'Dish TV & D2H', d2h: 'Dish TV & D2H' };
+  const operatorNames: Record<string, string> = { sun_direct: 'Sun Direct', tata_play: 'Tata Play', airtel_dth: 'Airtel DTH', dish_tv: 'Dish TV', d2h: 'D2H' };
   const paymentNames: Record<string, string> = { qr_code: 'QR code', card: 'Card', upi: 'UPI', netbanking: 'Net banking', wallet: 'Wallet' };
   const formatDate = (value: string, time = false) => {
     const date = new Date(value);
@@ -117,7 +117,7 @@ export const RechargesTab: React.FC<RechargesTabProps> = ({
             <option value="sun_direct">Sun Direct</option>
             <option value="tata_play">Tata Play</option>
             <option value="airtel_dth">Airtel DTH</option>
-            <option value="dish_tv">Dish TV &amp; D2H</option>
+            <option value="dish_tv">Dish TV</option><option value="d2h">D2H</option>
           </select>
         </div>
 

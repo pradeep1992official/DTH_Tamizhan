@@ -34,7 +34,6 @@ import {
   PlanCatalogItem,
   canonicalizeDthOperatorId,
   isSameDthOperatorGroup,
-  resolveDishFamilyOperatorId,
 } from '../types';
 import { translations } from '../lib/translations';
 import { PlanCatalogService } from '../lib/planCatalogService';
@@ -140,22 +139,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
   const showAmountError = amountTouched && !!amountError;
   const [saveConnection, setSaveConnection] = useState(true);
 
-  const visibleOperators = operators
-    .filter((operator) => operator.id !== 'd2h')
-    .map((operator) => {
-      if (operator.id !== 'dish_tv') return operator;
-
-      const d2hOperator = operators.find((candidate) => candidate.id === 'd2h');
-      return {
-        ...operator,
-        name: 'Dish TV & D2H',
-        shortName: 'Dish TV & D2H',
-        tamilName: 'டிஷ் டிவி & டி2எச்',
-        cardName: 'Viewing Card / Customer ID',
-        isEnabled: [operator, d2hOperator].some((candidate) => candidate && candidate.isEnabled !== false),
-        maintenanceMessage: [operator, d2hOperator].find((candidate) => candidate?.isEnabled !== false)?.maintenanceMessage,
-      };
-    });
+  const visibleOperators = operators;
 
   // Fetch operators from backend API & listen for admin status toggles
   useEffect(() => {
@@ -294,7 +278,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
     }
     if (!currentOp) return;
     const cleanCard = normalizeSubscriberId(smartCardNumber);
-    const idError = subscriberError(selectedOpId, cleanCard, true, currentLang);
+    const idError = subscriberError(selectedOpId, cleanCard, false, currentLang);
     if (idError) {
       setValidationError(idError);
       document.getElementById('smart-card-input')?.focus();
@@ -307,14 +291,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
       return;
     }
 
-    const providerId = selectedOpId === 'dish_tv'
-      ? resolveDishFamilyOperatorId(cleanCard)
-      : selectedOpId;
-    const provider = operators.find((operator) => operator.id === providerId) || (
-      selectedOpId === 'dish_tv'
-        ? { ...currentOp, id: providerId, name: providerId === 'dish_tv' ? 'Dish TV' : 'D2H' }
-        : currentOp
-    );
+    const provider = currentOp;
     if (provider.isEnabled === false) {
       setValidationError(
         provider.maintenanceMessage ||
@@ -376,10 +353,16 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
       <div
         className={`page-heading recharge-heading`}
       >
+            {onLanguageChange && <div className="task-language" role="group" aria-label={t.uiTaskLanguage}>
+              {(['en', 'ta'] as const).map(lang => <button key={lang} type="button" lang={lang} aria-pressed={currentLang === lang} onClick={() => onLanguageChange(lang)}>{lang === 'en' ? 'English' : 'தமிழ்'}</button>)}
+            </div>}
         <div className="relative z-10 max-w-3xl space-y-3.5">
+          <div className="recharge-title-row">
           <h1 className={`text-2xl font-bold tracking-tight leading-tight ${currentTheme.fontHeadingClass} ${currentTheme.heroTitleColor}`}>
             {t.heroHeading}
           </h1>
+
+          </div>
 
           <p className={`text-sm sm:text-base font-normal leading-relaxed max-w-2xl ${currentTheme.heroSubtitleColor}`}>
             {t.heroDescription}
@@ -389,7 +372,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
 
         {/* Dynamic Illustrator Graphic per Operator */}
         <div className="recharge-product" data-operator={selectedOpId}>
-          <HeroIllustrativeGraphic theme={currentTheme} currentLang={currentLang} />
+          <HeroIllustrativeGraphic key={selectedOpId} theme={getOperatorTheme(selectedOpId)} currentLang={currentLang} />
         </div>
       </div>
 
@@ -483,9 +466,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
         {/* Step 2: Enter Smart Card / Customer ID */}
         {currentOp && (
           <div className={`recharge-subscriber`}>
-            {onLanguageChange && <div className="task-language" role="group" aria-label={t.uiTaskLanguage}>
-              {(['en', 'ta'] as const).map(lang => <button key={lang} type="button" lang={lang} aria-pressed={currentLang === lang} onClick={() => onLanguageChange(lang)}>{lang === 'en' ? 'English' : 'தமிழ்'}</button>)}
-            </div>}
+
             <div className="flex flex-col items-start gap-2">
               <h2 className={`text-base font-bold flex items-center gap-2 ${currentTheme.headingText}`}>
                 <span
@@ -493,10 +474,12 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                 >
                   2
                 </span>
-                <span>{subscriberLabel(selectedOpId, true, currentLang)}</span>
+                <span>{subscriberLabel(selectedOpId, false, currentLang)}</span>
               </h2>
               <span className={`text-xs font-medium sm:text-right ${currentTheme.subText}`}>
-                {subscriberHelp(selectedOpId, true, currentLang)}
+                {currentLang === 'en' && subscriberRule(selectedOpId, false).lengths.length === 1
+                  ? `${subscriberRule(selectedOpId, false).lengths[0]}-digit ${subscriberLabel(selectedOpId, false, currentLang)}`
+                  : subscriberHelp(selectedOpId, false, currentLang)}
               </span>
             </div>
 
@@ -512,10 +495,10 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                     setSmartCardNumber(e.target.value.replace(/[^0-9]/g, ''));
                     setValidationError(null);
                   }}
-                  placeholder={subscriberPlaceholder(selectedOpId, true, currentLang)}
+                  placeholder={subscriberPlaceholder(selectedOpId, false, currentLang)}
                   aria-invalid={!!validationError}
                   aria-describedby={validationError ? 'subscriber-error' : undefined}
-                  aria-label={`${currentOp.name} ${subscriberLabel(selectedOpId, true, currentLang)}`}
+                  aria-label={`${currentOp.name} ${subscriberLabel(selectedOpId, false, currentLang)}`}
                   className={`w-full ${currentTheme.inputBg} ${currentTheme.inputBorder} ${currentTheme.inputFocusBorder} ${currentTheme.inputText} ${currentTheme.inputPlaceholder} ${currentTheme.inputStyleClass} font-mono text-base focus:outline-none transition-colors`}
                 />
               </div>
@@ -523,7 +506,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
               {validationError && (
                 <div className="p-3 rounded-xl bg-error-soft border border-rule text-error  text-xs flex items-center gap-2  ">
                   <AlertCircle className="w-4 h-4 shrink-0 text-error" />
-                  <span id="subscriber-error" role="alert" className="font-medium">{subscriberError(selectedOpId, smartCardNumber, true, currentLang) || localizeCustomerError(validationError, currentLang)}</span>
+                  <span id="subscriber-error" role="alert" className="font-medium">{subscriberError(selectedOpId, smartCardNumber, false, currentLang) || localizeCustomerError(validationError, currentLang)}</span>
                 </div>
               )}
             </div>

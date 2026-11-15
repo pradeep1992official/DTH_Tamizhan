@@ -103,7 +103,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
 
   const [channelInput, setChannelInput] = useState('');
 
-  const operatorNames: Record<string, string> = { sun_direct: 'Sun Direct', tata_play: 'Tata Play', airtel_dth: 'Airtel DTH', dish_tv: 'Dish TV & D2H', d2h: 'Dish TV & D2H' };
+  const operatorNames: Record<string, string> = { sun_direct: 'Sun Direct', tata_play: 'Tata Play', airtel_dth: 'Airtel DTH', dish_tv: 'Dish TV', d2h: 'D2H' };
 
   const filteredPlans = plans.filter((p) => {
     const matchOp = selectedPackOp === 'all' || isSameDthOperatorGroup(p.operator, selectedPackOp);
@@ -254,7 +254,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
             <option value="sun_direct">Sun Direct</option>
             <option value="tata_play">Tata Play</option>
             <option value="airtel_dth">Airtel DTH</option>
-            <option value="dish_tv">Dish TV &amp; D2H</option>
+            <option value="dish_tv">Dish TV</option><option value="d2h">D2H</option>
           </select>
         </div>
 
@@ -441,7 +441,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
                     <option value="sun_direct">Sun Direct</option>
                     <option value="tata_play">Tata Play</option>
                     <option value="airtel_dth">Airtel DTH</option>
-                    <option value="dish_tv">Dish TV &amp; D2H</option>
+                    <option value="dish_tv">Dish TV</option><option value="d2h">D2H</option>
                   </select>
                 </div>
 

@@ -50,7 +50,7 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
   }
   const [methodFilter, setMethodFilter] = useState('all');
   const [sort, setSort] = useState<{ key: PaymentSortKey; direction: 'asc' | 'desc' }>({ key: 'createdAt', direction: 'desc' });
-  const operators: Record<string, string> = { sun_direct: 'Sun Direct', tata_play: 'Tata Play', airtel_dth: 'Airtel DTH', dish_tv: 'Dish TV & D2H', d2h: 'Dish TV & D2H' };
+  const operators: Record<string, string> = { sun_direct: 'Sun Direct', tata_play: 'Tata Play', airtel_dth: 'Airtel DTH', dish_tv: 'Dish TV', d2h: 'D2H' };
   const methods: Record<string, string> = { upi: 'UPI', qr_code: 'QR code', card: 'Card', netbanking: 'Net banking', wallet: 'Wallet' };
   const dateLabel = (value: string, time = false) => {
     const date = new Date(value);

@@ -47,7 +47,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
   const [operator, setOperator] = useState('all');
   const [action, setAction] = useState('all');
   const [visibleCount, setVisibleCount] = useState(10);
-  const operators: Record<string, string> = { sun_direct: 'Sun Direct', tata_play: 'Tata Play', airtel_dth: 'Airtel DTH', dish_tv: 'Dish TV & D2H', d2h: 'Dish TV & D2H' };
+  const operators: Record<string, string> = { sun_direct: 'Sun Direct', tata_play: 'Tata Play', airtel_dth: 'Airtel DTH', dish_tv: 'Dish TV', d2h: 'D2H' };
   const actionNames = { create: 'Created', update: 'Updated', delete: 'Deleted' };
   const formatDate = (value: string, withTime = false) => {
     const date = new Date(value);
@@ -60,7 +60,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
   const lastDate = orderDates.length ? formatDate(orderDates[orderDates.length - 1]) : '';
   const period = orderDates.length ? (firstDate === lastDate ? firstDate : `${firstDate} to ${lastDate}`) : 'No recharge records loaded';
   const filteredLogs = auditLogs.filter((log) =>
-    (operator === 'all' || log.operator === operator || operator === 'dish_tv' && log.operator === 'd2h') &&
+    (operator === 'all' || log.operator === operator) &&
     (action === 'all' || log.action === action) &&
     `${log.plan_name} ${operators[log.operator] || log.operator} ${log.updated_by} ${log.details || ''}`.toLowerCase().includes(search.toLowerCase())
   ).sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at));

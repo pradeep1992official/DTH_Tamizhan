@@ -1,7 +1,8 @@
+import { lookupOperatorId } from '../src/lib/dthLookup';
 import { describe, expect, it } from 'vitest';
 import { filterAndSortPlans } from '../src/lib/browsePlansData';
 import { PlanCatalogService } from '../src/lib/planCatalogService';
-import { BrowsePlan, PlanFilters, resolveDishFamilyOperatorId } from '../src/types';
+import { BrowsePlan, PlanFilters } from '../src/types';
 
 const d2hPlan: BrowsePlan = {
   id: 'd2h_hd_1m',
@@ -30,12 +31,12 @@ const defaultFilters: PlanFilters = {
   sortBy: 'recommended',
 };
 
-describe('Dish TV and D2H shared operator group', () => {
-  it('includes D2H catalog plans when filtering the combined operator', () => {
-    expect(filterAndSortPlans([d2hPlan], defaultFilters)).toHaveLength(1);
+describe('Dish TV and D2H separate operators', () => {
+  it('excludes D2H catalog plans when filtering Dish TV', () => {
+    expect(filterAndSortPlans([d2hPlan], defaultFilters)).toHaveLength(0);
   });
 
-  it('finds D2H recommendations when querying Dish TV', () => {
+  it('does not recommend a D2H pack for Dish TV', () => {
     const plans = [{
       id: d2hPlan.id,
       operator: d2hPlan.operator,
@@ -50,12 +51,12 @@ describe('Dish TV and D2H shared operator group', () => {
       genre_tags: d2hPlan.genre_tags,
     }];
 
-    expect(PlanCatalogService.getRecommendedPlan(plans, 'dish_tv', 'HD', 1)?.id).toBe(d2hPlan.id);
+    expect(PlanCatalogService.getRecommendedPlan(plans, 'dish_tv', 'HD', 1)).toBeUndefined();
+    expect(PlanCatalogService.getRecommendedPlan(plans, 'd2h', 'HD', 1)?.id).toBe(d2hPlan.id);
   });
 
-  it('routes Dish TV subscriber prefixes and defaults other IDs to D2H', () => {
-    expect(resolveDishFamilyOperatorId('01512345678')).toBe('dish_tv');
-    expect(resolveDishFamilyOperatorId('02512345678')).toBe('dish_tv');
-    expect(resolveDishFamilyOperatorId('12345678')).toBe('d2h');
+  it('uses the selected operator regardless of ID prefix', () => {
+    expect(lookupOperatorId('dish_tv', '07211194569')).toBe('dish_tv');
+    expect(lookupOperatorId('d2h', '01512345678')).toBe('videocon_d2h');
   });
 });

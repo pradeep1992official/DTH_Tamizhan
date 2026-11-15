@@ -31,8 +31,8 @@ const OPERATOR_DATA: Record<string, { name: string; color: string }> = {
   sun_direct: { name: 'Sun Direct', color: 'var(--operator-sun-direct)' },
   tata_play: { name: 'Tata Play', color: 'var(--operator-tata-play)' },
   airtel_dth: { name: 'Airtel Digital TV', color: 'var(--operator-airtel-dth)' },
-  dish_tv: { name: 'Dish TV & D2H', color: 'var(--operator-dish-tv)' },
-  d2h: { name: 'Dish TV & D2H', color: 'var(--operator-dish-tv)' },
+  dish_tv: { name: 'Dish TV', color: 'var(--operator-dish-tv)' },
+  d2h: { name: 'D2H', color: 'var(--operator-dish-tv)' },
 };
 
 export const ComparisonTable: React.FC<ComparisonTableProps> = ({

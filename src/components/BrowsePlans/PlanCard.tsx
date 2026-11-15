@@ -22,8 +22,8 @@ const OPERATOR_NAMES: Record<string, { name: string; tamil: string; color: strin
   sun_direct: { name: 'Sun Direct', tamil: 'சன் டைரக்ட்', color: 'var(--operator-sun-direct)' },
   tata_play: { name: 'Tata Play', tamil: 'டாடா பிளே', color: 'var(--operator-tata-play)' },
   airtel_dth: { name: 'Airtel Digital TV', tamil: 'ஏர்டெல் டிவி', color: 'var(--operator-airtel-dth)' },
-  dish_tv: { name: 'Dish TV & D2H', tamil: 'டிஷ் டிவி & டி2எச்', color: 'var(--operator-dish-tv)' },
-  d2h: { name: 'Dish TV & D2H', tamil: 'டிஷ் டிவி & டி2எச்', color: 'var(--operator-dish-tv)' },
+  dish_tv: { name: 'Dish TV', tamil: 'டிஷ் டிவி', color: 'var(--operator-dish-tv)' },
+  d2h: { name: 'D2H', tamil: 'டிஷ் டிவி', color: 'var(--operator-dish-tv)' },
 };
 
 export function CatalogColumnHeadings({ currentLang }: { currentLang: Language }) {

@@ -17,7 +17,7 @@ export const filterSubscriberInput = (value: string) => value.replace(/[^0-9]/g,
 export const normalizeSubscriberId = (value: string) => value.replace(/[\s-]/g, '');
 export function subscriberRule(operator: DthOperatorId, combined = false) {
   if (combined && (operator === 'dish_tv' || operator === 'd2h')) {
-    return { lengths: [...new Set([...SUBSCRIBER_RULES.dish_tv.lengths, ...SUBSCRIBER_RULES.d2h.lengths])].sort((a, b) => a - b), prefixes: [], label: 'Viewing Card / Customer ID', placeholder: SUBSCRIBER_RULES.dish_tv.placeholder };
+    return { lengths: [...new Set([...SUBSCRIBER_RULES.dish_tv.lengths, ...SUBSCRIBER_RULES.d2h.lengths])].sort((a, b) => a - b), prefixes: [], label: 'Customer ID', placeholder: SUBSCRIBER_RULES.dish_tv.placeholder };
   }
   return SUBSCRIBER_RULES[operator];
 }
@@ -30,7 +30,9 @@ export function subscriberPlaceholder(operator: DthOperatorId, combined = false,
   return formatMessage(translations[lang].uiEnterOperatorId, { label: subscriberLabel(operator, combined, lang) });
 }
 export function subscriberHelp(operator: DthOperatorId, combined = false, lang: Language = 'en'): string {
-  if (combined && (operator === 'dish_tv' || operator === 'd2h')) return `Dish TV: ${subscriberHelp('dish_tv', false, lang)}; D2H: ${subscriberHelp('d2h', false, lang)}`;
+  if (combined && (operator === 'dish_tv' || operator === 'd2h')) return lang === 'ta'
+    ? 'வாடிக்கையாளர் எண்: 8 / 9 / 10 / 11 இலக்கங்கள்'
+    : 'Customer ID: 8 / 9 / 10 / 11 digits';
   const rule = subscriberRule(operator, combined);
   return formatMessage(translations[lang].uiIdHelp, { label: subscriberLabel(operator, combined, lang), lengths: rule.lengths.join(' / '), prefix: rule.prefixes.length ? formatMessage(translations[lang].uiIdPrefix, { prefixes: rule.prefixes.join(' / ') }) : '' });
 }

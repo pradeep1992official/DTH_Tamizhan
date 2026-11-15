@@ -221,7 +221,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     { id: 'payments', label: t.paymentsTab, icon: <CreditCard className="w-4 h-4" /> },
     { id: 'reports', label: t.reportsTab, icon: <BarChart3 className="w-4 h-4" /> },
     { id: 'operators', label: t.operatorsTab, icon: <Radio className="w-4 h-4" /> },
-    { id: 'api-test', label: 'API test', icon: <Radio className="w-4 h-4" /> },
+    { id: 'api-test', label: 'DTH lookup', icon: <Radio className="w-4 h-4" /> },
     { id: 'approvals', label: t.approvalsTab, icon: <ShieldCheck className="w-4 h-4" /> },
   ];
 

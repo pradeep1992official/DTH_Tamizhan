@@ -46,7 +46,6 @@ import {
   BrowsePlan,
   AdminTabId,
   canonicalizeDthOperatorId,
-  resolveDishFamilyOperatorId,
 } from './types';
 import { translations } from './lib/translations';
 import { getOperatorTheme, OPERATOR_THEMES } from './lib/theme';
@@ -412,9 +411,7 @@ function MainApp() {
     plan: BrowsePlan,
     newConnData: { smartCardNumber: string; nickname: string; customerName?: string }
   ) => {
-    const operator = canonicalizeDthOperatorId(plan.operator) === 'dish_tv'
-      ? resolveDishFamilyOperatorId(newConnData.smartCardNumber)
-      : plan.operator;
+    const operator = plan.operator;
     const operatorName = operator === 'dish_tv' ? 'Dish TV' : operator === 'd2h' ? 'D2H' : plan.operatorName || plan.operator;
     const newConn: DthConnection = {
       id: `conn-${Date.now()}`,

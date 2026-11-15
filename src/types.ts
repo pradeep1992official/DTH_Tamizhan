@@ -1,7 +1,7 @@
 export type DthOperatorId = 'sun_direct' | 'tata_play' | 'airtel_dth' | 'dish_tv' | 'd2h';
 
 export function canonicalizeDthOperatorId(operatorId: DthOperatorId): DthOperatorId {
-  return operatorId === 'd2h' ? 'dish_tv' : operatorId;
+  return operatorId;
 }
 
 export function isSameDthOperatorGroup(left: DthOperatorId, right: DthOperatorId): boolean {

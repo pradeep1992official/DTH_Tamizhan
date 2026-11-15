@@ -34,8 +34,9 @@ describe('server price calculation', () => {
     expect(() => calculatePayment({ ...input, packId: 'deleted' }, plans)).toThrow('unavailable');
     expect(() => calculatePayment({ ...input, operator: 'airtel_dth' }, plans)).toThrow('unavailable');
   });
-  it('preserves the existing Dish/D2H catalog grouping', () => {
-    expect(calculatePayment({ packId: 'd2h-1', operator: 'dish_tv' }, plans).amountPaise).toBe(30000);
+  it('keeps Dish TV and D2H payment plans separate', () => {
+    expect(() => calculatePayment({ packId: 'd2h-1', operator: 'dish_tv' }, plans)).toThrow('unavailable');
+    expect(calculatePayment({ packId: 'd2h-1', operator: 'd2h' }, plans).amountPaise).toBe(30000);
   });
   it('validates explicit custom face value and handles decimal paise', () => {
     expect(calculatePayment({ ...input, packId: 'custom', customAmount: 10.01 }, plans).amountPaise).toBe(1001);

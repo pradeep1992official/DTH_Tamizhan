@@ -21,7 +21,7 @@ export function catalogItemToBrowsePlan(p: PlanCatalogItem): BrowsePlan {
     id: p.id,
     channel_list_url: p.channel_list_url,
     operator: p.operator,
-    operatorName: isSameDthOperatorGroup(p.operator, 'dish_tv') ? 'Dish TV & D2H' : undefined,
+    operatorName: isSameDthOperatorGroup(p.operator, 'dish_tv') ? 'Dish TV' : p.operator === 'd2h' ? 'D2H' : undefined,
     name: p.plan_name || (p as any).name || 'DTH Pack',
     tamilName: p.tamilName,
     type: isHd ? 'HD' : 'SD',

@@ -213,8 +213,8 @@ export const OPERATOR_THEMES: Record<DthOperatorId, OperatorTheme> = {
   sun_direct: operator("sun_direct", "Sun Direct", "Sun Direct pack information"),
   tata_play: operator("tata_play", "Tata Play", "Tata Play pack information"),
   airtel_dth: operator("airtel_dth", "Airtel Digital TV", "Airtel DTH pack information"),
-  dish_tv: operator("dish_tv", "Dish TV", "Dish TV and D2H pack information"),
-  d2h: operator("d2h", "Dish TV", "Dish TV and D2H pack information")
+  dish_tv: operator("dish_tv", "Dish TV", "Dish TV pack information"),
+  d2h: operator("d2h", "D2H", "D2H pack information")
 };
 
 export function getOperatorTheme(opId: DthOperatorId): OperatorTheme {

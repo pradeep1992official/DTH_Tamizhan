@@ -78,7 +78,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({ theme, className = '', siz
         </div>
         <div>
           <span className="font-bold tracking-tight text-lg text-accent-ink block leading-none">
-            dish<span className="text-muted">tv</span> <span className="text-xs font-bold text-muted">& d2h</span>
+            {theme.id === 'd2h' ? 'D2H' : 'Dish TV'}
           </span>
           <span className="text-xs  font-bold  text-muted block mt-0.5">
             Direct Broadcast
@@ -122,7 +122,7 @@ export const OperatorCardLogo: React.FC<{ operatorId: DthOperatorId; className?:
     airtel_dth: ['/assets/airtel_logo.png', '/airtel_logo.png'],
     tata_play: ['/assets/tata_logo.png', '/tata_logo.png'],
     dish_tv: ['/assets/dishtv_logo.png', '/dishtv_logo.png'],
-    d2h: ['/assets/dishtv_logo.png', '/dishtv_logo.png'],
+    d2h: ['/assets/d2h_logo.png'],
   };
 
   const candidates = logoCandidates[operatorId] || logoCandidates.sun_direct;
@@ -133,7 +133,8 @@ export const OperatorCardLogo: React.FC<{ operatorId: DthOperatorId; className?:
       <div className="h-8 sm:h-9 px-2.5 mx-auto rounded-xl bg-paper shadow-sm border border-rule flex items-center justify-center text-center font-bold text-xs">
         {operatorId === 'airtel_dth' && <span className="text-ink-2">airtel</span>}
         {operatorId === 'tata_play' && <span className="text-ink-2">TATA PLAY</span>}
-        {(operatorId === 'dish_tv' || operatorId === 'd2h') && <span className="text-muted">dish tv</span>}
+        {operatorId === 'dish_tv' && <span className="text-muted">dish tv</span>}
+        {operatorId === 'd2h' && <span className="text-muted">D2H</span>}
         {operatorId === 'sun_direct' && <span className="text-muted">SUN DIRECT</span>}
       </div>
     );
@@ -296,26 +297,27 @@ export const TataPlayHeroBannerGraphic: React.FC<{ currentLang?: Language }> = (
   );
 };
 
-// Dish TV / d2h setup component
-export const DishTvHeroBannerGraphic: React.FC<{ currentLang?: Language }> = ({ currentLang = 'en' }) => {
-  return (
-    <OperatorHeroImage
-      candidates={['/assets/dish_hero.png', '/dish_hero.png']}
-      alt={translations[currentLang].uiDishSetup}
-      fallbackSvg={
-        <div className="opacity-35 flex items-center pr-4">
-          <svg aria-hidden="true" viewBox="0 0 240 200" className="w-64 h-56" fill="none">
-            <polygon points="10,10 230,10 180,190 60,190" fill="white" fillOpacity="0.1" />
-          </svg>
-        </div>
-      }
-    />
-  );
-};
+// Show only the Dish TV setup from the existing combined product asset.
+export const DishTvHeroBannerGraphic: React.FC<{ currentLang?: Language }> = ({ currentLang = 'en' }) => (
+  <div className="operator-hero-media pointer-events-none">
+    <div className="dish-tv-hero-crop">
+      <img src="/assets/dish_hero.png" alt={translations[currentLang].uiDishSetup} />
+    </div>
+  </div>
+);
+
+export const D2hHeroBannerGraphic: React.FC = () => (
+  <div className="operator-hero-media pointer-events-none">
+    <div className="d2h-hero-crop">
+      <img src="/assets/dish_hero.png" alt="D2H dish, white set-top box and remote" />
+    </div>
+  </div>
+);
 
 export const HeroIllustrativeGraphic: React.FC<{ theme: OperatorTheme; currentLang?: Language }> = ({ theme, currentLang = 'en' }) => {
   if (theme.id === 'airtel_dth') return <AirtelHeroBannerGraphic currentLang={currentLang} />;
   if (theme.id === 'tata_play') return <TataPlayHeroBannerGraphic currentLang={currentLang} />;
-  if (theme.id === 'dish_tv' || theme.id === 'd2h') return <DishTvHeroBannerGraphic currentLang={currentLang} />;
+  if (theme.id === 'd2h') return <D2hHeroBannerGraphic />;
+  if (theme.id === 'dish_tv') return <DishTvHeroBannerGraphic currentLang={currentLang} />;
   return <SunDirectHeroBannerGraphic currentLang={currentLang} />;
 };

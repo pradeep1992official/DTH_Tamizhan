@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { resolveDishFamilyOperatorId } from '../types';
 
 export const lookupOperators = {
   airtel_dth: 'Airtel DTH', tata_play: 'Tata Play', dish_tv: 'Dish TV',
@@ -13,7 +12,7 @@ export const dthLookupInput = z.object({
 }).strict();
 export type DthLookupInput = z.infer<typeof dthLookupInput>;
 export type DthLookupProvider = 'way2api' | 'planapi' | 'datayuge';
-export const adminDthLookupInput = dthLookupInput.extend({ provider: z.enum(['auto', 'way2api', 'planapi', 'datayuge']).default('auto') });
+export const adminDthLookupInput = dthLookupInput.extend({ mode: z.literal('live'), provider: z.enum(['auto', 'way2api', 'planapi', 'datayuge']).default('auto') });
 export const lookupProviderNames: Record<DthLookupProvider, string> = { way2api: 'Way2API', planapi: 'EzyTM / PlanAPI', datayuge: 'DataYuge' };
 export interface LookupProviderStatus { id: DthLookupProvider; configured: boolean; ready: boolean; note: string }
 export interface DthLookupResponse {
@@ -37,8 +36,8 @@ export interface CustomerDthLookupResponse {
   cached?: boolean;
   checkedAt?: string;
 }
-export function lookupOperatorId(operator: string, subscriberId: string): DthLookupInput['operator'] | null {
-  const resolved = operator === 'dish_tv' || operator === 'd2h' ? resolveDishFamilyOperatorId(subscriberId) : operator;
+export function lookupOperatorId(operator: string, _subscriberId: string): DthLookupInput['operator'] | null {
+  const resolved = operator;
   if (resolved === 'd2h' || resolved === 'videocon_d2h') return 'videocon_d2h';
   return Object.hasOwn(lookupOperators, resolved) ? resolved as DthLookupInput['operator'] : null;
 }

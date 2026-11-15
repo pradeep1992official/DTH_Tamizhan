@@ -1,7 +1,7 @@
 /* Customer service design: burgundy actions, ivory canvas, quiet comparison rows. */
 .app-shell, body { background: var(--color-ivory); color: var(--color-charcoal); }
 .app-main { max-width: 1280px; }
-.customer-dth-lookup { display: grid; gap: 10px; margin-top: 12px; font-size: 14px; }
+.customer-dth-lookup { display: grid; gap: 10px; margin-top: 0; font-size: 14px; }
 .customer-lookup-consent { display: flex; align-items: flex-start; gap: 8px; line-height: 1.5; }
 .customer-dth-lookup .customer-lookup-consent input { width: 16px; height: 16px; min-height: 16px; margin-top: 3px; flex-shrink: 0; padding: 0; accent-color: var(--color-brand); }
 .customer-lookup-button { justify-self: start; min-height: 44px; padding: 9px 16px; border: 1px solid var(--color-brand); border-radius: 8px; color: var(--color-brand); font-weight: 600; }
@@ -13,6 +13,11 @@
 .customer-lookup-result dt { color: var(--color-muted); font-size: 12px; }
 .customer-lookup-result dd { font-weight: 600; overflow-wrap: anywhere; }
 .dth-lookup-test input:is([type="checkbox"], [type="radio"]) { width: 16px; height: 16px; min-height: 16px; flex-shrink: 0; accent-color: var(--color-brand); }
+.dth-lookup-test .text-sm, .dth-lookup-test .lookup-provider-status { font-size: 14px; line-height: 1.6; }
+.dth-lookup-test .text-xs { font-size: 13px; line-height: 1.6; }
+.lookup-provider-status { color: var(--color-muted); }
+.lookup-provider-status strong { color: var(--color-success); font-weight: 600; }
+.dth-provider-settings > summary { min-height: 48px; }
 .admin-ai-panel-body:has(.admin-chat) { display: flex; padding: 0; overflow: hidden; }
 .admin-chat { display: flex; flex-direction: column; min-width: 0; width: 100%; min-height: 0; }
 .admin-chat-toolbar { display: flex; align-items: center; justify-content: flex-end; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--color-rule); font-size: 12px; color: var(--color-muted); }
@@ -152,7 +157,7 @@
 .recharge-step-number { background: transparent; color: var(--color-brand); box-shadow: none; border: 0; border-radius: 0; width: 22px; flex-basis: 22px; justify-content: flex-start; font-size: 14px; }
 .recharge-subscriber { position: relative; border: 0; border-left: 4px solid var(--color-brand); border-radius: 0; padding: 26px 30px 30px; background: var(--color-paper); gap: 18px; box-shadow: 0 8px 25px #29232308; }
 .recharge-workbench .recharge-subscriber h2 { font-size: clamp(1.15rem, 2vw, 1.5rem); }
-#smart-card-input { max-width: 780px; min-height: 66px; border: 2px solid var(--color-rule-strong); border-radius: 4px; font-family: var(--font-body); font-size: 22px; font-weight: 600; letter-spacing: .03em; padding: 16px 18px; }
+#smart-card-input { max-width: 100%; min-height: 66px; border: 2px solid var(--color-rule-strong); border-radius: 4px; font-family: var(--font-body); font-size: 22px; font-weight: 600; letter-spacing: .03em; padding: 16px 18px; }
 #smart-card-input::placeholder { font-size: 16px; font-weight: 400; letter-spacing: 0; }
 #smart-card-input:focus { border-color: var(--color-brand); box-shadow: 0 0 0 3px var(--color-accent-soft); }
 #smart-card-input[aria-invalid="true"] { border-color: var(--color-error); }
@@ -324,7 +329,7 @@ html[lang="ta"] :is(.task-language,.tabular-nums) { unicode-bidi: isolate; }
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
 @media(min-width:768px) {
-  .task-language { position: absolute; top: 22px; right: 30px; }
+  .recharge-title-row .task-language { position: static; }
   .recharge-subscriber { padding-top: 30px; }
 }
 @media(max-width:767px) {
@@ -447,3 +452,27 @@ html[lang="ta"] :is(.task-language,.tabular-nums) { unicode-bidi: isolate; }
   .account-signout { padding-inline: 12px; font-size: 12px; }
   .account-actions { gap: 8px 16px; }
 }
+
+.recharge-title-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.recharge-title-row .task-language { align-self: center; flex-shrink: 0; }
+.recharge-subscriber .customer-dth-lookup { margin-top: -4px; }
+
+/* Keep all five brands together; allow horizontal scrolling on narrow screens. */
+.operator-options { max-width: none; grid-template-columns: repeat(5, minmax(120px, 1fr)); overflow-x: auto; padding-bottom: 4px; }
+@media (max-width: 767px) {
+  .operator-options button { flex-direction: column; justify-content: center; }
+  .operator-options button > div:last-child { text-align: center; }
+}
+
+.dish-tv-hero-crop { position: relative; width: 100%; max-width: 310px; aspect-ratio: 340 / 354; overflow: hidden; margin-inline: auto; }
+.dish-tv-hero-crop img { position: absolute; inset: 0 auto auto 0; width: 200%; max-width: none; height: 100%; object-fit: fill; transform: translateX(-50%); }
+
+.d2h-hero-crop { position: relative; width: 100%; max-width: 310px; aspect-ratio: 340 / 354; overflow: hidden; margin-inline: auto; }
+.d2h-hero-crop img { position: absolute; inset: 0 auto auto 0; width: 200%; max-width: none; height: 100%; object-fit: fill; }
+
+.recharge-product :is(.dish-tv-hero-crop, .d2h-hero-crop) { height: 100%; width: auto; max-width: 100%; flex: 0 0 auto; }
+.recharge-product { overflow: hidden; }
+
+.recharge-heading > .task-language { grid-column: 1 / -1; justify-self: end; position: static; margin: 0; }
+.recharge-heading:has(> .task-language) { row-gap: 12px; }
+.recharge-heading > .task-language + div { min-width: 0; }

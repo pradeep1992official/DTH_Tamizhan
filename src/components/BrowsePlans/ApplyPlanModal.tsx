@@ -56,13 +56,13 @@ const OPERATOR_META: Record<string, {
     color: 'var(--operator-airtel-dth)',
   },
   dish_tv: {
-    name: 'Dish TV & D2H',
-    tamil: 'டிஷ் டிவி & டி2எச்',
+    name: 'Dish TV',
+    tamil: 'டிஷ் டிவி',
     color: 'var(--operator-dish-tv)',
   },
   d2h: {
-    name: 'Dish TV & D2H',
-    tamil: 'டிஷ் டிவி & டி2எச்',
+    name: 'D2H',
+    tamil: 'டிஷ் டிவி',
     color: 'var(--operator-dish-tv)',
   },
 };
