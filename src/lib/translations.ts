@@ -7,7 +7,7 @@ export const translations = {
     brandTitle: 'DTH Tamizhan',
     brandTagline: 'DTH recharge and support for Tamil Nadu.',
     heroDescription: 'Choose your DTH operator, enter your customer ID, and check the total before paying.',
-    heroHeading: 'Recharge your DTH connection',
+    heroHeading: 'Your TV recharge, made easy.',
     customDescription: 'Enter a recharge amount of Rs. 10 or more.',
     selectedAction: 'Selected',
     selectAction: 'Select',
@@ -378,7 +378,7 @@ export const translations = {
     // Draft Tamil copy: native-speaker review required before publication.
     brandTagline: 'தமிழ்நாட்டிற்கான டிடிஎச் ரீசார்ஜ் மற்றும் உதவி.',
     heroDescription: 'உங்கள் டிடிஎச் ஆபரேட்டரைத் தேர்ந்தெடுத்து, வாடிக்கையாளர் எண்ணை உள்ளிட்டு, பணம் செலுத்தும் முன் மொத்தத் தொகையைச் சரிபார்க்கவும்.',
-    heroHeading: 'டிடிஎச் ரீசார்ஜ் செய்யுங்கள்', // Native Tamil review required: compact mobile heading.
+    heroHeading: 'உங்கள் TV ரீசார்ஜ், எளிதாக.',
     customDescription: 'Rs. 10 அல்லது அதற்கு மேற்பட்ட ரீசார்ஜ் தொகையை உள்ளிடவும்.',
     selectedAction: 'தேர்ந்தெடுக்கப்பட்டது',
     selectAction: 'தேர்ந்தெடு',

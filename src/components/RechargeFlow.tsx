@@ -381,6 +381,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
             {t.heroDescription}
           </p>
 
+
         </div>
 
         {/* Dynamic Illustrator Graphic per Operator */}
@@ -524,6 +525,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
               )}
             </div>
             <CustomerDthLookup operator={selectedOpId} subscriberId={smartCardNumber} user={user} currentLang={currentLang} onOpenAuth={onOpenAuth} />
+            <RechargeHelp currentLang={currentLang} fieldLabel={subscriberLabel(selectedOpId, false, currentLang)} />
           </div>
         )}
 
@@ -1148,7 +1150,6 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
         </div>
       </div>
       <p className="payment-facts">{t.uiPaymentFacts}</p>
-      <RechargeHelp currentLang={currentLang} />
     </div>
   );
 };

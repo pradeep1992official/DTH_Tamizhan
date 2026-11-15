@@ -488,3 +488,14 @@ html[lang="ta"] :is(.task-language,.tabular-nums) { unicode-bidi: isolate; }
   .recharge-chat-launcher { visibility: hidden; }
   .mobile-assistance-slot .recharge-chat-launcher { position: static; visibility: visible; min-height: 36px; padding: 6px 12px; font-size: 12px; margin: 0; box-shadow: none; }
 }
+
+.recharge-service-help { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; font-size: 13px; line-height: 1.6; color: var(--color-ink-2); }
+.recharge-service-help a { color: var(--color-brand); font-weight: 600; }
+.recharge-service-help p { margin: 0; }
+#recharge-id-help { scroll-margin-top: 140px; }
+.recharge-subscriber .recharge-help { display: block; padding: 14px 0 0; }
+.recharge-subscriber .id-guide summary { font-size: 14px; }
+
+.recharge-subscriber { padding-block: 18px 14px; }
+.recharge-subscriber .recharge-help { margin-top: -8px; padding-top: 6px; }
+@media (max-width: 767px) { .recharge-subscriber { padding-block: 14px; } .recharge-subscriber .recharge-help { margin-top: -4px; } }

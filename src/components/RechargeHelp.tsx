@@ -1,12 +1,13 @@
+import { formatMessage } from '../lib/customerMessages';
 import React from 'react';
 import { translations } from '../lib/translations';
 import type { Language } from '../types';
 
-export function RechargeHelp({ currentLang }: { currentLang: Language }) {
+export function RechargeHelp({ currentLang, fieldLabel }: { currentLang: Language; fieldLabel?: string }) {
   const t = translations[currentLang];
   return <aside className="recharge-help">
-    <details className="id-guide">
-      <summary>{t.uiFindYourId}</summary>
+    <details id="recharge-id-help" className="id-guide">
+      <summary>{fieldLabel ? formatMessage(t.uiFindYourField, { field: fieldLabel }) : t.uiFindYourId}</summary>
       <div className="id-guide-content">
         <p>{t.uiIdGuide}</p>
         <figure className="id-photo-slot">

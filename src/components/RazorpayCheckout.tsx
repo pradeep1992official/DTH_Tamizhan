@@ -64,7 +64,7 @@ export function RazorpayCheckout({ onClose, plan, operator, smartCard, currentLa
       const data = await post('/api/verify-payment', payment);
       setVerified(true); setError('');
       setVerifiedPayment(data);
-      setMessage(data.paid ? label('Payment verified and captured. Recharge processing has not started.', 'கட்டணம் உறுதிசெய்யப்பட்டது. ரீசார்ஜ் செயலாக்கம் இன்னும் தொடங்கவில்லை.') : label('Payment signature verified. Capture is pending; do not pay again.', 'கட்டணச் சான்று சரிபார்க்கப்பட்டது. மீண்டும் பணம் செலுத்த வேண்டாம்.'));
+      setMessage(data.paid ? label('Payment received. Your recharge is awaiting processing. This is not a completed recharge.', 'கட்டணம் உறுதிசெய்யப்பட்டது. ரீசார்ஜ் செயலாக்கம் இன்னும் தொடங்கவில்லை.') : label('Payment signature verified. Capture is pending; do not pay again.', 'கட்டணச் சான்று சரிபார்க்கப்பட்டது. மீண்டும் பணம் செலுத்த வேண்டாம்.'));
     } catch (e) { setError(`${e instanceof Error ? e.message : 'Verification failed.'} Payment status is unconfirmed. Retry verification; do not pay again.`); }
     finally { release(); }
   }

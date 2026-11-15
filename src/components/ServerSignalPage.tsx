@@ -19,12 +19,12 @@ export function ServerSignalPage({ currentLang = 'en', retryPath }: { currentLan
             <div className="server-error-orbit server-error-orbit-one" /><div className="server-error-orbit server-error-orbit-two" />
             <span className="server-error-frequency">500</span>
             <svg className="server-error-dish" viewBox="0 0 200 190" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M97 125 77 170h57l-22-45" fill="#334867" /><path d="M66 172h79" stroke="#7b91ac" strokeWidth="5" strokeLinecap="round" />
-              <path d="m101 113 5 32" stroke="#a5b8cf" strokeWidth="8" />
-              <path d="M42 57c-6 47 46 83 86 60 14-8 24-20 29-34L42 57Z" fill="#c8d8eb" stroke="#e5effb" strokeWidth="2" />
-              <path d="M42 57c19 20 71 39 115 26" stroke="#7893b8" strokeWidth="3" />
-              <path d="m101 85 37-47" stroke="#a7bdd8" strokeWidth="5" strokeLinecap="round" /><circle cx="140" cy="35" r="7" fill="#f2c071" />
-              <path d="M155 29c7 7 7 17 0 24m14-35c15 14 15 34 0 49" stroke="#f2c071" strokeWidth="3" strokeLinecap="round" strokeDasharray="7 9" />
+              <path d="M97 125 77 170h57l-22-45" fill="#6b4852" /><path d="M66 172h79" stroke="#9f7d78" strokeWidth="5" strokeLinecap="round" />
+              <path d="m101 113 5 32" stroke="#b59e90" strokeWidth="8" />
+              <path d="M42 57c-6 47 46 83 86 60 14-8 24-20 29-34L42 57Z" fill="#e5d4c5" stroke="#fff9f0" strokeWidth="2" />
+              <path d="M42 57c19 20 71 39 115 26" stroke="#a17e75" strokeWidth="3" />
+              <path d="m101 85 37-47" stroke="#ad9184" strokeWidth="5" strokeLinecap="round" /><circle cx="140" cy="35" r="7" fill="#64182f" />
+              <path d="M155 29c7 7 7 17 0 24m14-35c15 14 15 34 0 49" stroke="#64182f" strokeWidth="3" strokeLinecap="round" strokeDasharray="7 9" />
             </svg>
             <span className="server-error-art-caption">{text('WAITING FOR A CLEAR SIGNAL', 'சிக்னலுக்காகக் காத்திருக்கிறது')}</span>
           </div>
