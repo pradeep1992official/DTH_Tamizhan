@@ -93,6 +93,6 @@ describe('copy and localization (QA-11 / QA-12)', () => {
   it.each(POLICY_ROUTES)('renders Tamil content for $path, not an English-only body', route => {
     const html = renderToStaticMarkup(<MemoryRouter><PolicyPage currentLang="ta" policy={route.key} /></MemoryRouter>);
     expect(html).toContain('lang="ta"'); expect(html).not.toContain('lang="en"');
-    expect(html).toContain('[FILL IN]'); expect(html).toContain('வரைவு');
+    expect(html).not.toContain('[FILL IN]'); expect(html).not.toContain('வரைவு');
   });
 });

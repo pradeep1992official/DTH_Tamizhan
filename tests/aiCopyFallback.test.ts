@@ -1,3 +1,4 @@
+vi.mock('../server/middleware/aiRateLimiter', () => ({ allowAiRequest: async () => true }));
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../server/models/planModel', () => ({ planModel: { getAll: () => [] } }));
 vi.mock('../server/middleware/auth', () => ({ verifyAuthToken: async () => ({ uid: 'customer' }) }));

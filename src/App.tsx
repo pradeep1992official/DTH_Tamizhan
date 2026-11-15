@@ -2,8 +2,8 @@ import { assistantPages } from './lib/assistantActions';
 import { connectionCacheKey, ownedConnections, readConnectionCache } from './lib/connectionCache';
 import { RouteEffects } from './components/RouteEffects';
 import { AccountPage } from './components/AccountPage';
-import { CustomerHistoryPage } from './components/CustomerHistoryPage';
-import { SupportTicketsPage } from './components/SupportTicketsPage';
+const CustomerHistoryPage = React.lazy(() => import('./components/CustomerHistoryPage').then(module => ({ default: module.CustomerHistoryPage })));
+const SupportTicketsPage = React.lazy(() => import('./components/SupportTicketsPage').then(module => ({ default: module.SupportTicketsPage })));
 import { HelpPage } from './components/HelpPage';
 import { EmailLinkSignInPage } from './components/EmailLinkSignInPage';
 import { ErrorPage } from './components/ErrorPages';
@@ -31,9 +31,9 @@ import { PaymentModal } from './components/PaymentModal';
 import { RechargeAssistant } from './components/RechargeAssistant';
 import { ReceiptModal } from './components/ReceiptModal';
 import { SavedConnections } from './components/SavedConnections';
-import { AdminPortal } from './components/AdminPortal';
+const AdminPortal = React.lazy(() => import('./components/AdminPortal').then(module => ({ default: module.AdminPortal })));
 import { NewConnectionModal } from './components/NewConnectionModal';
-import { BrowsePlansView } from './components/BrowsePlans/BrowsePlansView';
+const BrowsePlansView = React.lazy(() => import('./components/BrowsePlans/BrowsePlansView').then(module => ({ default: module.BrowsePlansView })));
 import {
   Language,
   UserProfile,
@@ -483,6 +483,7 @@ function MainApp() {
         {sessionError && <p role="alert" className="border border-rule rounded-lg p-3 my-3 text-error">{sessionError}</p>}
         {user && (Object.values(assistantPages) as string[]).includes(location.pathname) && <RechargeAssistant key={user.uid} currentLang={currentLang} displayName={user.displayName}
           onCheckout={(plan, box, operator) => handleInitiatePayment(plan, null, operator, box.smartCardNumber, false)} />}
+        <React.Suspense fallback={<p role="status">{translations[currentLang].loadingCatalog}</p>}>
         <Routes>
           <Route
             path="/"
@@ -583,6 +584,7 @@ function MainApp() {
           <Route path="/dealer" element={<Navigate to="/admin/pending" replace />} />
           <Route path="*" element={<ErrorPage status={404} currentLang={currentLang} />} />
         </Routes>
+        </React.Suspense>
       </main>
 
       {/* Footer */}

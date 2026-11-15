@@ -17,7 +17,7 @@ import {
 import { PlanCatalogItem, DthOperatorId, Language, UserProfile, canonicalizeDthOperatorId, isSameDthOperatorGroup } from '../../../types';
 import { OperatorTheme } from '../../../lib/theme';
 import { PlanCatalogService } from '../../../lib/planCatalogService';
-import { ExcelPlanImportExportModal } from '../../ExcelPlanImportExportModal';
+const ExcelPlanImportExportModal = React.lazy(() => import('../../ExcelPlanImportExportModal').then(module => ({ default: module.ExcelPlanImportExportModal })));
 import { translations } from '../../../lib/translations';
 import { useAccessibleModal } from '../../../lib/useAccessibleModal';
 
@@ -648,6 +648,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
       )}
 
       {/* Excel Batch Import / Export Modal */}
+      {isExcelModalOpen && <React.Suspense fallback={<p role="status">{t.loadingCatalog}</p>}>
       <ExcelPlanImportExportModal
         isOpen={isExcelModalOpen}
         onClose={() => setIsExcelModalOpen(false)}
@@ -661,6 +662,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
         }}
         defaultTab={excelModalTab}
       />
+      </React.Suspense>}
     </div>
   );
 };

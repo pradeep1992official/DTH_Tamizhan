@@ -149,6 +149,14 @@ describe('calculateSavings', () => {
     expect(result.oneMonthRate).toBe(0);
   });
 
+  it('compares duration variants without matching unrelated SD packs', () => {
+    const base = samplePlans.find(plan => plan.id === 'sun_sd_1m')!;
+    const selected = { ...base, id: 'sd-6', plan_name: 'Sun Value SD 6M', duration_months: 6 as const, amount: 900 };
+    expect(calculateSavings([base, selected], 'sun_direct', 'SD', 6).savePerMonth).toBe(50);
+    expect(calculateSavings([base, { ...selected, plan_name: 'Other SD 6M' }], 'sun_direct', 'SD', 6).savePerMonth).toBe(0);
+    expect(calculateSavings([{ ...base, plan_family: 'basic' }, { ...selected, plan_family: 'premium' }], 'sun_direct', 'SD', 6).savePerMonth).toBe(0);
+  });
+
   it('prefers recommended plan over non-recommended plan for 1-month baseline', () => {
     const plansWithBoth: PlanCatalogItem[] = [
       {

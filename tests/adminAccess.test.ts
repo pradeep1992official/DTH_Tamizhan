@@ -1,3 +1,6 @@
+vi.mock('../server/models/paidRechargeOrders', () => ({ getRechargeOrders: async () => [] }));
+vi.mock('../server/models/paymentPages', () => ({ parsePage: () => ({}), paymentPage: async () => ({ orders: [], payments: [], nextCursor: null }), ordersForPayments: async () => [] }));
+vi.mock('../server/models/customerDirectoryPage', () => ({ customerDirectoryPage: async () => ({ customers: [], nextCursor: null }) }));
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({ save: vi.fn(), registry: {} as Record<string, any> }));
 vi.mock('../server/models/sharedStore', () => ({ readLookupCustomers: async () => [], readOperators: async () => [], readAdminRequests: async () => [] }));
@@ -19,7 +22,7 @@ vi.mock('../server/models/store', () => ({
   refreshApprovedAdminEmails: vi.fn(), saveAdminsToDisk: mocks.save, saveCustomersToDisk: mocks.save,
   saveOperatorSettingsToDisk: mocks.save, saveOrdersToDisk: mocks.save,
 }));
-vi.mock('../server/models/planModel', () => ({ planModel: { getAll: () => [], getDeletedIds: () => [] } }));
+vi.mock('../server/models/planModel', () => ({ planModel: { getAll: () => [], getDeletedIds: () => [], getAuditLogs: async () => [] } }));
 import { isCallerAdminAuthorized } from '../server/middleware/auth';
 import { adminController } from '../server/controllers/adminController';
 import { ordersController } from '../server/controllers/ordersController';

@@ -27,16 +27,15 @@ describe('catalog absence versus no matching results (QA-16)', () => {
   it('checks the complete catalog, not the filtered search results', () => {
     expect(missingCatalogOperators(catalog, ['sun_direct'])).toEqual([]);
     expect(missingCatalogOperators(catalog, ['dish_tv'])).toEqual(['dish_tv']);
-    expect(missingCatalogOperators(catalog, ['dish_tv', 'd2h'])).toEqual(['dish_tv']);
-    expect(missingCatalogOperators([{ operator: 'd2h' }], ['dish_tv'])).toEqual([]);
+    expect(missingCatalogOperators(catalog, ['dish_tv', 'd2h'])).toEqual(['dish_tv', 'd2h']);
+    expect(missingCatalogOperators([{ operator: 'd2h' }], ['dish_tv'])).toEqual(['dish_tv']);
     expect(missingCatalogOperators(catalog, [])).toEqual([]);
   });
   it.each(['en', 'ta'] as const)('reuses the operator explanation and links directly to custom top-up in %s', lang => {
     const html = renderToStaticMarkup(<MemoryRouter><OperatorCatalogNotice operator="d2h" currentLang={lang} /></MemoryRouter>);
-    expect(html).toContain('Dish TV and D2H');
-    expect(html).toContain('operator=dish_tv&amp;topup=1#custom-recharge-card');
-    expect(operatorCatalogMessage('d2h', lang)).toContain(TOP_UP_LIMITS.max.toLocaleString('en-IN'));
-    expect(customTopUpUrl('d2h')).toBe(customTopUpUrl('dish_tv'));
+    expect(html).toContain(operatorCatalogMessage('d2h', lang));
+    expect(html).toContain('operator=d2h&amp;topup=1#custom-recharge-card');
+    expect(customTopUpUrl('d2h')).not.toBe(customTopUpUrl('dish_tv'));
   });
 });
 describe('error feedback (QA-18)', () => {
@@ -48,7 +47,7 @@ describe('error feedback (QA-18)', () => {
   });
   it('the global boundary redirects client render failures to the real HTTP 500 endpoint', () => {
     const replace = vi.fn(); vi.stubGlobal('window', { location: { pathname: '/plans', replace } });
-    try { new GlobalErrorBoundary({ children: null }).componentDidCatch(); expect(replace).toHaveBeenCalledWith('/500'); }
+    try { new GlobalErrorBoundary({ children: null }).componentDidCatch(); expect(replace).toHaveBeenCalledWith('/500?retry=%2Fplans'); }
     finally { vi.unstubAllGlobals(); }
   });
 });

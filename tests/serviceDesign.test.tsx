@@ -34,7 +34,9 @@ describe('service design and truthful content', () => {
     const html = renderToStaticMarkup(<RechargeHelp currentLang={currentLang} />);
     expect(html).toContain('<summary>');
     expect(html).toContain('<figcaption>');
-    expect(html).toContain('[FILL IN]');
+    expect(html).not.toContain('[FILL IN]');
+    expect(html).toContain('<svg');
+    expect(html).toContain(translations[currentLang].uiIdPhotoSlot);
     expect(html).not.toContain('business-support');
     expect(html).not.toContain('Registered business name');
     expect(html).not.toMatch(/tel:|mailto:/);

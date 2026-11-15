@@ -39,6 +39,16 @@ it('deduplicates concurrent calls, but isolates users and operator IDs', async (
   await customerDthLookup('parallel', { ...input, operator: 'tata_play' });
   expect(f.provider).toHaveBeenCalledTimes(3);
 });
+it('shares provider failures and allows a fresh attempt afterward', async () => {
+  f.provider.mockRejectedValueOnce(new Error('Provider unavailable'));
+  const results = await Promise.allSettled([
+    customerDthLookup('retry-user', input), customerDthLookup('retry-user', input),
+  ]);
+  expect(results.map(result => result.status)).toEqual(['rejected', 'rejected']);
+  expect(f.provider).toHaveBeenCalledOnce();
+  expect((await customerDthLookup('retry-user', input)).success).toBe(true);
+  expect(f.provider).toHaveBeenCalledTimes(2);
+});
 it('expires the short cache instead of presenting stale balances indefinitely', async () => {
   vi.useFakeTimers(); vi.setSystemTime(new Date('2026-11-15T10:00:00Z'));
   await customerDthLookup('expiry-user', input);
@@ -59,11 +69,12 @@ it('briefly caches uncertain or failed responses to reduce paid retries', async 
   await customerDthLookup('pending-user', input);
   expect(f.provider).toHaveBeenCalledOnce();
 });
-it('requires consent and correctly maps the combined Dish TV/d2h selector', () => {
+it('requires consent and preserves separate Dish TV and D2H selections', () => {
   expect(customerLookupInput.safeParse({ ...input, consent: false }).success).toBe(false);
   expect(customerLookupInput.safeParse({ ...input, consent: true, mode: 'demo' }).success).toBe(false);
   expect(lookupOperatorId('dish_tv', '02589412356')).toBe('dish_tv');
-  expect(lookupOperatorId('dish_tv', '894561234')).toBe('videocon_d2h');
+  expect(lookupOperatorId('dish_tv', '894561234')).toBe('dish_tv');
+  expect(lookupOperatorId('d2h', '894561234')).toBe('videocon_d2h');
   expect(lookupOperatorId('airtel_dth', input.subscriberId)).toBe('airtel_dth');
   expect(lookupOperatorId('unsupported', input.subscriberId)).toBeNull();
 });

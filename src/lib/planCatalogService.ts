@@ -976,6 +976,7 @@ function getPlanFamilyKey(plan: PlanCatalogItem): string {
   return `name:${plan.plan_name
     .toLowerCase()
     .replace(/\s*\([^)]*\)/g, '')
+    .replace(/\s+\d+\s*(?:m|months?)\b/gi, '')
     .replace(/\s+(annual|yearly|saver|quarterly)$/i, '')
     .replace(/\s+/g, ' ')
     .trim()}`;
@@ -1053,24 +1054,16 @@ export class PlanCatalogService {
       ? displayedPlan
       : candidates.find((plan) => plan.is_recommended) || candidates[0];
 
-    if (!planSelected || duration_months === 1) {
-      return { savePerMonth: 0, percentSave: 0, oneMonthRate: 0 };
-    }
-
-    const plan1M = plans.find((plan) =>
+    const baselines = plans.filter((plan) =>
       isSameDthOperatorGroup(plan.operator, operator) &&
-      plan.pack_type === pack_type &&
-      plan.duration_months === 1 &&
-      isSamePlanFamily(planSelected, plan) &&
-      plan.is_recommended
-    ) || plans.find((plan) =>
-      isSameDthOperatorGroup(plan.operator, operator) &&
-      plan.pack_type === pack_type &&
-      plan.duration_months === 1 &&
-      isSamePlanFamily(planSelected, plan)
+      plan.pack_type === pack_type && plan.duration_months === 1 &&
+      (!planSelected || isSamePlanFamily(planSelected, plan))
     );
+    const plan1M = baselines.find(plan => plan.is_recommended) || baselines[0];
     const oneMonthRate = plan1M?.amount || 0;
-    if (oneMonthRate <= 0) return { savePerMonth: 0, percentSave: 0, oneMonthRate };
+    if (!planSelected || duration_months === 1 || oneMonthRate <= 0) {
+      return { savePerMonth: 0, percentSave: 0, oneMonthRate };
+    }
 
     const savePerMonth = Math.round(oneMonthRate - planSelected.amount / duration_months);
     if (savePerMonth <= 0) return { savePerMonth: 0, percentSave: 0, oneMonthRate };
