@@ -18,7 +18,7 @@ export function AdminChatResult({ result, busy, blocked, onLoadMore }: { result:
         <thead><tr>{['Order', 'Mode', 'Operator', 'Amount', 'Status', 'Created'].map(label => <th key={label} scope="col" className="p-2">{label}</th>)}</tr></thead>
         <tbody>{result.rows.map(row => <tr key={`${row.testMode}:${row.orderId}`}><td className="p-2">{row.orderId}</td><td className="p-2">{row.testMode ? 'TEST - No real recharge' : 'Live'}</td><td className="p-2">{row.operator}</td><td className="p-2">Rs. {row.amount}</td><td className="p-2">{row.status}</td><td className="p-2">{new Date(row.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</td></tr>)}</tbody>
       </table>}
-      {result.type === 'pending_recharges' && result.nextCursor && <button type="button" className="admin-primary" disabled={busy || blocked} onClick={onLoadMore}}>Load more pending recharges</button>}
+      {result.type === 'pending_recharges' && result.nextCursor && <button type="button" className="admin-primary" disabled={busy || blocked} onClick={onLoadMore}>Load more pending recharges</button>}
     </div>}
     {result?.type === 'tickets' && <section className="space-y-3" aria-label="Ticket search results">
       <h3 className="font-semibold">Matching tickets ({result.tickets.length})</h3>

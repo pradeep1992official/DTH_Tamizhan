@@ -20,7 +20,7 @@ const policyDescriptions = {
   privacy: ['Read the draft privacy notice covering account data, saved boxes, browser storage and privacy requests.', 'கணக்குத் தரவு, சேமித்த பெட்டிகள், உலாவிச் சேமிப்பு மற்றும் தனியுரிமைக் கோரிக்கைகள் பற்றிய வரைவைப் படிக்கவும்.'],
   terms: ['Read the draft terms for DTH recharge requests, payment status, service issues and consumer remedies.', 'டிடிஎச் கோரிக்கைகள், கட்டண நிலை மற்றும் சேவைச் சிக்கல்களுக்கான பயன்பாட்டு விதிமுறை வரைவைப் படிக்கவும்.'],
 };
-const adminTabs = new Set(['tickets', 'ai', 'customer', 'customers', 'pending', 'worker', 'dealer', 'recharge', 'recharges', 'orders', 'pack', 'packs', 'plan', 'plans', 'payment', 'payments', 'report', 'reports', 'audit', 'operator', 'operators', 'approval', 'approvals', 'admin-access']);
+const adminTabs = new Set(['api-test', 'tickets', 'ai', 'customer', 'customers', 'pending', 'worker', 'dealer', 'recharge', 'recharges', 'orders', 'pack', 'packs', 'plan', 'plans', 'payment', 'payments', 'report', 'reports', 'audit', 'operator', 'operators', 'approval', 'approvals', 'admin-access']);
 export function normalizedPath(path: string): string { return path.split(/[?#]/)[0].replace(/\/+$/, '') || '/'; }
 export function pageMetadata(path: string, lang: Language = 'en'): PageMetadata {
   const requestedPath = normalizedPath(path);

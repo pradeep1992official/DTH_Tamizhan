@@ -77,6 +77,7 @@ function AdminRouteWrapper({
 
   const mapSubTab = (param?: string): AdminTabId => {
     if (param === 'tickets') return 'tickets';
+    if (param === 'api-test') return 'api-test';
     if (!param) return 'customers';
     if (param === 'ai') return 'ai';
     if (param === 'customer' || param === 'customers') return 'customers';
@@ -486,6 +487,7 @@ function MainApp() {
             path="/"
             element={
               <RechargeFlow
+                onOpenAuth={() => setIsAuthOpen(true)}
                 currentLang={currentLang}
                 onLanguageChange={handleLanguageChange}
                 user={user}
@@ -502,6 +504,7 @@ function MainApp() {
             path="/recharge"
             element={
               <RechargeFlow
+                onOpenAuth={() => setIsAuthOpen(true)}
                 currentLang={currentLang}
                 onLanguageChange={handleLanguageChange}
                 user={user}

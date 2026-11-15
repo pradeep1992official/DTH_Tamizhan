@@ -11,7 +11,7 @@ export interface AdminChatTurn {
 export function buildAdminChatHistory(turns: AdminChatTurn[]): AdminHistory {
   return turns.slice(-12).map(turn => {
     const context = turn.result?.type === 'analytics'
-      ? `\nQuery context: ${JSON.stringify({ tool: turn.result.tool, parameters: turn.result.parameters })}` : '';
+      ? `\nQuery context: ${JSON.stringify({ tool: turn.result.tool, parameters: turn.result.parameters })}`.slice(0, 1000) : '';
     return { role: turn.role, content: turn.content.slice(0, 2000 - context.length) + context };
   });
 }

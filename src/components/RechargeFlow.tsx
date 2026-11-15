@@ -5,6 +5,7 @@ import { formatMessage, localizeCustomerError } from '../lib/customerMessages';
 import { OperatorCatalogNotice } from './OperatorCatalogNotice';
 import { TOP_UP_LIMITS, parseTopUpAmount, validateTopUpAmount } from '../lib/topUpAmount';
 import { RechargeHelp } from './RechargeHelp';
+import { CustomerDthLookup } from './CustomerDthLookup';
 import { formatPrice, formatMonthlyEquivalent, formatDuration, formatCatalogIssues, validateCatalogPack } from '../lib/catalog';
 import { subscriberError, subscriberHelp, subscriberRule, subscriberLabel, subscriberPlaceholder, normalizeSubscriberId } from '../lib/subscriberValidation';
 import React, { useState, useEffect, useRef } from 'react';
@@ -45,6 +46,7 @@ interface RechargeFlowProps {
   currentLang: Language;
   onLanguageChange?: (lang: Language) => void;
   user: UserProfile | null;
+  onOpenAuth?: () => void;
   onInitiatePayment: (plan: DthPlan | { name: string; price: number; validityDays: number; pack_type?: string; duration_months?: number }, subscriber: SubscriberDetails | null, operator: DthOperator, smartCard: string, saveBox: boolean) => void;
   prefillConnection?: DthConnection | null;
   requestCustomTopUp?: boolean;
@@ -57,6 +59,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
   currentLang,
   onLanguageChange,
   user,
+  onOpenAuth,
   onInitiatePayment,
   prefillConnection,
   requestCustomTopUp = false,
@@ -524,6 +527,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                 </div>
               )}
             </div>
+            <CustomerDthLookup operator={selectedOpId} subscriberId={smartCardNumber} user={user} currentLang={currentLang} onOpenAuth={onOpenAuth} />
           </div>
         )}
 

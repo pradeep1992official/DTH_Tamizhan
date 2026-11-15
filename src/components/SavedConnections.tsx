@@ -18,6 +18,7 @@ import { translations } from '../lib/translations';
 import { OperatorTheme, getOperatorTheme } from '../lib/theme';
 import { useAccessibleModal } from '../lib/useAccessibleModal';
 import { OperatorCardLogo } from './BrandAssets';
+import { CustomerDthLookup } from './CustomerDthLookup';
 
 interface SavedConnectionsProps {
   connections: DthConnection[];
@@ -329,6 +330,7 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
               </div>
 
               <p id="saved-box-help" role={idError ? "alert" : undefined} className={idError ? "text-error" : ""}>{(idError && subscriberError(operator, smartCard, true, currentLang)) || subscriberHelp(operator, true, currentLang)}</p>
+              <CustomerDthLookup operator={operator} subscriberId={smartCard} user={user} currentLang={currentLang} onOpenAuth={onOpenAuth} onUseName={setCustomerName} />
               <div>
                 <label className={`block font-medium mb-1.5 ${currentTheme.subText}`}>
                   {t.boxNickname}
