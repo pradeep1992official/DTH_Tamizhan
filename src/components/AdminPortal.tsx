@@ -1,7 +1,7 @@
 import { AdminAiPanel } from './Admin/AdminAiPanel';
 import { ServiceReceiptsPanel } from './Admin/ServiceReceiptsPanel';
 import { TicketsPanel } from './Admin/TicketsPanel';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Users,
   BarChart3,
@@ -12,6 +12,8 @@ import {
   ArrowLeft,
   ShieldCheck,
   Ticket,
+  MessageSquare,
+  X,
   Radio
 } from '../lib/icons';
 import {
@@ -57,11 +59,29 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const isLight = currentTheme.isLightMode;
 
   // Active Tab State
-  const [activeTab, setActiveTab] = useState<AdminTabId>(initialTab);
+  const [activeTab, setActiveTab] = useState<AdminTabId>(initialTab === 'ai' ? 'tickets' : initialTab);
+  const [aiOpen, setAiOpen] = useState(initialTab === 'ai');
+  const [aiMounted, setAiMounted] = useState(initialTab === 'ai');
+  const aiTrigger = useRef<HTMLButtonElement>(null);
+  const aiClose = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!aiOpen) return;
+    aiClose.current?.focus();
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { setAiOpen(false); aiTrigger.current?.focus(); }
+    };
+    document.addEventListener('keydown', escape);
+    return () => document.removeEventListener('keydown', escape);
+  }, [aiOpen]);
 
   useEffect(() => {
     if (initialTab) {
-      setActiveTab(initialTab);
+      if (initialTab === 'ai') {
+        setAiMounted(true);
+        setAiOpen(true);
+        onPathChange?.('tickets');
+      } else setActiveTab(initialTab);
     }
   }, [initialTab]);
 
@@ -183,7 +203,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
   const NAV_ITEMS: { id: AdminTabId; label: string; icon: React.ReactNode; badge?: number }[] = [
     { id: 'tickets', label: 'Tickets', icon: <Ticket className="w-4 h-4" /> },
-    { id: 'ai', label: 'AI assistant', icon: <ShieldCheck className="w-4 h-4" /> },
     { id: 'customers', label: t.customersTab, icon: <Users className="w-4 h-4" /> },
     { id: 'pending', label: t.pendingOrdersTab, icon: <Clock className="w-4 h-4" />, badge: pendingCount },
     { id: 'recharges', label: t.rechargesTab, icon: <RefreshCw className="w-4 h-4" /> },
@@ -195,7 +214,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   ];
 
   return (
-    <div className="admin-shell">
+    <div className={`admin-shell ${aiOpen ? 'has-ai-panel' : ''}`}>
       {adminError && <p role="alert" className="text-error">{adminError}</p>}
       {/* Toast */}
       {toastMsg && (
@@ -240,12 +259,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             );
           })}
         </nav>
+        <button ref={aiTrigger} type="button" className="admin-ai-trigger" aria-expanded={aiOpen} aria-controls="admin-ai-side-panel" onClick={() => { setAiMounted(true); setAiOpen(value => !value); }}>
+          <MessageSquare className="w-4 h-4" /><span>{currentLang === 'ta' ? 'AI உதவியாளர்' : 'AI assistant'}</span>
+        </button>
       </aside>
 
       {/* Tab Contents */}
       <div className="admin-workspace">
         <div className="admin-workspace-heading"><h2>{NAV_ITEMS.find((item) => item.id === activeTab)?.label}</h2></div>
-        {activeTab === 'ai' && <AdminAiPanel key={user.uid} getAuthHeaders={getAuthHeaders} currentLang={currentLang} />}
         {activeTab === 'tickets' && <TicketsPanel key={user.uid} getAuthHeaders={getAuthHeaders} />}
         {activeTab === 'payments' && <ServiceReceiptsPanel getAuthHeaders={getAuthHeaders} />}
         {activeTab === 'customers' && (
@@ -356,6 +377,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         {['pending', 'recharges'].includes(activeTab) && adminData.ordersNext && <button type="button" className="admin-primary" disabled={ordersLoading} onClick={() => void fetchOrders(adminData.ordersNext!)}>{currentLang === 'ta' ? 'மேலும் ஆர்டர்களை ஏற்றவும்' : 'Load more orders'}</button>}
         {activeTab === 'payments' && adminData.paymentsNext && <button type="button" className="admin-primary" disabled={paymentsLoading} onClick={() => void fetchPayments(adminData.paymentsNext!)}>{currentLang === 'ta' ? 'மேலும் கட்டணங்களை ஏற்றவும்' : 'Load more payments'}</button>}
       </div>
+      <aside id="admin-ai-side-panel" className="admin-ai-side-panel" aria-labelledby="admin-ai-panel-title" hidden={!aiOpen}>
+        <header className="admin-ai-panel-header">
+          <div><h2 id="admin-ai-panel-title"><MessageSquare className="w-5 h-5" />{currentLang === 'ta' ? 'AI உதவியாளர்' : 'AI assistant'}</h2><p>{currentLang === 'ta' ? 'ரீசார்ஜ்கள் மற்றும் கோரிக்கைகள் பற்றி கேளுங்கள்.' : 'Ask about recharges and tickets.'}</p></div>
+          <button ref={aiClose} type="button" aria-label="Close AI assistant" title="Close AI assistant" onClick={() => { setAiOpen(false); aiTrigger.current?.focus(); }}><X className="w-5 h-5" /></button>
+        </header>
+        <div className="admin-ai-panel-body">{aiMounted && <AdminAiPanel key={user.uid} getAuthHeaders={getAuthHeaders} currentLang={currentLang} />}</div>
+      </aside>
     </div>
   );
 };

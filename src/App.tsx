@@ -590,23 +590,31 @@ function MainApp() {
               </span>
             </div>
             <p className="footer-tagline">{t.brandTagline}</p>
-            <p className="footer-disclaimer">{t.madeWithLove} {t.footerDisclaimer}</p>
+            <p className="footer-tagline">{t.madeWithLove}</p>
           </div>
           <div className="footer-link-group">
             <h2>{currentLang === 'ta' ? 'விரைவு இணைப்புகள்' : 'Quick links'}</h2>
             <nav aria-label={currentLang === 'ta' ? 'விரைவு இணைப்புகள்' : 'Quick links'}>
               <Link to="/recharge">{t.navRecharge}</Link>
-              <Link to="/help">{currentLang === 'ta' ? 'உதவி பெறுங்கள்' : 'Get Help'}</Link>
               <Link to="/plans">{t.navPlans}</Link>
               <Link to="/connections">{t.navConnections}</Link>
+            </nav>
+          </div>
+          <div className="footer-link-group">
+            <h2>{currentLang === 'ta' ? 'உதவி மற்றும் கணக்கு' : 'Help & account'}</h2>
+            <nav aria-label={currentLang === 'ta' ? 'உதவி மற்றும் கணக்கு' : 'Help and account'}>
+              <Link to="/help">{currentLang === 'ta' ? 'உதவி பெறுங்கள்' : 'Get help'}</Link>
+              <Link to="/my-tickets">{currentLang === 'ta' ? 'எனது கோரிக்கைகள்' : 'My tickets'}</Link>
+              <Link to="/history">{currentLang === 'ta' ? 'ரீசார்ஜ் வரலாறு' : 'Recharge history'}</Link>
               <Link to="/account">{currentLang === 'ta' ? 'என் கணக்கு' : 'My account'}</Link>
             </nav>
           </div>
           <div className="footer-link-group">
-            <h2>{currentLang === 'ta' ? 'உதவி மற்றும் கொள்கைகள்' : 'Support & policies'}</h2>
+            <h2>{currentLang === 'ta' ? 'கொள்கைகள்' : 'Policies'}</h2>
             <PolicyLinks currentLang={currentLang} />
           </div>
         </div>
+        <div className="footer-bottom"><p className="footer-disclaimer">{t.footerDisclaimer}</p></div>
       </footer>
 
       {/* Global Modals */}

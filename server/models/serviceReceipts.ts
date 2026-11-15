@@ -23,7 +23,7 @@ export function serviceReceiptData(ticket: Ticket, brandName: string) {
     ], note: 'This is a computer generated receipt. Test payment: no real money collected. This receipt is not a tax invoice.' };
 }
 const bucket = () => getStorage().bucket(process.env.TICKET_STORAGE_BUCKET || firebaseConfig.storageBucket);
-export async function ensureServiceReceipt(ticketId: string) {
+async function reserveServiceReceipt(ticketId: string) {
   const db = getAdminFirestore(); const ref = db.collection('tickets').doc(ticketId);
   const ticket = await db.runTransaction(async tx => {
     const snapshot = await tx.get(ref); const current = ticketSchema.parse(snapshot.data());
@@ -35,17 +35,31 @@ export async function ensureServiceReceipt(ticketId: string) {
     const receipt = { number: `DTH/${year}/${String(previous + 1).padStart(4, '0')}`, path: `service-receipts/${current.uid}/${current.id}.pdf`, generatedAt: null };
     tx.set(counterRef, { value: previous + 1 }); tx.update(ref, { receipt }); return { ...current, receipt };
   });
-  if (ticket.receipt.generatedAt) return ticket;
+  return ticket;
+}
+async function renderServiceReceipt(ticket: Ticket) {
   const { readServiceBrands } = await import('./serviceBrands');
   const brandName = (await readServiceBrands()).find(brand => brand.id === ticket.brand)?.displayName || ticket.brand;
-  const pdf = await receiptPdf(serviceReceiptData(ticket, brandName));
+  return receiptPdf(serviceReceiptData(ticket, brandName));
+}
+export async function ensureServiceReceipt(ticketId: string) {
+  const ticket = await reserveServiceReceipt(ticketId);
+  if (ticket.receipt.generatedAt) return ticket;
+  const pdf = await renderServiceReceipt(ticket);
   await bucket().file(ticket.receipt.path!).save(pdf, { resumable: false, contentType: 'application/pdf', metadata: { cacheControl: 'private, no-store' } });
   const generatedAt = new Date().toISOString();
-  await ref.update({ 'receipt.generatedAt': generatedAt });
+  await getAdminFirestore().collection('tickets').doc(ticketId).update({ 'receipt.generatedAt': generatedAt });
   return { ...ticket, receipt: { ...ticket.receipt, generatedAt } };
 }
 export async function downloadServiceReceipt(ticketId: string) {
-  const ticket = await ensureServiceReceipt(ticketId);
-  const [pdf] = await bucket().file(ticket.receipt.path!).download();
+  const ticket = await reserveServiceReceipt(ticketId);
+  if (ticket.receipt.generatedAt && ticket.receipt.path) {
+    try {
+      const [pdf] = await bucket().file(ticket.receipt.path).download();
+      return { pdf, ticket };
+    } catch { /* Regenerate a missing or temporarily inaccessible stored receipt. */ }
+  }
+  const pdf = await renderServiceReceipt(ticket);
+  // The scheduled receipt job persists the PDF; downloads need not wait for storage.
   return { pdf, ticket };
 }

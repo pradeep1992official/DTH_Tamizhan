@@ -3,17 +3,13 @@ import { AdminRechargeTotals } from './AdminRechargeTotals';
 import { AdminAnalyticsResult } from './AdminAnalyticsResult';
 import React, { useEffect, useRef, useState } from 'react';
 import type { Language } from '../../types';
-import type { AdminQueryResult, TicketAnalysis, TicketView } from '../../lib/adminAi';
+import type { AdminQueryResult } from '../../lib/adminAi';
 import { assistantReplyText } from '../../lib/assistantReplyText';
 
-type Draft = { subject: string; body: string; reviewed: boolean };
 export function AdminAiPanel({ getAuthHeaders, currentLang }: {
   getAuthHeaders: () => Promise<Record<string, string>>; currentLang: Language;
 }) {
   const text = (en: string, ta: string) => currentLang === 'ta' ? ta : en;
-  const [tickets, setTickets] = useState<TicketView[]>([]);
-  const [analysis, setAnalysis] = useState<TicketAnalysis[]>([]);
-  const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [message, setMessage] = useState('');
   const [history, setHistory] = useState<AdminHistory>([]);
   const [result, setResult] = useState<AdminQueryResult | null>(null);
@@ -22,7 +18,6 @@ export function AdminAiPanel({ getAuthHeaders, currentLang }: {
   const [working, setWorking] = useState('Loading...');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const [limited, setLimited] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const request = useRef<AbortController | null>(null);
   const locked = useRef(false);
@@ -36,7 +31,7 @@ export function AdminAiPanel({ getAuthHeaders, currentLang }: {
     const data = await response.json();
     if (signal?.aborted) throw new DOMException('Cancelled', 'AbortError');
     if (response.status === 401 || response.status === 403) {
-      setBlocked(true); setTickets([]); setAnalysis([]); setDrafts({}); setResult(null); setAnswer(''); setHistory([]);
+      setBlocked(true); setResult(null); setAnswer(''); setHistory([]);
     }
     if (!response.ok || !data.success) throw new Error(data.error || 'The admin AI request failed.');
     return data;
@@ -53,18 +48,7 @@ export function AdminAiPanel({ getAuthHeaders, currentLang }: {
     catch (error) { if (!controller.signal.aborted) setError(error instanceof Error && error.name !== 'ZodError' && !(error instanceof SyntaxError) && !(error instanceof TypeError) ? error.message : 'The assistant reply could not be loaded. Please try again.'); }
     finally { clearTimeout(timeout); if (request.current === controller) { locked.current = false; if (!controller.signal.aborted) setBusy(false); } }
   }
-  useEffect(() => {
-    void run(async () => { const data = await api('/tickets'); setTickets(data.tickets); setLimited(data.limited); }, 'Loading tickets...', false);
-    return () => { request.current?.abort(); request.current = null; locked.current = false; };
-  }, []);
-  const rank = { high: 0, normal: 1, low: 2 };
-  const sorted = [...tickets].sort((a, b) => {
-    const left = analysis.find(item => item.ticketId === a.id); const right = analysis.find(item => item.ticketId === b.id);
-    return (left ? rank[left.priority] : 1) - (right ? rank[right.priority] : 1) || a.createdAt.localeCompare(b.createdAt);
-  });
-  function edit(id: string, fields: Partial<Draft>) {
-    setDrafts(old => ({ ...old, [id]: { ...old[id], ...fields, reviewed: false } }));
-  }
+  useEffect(() => () => { request.current?.abort(); request.current = null; locked.current = false; }, []);
   return <section className="space-y-3" aria-label="Admin AI" aria-busy={busy}>
     {blocked && <p role="alert">Administrator access is no longer available. Sign in again.</p>}
     {busy && <p role="status" aria-live="polite">{working}</p>}
@@ -74,7 +58,6 @@ export function AdminAiPanel({ getAuthHeaders, currentLang }: {
     <form className="flex items-end gap-2" onSubmit={event => { event.preventDefault(); if (!message.trim()) return;
       void run(async () => { setResult(null); setAnswer(''); const data = await api('/query', { message, history }); setAnswer(data.text);
         setHistory(old => [...old, { role: 'user' as const, content: message }, { role: 'assistant' as const, content: String(data.text).slice(0, 2000) }].slice(-12)); setResult(data.result || null);
-        if (data.result?.type === 'tickets') { setTickets(data.result.tickets); setAnalysis([]); setLimited(data.result.limited); }
       }, 'Searching recharges and tickets...', false);
     }}>
       <label className="block min-w-0 flex-1"><span className="sr-only">{text('Ask about recharges or tickets', 'ரீசார்ஜ் அல்லது கோரிக்கைகள் பற்றி கேளுங்கள்')}</span>
@@ -105,43 +88,15 @@ export function AdminAiPanel({ getAuthHeaders, currentLang }: {
       }, 'Loading older pending recharges...')}>Load more pending recharges</button>}
     </div>}
     </div>
-    <details className="rounded-lg border border-rule p-3 space-y-3">
-      <summary className="cursor-pointer font-semibold">Support tickets ({tickets.length})</summary>
-    <div className="flex flex-wrap items-center gap-3">
-      <button type="button" className="admin-quiet" disabled={busy || blocked} onClick={() => void run(async () => {
-        const data = await api('/tickets'); setTickets(data.tickets); setLimited(data.limited); setAnalysis([]);
-      })}>Refresh</button>
-      <button type="button" className="admin-primary" disabled={busy || blocked || !tickets.length} onClick={() => void run(async () => {
-        const data = await api('/summarize', { limit: 20 }); setTickets(data.tickets); setAnalysis(data.analysis); setLimited(data.limited);
-      }, 'Summarizing and prioritizing tickets...')}>{text('Summarize & prioritize', 'சுருக்கி முன்னுரிமைப்படுத்து')}</button>
-    </div>
-    {!busy && !tickets.length && <p>No open tickets.</p>}
-    {sorted.map(ticket => {
-      const suggestion = analysis.find(item => item.ticketId === ticket.id); const draft = drafts[ticket.id];
-      return <article key={ticket.id} className="border border-rule rounded-xl p-4 space-y-3">
+    {result?.type === 'tickets' && <section className="space-y-3" aria-label="Ticket search results">
+      <h3 className="font-semibold">Matching tickets ({result.tickets.length})</h3>
+      {!result.tickets.length && <p>No matching tickets.</p>}
+      {result.limited && <p className="text-sm text-muted">More matches are available. Narrow your search.</p>}
+      {result.tickets.map(ticket => <article key={ticket.id} className="border border-rule rounded-lg p-3 space-y-2">
         <h4 className="font-semibold">{ticket.subject}</h4>
-        <p className="text-sm text-muted">{ticket.id} · {ticket.kind} · {ticket.category} · {new Date(ticket.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
+        <p className="text-sm text-muted">{ticket.id} / {ticket.category}</p>
         <p className="whitespace-pre-line">{ticket.message}</p>
-        {suggestion && <div className="rounded-lg bg-paper-2 p-3"><p>Suggested priority: {suggestion.priority}</p><p>{suggestion.summary}</p><p className="text-sm">{suggestion.reason}</p></div>}
-        <button type="button" className="admin-quiet" disabled={busy || blocked} onClick={() => void run(async () => {
-          const data = await api(`/tickets/${encodeURIComponent(ticket.id)}/draft`, { instruction: '' });
-          setDrafts(old => ({ ...old, [ticket.id]: { ...data.draft, reviewed: false } }));
-        }, 'Drafting a reply for review...')}>Draft reply</button>
-        {draft && <div className="space-y-3">
-          <p className="font-semibold">DRAFT · Nothing has been sent</p>
-          <label className="block">Subject<input className="w-full rounded-lg border border-rule p-2" maxLength={120} disabled={busy || blocked} value={draft.subject} onChange={event => edit(ticket.id, { subject: event.target.value })} /></label>
-          <label className="block">Reply<textarea className="w-full rounded-lg border border-rule p-2" rows={5} maxLength={3000} disabled={busy || blocked} value={draft.body} onChange={event => edit(ticket.id, { body: event.target.value })} /></label>
-          <label className="flex items-center gap-2"><input type="checkbox" checked={draft.reviewed} disabled={busy || blocked} onChange={event => setDrafts(old => ({ ...old, [ticket.id]: { ...old[ticket.id], reviewed: event.target.checked } }))} />I reviewed and approve this reply.</label>
-          <button type="button" className="admin-primary" disabled={busy || blocked || !draft.reviewed || !draft.subject.trim() || !draft.body.trim()} onClick={() => void run(async () => {
-            const data = await api(`/tickets/${encodeURIComponent(ticket.id)}/approve`, { subject: draft.subject, body: draft.body, approved: true });
-            if (typeof data.emailUrl !== 'string' || !data.emailUrl.startsWith('mailto:')) throw new Error('Invalid email handoff.');
-            window.location.assign(data.emailUrl);
-            setNotice(`Email draft opened for ${data.recipient}. Press Send in your email app. Delivery is not confirmed here.`);
-            setDrafts(old => ({ ...old, [ticket.id]: { ...old[ticket.id], reviewed: false } }));
-          })}>Approve &amp; open email</button>
-        </div>}
-      </article>;
-    })}
-    </details>
+      </article>)}
+    </section>}
   </section>;
 }

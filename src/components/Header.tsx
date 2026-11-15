@@ -5,9 +5,11 @@ import {
   LogOut,
   ShieldCheck,
   ChevronDown,
+  ChevronRight,
   UserCheck,
   Sliders,
-  Clock
+  Clock,
+  Ticket
 } from '../lib/icons';
 import { Language, UserProfile } from '../types';
 import { AdminNavigationError, verifyAdminNavigationAccess } from '../lib/adminNavigationAccess';
@@ -230,7 +232,7 @@ export const Header: React.FC<HeaderProps> = ({
                 {user && (
                 <>
                 {/* User Summary Header */}
-                <div className="px-4 py-3">
+                <div className="profile-menu-identity px-4 py-3">
                   <p className={`font-bold text-sm truncate ${isLight ? 'text-ink' : 'text-accent-ink'}`}>
                     {user ? (user.displayName || user.email || t.customer) : t.guestUser}
                   </p>
@@ -241,6 +243,7 @@ export const Header: React.FC<HeaderProps> = ({
 
                 {/* Primary Menu Actions */}
                 <div className="py-1">
+                  <a href="/my-tickets" className="profile-tickets-link"><Ticket className="w-4 h-4" aria-hidden="true" /><span>{currentLang === 'ta' ? 'எனது கோரிக்கைகள்' : 'My tickets'}</span></a>
                   <button type="button" onClick={() => { setIsProfileDropdownOpen(false); onTabChange('account'); }} className="w-full px-4 py-2 text-left flex items-center gap-2.5">
                     <User className="w-4 h-4" aria-hidden="true" /><span>{translations[currentLang].uiYourAccount}</span>
                   </button>
@@ -301,20 +304,11 @@ export const Header: React.FC<HeaderProps> = ({
                         isLight ? 'hover:bg-paper hover:text-ink' : 'hover:bg-ink hover:text-accent-ink'
                       }`}
                     >
-                      <span className="flex items-center gap-2.5">
+                      <span className="flex items-center gap-2.5 min-w-0">
                         <ShieldCheck className="w-4 h-4" style={{ color: currentTheme.primaryColor }} />
-                        <span className="font-bold text-xs">{t.adminConsole}</span>
+                        <span className="profile-admin-label"><span>{t.adminConsole}</span><small>{t.adminBadge}</small></span>
                       </span>
-                      <span
-                        className="text-xs font-bold  font-mono px-1.5 py-0.5 rounded border"
-                        style={{
-                          backgroundColor: `color-mix(in oklab, ${currentTheme.primaryColor} 8%, transparent)`,
-                          color: currentTheme.primaryColor,
-                          borderColor: `color-mix(in oklab, ${currentTheme.primaryColor} 19%, transparent)`,
-                        }}
-                      >
-                        {t.adminBadge}
-                      </span>
+                      <ChevronRight className="w-4 h-4 shrink-0" />
                     </button>
                   </div>
                 )}

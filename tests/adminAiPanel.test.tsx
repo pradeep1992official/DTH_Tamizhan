@@ -5,11 +5,11 @@ import { expect, it, vi } from 'vitest';
 import { AdminAiPanel } from '../src/components/Admin/AdminAiPanel';
 import { pageMetadata } from '../src/lib/pageMetadata';
 import { importedTicketSchema } from '../src/lib/adminAi';
-it('renders a read-only panel and an honest empty imported-ticket state', () => {
+it('renders the assistant without duplicating ticket management', () => {
   const headers = vi.fn();
   const html = renderToStaticMarkup(<AdminAiPanel getAuthHeaders={headers} currentLang="en" />);
-  expect(html).toContain('Support tickets ('); expect(html).toContain('No open tickets.');
-  expect(html).not.toContain('Overall pending recharges</button>'); expect(html).toContain('Ask about recharges or tickets'); expect(html).toContain('<details');
+  expect(html).not.toContain('Support tickets ('); expect(html).not.toContain('Draft reply');
+  expect(html).not.toContain('Overall pending recharges</button>'); expect(html).toContain('Ask about recharges or tickets'); expect(html).not.toContain('<details');
   expect(html).not.toContain('href="mailto:'); expect(headers).not.toHaveBeenCalled();
   expect(pageMetadata('/admin/ai').status).toBe(200); expect(pageMetadata('/admin/ai').noindex).toBe(true);
 });
