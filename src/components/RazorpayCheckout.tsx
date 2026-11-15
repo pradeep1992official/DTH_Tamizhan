@@ -64,7 +64,7 @@ export function RazorpayCheckout({ onClose, plan, operator, smartCard, currentLa
       const data = await post('/api/verify-payment', payment);
       setVerified(true); setError('');
       setVerifiedPayment(data);
-      setMessage(data.paid ? label('Payment received. Your recharge is awaiting processing. This is not a completed recharge.', 'கட்டணம் உறுதிசெய்யப்பட்டது. ரீசார்ஜ் செயலாக்கம் இன்னும் தொடங்கவில்லை.') : label('Payment signature verified. Capture is pending; do not pay again.', 'கட்டணச் சான்று சரிபார்க்கப்பட்டது. மீண்டும் பணம் செலுத்த வேண்டாம்.'));
+      setMessage(data.paid ? label('Payment received. Your recharge is waiting to be processed.', 'கட்டணம் உறுதிசெய்யப்பட்டது. ரீசார்ஜ் செயலாக்கம் இன்னும் தொடங்கவில்லை.') : label('Your payment is awaiting confirmation. Please do not pay again.', 'கட்டணச் சான்று சரிபார்க்கப்பட்டது. மீண்டும் பணம் செலுத்த வேண்டாம்.'));
     } catch (e) { setError(`${e instanceof Error ? e.message : 'Verification failed.'} Payment status is unconfirmed. Retry verification; do not pay again.`); }
     finally { release(); }
   }
@@ -138,7 +138,7 @@ export function RazorpayCheckout({ onClose, plan, operator, smartCard, currentLa
               logo: ({ airtel_dth: '/assets/airtel_logo.png', sun_direct: '/assets/sun_logo.png', tata_play: '/assets/tata_logo.png', dish_tv: '/assets/dishtv_logo.png', d2h: undefined })[operator.id] }); }
             catch { setError(label('Could not download receipt. Please try again.', 'ரசீதைப் பதிவிறக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.')); }
             finally { setDownloading(false); }
-          }}>{downloading ? label('Preparing receipt…', 'ரசீது தயாராகிறது…') : label('Download payment receipt', 'கட்டண ரசீதைப் பதிவிறக்கவும்')}</button></> : <p className="rzp-receipt-hint">{label('Your receipt will be available once payment is captured.', 'கட்டணம் உறுதியானதும் ரசீது கிடைக்கும்.')}</p>}
+          }}>{downloading ? label('Preparing receipt…', 'ரசீது தயாராகிறது…') : label('Download payment receipt', 'கட்டண ரசீதைப் பதிவிறக்கவும்')}</button></> : <p className="rzp-receipt-hint">{label('Your receipt will be available once your payment is confirmed.', 'கட்டணம் உறுதியானதும் ரசீது கிடைக்கும்.')}</p>}
         </div>}
         {!verified && <>
           <button type="button" className="rzp-pay" disabled={busy} aria-busy={busy} onClick={() => result ? void verify(result) : void pay()}>

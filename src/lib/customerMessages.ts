@@ -26,7 +26,7 @@ const pairs = {
   uiChooseAnAvailableDuration: ["Choose an available duration", "கிடைக்கும் காலத்தைத் தேர்ந்தெடுக்கவும்"], // Native Tamil review required.
   uiHDPackUnavailable: ["HD pack unavailable", "HD பேக் தற்போது கிடைக்கவில்லை"], // Native Tamil review required.
   uiSDPackUnavailable: ["SD pack unavailable", "SD பேக் தற்போது கிடைக்கவில்லை"], // Native Tamil review required.
-  uiNoCatalogPackIsAvailableForThisOperatorChooseACustomTopUpInstead: ["No catalog pack is available for this operator. Choose a custom top-up instead.", "இந்த ஆபரேட்டருக்கான பேக்குகள் இங்கு இல்லை. உங்கள் விருப்பத் தொகையில் ரீசார்ஜ் செய்யலாம்."], // Native Tamil review required.
+  uiNoCatalogPackIsAvailableForThisOperatorChooseACustomTopUpInstead: ["Packs for this operator are not listed yet. You can still recharge a custom amount.", "இந்த ஆபரேட்டருக்கான பேக்குகள் இங்கு இல்லை. உங்கள் விருப்பத் தொகையில் ரீசார்ஜ் செய்யலாம்."], // Native Tamil review required.
   uiClearFilters: ["Clear filters", "வடிகட்டல்களை நீக்கவும்"], // Native Tamil review required.
   uiHighDefinitionPacks: ["High Definition packs", "உயர் படத் தர பேக்குகள்"], // Native Tamil review required.
   uiStandardDefinitionPacks: ["Standard Definition packs", "சாதாரண படத் தர பேக்குகள்"], // Native Tamil review required.
@@ -190,7 +190,7 @@ const pairs = {
   uiSessionComplete: ['This test payment already has a result. Generate a new session.', 'இந்தச் சோதனைக்கு ஏற்கெனவே முடிவு உள்ளது. புதிய அமர்வைத் தொடங்கவும்.'], // Native Tamil review required.
   uiRemoveNamedBox: ['Remove {name}', '{name} பெட்டியை நீக்கவும்'], // Native Tamil review required.
   uiConfirmRemoveBox: ['Remove “{name}” from your saved boxes?', 'சேமித்த பெட்டிகளிலிருந்து “{name}” பெட்டியை நீக்கவா?'], // Native Tamil review required.
-  uiCatalogReview: ['Catalog details need review', 'பேக் விவரங்களைச் சரிபார்க்க வேண்டும்'], // Native Tamil review required.
+  uiCatalogReview: ['Pack details need checking', 'பேக் விவரங்களைச் சரிபார்க்க வேண்டும்'], // Native Tamil review required.
   uiCatalogTotalError: ['Check the total channel count.', 'மொத்தச் சேனல் எண்ணிக்கையைச் சரிபார்க்கவும்.'], // Native Tamil review required.
   uiCatalogHdError: ['Check the HD channel count; it must not exceed the total.', 'HD சேனல் எண்ணிக்கை மொத்தத்தைவிட அதிகமாக இருக்கக்கூடாது. சரிபார்க்கவும்.'], // Native Tamil review required.
   uiCatalogNameError: ['Check that the pack name matches its details.', 'பேக்கின் பெயரும் விவரங்களும் பொருந்துகின்றனவா என்று சரிபார்க்கவும்.'], // Native Tamil review required.

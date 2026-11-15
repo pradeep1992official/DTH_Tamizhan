@@ -15,10 +15,10 @@ export function ServiceTicketPaymentButton({ ticketId, brand = '', subscriberId 
         catch { data = await ticketApi(`/${ticketId}/upgrade`, { acceptedTerms: true, brand, subscriberId }); }
       } else data = await post(`/${ticketId}/checkout`, {});
       if (data.paid) { setNotice('Payment already received. Refresh your tickets for the latest status.'); setBusy(false); return; }
-      if (data.pending) { setNotice('Payment capture is pending. Please wait and refresh your tickets; do not pay again.'); setBusy(false); return; }
+      if (data.pending) { setNotice('Your payment is awaiting confirmation. Please wait and refresh your tickets; do not pay again.'); setBusy(false); return; }
       await loadCheckout(); if (!window.Razorpay) throw new Error('Checkout unavailable.');
       const checkout = new window.Razorpay({ key: data.key_id, order_id: data.order_id, amount: 5000, currency: 'INR', name: 'DTH Tamizhan', description: `${data.ticketNo} complaint assistance (test)`,
-        handler: async (payment: Record<string, string>) => { try { const result = await post('/verify', { ...payment, ticketId }); setNotice(result.paid ? 'Payment verified. Refresh your tickets for updates.' : 'Capture is pending. Do not pay again.'); } catch { setNotice('Payment is unconfirmed. Refresh your tickets; do not pay again.'); } finally { setBusy(false); } },
+        handler: async (payment: Record<string, string>) => { try { const result = await post('/verify', { ...payment, ticketId }); setNotice(result.paid ? 'Payment received. Refresh your tickets for updates.' : 'Your payment is awaiting confirmation. Please do not pay again.'); } catch { setNotice('Payment is unconfirmed. Refresh your tickets; do not pay again.'); } finally { setBusy(false); } },
         modal: { ondismiss: () => { setBusy(false); setNotice('Checkout closed. Refresh payment status before trying again.'); } },
       });
       checkout.on('payment.failed', () => { setBusy(false); setNotice('Payment did not complete. Check its status before trying again.'); }); checkout.open();

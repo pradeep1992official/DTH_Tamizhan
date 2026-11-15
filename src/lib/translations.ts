@@ -302,7 +302,7 @@ export const translations = {
     loadingLiveCatalog: 'Loading available recharge packs…',
     failedToLoadCatalog: 'Unable to load available recharge packs.',
     checkConnectionOrRetry: 'Please verify network connection and try again.',
-    useOfflineCatalog: 'Load Offline Seed Catalog',
+    useOfflineCatalog: 'Show saved packs',
 
     // Footer
     footerDisclaimer: 'Operator names and trademarks belong to their respective owners. Their use does not imply a partnership or endorsement.',

@@ -62,7 +62,7 @@ export function PlanSuggestions({ user, currentLang, onOpenAuth, onSelect, catal
       {result && <div aria-live="polite" className="space-y-3">
         {!noCatalog && !result.plans.length && <p className="text-sm text-muted">{text('No packs match this budget and selection. Try a higher budget or another duration.', 'இந்த பட்ஜெட் மற்றும் தேர்வுக்குப் பொருத்தமான திட்டங்கள் இல்லை. பட்ஜெட் அல்லது கால அளவை மாற்றவும்.')}</p>}
         {result.plans.length > 0 && <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${result.source === 'ai' ? 'border-accent bg-accent text-accent-ink' : 'border-rule bg-paper-2 text-ink'}`}>
-          {result.source === 'ai' ? text('AI recommendations', 'AI பரிந்துரைகள்') : text('Catalog suggestions', 'பட்டியல் பரிந்துரைகள்')}
+          {result.source === 'ai' ? text('AI recommendations', 'AI பரிந்துரைகள்') : text('Matching packs', 'பட்டியல் பரிந்துரைகள்')}
         </span>}
         {result.notice === 'over_budget' && <p className="text-sm text-muted">{text(`These packs match your language preference but exceed your Rs. ${result.monthlyBudget} monthly budget.`, `இந்த திட்டங்கள் உங்கள் மொழி விருப்பத்திற்குப் பொருந்துகின்றன; ஆனால் மாத பட்ஜெட் ரூ. ${result.monthlyBudget} ஐ விட அதிகம்.`)}</p>}
         {result.plans.length > 0 && result.source !== 'ai' && ['daily_limit', 'customer_daily_limit', 'minute_limit'].includes(result.notice) && <p className="text-xs text-muted">{result.notice === 'minute_limit'

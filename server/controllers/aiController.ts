@@ -50,5 +50,5 @@ export async function recommendPlans(req: Request, res: Response): Promise<void>
     }
     // All prices, validity and names come from the catalog, never generated text.
     res.json({ success: true, source, notice, plans: selected.map(summary) });
-  } catch { res.status(503).json({ success: false, error: 'Plan suggestions are unavailable. Please use the catalog filters.' }); }
+  } catch { res.status(503).json({ success: false, error: 'Plan suggestions are unavailable. Please use the pack filters.' }); }
 }

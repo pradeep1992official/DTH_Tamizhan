@@ -158,7 +158,7 @@ export function RechargeAssistant({ currentLang, displayName, onCheckout }: {
       : text('How many months: 1, 3, 6 or 12?', 'எத்தனை மாதங்கள்: 1, 3, 6 அல்லது 12?'),
     invalid_box: text('Update this box’s subscriber ID in Saved Boxes before recharging.', 'ரீசார்ஜ் செய்வதற்கு முன் பாக்ஸின் சந்தாதாரர் எண்ணைப் புதுப்பிக்கவும்.'),
     operator_unavailable: text('This operator is currently unavailable. Please try later.', 'இந்த நிறுவனம் தற்போது கிடைக்கவில்லை. பிறகு முயற்சிக்கவும்.'),
-    no_plans: text('No catalog pack matches that duration and quality. Try another duration or quality.', 'இந்த காலம் மற்றும் தரத்திற்கு பேக் கிடைக்கவில்லை. வேறு காலம் அல்லது தரத்தை முயற்சிக்கவும்.'),
+    no_plans: text('No pack matches that duration and quality. Try another duration or quality.', 'இந்த காலம் மற்றும் தரத்திற்கு பேக் கிடைக்கவில்லை. வேறு காலம் அல்லது தரத்தை முயற்சிக்கவும்.'),
     awaiting_payment: text('Ready for payment. Review a matching pack below and continue to secure checkout. Recharge is submitted for manual fulfillment only after payment is verified.', 'கட்டணத்திற்குத் தயார். கீழே பேக்கைச் சரிபார்த்து கட்டணத்தைத் தொடரவும். கட்டணம் உறுதியான பிறகு நிர்வாகி ரீசார்ஜ் செய்வார்.'),
   };
   if (replyLanguage === 'tanglish') Object.assign(notices, tanglishRechargeNotices);
