@@ -278,7 +278,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         <div className="admin-workspace-heading"><h2>{NAV_ITEMS.find((item) => item.id === activeTab)?.label}</h2></div>
         {activeTab === 'tickets' && <TicketsPanel key={user.uid} getAuthHeaders={getAuthHeaders} />}
         {activeTab === 'api-test' && <DthLookupTestPanel key={user.uid} getAuthHeaders={getAuthHeaders} />}
-        {activeTab === 'payments' && <ServiceReceiptsPanel getAuthHeaders={getAuthHeaders} />}
         {activeTab === 'customers' && (
           <CustomersTab
             customers={customers}
@@ -342,6 +341,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             currentLang={currentLang}
           />
         )}
+
+        {activeTab === 'payments' && <ServiceReceiptsPanel getAuthHeaders={getAuthHeaders} />}
 
         {activeTab === 'reports' && (
           <ReportsTab

@@ -8,7 +8,7 @@ export const SUBSCRIBER_RULES = {
   sun_direct: { lengths: [11], prefixes: [], label: 'Smart Card Number', placeholder: '41289456123' },
   tata_play: { lengths: [10], prefixes: [], label: 'Subscriber ID', placeholder: '1029384756' },
   airtel_dth: { lengths: [10], prefixes: [], label: 'Customer ID', placeholder: '3009482715' },
-  dish_tv: { lengths: [11], prefixes: ['015', '025'], label: 'Viewing Card (VC)', placeholder: '02589412356' },
+  dish_tv: { lengths: [11], prefixes: ['015', '025'], label: 'Customer ID', placeholder: '02589412356' },
   d2h: { lengths: [8, 9, 10, 11], prefixes: [], label: 'Customer ID', placeholder: '89456123' },
 } satisfies Record<DthOperatorId, { lengths: number[]; prefixes: string[]; label: string; placeholder: string }>;
 
