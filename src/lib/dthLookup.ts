@@ -12,6 +12,10 @@ export const dthLookupInput = z.object({
   consent: z.boolean().default(false),
 }).strict();
 export type DthLookupInput = z.infer<typeof dthLookupInput>;
+export type DthLookupProvider = 'way2api' | 'planapi' | 'datayuge';
+export const adminDthLookupInput = dthLookupInput.extend({ provider: z.enum(['auto', 'way2api', 'planapi', 'datayuge']).default('auto') });
+export const lookupProviderNames: Record<DthLookupProvider, string> = { way2api: 'Way2API', planapi: 'EzyTM / PlanAPI', datayuge: 'DataYuge' };
+export interface LookupProviderStatus { id: DthLookupProvider; configured: boolean; ready: boolean; note: string }
 export interface DthLookupResponse {
   success: boolean;
   mode: 'demo' | 'live';
@@ -20,6 +24,9 @@ export interface DthLookupResponse {
   reference: string | null;
   error?: string;
   details: Record<string, string> | null;
+  provider?: DthLookupProvider;
+  fallbackSafe?: boolean;
+  attempts?: { provider: DthLookupProvider; outcome: 'found' | 'pending' | 'failed'; charged: boolean | null }[];
 }
 
 export const customerLookupInput = dthLookupInput.pick({ operator: true, subscriberId: true }).extend({ consent: z.literal(true) }).strict();

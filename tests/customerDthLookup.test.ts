@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import express from 'express';
 import { createHash } from 'node:crypto';
-const f = vi.hoisted(() => ({ records: new Map<string, any>(), provider: vi.fn(), auth: true, protections: 0 }));
+const f = vi.hoisted(() => ({ records: new Map<string, any>(), provider: vi.fn(), auth: true, protections: 0, contacts: 0 }));
 vi.mock('../server/persistence', () => ({
   documentKey: (value: string) => createHash('sha256').update(value).digest('hex'),
   mutateRecord: async (_name: string, id: string, update: (old: any) => any) => { const record = update(f.records.get(id)); f.records.set(id, record); return record; },
@@ -16,8 +16,12 @@ import { dthLookupRouter } from '../server/routes/dthLookup';
 import { customerLookupInput, lookupOperatorId } from '../src/lib/dthLookup';
 const input = { operator: 'airtel_dth' as const, subscriberId: '3012012012' };
 beforeEach(() => {
-  f.records.clear(); f.protections = 0; f.auth = true; f.provider.mockReset();
-  f.provider.mockResolvedValue({ success: true, outcome: 'found', mode: 'live', charged: true, reference: 'private-reference', details: { name: 'Test customer', balance: '0', plan: 'Pack', address: 'Private home address', registered_mobile: '9876543210' } });
+  f.records.clear(); f.protections = 0; f.contacts = 0; f.auth = true; f.provider.mockReset();
+  f.provider.mockImplementation(async (_input: unknown, _provider: unknown, beforeAttempt?: () => Promise<void>) => {
+    await beforeAttempt?.();
+    f.contacts++;
+    return { success: true, outcome: 'found', mode: 'live', charged: true, reference: 'private-reference', details: { name: 'Test customer', balance: '0', plan: 'Pack', address: 'Private home address', registered_mobile: '9876543210' } };
+  });
 });
 afterEach(() => { vi.unstubAllEnvs(); vi.useRealTimers(); });
 it('caches repeat lookups and excludes private contact fields and provider billing', async () => {
@@ -30,7 +34,7 @@ it('caches repeat lookups and excludes private contact fields and provider billi
 });
 it('deduplicates concurrent calls, but isolates users and operator IDs', async () => {
   await Promise.all([customerDthLookup('parallel', input), customerDthLookup('parallel', input)]);
-  expect(f.provider).toHaveBeenCalledOnce();
+  expect(f.contacts).toBe(1);
   await customerDthLookup('another-user', input);
   await customerDthLookup('parallel', { ...input, operator: 'tata_play' });
   expect(f.provider).toHaveBeenCalledTimes(3);
@@ -46,7 +50,7 @@ it('enforces the shared app budget before calling the provider', async () => {
   vi.stubEnv('DTH_CUSTOMER_LOOKUP_DAILY_LIMIT', '1');
   await customerDthLookup('budget-user-1', input);
   await expect(customerDthLookup('budget-user-2', input)).rejects.toThrow('Daily lookup limit');
-  expect(f.provider).toHaveBeenCalledOnce();
+  expect(f.contacts).toBe(1);
 });
 it('briefly caches uncertain or failed responses to reduce paid retries', async () => {
   f.provider.mockResolvedValue({ success: false, outcome: 'pending', charged: true, details: null });

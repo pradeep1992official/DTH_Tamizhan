@@ -2,8 +2,8 @@ import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { isCallerAdminAuthorized, verifyAuthToken } from '../middleware/auth';
 import { forwardAsyncErrors } from '../asyncRoutes';
-import { customerLookupInput, dthLookupInput } from '../../src/lib/dthLookup';
-import { dthLookupConfigured, lookupDth } from '../models/dthLookup';
+import { customerLookupInput, adminDthLookupInput } from '../../src/lib/dthLookup';
+import { dthLookupConfigured, dthLookupProviders, lookupDth } from '../models/dthLookup';
 import { customerDthLookup, LookupLimitError } from '../models/customerDthLookup';
 import { ticketProtection } from '../middleware/ticketProtection';
 
@@ -16,14 +16,14 @@ dthLookupRouter.use('/api/admin/dth-lookup', async (req, res, next) => {
     next();
   } catch { res.status(503).json({ success: false, error: 'Admin access could not be verified.' }); }
 });
-dthLookupRouter.get('/api/admin/dth-lookup/config', (_req, res) => { res.json({ success: true, configured: dthLookupConfigured(), provider: 'Way2API' }); });
+dthLookupRouter.get('/api/admin/dth-lookup/config', (_req, res) => { res.json({ success: true, configured: dthLookupConfigured(), providers: dthLookupProviders() }); });
 const limiter = rateLimit({ windowMs: 60_000, limit: 5, standardHeaders: true, legacyHeaders: false, message: { success: false, error: 'Wait a minute before another test.' } });
 dthLookupRouter.post('/api/admin/dth-lookup/test', limiter, async (req, res) => {
-  const parsed = dthLookupInput.safeParse(req.body);
+  const parsed = adminDthLookupInput.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ success: false, error: 'Choose an operator and enter a 9–13 digit subscriber ID.' }); return; }
   if (parsed.data.mode === 'live' && !parsed.data.consent) { res.status(400).json({ success: false, error: 'Confirm permission and lookup charges.' }); return; }
-  if (parsed.data.mode === 'live' && !dthLookupConfigured()) { res.status(503).json({ success: false, error: 'Set WAY2API_API_KEY on the server and restart to enable live lookup.' }); return; }
-  try { res.json(await lookupDth(parsed.data)); }
+  if (parsed.data.mode === 'live' && !dthLookupProviders().some(provider => provider.ready && (parsed.data.provider === 'auto' || provider.id === parsed.data.provider))) { res.status(503).json({ success: false, error: 'Configure the selected lookup provider on the server and restart.' }); return; }
+  try { const { provider, ...input } = parsed.data; res.json(await lookupDth(input, provider)); }
   catch { res.status(502).json({ success: false, error: 'Lookup unavailable. Check provider request history before retrying.' }); }
 });
 const customerEnabled = () => dthLookupConfigured() && process.env.DTH_CUSTOMER_LOOKUP_ENABLED !== 'false';

@@ -11,7 +11,7 @@ import { dthLookupInput } from '../src/lib/dthLookup';
 import { pageMetadata } from '../src/lib/pageMetadata';
 const live = { mode: 'live' as const, subscriberId: '3012012012', operator: 'airtel_dth' as const, consent: true };
 const nativeFetch = globalThis.fetch;
-beforeEach(() => { auth.signedIn = true; auth.admin = true; vi.stubEnv('WAY2API_API_KEY', 'test-server-secret'); });
+beforeEach(() => { auth.signedIn = true; auth.admin = true; vi.stubEnv('WAY2API_API_KEY', 'test-server-secret'); vi.stubEnv('PLANAPI_MEMBER_ID', ''); vi.stubEnv('PLANAPI_API_PASSWORD', ''); vi.stubEnv('DATAYUGE_API_KEY', ''); });
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 it('demo mode never calls the provider or requires credentials', async () => {
   vi.stubEnv('WAY2API_API_KEY', ''); const provider = vi.fn(); vi.stubGlobal('fetch', provider);
@@ -73,7 +73,8 @@ it('protects configuration and lookups against anonymous and non-admin access', 
   expect((await route('test', live)).status).toBe(403);
 });
 it('exposes only credential availability and serves demo results without provider calls', async () => {
-  const config = await route('config'); expect(config.body).toEqual({ success: true, configured: true, provider: 'Way2API' });
+  const config = await route('config'); expect(config.body).toMatchObject({ success: true, configured: true, providers: [{ id: 'way2api', ready: true }, { id: 'planapi', ready: false }, { id: 'datayuge', ready: false }] });
+  expect(JSON.stringify(config.body)).not.toContain('test-server-secret');
   expect(config.headers.get('cache-control')).toBe('no-store');
   const provider = vi.fn(); vi.stubGlobal('fetch', provider);
   const demo = await route('test', { ...live, mode: 'demo', consent: false });

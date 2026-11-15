@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import type { DthLookupInput, DthLookupResponse } from '../../src/lib/dthLookup';
+import { fallbackProviderStatus, lookupFallbackProvider } from './dthLookupFallbacks';
+import type { DthLookupProvider, LookupProviderStatus } from '../../src/lib/dthLookup';
 
 const value = z.union([z.string(), z.number()]).nullable().optional();
 const fields = ['customer_id', 'name', 'registered_mobile', 'balance', 'monthly_amount', 'status', 'plan', 'next_recharge_date', 'last_recharge_date', 'last_recharge_amount', 'switch_off_date', 'address', 'city', 'district', 'state', 'pin_code'] as const;
@@ -8,9 +10,13 @@ const providerSchema = z.object({
   message_code: z.string().optional(), order_id: z.string().max(200).optional(),
   data: z.object({ order_id: z.string().max(200).optional(), result: z.object(Object.fromEntries(fields.map(field => [field, value]))) .optional().nullable() }).nullable().optional(),
 });
-export function dthLookupConfigured() { return !!process.env.WAY2API_API_KEY?.trim(); }
+export function dthLookupProviders(): LookupProviderStatus[] {
+  const configured = !!process.env.WAY2API_API_KEY?.trim();
+  return [{ id: 'way2api', configured, ready: configured, note: configured ? 'Primary provider' : 'Set WAY2API_API_KEY' }, ...fallbackProviderStatus()];
+}
+export function dthLookupConfigured() { return dthLookupProviders().some(provider => provider.ready); }
 
-export async function lookupDth(input: DthLookupInput): Promise<DthLookupResponse> {
+async function lookupWay2Dth(input: DthLookupInput): Promise<DthLookupResponse> {
   if (input.mode === 'demo') return {
     success: true, mode: 'demo', outcome: 'found', charged: false, reference: 'DEMO-ONLY',
     details: { customer_id: input.subscriberId, name: 'Demo customer (sample data)', registered_mobile: '98******00', balance: '125.00', plan: 'Sample pack', status: 'Sample active status' },
@@ -43,7 +49,8 @@ export async function lookupDth(input: DthLookupInput): Promise<DthLookupRespons
       NO_RECORD_FOUND: 'No DTH account was found for these details.', INVALID_INPUT: 'Check the operator and subscriber ID.',
       RATE_LIMITED: 'Way2API request limit reached. Please wait.', SOURCE_UNAVAILABLE: 'The operator data source is unavailable.',
     };
-    return { ...base, success: false, outcome: 'failed', details: null, error: errors[data.message_code || ''] || 'The provider could not verify this DTH account. Check the provider dashboard for details.' };
+    const fallbackSafe = data.charged === false && ['MISSING_API_KEY', 'INVALID_API_KEY', 'INSUFFICIENT_BALANCE', 'NO_API_ACCESS', 'RATE_LIMITED', 'REQUEST_FAILED', 'NOT_FOUND', 'INTERNAL_ERROR', 'PROVIDER_UNAVAILABLE'].includes(data.message_code || '');
+    return { ...base, fallbackSafe, success: false, outcome: 'failed', details: null, error: errors[data.message_code || ''] || 'The provider could not verify this DTH account. Check the provider dashboard for details.' };
   }
   const details: Record<string, string> = {};
   for (const field of fields) {
@@ -51,4 +58,23 @@ export async function lookupDth(input: DthLookupInput): Promise<DthLookupRespons
     if (entry !== null && entry !== undefined && String(entry).trim() && !/^(N\/A|NA)$/i.test(String(entry).trim())) details[field] = String(entry).slice(0, 1000);
   }
   return { ...base, success: true, outcome: 'found', details };
+}
+
+export async function lookupDth(input: DthLookupInput, selected: 'auto' | DthLookupProvider = 'auto', beforeAttempt?: () => Promise<void>): Promise<DthLookupResponse> {
+  if (input.mode === 'demo') return lookupWay2Dth(input);
+  if (!input.consent) throw new Error('Confirm permission and lookup charges before a live lookup.');
+  const providers = dthLookupProviders().filter(provider => provider.ready && (selected === 'auto' || selected === provider.id));
+  if (!providers.length) throw new Error('Configure WAY2API_API_KEY or a fallback lookup provider on the server.');
+  const attempts: NonNullable<DthLookupResponse['attempts']> = [];
+  let result: DthLookupResponse | undefined;
+  for (const provider of providers) {
+    await beforeAttempt?.();
+    result = provider.id === 'way2api' ? await lookupWay2Dth(input) : await lookupFallbackProvider(provider.id, input);
+    attempts.push({ provider: provider.id, outcome: result.outcome, charged: result.charged });
+    result = { ...result, provider: provider.id, attempts: [...attempts] };
+    // Never repeat a completed billable check, an invalid account, a pending request,
+    // or a request whose processing/billing status is uncertain.
+    if (result.success || !result.fallbackSafe || result.outcome === 'pending') return result;
+  }
+  return result!;
 }

@@ -28,8 +28,7 @@ export async function customerDthLookup(uid: string, input: Pick<DthLookupInput,
   const running = pending.get(key);
   if (running) return running;
   const job = (async () => {
-    await reserveBudget(uid);
-    const response = await lookupDth({ ...input, mode: 'live', consent: true });
+    const response = await lookupDth({ ...input, mode: 'live', consent: true }, 'auto', () => reserveBudget(uid));
     const details = response.success && response.details
       ? Object.fromEntries(allowedFields.filter(field => response.details![field] !== undefined).map(field => [field, response.details![field]])) : null;
     const result: CustomerDthLookupResponse = {
