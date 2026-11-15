@@ -1,3 +1,4 @@
+import { rememberRechargeOrder, reconcileRechargePayment } from '../models/rechargeRecovery';
 import { forwardAsyncErrors } from '../asyncRoutes';
 import { Router } from 'express';
 import { z } from 'zod';
@@ -9,7 +10,6 @@ import { calculatePayment } from '../payments';
 import { subscriberError } from '../../src/lib/subscriberValidation';
 import { randomUUID } from 'node:crypto';
 import { razorpayClient, verifyPaymentSignature } from '../razorpay';
-import { recordProviderPayment } from '../models/paymentLedger';
 import { verifyAuthToken } from '../middleware/auth';
 import { readOperators } from '../models/sharedStore';
 
@@ -74,11 +74,7 @@ paymentsRouter.post('/api/recharge/create', orderCreateLimiter, validateBody(com
   return service.complete(req.body.sessionId, req.body.outcome);
 }));
 
-const orderSchema = z.union([
-  prepareSchema.omit({ idempotencyKey: true }),
-  z.object({ amount: z.number().int().min(100).refine(Number.isSafeInteger),
-    currency: z.literal('INR').default('INR'), receipt: z.string().min(1).max(40).optional() }),
-]);
+const orderSchema = prepareSchema.omit({ idempotencyKey: true }).strict();
 const signatureSchema = z.object({
   razorpay_order_id: z.string().regex(/^order_[a-zA-Z0-9]+$/),
   razorpay_payment_id: z.string().regex(/^pay_[a-zA-Z0-9]+$/),
@@ -96,9 +92,9 @@ paymentsRouter.post('/api/create-order', orderCreateLimiter, validateBody(orderS
   res.setHeader('Cache-Control', 'no-store');
   try {
     const input = req.body;
-    let amount = input.amount;
+    let amount: number;
     let notes: Record<string, string> = {};
-    if ('packId' in input) {
+    {
       const error = subscriberError(input.operator, input.smartCardNumber);
       if (error) throw new PaymentError(400, error);
       await checkOperator(input.operator);
@@ -115,7 +111,9 @@ paymentsRouter.post('/api/create-order', orderCreateLimiter, validateBody(orderS
     // Receipts go only to the verified sign-in email, never a client-supplied recipient.
     if (res.locals.customer.emailVerified && res.locals.customer.email) notes.dth_customer_email = res.locals.customer.email;
     const order = await razorpayClient().orders.create({ amount, currency: 'INR',
-      receipt: input.receipt || randomUUID(), notes });
+      receipt: randomUUID(), notes });
+    if (Number(order.amount) !== amount || order.currency !== 'INR') throw new PaymentError(502, 'Provider order does not match the quote.');
+    await rememberRechargeOrder(order);
     res.json({ order_id: order.id, amount: Number(order.amount), currency: order.currency,
       key_id: process.env.RAZORPAY_KEY_ID });
   } catch (error) { providerError(res, error); }
@@ -124,20 +122,11 @@ paymentsRouter.post('/api/create-order', orderCreateLimiter, validateBody(orderS
 paymentsRouter.post('/api/verify-payment', orderCreateLimiter, validateBody(signatureSchema), async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   try {
-    const client = razorpayClient();
     const { razorpay_order_id: orderId, razorpay_payment_id: paymentId, razorpay_signature: signature } = req.body;
     if (!verifyPaymentSignature(orderId, paymentId, signature, process.env.RAZORPAY_KEY_SECRET!)) {
       throw new PaymentError(400, 'Payment signature mismatch.');
     }
-    // Read the provider's order and payment; never accept client-supplied paid status.
-    const [order, payment] = await Promise.all([client.orders.fetch(orderId), client.payments.fetch(paymentId)]);
-    if ((order.notes as Record<string, string>)?.dth_customer_uid !== res.locals.customer.uid) {
-      throw new PaymentError(403, 'This payment does not belong to your account.');
-    }
-    if (order.id !== orderId || payment.order_id !== order.id || Number(payment.amount) !== Number(order.amount) || payment.currency !== order.currency) {
-      throw new PaymentError(400, 'Payment does not match the order.');
-    }
-    await recordProviderPayment(payment, order);
+    const { order, payment } = await reconcileRechargePayment(paymentId, orderId, res.locals.customer.uid);
     res.json({ success: true, verified: true, paid: payment.status === 'captured',
       status: payment.status, order_id: order.id, payment_id: payment.id,
       amount: Number(payment.amount), currency: payment.currency, created_at: payment.created_at,

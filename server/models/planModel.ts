@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { assertValidCatalogPack } from '../../src/lib/catalog';
 import fs from 'fs';
 import {
@@ -5,24 +6,30 @@ import {
   DELETED_PLANS_FILE,
   PLANS_FILE,
 } from './store';
-import { PlanCatalogItem } from '../../src/types';
+import { PlanCatalogItem, PlanAuditLog } from '../../src/types';
 import { collections, readCollection, usesFirestore, cleanData } from '../persistence';
 import { getAdminFirestore } from '../middleware/auth';
 import { ReadCache } from '../utils/readCache';
 import { queryRecords } from '../queries';
 const cache = new ReadCache<PlanCatalogItem[]>(60_000);
 
-function loadPlans(): { plans: PlanCatalogItem[]; deletedIds: string[] } {
+function loadPlans(): { plans: PlanCatalogItem[]; deletedIds: string[]; auditLogs: PlanAuditLog[] } {
   try {
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
     let deletedIds: string[] = [];
+    let auditLogs: PlanAuditLog[] = [];
     if (fs.existsSync(DELETED_PLANS_FILE)) {
       try {
         const parsed: unknown = JSON.parse(fs.readFileSync(DELETED_PLANS_FILE, 'utf-8'));
         if (Array.isArray(parsed)) deletedIds = parsed;
+        else if (parsed && typeof parsed === 'object') {
+          const ledger = parsed as { deletedIds?: string[]; auditLogs?: PlanAuditLog[] };
+          deletedIds = Array.isArray(ledger.deletedIds) ? ledger.deletedIds : [];
+          auditLogs = Array.isArray(ledger.auditLogs) ? ledger.auditLogs : [];
+        }
       } catch {
-        // Keep the existing empty-deleted-list fallback for malformed local data.
+        throw new Error('Catalog deletion ledger is unreadable. Restore it before changing plans.');
       }
     }
 
@@ -39,10 +46,10 @@ function loadPlans(): { plans: PlanCatalogItem[]; deletedIds: string[] } {
     }
 
     const deletedSet = new Set(deletedIds);
-    return { plans: plans.filter((plan) => !deletedSet.has(plan.id)), deletedIds };
+    return { plans: plans.filter((plan) => !deletedSet.has(plan.id)), deletedIds, auditLogs };
   } catch (error) {
     console.error('[Server Persistence] Error loading disk plans:', error);
-    return { plans: [], deletedIds: [] };
+    throw error;
   }
 }
 
@@ -53,7 +60,8 @@ function persistPlans(): void {
     const { plans, deletedIds } = local();
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
     fs.writeFileSync(PLANS_FILE, JSON.stringify(plans, null, 2), 'utf-8');
-    fs.writeFileSync(DELETED_PLANS_FILE, JSON.stringify(deletedIds, null, 2), 'utf-8');
+    fs.writeFileSync(`${DELETED_PLANS_FILE}.tmp`, JSON.stringify({ deletedIds, auditLogs: local().auditLogs }, null, 2), 'utf-8');
+    fs.renameSync(`${DELETED_PLANS_FILE}.tmp`, DELETED_PLANS_FILE);
 }
 
 export const planModel = {
@@ -97,15 +105,53 @@ export const planModel = {
     persistPlans();
   },
 
-  async delete(planId: string): Promise<void> {
+  async delete(planId: string, actor = 'server'): Promise<PlanAuditLog | undefined> {
+    if (['catalog_state', 'custom'].includes(planId)) throw new Error('This record is not a catalog pack.');
+    const auditFor = (plan: PlanCatalogItem): PlanAuditLog => ({
+      id: `delete-${randomUUID()}`, plan_id: plan.id, plan_name: plan.plan_name, operator: plan.operator,
+      action: 'delete', updated_at: new Date().toISOString(), updated_by: actor,
+      details: `Deleted ${plan.pack_type} pack for ${plan.duration_months}M (Rs. ${plan.amount}) from the server catalog`,
+    });
     if (usesFirestore()) {
-      const db = getAdminFirestore(); const batch = db.batch();
-      batch.delete(db.collection(collections.plans).doc(planId));
-      batch.set(db.collection(collections.deletedPlans).doc(planId), { id: planId }); await batch.commit(); cache.clear(); return;
+      const db = getAdminFirestore();
+      const planRef = db.collection(collections.plans).doc(planId);
+      const deletedRef = db.collection(collections.deletedPlans).doc(planId);
+      const audit = await db.runTransaction(async tx => {
+        const [snapshot, deleted] = await Promise.all([tx.get(planRef), tx.get(deletedRef)]);
+        if (!snapshot.exists) {
+          if (deleted.exists) return deleted.data()?.audit as PlanAuditLog | undefined;
+          throw new Error('Plan not found. Refresh the catalog.');
+        }
+        const entry = auditFor({ ...snapshot.data(), id: planId } as PlanCatalogItem);
+        tx.delete(planRef);
+        tx.set(deletedRef, cleanData({ id: planId, audit: entry }));
+        tx.set(db.collection('plan_audit_logs').doc(entry.id), cleanData(entry));
+        tx.set(db.collection(collections.plans).doc('catalog_state'), { initialized: true, updated_at: entry.updated_at }, { merge: true });
+        return entry;
+      });
+      cache.clear(); return audit;
     }
-    local().plans = local().plans.filter((plan) => plan.id !== planId);
-    if (!local().deletedIds.includes(planId)) local().deletedIds.push(planId);
-    persistPlans();
+    const state = local();
+    const plan = state.plans.find(item => item.id === planId);
+    if (!plan) {
+      if (state.deletedIds.includes(planId)) return state.auditLogs.find(item => item.plan_id === planId && item.action === 'delete');
+      throw new Error('Plan not found. Refresh the catalog.');
+    }
+    const audit = auditFor(plan);
+    const deletedIds = [...new Set([...state.deletedIds, planId])];
+    const auditLogs = [...state.auditLogs, audit];
+    // One atomic deletion ledger is authoritative for local reads and audit history.
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.writeFileSync(`${DELETED_PLANS_FILE}.tmp`, JSON.stringify({ deletedIds, auditLogs }, null, 2));
+    fs.renameSync(`${DELETED_PLANS_FILE}.tmp`, DELETED_PLANS_FILE);
+    state.deletedIds = deletedIds; state.auditLogs = auditLogs;
+    state.plans = state.plans.filter(item => item.id !== planId);
+    return audit;
+  },
+  async getAuditLogs(): Promise<PlanAuditLog[]> {
+    if (!usesFirestore()) return [...local().auditLogs].sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 20);
+    const records = await getAdminFirestore().collection('plan_audit_logs').orderBy('updated_at', 'desc').limit(20).get();
+    return records.docs.map(record => ({ ...record.data(), id: record.id } as PlanAuditLog));
   },
 
   async sync(seedPlans: PlanCatalogItem[]): Promise<void> {

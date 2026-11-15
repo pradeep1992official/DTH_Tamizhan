@@ -1,11 +1,8 @@
-import { readLookupCustomers } from '../models/sharedStore';
 import { Request, Response } from 'express';
 import {
   APPROVED_ADMIN_EMAILS,
-  OPERATORS,
 } from '../models/store';
 import { isCallerAdminAuthorized, verifyAuthToken } from '../middleware/auth';
-import { SubscriberDetails } from '../../src/types';
 import { getRechargeOrders, updatePaidRechargeStatus } from '../models/paidRechargeOrders';
 import { syncCompletedRechargeConnection } from '../models/savedRechargeConnections';
 import { UpdateOrderStatusSchema } from '../middleware/validation';
@@ -48,46 +45,6 @@ export const ordersController = {
       res.setHeader('Cache-Control', 'no-store');
       res.json({ success: true, count: orders.length, orders, nextCursor });
     } catch { res.status(503).json({ success: false, error: 'Unable to load recorded recharge payments.', orders: [] }); }
-  },
-
-  async verifySubscriber(req: Request, res: Response): Promise<void> {
-    try {
-      const { operator, smartCardNumber } = req.body;
-      if (!operator || !smartCardNumber) {
-        res.status(400).json({ success: false, error: 'Operator and smart card number are required.' });
-        return;
-      }
-
-      const operatorConfig = OPERATORS.find((item) => item.id === operator);
-      const existing = (await readLookupCustomers()).find((customer) =>
-        customer.smartCardNumber === smartCardNumber && customer.operator === operator,
-      );
-      if (!existing) {
-        res.status(404).json({ success: false, error: 'Subscriber not found. No provider lookup is configured.' });
-        return;
-      }
-      if (typeof existing.currentBalance !== 'number' || typeof existing.expiryDate !== 'string') {
-        res.status(503).json({ success: false, error: 'Subscriber account details are incomplete. No provider lookup is configured.' });
-        return;
-      }
-      const subscriber: SubscriberDetails = {
-        operator,
-        operatorName: operatorConfig ? operatorConfig.name : operator,
-        smartCardNumber,
-        customerName: existing.customerName,
-        registeredMobile: existing.registeredMobile,
-        currentBalance: existing.currentBalance,
-        packName: existing.activePackName,
-        packMonthlyRent: existing.lastRechargeAmount || 0,
-        expiryDate: existing.expiryDate,
-        isExpired: false,
-        accountStatus: existing?.accountStatus || 'Active',
-      };
-      res.json({ success: true, subscriber });
-    } catch (error) {
-      console.error('[API Error] /api/verify-subscriber failed:', error);
-      res.status(500).json({ success: false, error: 'Internal lookup error' });
-    }
   },
 
   async updateStatus(req: Request, res: Response): Promise<void> {

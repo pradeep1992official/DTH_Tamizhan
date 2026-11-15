@@ -4,7 +4,7 @@ const state = vi.hoisted(() => ({ write: vi.fn(), original: { id: 'existing', op
 vi.mock('fs', () => ({ default: {
   existsSync: () => true,
   readFileSync: (file: string) => file.endsWith('plan_catalog.json') ? JSON.stringify([state.original]) : '[]',
-  writeFileSync: state.write,
+  writeFileSync: state.write, renameSync: vi.fn(),
 } }));
 vi.mock('../server/middleware/auth', () => ({ getSuperAdminEmail: () => 'professorpradeeps@gmail.com' }));
 import { planModel } from '../server/models/planModel';

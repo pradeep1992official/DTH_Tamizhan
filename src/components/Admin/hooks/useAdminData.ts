@@ -1,3 +1,4 @@
+import type { RechargeReport } from '../../../lib/rechargeReport';
 import { useState, useCallback, useEffect } from 'react';
 import { 
   CustomerRecord, 
@@ -75,7 +76,7 @@ export function useAdminData(user: UserProfile | null, showToast: (msg: string) 
   // 4. Reports & Audit Logs State
   const [auditLogs, setAuditLogs] = useState<PlanAuditLog[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
-  const [reportSummary, setReportSummary] = useState<{ totalCustomers: number; completedOrders: number; settledVolume: number } | null>(null);
+  const [reportSummary, setReportSummary] = useState<RechargeReport | null>(null);
 
   // 5. Payment Reports State
   const [payments, setPayments] = useState<PaymentReportItem[]>([]);

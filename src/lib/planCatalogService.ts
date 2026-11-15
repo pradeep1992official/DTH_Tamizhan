@@ -7,7 +7,6 @@ import {
   getDocs, 
   getDoc, 
   setDoc, 
-  deleteDoc, 
   query, 
   orderBy, 
   limit,
@@ -1145,73 +1144,28 @@ export class PlanCatalogService {
     return finalPlan;
   }
 
-  // Permanently delete plan (admin only) from Cloud Firestore
-  static async deletePlan(planId: string, adminUid: string): Promise<boolean> {
-    // 1. Delete from Firebase Firestore
-    if (isFirebaseConfigured && db) {
-      try {
-        await setDoc(PLAN_CATALOG_STATE_REF(), {
-          initialized: true,
-          updated_at: new Date().toISOString(),
-        }, { merge: true });
-      } catch (err) {
-        console.error('[PlanCatalogService] Failed to mark catalog initialized before deletion:', err);
-        throw new Error(`Could not prepare the catalog for deletion: ${getFirebaseErrorDetails(err)}`);
-      }
-
-      try {
-        await deleteDoc(doc(db, 'plan_catalog', planId));
-      } catch (err) {
-        console.error('[PlanCatalogService] Firestore delete error:', err);
-        throw new Error(`Firestore rejected plan deletion: ${getFirebaseErrorDetails(err)}`);
-      }
+  // The server atomically owns catalog deletion, tombstones and audit metadata.
+  static async deletePlan(planId: string, _adminUid: string): Promise<boolean> {
+    if (!auth?.currentUser) throw new Error('Sign in as an administrator before deleting a plan.');
+    const token = await auth.currentUser.getIdToken();
+    const response = await fetch('/api/admin/plans/delete', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ planId }),
+    });
+    const result = await response.json().catch(() => null);
+    if (!response.ok || result?.success !== true || result.deletedPlanId !== planId) {
+      throw new Error(result?.error || 'Plan deletion was not confirmed. Refresh the catalog before retrying.');
     }
-
-    // 2. Delete from Backend Server API
-    try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (auth && auth.currentUser) {
-        try {
-          const token = await auth.currentUser.getIdToken();
-          if (token) headers['Authorization'] = `Bearer ${token}`;
-        } catch {}
-      }
-      await fetch('/api/admin/plans/delete', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ planId, callerEmail: adminUid }),
-      });
-    } catch (e) {
-      console.warn('[PlanCatalogService] Backend delete error:', e);
-    }
-
-    // 3. Update local storage cache
+    // Update display caches only after the authoritative operation is confirmed.
     try {
       const stored = localStorage.getItem(LOCAL_STORAGE_CATALOG_KEY);
-      if (stored) {
-        const parsed: PlanCatalogItem[] = JSON.parse(stored);
-        const filtered = parsed.filter((p) => p.id !== planId);
-        localStorage.setItem(LOCAL_STORAGE_CATALOG_KEY, JSON.stringify(filtered));
+      if (stored) localStorage.setItem(LOCAL_STORAGE_CATALOG_KEY, JSON.stringify((JSON.parse(stored) as PlanCatalogItem[]).filter(plan => plan.id !== planId)));
+      if (result.audit) {
+        const logs: PlanAuditLog[] = JSON.parse(localStorage.getItem(LOCAL_STORAGE_AUDIT_KEY) || '[]');
+        localStorage.setItem(LOCAL_STORAGE_AUDIT_KEY, JSON.stringify([result.audit, ...logs.filter(log => log.id !== result.audit.id)]));
       }
-    } catch {}
-
-    // 4. Record audit log
-    await this.recordAuditLog({
-      id: `audit-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      plan_id: planId,
-      plan_name: planId,
-      operator: 'sun_direct',
-      action: 'delete',
-      updated_at: new Date().toISOString(),
-      updated_by: adminUid || 'admin_user',
-      details: `Permanently deleted plan ${planId} from Firebase Firestore.`,
-    });
-
-    // 5. Dispatch update event
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('plan_catalog_updated'));
-    }
-
+    } catch { /* Local display cache is optional; the server remains authoritative. */ }
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('plan_catalog_updated'));
     return true;
   }
 

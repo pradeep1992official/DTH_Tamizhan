@@ -6,6 +6,7 @@ vi.mock('../server/models/planModel', () => ({ planModel: { getById: f.getById, 
 vi.mock('../server/models/sharedStore', () => ({ readOperators: f.readOperators }));
 vi.mock('../server/razorpay', () => ({ razorpayClient: () => ({ orders: { create: f.create } }), verifyPaymentSignature: vi.fn() }));
 vi.mock('../server/models/paymentLedger', () => ({ recordProviderPayment: vi.fn() }));
+vi.mock('../server/models/rechargeRecovery', () => ({ rememberRechargeOrder: vi.fn(), reconcileRechargePayment: vi.fn() }));
 import { paymentsRouter } from '../server/routes/payments';
 beforeEach(() => {
   vi.clearAllMocks(); f.enabled = true;
@@ -37,4 +38,9 @@ it('rejects cross-operator packs and avoids catalog reads for direct top-ups', a
   f.getById.mockClear();
   expect((await request({ packId: 'custom', customAmount: 279, operator: 'airtel_dth', smartCardNumber: '3012345678' })).body.amount).toBe(27900);
   expect(f.getById).not.toHaveBeenCalled();
+});
+
+it('rejects the legacy generic amount path before provider order creation', async () => {
+  expect((await request({ amount: 100, currency: 'INR' })).status).toBe(400);
+  expect(f.create).not.toHaveBeenCalled();
 });

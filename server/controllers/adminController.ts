@@ -1,3 +1,5 @@
+import { planModel } from '../models/planModel';
+import { rechargeReport } from '../../src/lib/rechargeReport';
 import { readLookupCustomers, saveLookupCustomer, deleteLookupCustomer, readOperators, saveOperator, readAdminRequests, saveAdminRequest } from '../models/sharedStore';
 import { usesFirestore } from '../persistence';
 import { parsePage, paymentPage } from '../models/paymentPages';
@@ -6,7 +8,6 @@ import { queryRecords } from '../queries';
 import { ordersForPayments } from '../models/paymentPages';
 import { randomUUID } from 'node:crypto';
 import { getAuth } from 'firebase-admin/auth';
-import { customersFromPaidRecharges } from '../../src/lib/rechargeCustomers';
 import { getCustomerRechargeOrders, getRechargeOrders } from '../models/paidRechargeOrders';
 import { Request, Response } from 'express';
 import {
@@ -68,8 +69,7 @@ export const adminController = {
     const verdict = await isCallerAdminAuthorized(req, APPROVED_ADMIN_EMAILS);
     if (!verdict.authorized) return forbidden(res);
     try {
-      const records = await getAdminFirestore().collection('plan_audit_logs').orderBy('updated_at', 'desc').limit(20).get();
-      res.json({ success: true, logs: records.docs.map(record => ({ ...record.data(), id: record.id })) });
+      res.json({ success: true, logs: await planModel.getAuditLogs() });
     } catch { res.status(503).json({ success: false, error: 'Unable to load audit logs.' }); }
   },
   async verifyToken(req: Request, res: Response): Promise<void> {
@@ -176,23 +176,8 @@ export const adminController = {
     if (!auth.authorized) return forbidden(res);
     try {
     const orders = await getRechargeOrders();
-    const totalRechargeVolume = orders.filter(order => !order.testMode && order.paymentStatus === 'paid').reduce((sum, order) => sum + (order.amount || 0), 0);
-    const completedOrders = orders.filter((order) => order.rechargeStatus === 'completed').length;
-    const pendingOrders = orders.filter((order) =>
-      order.rechargeStatus === 'pending' || order.rechargeStatus === 'processing',
-    ).length;
-    res.json({
-      success: true,
-      summary: {
-        totalCustomers: customersFromPaidRecharges(orders).length,
-        totalOrders: orders.length,
-        completedOrders,
-        pendingOrders,
-        totalRechargeVolume,
-        settledVolume: orders.filter(order => order.paymentStatus === 'paid').reduce((sum, order) => sum + order.amount, 0),
-      },
-      orders: orders.slice(0, 50),
-    });
+    res.json({ success: true, summary: rechargeReport(orders),
+      orders: orders.filter(order => !order.testMode).slice(0, 50) });
     } catch { res.status(503).json({ success: false, error: 'Unable to load reports from recorded payments.' }); }
   },
 

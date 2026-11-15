@@ -47,7 +47,14 @@ for (const job of rows<EmailJob>('email_outbox.json')) {
   }
   add(collections.emails, documentKey(job.id), metadata);
 }
-const deleted = rows<string>('deleted_plan_ids.json');
+const deletedFile = path.join(process.cwd(), 'data', 'deleted_plan_ids.json');
+const deletedRaw = fs.existsSync(deletedFile) ? fs.readFileSync(deletedFile, 'utf8') : '[]';
+if (fs.existsSync(deletedFile)) sources.set(deletedFile, deletedRaw);
+const deletionLedger = JSON.parse(deletedRaw);
+const deleted: string[] = Array.isArray(deletionLedger) ? deletionLedger : deletionLedger.deletedIds;
+if (!Array.isArray(deleted)) throw new Error('Invalid catalog deletion ledger.');
+for (const audit of deletionLedger.auditLogs || []) add('plan_audit_logs', audit.id, audit);
+for (const intent of rows('recharge_payment_intents.json')) add('server_recharge_payment_intents', paymentKey(intent.id, intent.testMode), intent);
 for (const plan of rows('plan_catalog.json')) {
   if (deleted.includes(plan.id)) continue;
   assertValidCatalogPack(plan); add(collections.plans, plan.id, plan);

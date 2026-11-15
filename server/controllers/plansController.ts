@@ -106,8 +106,8 @@ export const plansController = {
       return;
     }
     const { planId } = req.body;
-    await planModel.delete(planId);
-    res.json({ success: true, deletedPlanId: planId });
+    const audit = await planModel.delete(planId, adminCheck.email || 'verified_admin');
+    res.json({ success: true, deletedPlanId: planId, audit });
   },
 
   async syncSeed(req: Request, res: Response): Promise<void> {

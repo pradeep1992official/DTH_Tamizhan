@@ -9,6 +9,9 @@ const ledger = vi.hoisted(() => ({ record: vi.fn() }));
 vi.mock('../server/middleware/auth', () => ({ getSuperAdminEmail: () => 'root@example.com',
   verifyAuthToken: async (req: express.Request) => req.headers.authorization === 'Bearer customer-token' ? { uid: 'customer-1', email: 'customer@example.com', emailVerified: true } : null }));
 vi.mock('../server/models/paymentLedger', () => ({ recordProviderPayment: ledger.record }));
+vi.mock('node:fs', () => ({ default: { existsSync: () => false } }));
+vi.mock('../server/models/rechargeRecovery', async original => ({ ...await original<any>(), rememberRechargeOrder: vi.fn() }));
+vi.mock('../server/models/sharedStore', () => ({ readOperators: async () => [{ id: 'airtel_dth', isEnabled: true }] }));
 vi.mock('razorpay', () => ({ default: class {
   orders = { create: provider.create, fetch: provider.order };
   payments = { fetch: provider.payment };
@@ -27,6 +30,8 @@ async function request(path: string, body: unknown, authenticated = true) {
     return { status: res.status, body: await res.json() };
   } finally { server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve())); }
 }
+const recharge = { packId: 'custom', customAmount: 10, operator: 'airtel_dth', smartCardNumber: '3012345678' };
+const notes = { dth_customer_uid: 'customer-1', dth_app: 'dth-tamizhan', dth_operator: 'airtel_dth', dth_subscriber: '3012345678', dth_plan: 'Top up', dth_pack_id: 'custom' };
 const signature = createHmac('sha256', 'test-secret').update('order_123|pay_123').digest('hex');
 const payment = { razorpay_order_id: 'order_123', razorpay_payment_id: 'pay_123', razorpay_signature: signature };
 describe('Razorpay checkout', () => {
@@ -40,11 +45,11 @@ describe('Razorpay checkout', () => {
     expect(verifyPaymentSignature('order_other', 'pay_123', signature, 'test-secret')).toBe(false);
   });
   it('creates an INR order and never returns the secret', async () => {
-    provider.create.mockResolvedValue({ id: 'order_123', amount: 100, currency: 'INR' });
-    const result = await request('/api/create-order', { amount: 100, customerEmail: 'untrusted@example.com' });
+    provider.create.mockResolvedValue({ id: 'order_123', amount: 1000, currency: 'INR' });
+    const result = await request('/api/create-order', recharge);
     expect(result.status).toBe(200); expect(result.body.order_id).toBe('order_123');
     expect(JSON.stringify(result.body)).not.toContain('test-secret');
-    expect(provider.create).toHaveBeenCalledWith(expect.objectContaining({ amount: 100, currency: 'INR' }));
+    expect(provider.create).toHaveBeenCalledWith(expect.objectContaining({ amount: 1000, currency: 'INR' }));
     expect(provider.create).toHaveBeenCalledWith(expect.objectContaining({ notes: expect.objectContaining({ dth_customer_uid: 'customer-1' }) }));
     expect(provider.create).toHaveBeenCalledWith(expect.objectContaining({ notes: expect.objectContaining({ dth_customer_email: 'customer@example.com' }) }));
   });
@@ -54,7 +59,7 @@ describe('Razorpay checkout', () => {
   });
   it.each([401, 500])('handles provider error %s', async status => {
     provider.create.mockRejectedValue({ statusCode: status });
-    expect((await request('/api/create-order', { amount: 100 })).status).toBe(status);
+    expect((await request('/api/create-order', recharge)).status).toBe(status);
   });
   it('rejects missing fields and signature mismatch before contacting provider', async () => {
     expect((await request('/api/verify-payment', {})).status).toBe(400);
@@ -63,20 +68,20 @@ describe('Razorpay checkout', () => {
     expect(ledger.record).not.toHaveBeenCalled();
   });
   it.each(['authorized', 'captured'])('verifies %s but marks paid only after capture', async status => {
-    provider.order.mockResolvedValue({ id: 'order_123', amount: 100, currency: 'INR', notes: { dth_customer_uid: 'customer-1' } });
-    provider.payment.mockResolvedValue({ id: 'pay_123', order_id: 'order_123', amount: 100, currency: 'INR', status });
+    provider.order.mockResolvedValue({ id: 'order_123', amount: 1000, currency: 'INR', status: 'paid', notes });
+    provider.payment.mockResolvedValue({ id: 'pay_123', order_id: 'order_123', amount: 1000, currency: 'INR', status });
     const result = await request('/api/verify-payment', payment);
     expect(result.status).toBe(200); expect(result.body.paid).toBe(status === 'captured');
     expect(ledger.record).toHaveBeenCalledWith(expect.objectContaining({ id: 'pay_123', status }), expect.objectContaining({ id: 'order_123' }));
   });
   it('rejects payment attached to another order', async () => {
-    provider.order.mockResolvedValue({ id: 'order_123', amount: 100, currency: 'INR', notes: { dth_customer_uid: 'customer-1' } });
-    provider.payment.mockResolvedValue({ order_id: 'order_other', amount: 100, currency: 'INR', status: 'captured' });
+    provider.order.mockResolvedValue({ id: 'order_123', amount: 1000, currency: 'INR', status: 'paid', notes });
+    provider.payment.mockResolvedValue({ order_id: 'order_other', amount: 1000, currency: 'INR', status: 'captured' });
     expect((await request('/api/verify-payment', payment)).status).toBe(400);
   });
   it('rejects another customer’s validly signed payment without recording it', async () => {
-    provider.order.mockResolvedValue({ id: 'order_123', amount: 100, currency: 'INR', notes: { dth_customer_uid: 'someone-else' } });
-    provider.payment.mockResolvedValue({ id: 'pay_123', order_id: 'order_123', amount: 100, currency: 'INR', status: 'captured' });
+    provider.order.mockResolvedValue({ id: 'order_123', amount: 1000, currency: 'INR', status: 'paid', notes: { ...notes, dth_customer_uid: 'someone-else' } });
+    provider.payment.mockResolvedValue({ id: 'pay_123', order_id: 'order_123', amount: 1000, currency: 'INR', status: 'captured' });
     expect((await request('/api/verify-payment', payment)).status).toBe(403);
     expect(ledger.record).not.toHaveBeenCalled();
   });

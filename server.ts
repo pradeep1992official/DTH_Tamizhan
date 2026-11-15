@@ -1,3 +1,6 @@
+import { productionCsp, cspReport } from './server/securityHeaders';
+import { rechargeWebhookRouter, rechargeScheduleRouter } from './server/routes/rechargeRecovery';
+import { startRechargeRecoveryWorker } from './server/models/rechargeRecovery';
 import { checkPersistence, usesFirestore } from './server/persistence';
 import { brokenLinksRouter } from './server/routes/brokenLinks';
 import { dthLookupRouter } from './server/routes/dthLookup';
@@ -61,7 +64,7 @@ async function startServer() {
   // 1. Security Headers via Helmet
   app.use(
     helmet({
-      contentSecurityPolicy: false, // Allows Vite HMR and dynamic client scripts in iframe
+      contentSecurityPolicy: process.env.NODE_ENV === 'production' ? productionCsp() : false,
       crossOriginEmbedderPolicy: false,
       crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
     })
@@ -69,16 +72,19 @@ async function startServer() {
 
   // 2. Request Parsing Middleware (Mounted BEFORE route handlers)
   app.use(serviceWebhookRouter);
+  app.use(rechargeWebhookRouter);
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
   // 3. Global Rate Limiter for /api routes
   app.use('/api', apiLimiter);
+  app.post('/api/csp-report', express.json({ type: 'application/csp-report', limit: '16kb' }), cspReport);
 
   // 4. Mount MVC API routes
   app.use(coreRouter);
   app.use(ordersRouter);
   app.use(paymentsRouter);
+  app.use(rechargeScheduleRouter);
   app.use(plansRouter);
   app.use(adminRouter);
   app.use(ticketsRouter);
@@ -127,6 +133,7 @@ async function startServer() {
   } catch (error) { await vite?.close(); throw error; }
   console.log(`[DTH Tamizhan] Unified Server listening on localhost:${PORT}`);
   const stopEmailWorker = startReceiptEmailWorker();
+  const stopRechargeWorker = startRechargeRecoveryWorker();
   const emailConfig = emailDeliveryConfig();
   console.log(`[email] Brevo ${emailConfig.enabled && emailConfig.configured ? 'enabled' : 'disabled or not configured'}.`);
 
@@ -135,6 +142,7 @@ async function startServer() {
     if (stopping) return;
     stopping = true;
     stopEmailWorker();
+    stopRechargeWorker();
     const timeout = setTimeout(() => process.exit(1), 5000);
     timeout.unref();
     await vite?.close();

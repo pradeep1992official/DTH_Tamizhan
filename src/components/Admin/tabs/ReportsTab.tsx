@@ -1,3 +1,4 @@
+import { rechargeReport, type RechargeReport } from '../../../lib/rechargeReport';
 import { AdminRefreshButton } from '../AdminRefreshButton';
 import { BrokenLinksPanel } from '../BrokenLinksPanel';
 import React, { useState } from 'react';
@@ -15,7 +16,7 @@ import { OperatorTheme } from '../../../lib/theme';
 import { translations } from '../../../lib/translations';
 
 interface ReportsTabProps {
-  summary?: { totalCustomers: number; completedOrders: number; settledVolume: number } | null;
+  summary?: Pick<RechargeReport, 'totalCustomers' | 'completedOrders' | 'settledVolume'> & Partial<RechargeReport> | null;
   getAuthHeaders?: () => Promise<Record<string, string>>;
   auditLogs: PlanAuditLog[];
   customers: CustomerRecord[];
@@ -39,9 +40,9 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
 }) => {
   const t = translations[currentLang];
   const isLight = currentTheme.isLightMode;
-  const settledOrders = orders.filter((order) => order.paymentStatus === 'paid');
-  const totalVolume = summary?.settledVolume ?? settledOrders.reduce((sum, order) => sum + (order.amount || 0), 0);
-  const completedCount = summary?.completedOrders ?? orders.filter((o) => o.rechargeStatus === 'completed').length;
+  const calculated = rechargeReport(orders);
+  const totalVolume = summary?.settledVolume ?? calculated.settledVolume;
+  const completedCount = summary?.completedOrders ?? calculated.completedOrders;
 
   const [search, setSearch] = useState('');
   const [operator, setOperator] = useState('all');
@@ -59,8 +60,12 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
   const firstDate = orderDates.length ? formatDate(orderDates[0]) : '';
   const lastDate = orderDates.length ? formatDate(orderDates[orderDates.length - 1]) : '';
   const period = orderDates.length ? (firstDate === lastDate ? firstDate : `${firstDate} to ${lastDate}`) : 'No recharge records loaded';
+  // Old client deletion logs hardcoded Sun Direct and used the ID as the name.
+  // Keep their history, but do not present that metadata as verified.
+  const auditOperator = (log: PlanAuditLog) => log.action === 'delete' && log.plan_name === log.plan_id &&
+    /Permanently deleted plan/.test(log.details || '') ? undefined : log.operator;
   const filteredLogs = auditLogs.filter((log) =>
-    (operator === 'all' || log.operator === operator) &&
+    (operator === 'all' || auditOperator(log) === operator) &&
     (action === 'all' || log.action === action) &&
     `${log.plan_name} ${operators[log.operator] || log.operator} ${log.updated_by} ${log.details || ''}`.toLowerCase().includes(search.toLowerCase())
   ).sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at));
@@ -73,18 +78,18 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
 
   return (
     <div className="admin-tab reports-tab space-y-4">
-      <p className="report-records-note text-sm text-muted" tabIndex={0} title="Paid recharge total includes paid orders in these records. Payments shows paid payment records and applies its own search and method filters.">
+      <p className="report-records-note text-sm text-muted" tabIndex={0} title="Live paid recharge totals exclude test transactions. Customer accounts count distinct signed-in customer IDs; connections are counted separately.">
         {orders.length} recharge {orders.length === 1 ? 'record' : 'records'} loaded{orderDates.length > 0 && <> · {period}</>}
       </p>
       {/* Overview Analytics Cards */}
       <div className="admin-summary admin-summary-four">
         <div className="admin-summary-item">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Paid recharge total</span>
+            <span className="text-sm font-medium">Paid recharge total (live)</span>
             <TrendingUp className="w-4 h-4 text-success" />
           </div>
           <div className="text-xl font-bold mt-1 text-success">Rs. {totalVolume.toLocaleString('en-IN')}</div>
-          <div className="text-sm text-ink  mt-1">Paid orders only</div>
+          <div className="text-sm text-ink  mt-1">Live paid orders only</div>
         </div>
 
         <div className="admin-summary-item">
@@ -92,7 +97,8 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
             <span className="text-sm font-medium">{currentLang === 'ta' ? 'வாடிக்கையாளர் கணக்குகள்' : 'Customer accounts'}</span>
             <Users className="w-4 h-4 text-accent" />
           </div>
-          <div className="text-xl font-mono font-bold mt-1">{summary?.totalCustomers ?? customers.length}</div>
+          <div className="text-xl font-mono font-bold mt-1">{summary?.totalCustomers ?? calculated.totalCustomers}</div>
+          <div className="text-sm text-ink mt-1">Accounts with live paid orders</div>
         </div>
 
         <div className="admin-summary-item">
@@ -101,7 +107,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
             <BarChart3 className="w-4 h-4 text-accent" />
           </div>
           <div className="text-xl font-mono font-bold mt-1">{completedCount}</div>
-          <div className="text-sm text-ink  mt-1">Completed orders</div>
+          <div className="text-sm text-ink  mt-1">Completed live orders</div>
         </div>
 
         <div className="admin-summary-item">
@@ -113,6 +119,8 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
           <div className="text-sm text-ink  mt-1">Catalog changes</div>
         </div>
       </div>
+
+      <p className="text-sm text-muted">Live connections: {summary?.totalConnections ?? calculated.totalConnections}. Test paid total: Rs. {(summary?.testSettledVolume ?? calculated.testSettledVolume).toLocaleString('en-IN')} - excluded from live totals.</p>
 
       {/* Audit Log Trail */}
       <div className="admin-ledger space-y-4">
@@ -157,7 +165,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
                       {actionNames[log.action]}
                     </span>
                     <span className="font-bold">{log.plan_name}</span>
-                    <span className="compact-plan-pill compact-plan-operator" data-operator={log.operator}>{operators[log.operator] || log.operator}</span>
+                    <span className="compact-plan-pill compact-plan-operator" data-operator={auditOperator(log)}>{auditOperator(log) ? operators[log.operator] || log.operator : 'Legacy operator unverified'}</span>
                   </div>
                   {log.details && <p className="text-muted  text-sm">{auditDetails(log)}</p>}
                 </div>
