@@ -1,3 +1,4 @@
+import { PaymentEnvironmentBanner } from './PaymentEnvironmentBanner';
 import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { DthOperator, DthPlan, Language, UserProfile } from '../types';
@@ -109,6 +110,7 @@ export function RazorpayCheckout({ onClose, plan, operator, smartCard, currentLa
         <p id="razorpay-description">{verified ? label('Keep your payment reference and download your receipt below.', 'கட்டண எண்ணைச் சேமித்து ரசீதைப் பதிவிறக்கவும்.') : label('Check your connection and plan before you pay.', 'பணம் செலுத்தும் முன் இணைப்பு மற்றும் திட்ட விவரங்களைச் சரிபார்க்கவும்.')}</p>
       </header>
       <div className="rzp-body">
+        <PaymentEnvironmentBanner currentLang={currentLang} />
         <section className="rzp-summary" aria-label={label('Recharge summary', 'ரீசார்ஜ் விவரம்')}>
           <div className="rzp-connection"><div className="rzp-operator-logo" aria-hidden="true">{operator.id === 'd2h' ? <span className="rzp-d2h-name">d2h</span> : <OperatorCardLogo key={operator.id} operatorId={operator.id} className="rzp-operator-image" />}</div><div><strong>{operator.name}</strong><span>{label('Subscriber ID', 'சந்தாதாரர் எண்')} <b>{smartCard}</b></span></div></div>
           <div className="rzp-plan"><span className="rzp-label">{label('Selected plan', 'தேர்ந்தெடுத்த திட்டம்')}</span><p>{planTitle}</p>

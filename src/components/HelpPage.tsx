@@ -25,6 +25,7 @@ export function HelpPage({ user, currentLang, onOpenAuth }: { user: UserProfile 
   const [brands, setBrands] = useState<ServiceBrand[]>([]); const [orders, setOrders] = useState<{ orderId: string; packName: string }[]>([]);
   const [ticket, setTicket] = useState<Ticket | null>(null); const [error, setError] = useState(''); const [notice, setNotice] = useState(location.state?.cancelled ? say('Request cancelled.', 'கோரிக்கை ரத்து செய்யப்பட்டது.') : ''); const [busy, setBusy] = useState(false);
   const [subscriberId, setSubscriberId] = useState(prefill?.subscriberId || ''); const [terms, setTerms] = useState(false); const [payment, setPayment] = useState<Record<string, string> | null>(null);
+  const [review, setReview] = useState<Record<string, unknown> | null>(null);
   const requestKey = useRef(crypto.randomUUID()); const locked = useRef(false);
   const brand = brands.find(item => item.id === brandId); const dth = helpProblems[problem as keyof typeof helpProblems]?.route === 'dth_service';
   useEffect(() => { let active = true;
@@ -45,7 +46,7 @@ export function HelpPage({ user, currentLang, onOpenAuth }: { user: UserProfile 
     locked.current = true; setBusy(true); setError('');
     try {
       await ticketApi(`/${ticket.id}/cancel`, {});
-      setTicket(null); setProblem(''); setDescription(''); setBrandId(''); setSubscriberId(''); setFullAddress(''); setPinCode(''); setTerms(false); setPayment(null); setAddressAttempted(false);
+      setTicket(null); setReview(null); setProblem(''); setDescription(''); setBrandId(''); setSubscriberId(''); setFullAddress(''); setPinCode(''); setTerms(false); setPayment(null); setAddressAttempted(false);
       requestKey.current = crypto.randomUUID(); setNotice(say('Request cancelled.', 'கோரிக்கை ரத்து செய்யப்பட்டது.'));
       navigate('/help', { replace: true, state: { cancelled: true } });
     } catch (error) { setError(error instanceof Error ? error.message : say('Cancellation could not be confirmed. Please retry.', 'ரத்துசெய்ததை உறுதிப்படுத்த முடியவில்லை. மீண்டும் முயலவும்.')); }
@@ -57,10 +58,16 @@ export function HelpPage({ user, currentLang, onOpenAuth }: { user: UserProfile 
     {!user ? <button className="admin-primary" onClick={onOpenAuth}>{say('Sign in to continue', 'தொடர உள்நுழையவும்')}</button> : !ticket ? <form className="space-y-5" onSubmit={async event => {
       event.preventDefault(); if (locked.current || !problem) return;
       if (dth && !validateAddress()) return;
-      locked.current = true; setBusy(true); setError(''); const values = new FormData(event.currentTarget); const uid = user.uid;
-      try { const data = await ticketApi('/help', { requestKey: requestKey.current, phone: values.get('phone'), brand: brandId, subscriberId: dth ? subscriberId : '', fullAddress: dth ? fullAddress : '', pinCode: dth ? pinCode : '', problem, description, language: currentLang === 'ta' ? 'ta' : 'en', website: values.get('website'), ...(values.get('orderId') ? { orderId: values.get('orderId') } : {}) }); if (auth?.currentUser?.uid === uid) setTicket(data.ticket); }
+      const values = new FormData(event.currentTarget);
+      if (!review) {
+        setReview({ requestKey: requestKey.current, phone: values.get('phone'), brand: brandId, subscriberId: dth ? subscriberId : '', fullAddress: dth ? fullAddress : '', pinCode: dth ? pinCode : '', problem, description, language: currentLang === 'ta' ? 'ta' : 'en', website: values.get('website'), ...(values.get('orderId') ? { orderId: values.get('orderId') } : {}) });
+        setError(''); return;
+      }
+      locked.current = true; setBusy(true); setError(''); const uid = user.uid;
+      try { const data = await ticketApi('/help', review); if (auth?.currentUser?.uid === uid) setTicket(data.ticket); }
       catch (e) { if (auth?.currentUser?.uid === uid) setError(e instanceof Error ? e.message : 'Please retry.'); } finally { locked.current = false; setBusy(false); }
     }}>
+      <fieldset hidden={!!review} disabled={busy || !!review} className="space-y-5">
       <label className="block">{say('Phone', 'தொலைபேசி')}<input name="phone" autoComplete="tel-national" inputMode="tel" pattern="[6-9][0-9]{9}" maxLength={10} required defaultValue={prefill?.phone || user.phoneNumber?.replace(/^\+91/, '')} className="mt-1 block w-full border border-rule rounded-xl p-3" /></label>
       <label className="block">{say('Brand', 'நிறுவனம்')}<select value={brandId} onChange={event => setBrandId(event.target.value)} required={dth} className="mt-1 block w-full border border-rule rounded-xl p-3"><option value="">{say('Select brand', 'நிறுவனத்தைத் தேர்ந்தெடுக்கவும்')}</option>{brands.map(brand => <option key={brand.id} value={brand.id}>{brand.displayName}</option>)}</select></label>
       <fieldset><legend className="mb-2 font-medium">{say("What's the problem?", 'என்ன பிரச்சனை?')}</legend><div className="flex flex-wrap gap-2">{[...Object.keys(helpProblems), 'other'].map(key => <button key={key} type="button" aria-pressed={problem === key} onClick={() => { setProblem(key); if (key !== 'other') setDescription(''); }} className={`min-h-11 rounded-full border px-3 py-2 text-sm ${problem === key ? 'bg-brand text-white border-brand' : 'border-rule'}`}>{key === 'other' ? say('Something else', 'வேறு பிரச்சனை') : helpProblems[key as keyof typeof helpProblems][currentLang === 'ta' ? 'ta' : 'en']}</button>)}</div></fieldset>
@@ -71,7 +78,21 @@ export function HelpPage({ user, currentLang, onOpenAuth }: { user: UserProfile 
       {problem === 'other' && <label className="block">{say('Tell us briefly', 'சுருக்கமாகக் கூறுங்கள்')}<textarea name="description" required minLength={5} maxLength={1000} rows={4} value={description} onChange={event => setDescription(event.target.value)} className="mt-1 block w-full border border-rule rounded-xl p-3" /><span className="text-xs text-muted">{description.length}/1000</span></label>}
       {['recharge_failed', 'payment_deducted', 'refund'].includes(problem) && <label className="block">{say('Recent order (optional)', 'சமீபத்திய ஆர்டர் (விருப்பம்)')}<select name="orderId" key={orders.length} defaultValue={prefill?.orderId} className="mt-1 block w-full border border-rule rounded-xl p-3"><option value="">{say('No linked order', 'ஆர்டர் இல்லை')}</option>{orders.map(order => <option key={order.orderId} value={order.orderId}>{order.orderId} - {order.packName}</option>)}</select></label>}
       <div hidden aria-hidden="true"><input name="website" tabIndex={-1} autoComplete="off" /></div>
-      <button className="admin-primary w-full min-h-12" disabled={busy || !problem}>{busy ? say('Please wait...', 'காத்திருக்கவும்...') : say('Continue', 'தொடரவும்')}</button>
+      </fieldset>
+      {review && <section className="space-y-3" aria-label="Review support request">
+        <h2 className="text-xl font-semibold">{say('Review your support request', 'உங்கள் உதவிக் கோரிக்கையைச் சரிபார்க்கவும்')}</h2>
+        <dl className="space-y-2">
+          <div><dt>Phone</dt><dd>{String(review.phone || '')}</dd></div>
+          <div><dt>Brand</dt><dd>{brand?.displayName || 'Not selected'}</dd></div>
+          <div><dt>Problem</dt><dd>{problem === 'other' ? 'Something else' : helpProblems[problem as keyof typeof helpProblems]?.[currentLang === 'ta' ? 'ta' : 'en']}</dd></div>
+          {!!review.subscriberId && <div><dt>Customer ID</dt><dd>{String(review.subscriberId)}</dd></div>}
+          {!!review.fullAddress && <div><dt>Address</dt><dd>{String(review.fullAddress)} / {String(review.pinCode)}</dd></div>}
+          {!!review.description && <div><dt>Details</dt><dd className="whitespace-pre-wrap">{String(review.description)}</dd></div>}
+          {!!review.orderId && <div><dt>Linked order</dt><dd>{String(review.orderId)}</dd></div>}
+        </dl>
+        <button type="button" className="admin-quiet" disabled={busy} onClick={() => setReview(null)}>{say('Edit details', 'விவரங்களைத் திருத்தவும்')}</button>
+      </section>}
+      <button className="admin-primary w-full min-h-12" disabled={busy || !problem}>{busy ? say('Please wait...', 'காத்திருக்கவும்...') : review ? say('Submit support request', 'உதவிக் கோரிக்கையை சமர்ப்பிக்கவும்') : say('Review support request', 'தொடரவும்')}</button>
       <button type="button" className="admin-quiet w-full min-h-11" disabled={busy} onClick={() => navigate('/recharge')}>{say('Cancel', 'ரத்து செய்')}</button>
     </form> : <section className="rounded-xl border border-rule p-4 space-y-4">
       <h2 className="font-semibold" role="status">{say('Ticket', 'கோரிக்கை')} {ticket.ticketNo}</h2>

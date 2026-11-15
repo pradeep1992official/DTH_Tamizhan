@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculatePayment, createPaymentService, paymentMode } from '../server/payments';
+import { calculatePayment, createPaymentService, paymentMode, isTestPaymentEnvironment } from '../server/payments';
 import type { PlanCatalogItem } from '../src/types';
 
 const plans = [{ id: 'sun-1', operator: 'sun_direct', amount: 249.50, plan_name: 'Tamil HD', duration_months: 1 },
@@ -7,6 +7,11 @@ const plans = [{ id: 'sun-1', operator: 'sun_direct', amount: 249.50, plan_name:
 const input = { idempotencyKey: '00000000-0000-4000-8000-000000000001', packId: 'sun-1', operator: 'sun_direct' as const, smartCardNumber: '41289456123' };
 
 describe('payment mode (QA-02, QA-03)', () => {
+  it('identifies Razorpay test keys even when using the production checkout flow', () => {
+    expect(isTestPaymentEnvironment('production', 'rzp_test_fixture')).toBe(true);
+    expect(isTestPaymentEnvironment('production', 'rzp_live_fixture')).toBe(false);
+    expect(isTestPaymentEnvironment('sandbox', 'rzp_live_fixture')).toBe(true);
+  });
   it('enables sandbox only through the exact explicit flag', () => {
     expect(paymentMode('sandbox')).toBe('sandbox');
     for (const value of ['production', '', 'test', 'SANDBOX', 'true']) expect(paymentMode(value)).toBe('production');

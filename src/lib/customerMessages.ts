@@ -176,7 +176,7 @@ const pairs = {
   uiSupportedOperator: ['Select a supported operator', 'ஆதரிக்கப்படும் ஆபரேட்டரைத் தேர்ந்தெடுக்கவும்'], // Native Tamil review required.
   uiAmountBounds: ['Enter an amount from Rs. {min} to Rs. {max} with no more than {decimals} decimal places.', 'Rs. {min} முதல் Rs. {max} வரை, அதிகபட்சம் {decimals} தசம இடங்களுடன் தொகையை உள்ளிடவும்.'], // Native Tamil review required.
   uiAmountHelp: ['Rs. {min}–Rs. {max}; up to {decimals} decimal places.', 'Rs. {min} முதல் Rs. {max} வரை; அதிகபட்சம் {decimals} தசம இடங்கள்.'], // Native Tamil review required.
-  uiPolicyDraft: ['Draft - details marked [FILL IN] await confirmation. Effective date: {date}.', 'வரைவு - [FILL IN] எனக் குறிக்கப்பட்ட விவரங்கள் உறுதிசெய்யப்பட வேண்டும். நடைமுறைக்கு வரும் தேதி: {date}.'], // Native Tamil review required.
+  uiPolicyDraft: ['Effective date: {date}.', 'நடைமுறைக்கு வரும் தேதி: {date}.'], // Native Tamil review required.
   uiSetTopBox: ['Set-top box', 'செட்-டாப் பாக்ஸ்'], // Native Tamil review required.
   uiNoCatalogPacks: ['{operator} has no catalog packs here. You can choose a custom top-up from {range} instead.', '{operator} பேக்குகள் இங்கு இல்லை. {range} வரம்பில் உங்கள் விருப்பத் தொகையில் ரீசார்ஜ் செய்யலாம்.'], // Native Tamil review required.
   uiNoProviderOrder: ['No provider order created', 'கட்டணச் சேவை ஆர்டர் இன்னும் உருவாக்கப்படவில்லை'], // Native Tamil review required.

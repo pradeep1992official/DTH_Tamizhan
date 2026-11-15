@@ -1,3 +1,4 @@
+import { lookupOperators } from '../lib/dthLookup';
 import { translations } from '../lib/translations';
 import React, { useState } from 'react';
 import { localizeCustomerError } from '../lib/customerMessages';
@@ -97,7 +98,7 @@ export function AccountPage({ user, currentLang, connections = [], onOpenAuth, o
         <section className="account-card">
           <div className="account-card-heading"><h2>{copy.boxes}</h2><span className="account-count">{saved.length}</span></div>
           {saved.length ? <ul className="account-boxes">{saved.slice(0, 3).map(connection => <li key={connection.id}>
-            <span><strong>{connection.nickname || connection.operatorName}</strong><small>{connection.operatorName}</small></span>
+            <span><strong>{connection.nickname || (connection.operator === 'd2h' ? 'D2H' : lookupOperators[connection.operator as keyof typeof lookupOperators] || connection.operatorName)}</strong><small>{connection.operator === 'd2h' ? 'D2H' : lookupOperators[connection.operator as keyof typeof lookupOperators] || connection.operatorName}</small></span>
             <span className="account-box-id">&bull;&bull;&bull;&bull; {connection.smartCardNumber.slice(-4)}</span>
           </li>)}</ul> : <div className="account-empty"><h3>{copy.empty}</h3><p>{copy.emptyHelp}</p></div>}
           <div className="account-actions"><Link className="account-primary" to="/connections">{copy.manage}</Link><Link className="account-text-link" to="/recharge">{t.navRecharge} &rarr;</Link></div>

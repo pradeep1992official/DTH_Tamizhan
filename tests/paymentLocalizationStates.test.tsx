@@ -30,8 +30,8 @@ describe('Tamil checkout states', () => {
     expect(html).toContain('நேரம் முடிந்துவிட்டது'); expect(html).toContain('புதிய சோதனை QR உருவாக்கவும்');
     expect(html).not.toContain('Generate a new');
   });
-  it('localizes loading and provider errors', () => {
-    cells.values = ['production', null, 'upi', 'success', true, 'Payment provider is not configured. No payment has been taken. Please retry later.', now];
+  it('localizes simulator loading and provider errors', () => {
+    cells.values = ['sandbox', null, 'upi', 'success', true, 'Payment provider is not configured. No payment has been taken. Please retry later.', now];
     const html = render();
     expect(html).toContain('சேவை இன்னும் அமைக்கப்படவில்லை'); expect(html).toContain('சரிபார்க்கப்படுகின்றன');
     expect(html).not.toMatch(/Payment provider is not configured|Checking checkout/);

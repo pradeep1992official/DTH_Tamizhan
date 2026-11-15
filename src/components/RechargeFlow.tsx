@@ -1,6 +1,7 @@
+import { PaymentEnvironmentBanner } from './PaymentEnvironmentBanner';
 import { CatalogColumnHeadings, PlanCard } from './BrowsePlans/PlanCard';
 import '../recharge-heading.css';
-import { catalogItemToBrowsePlan } from '../lib/browsePlansData';
+import { deduplicateBrowsePlans, catalogItemToBrowsePlan } from '../lib/browsePlansData';
 import { formatMessage, localizeCustomerError } from '../lib/customerMessages';
 import { OperatorCatalogNotice } from './OperatorCatalogNotice';
 import { TOP_UP_LIMITS, parseTopUpAmount, validateTopUpAmount } from '../lib/topUpAmount';
@@ -234,7 +235,8 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
 
 
   // Filtered catalog for customer's selected operator
-  const operatorCatalog = catalogPlans.filter((p) => isSameDthOperatorGroup(p.operator, selectedOpId));
+  const uniqueCatalogIds = new Set(deduplicateBrowsePlans(catalogPlans.map(catalogItemToBrowsePlan)).map(plan => plan.id));
+  const operatorCatalog = catalogPlans.filter((p) => uniqueCatalogIds.has(p.id) && isSameDthOperatorGroup(p.operator, selectedOpId));
   const visibleBouquets = operatorCatalog
     .filter((plan) =>
       (catalogTypeFilter === 'all' || plan.pack_type === catalogTypeFilter) &&
@@ -349,6 +351,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
 
   return (
     <div className="recharge-page">
+      <PaymentEnvironmentBanner currentLang={currentLang} />
       {/* Hero Welcome & Quick Stats */}
       <div
         className={`page-heading recharge-heading`}

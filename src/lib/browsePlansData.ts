@@ -38,6 +38,18 @@ export function catalogItemToBrowsePlan(p: PlanCatalogItem): BrowsePlan {
   };
 }
 
+/** Collapse equivalent customer-visible packs without deleting catalog records. */
+export function deduplicateBrowsePlans(plans: BrowsePlan[]): BrowsePlan[] {
+  const seen = new Set<string>();
+  return plans.filter(plan => {
+    const key = JSON.stringify([plan.operator, plan.name.trim().toLowerCase().replace(/\s+/g, ' '), plan.type, plan.duration_months, plan.price,
+      plan.channel_count ?? null, plan.hd_channel_count ?? null,
+      [...new Set(plan.channels)].sort(), [...new Set(plan.genre_tags)].sort(), plan.channel_list_url || '']);
+    if (seen.has(key)) return false;
+    seen.add(key); return true;
+  });
+}
+
 /**
  * Canonical initial Browse Plans derived from the unified catalog
  */
@@ -121,7 +133,7 @@ export function computePlanMetrics(plans: BrowsePlan[]): BrowsePlan[] {
  * Filters and sorts plans based on user selection
  */
 export function filterAndSortPlans(plans: BrowsePlan[], filters: PlanFilters): BrowsePlan[] {
-  let filtered = plans.filter((p) => {
+  let filtered = deduplicateBrowsePlans(plans).filter((p) => {
     // Operator multi-select
     if (filters.operators.length > 0 && !filters.operators.some((operator) => isSameDthOperatorGroup(operator, p.operator))) {
       return false;

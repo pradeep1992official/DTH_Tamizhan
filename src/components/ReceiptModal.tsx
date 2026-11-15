@@ -70,6 +70,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               <Tv className="w-6 h-6 text-ink" />
             </div>
             <div>
+              {order.testMode && <p className="rzp-test-note">TEST TRANSACTION - No real money collected. No real recharge confirmed.</p>}
               <h2 id="receipt-modal-title" className="text-base font-bold tracking-tight">
                 {t.receiptTitle}
               </h2>

@@ -13,7 +13,7 @@ import {
 } from '../../lib/icons';
 import { BrowsePlan, DthConnection, Language, PlanFilters, UserProfile, isSameDthOperatorGroup } from '../../types';
 import { OperatorTheme } from '../../lib/theme';
-import { filterAndSortPlans, catalogItemToBrowsePlan, catalogPriceMaximum } from '../../lib/browsePlansData';
+import { deduplicateBrowsePlans, filterAndSortPlans, catalogItemToBrowsePlan, catalogPriceMaximum } from '../../lib/browsePlansData';
 import { PlanFilterSidebar } from './PlanFilterSidebar';
 import { CatalogColumnHeadings, PlanCard } from './PlanCard';
 import { CompareDrawer } from './CompareDrawer';
@@ -86,9 +86,9 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
 
     PlanCatalogService.getAllPlans({ allowFallback: false })
       .then((items) => {
-        setAllPlans((items || []).map(catalogItemToBrowsePlan));
+        setAllPlans(deduplicateBrowsePlans((items || []).map(catalogItemToBrowsePlan)));
         if (items && items.length > 0) {
-          setAllPlans(items.map(catalogItemToBrowsePlan));
+          setAllPlans(deduplicateBrowsePlans(items.map(catalogItemToBrowsePlan)));
           setFetchError(null);
         } else {
           setFetchError(t.catalogLoadError);
@@ -104,7 +104,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
 
   const handleLoadOfflineCatalog = () => {
     const offline = PlanCatalogService.getOfflineSeedCatalog();
-    setAllPlans(offline.map(catalogItemToBrowsePlan));
+    setAllPlans(deduplicateBrowsePlans(offline.map(catalogItemToBrowsePlan)));
     setFetchError(null);
     setIsLoading(false);
   };
@@ -117,9 +117,9 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
     const unsubscribe = PlanCatalogService.subscribeToPlans(
       (catalogItems) => {
         if (!isMounted) return;
-        setAllPlans((catalogItems || []).map(catalogItemToBrowsePlan));
+        setAllPlans(deduplicateBrowsePlans((catalogItems || []).map(catalogItemToBrowsePlan)));
         if (catalogItems && catalogItems.length > 0) {
-          const mapped = catalogItems.map(catalogItemToBrowsePlan);
+          const mapped = deduplicateBrowsePlans(catalogItems.map(catalogItemToBrowsePlan));
           setAllPlans(mapped);
           setFetchError(null);
         }
@@ -157,7 +157,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
       if (prev.length >= 3) {
         return prev;
       }
-      return [...prev, plan];
+      return deduplicateBrowsePlans([...prev, plan]);
     });
   };
 

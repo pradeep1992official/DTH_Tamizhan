@@ -16,7 +16,7 @@ export const BUSINESS_DETAILS = {
   bankCredit: 'Normally 7–10 working days after initiation of a normal Razorpay refund, to the original payment method. Timing depends on the bank and payment method; contact support with the refund reference if the stated period is exceeded',
   reconciliation: 'Report a debit with an unconfirmed payment immediately. Razorpay may check the bank for late authorisation for up to 3 days from payment creation. This is a payment-status reconciliation window, not a promise of recharge completion or bank-refund credit within 3 days',
   feesAndTaxes: 'The amount displayed at checkout is the amount charged; this checkout does not add a separate Razorpay gateway surcharge. Razorpay processing fees and 18% GST on those fees are merchant charges under the merchant agreement, not an automatic 18% tax on the recharge value. Any applicable customer charges or taxes must be disclosed before payment. The payment receipt is not a tax invoice',
-  policyDate: 'To be announced after launch; this policy is a draft until its effective date is published',
+  policyDate: '15 November 2026',
   retention: 'Account profiles and saved boxes are kept while needed to provide the account service; verified deletion requests are reviewed by support, subject to required records. Closed support correspondence is retained for 2 years after closure as our business retention period. Payment, recharge and refund records needed for GST accounts are retained for 72 months from the due date for the annual return for the relevant year. Records involved in proceedings or investigations are retained until one year after final disposal or the statutory retention period, whichever is later. Other applicable legal holds may extend retention. Removal or anonymisation of records no longer needed is handled through manual review; automatic deletion is not implemented',
   processors: 'Netlify is the current hosting provider selected for deployment. Google/Firebase provides authentication and database storage; Razorpay processes payments; Brevo sends transactional emails. Optional AI pack suggestions send preferences and plan information to Google Gemini. Information shared with each provider is limited to its service purpose. Hosting, logs and provider processing may occur in India or other countries according to deployment configuration and provider terms; India-only processing is not promised',
   installation: 'Not applicable. DTH Tamizhan provides DTH recharges only; installation services, installation service areas and installation quotations are not offered',
@@ -59,7 +59,7 @@ export const POLICY_CONTENT: Record<PolicyKey, PolicySection[]> = {
     ] },
     { heading: 'Approved refunds', paragraphs: [
       'Where a refund is due, support will confirm the amount and reference. Refunds should return through the original payment method where supported. If that method is unavailable, support must explain the documented alternative; do not send a further payment or share a UPI PIN to receive a refund.',
-      `Refund initiation after approval: ${b.refundProcessing}. Expected credit after initiation: ${b.bankCredit}. Bank and provider processing can affect when a credit appears. Any applicable statutory requirement takes priority over this draft policy.`,
+      `Refund initiation after approval: ${b.refundProcessing}. Expected credit after initiation: ${b.bankCredit}. Bank and provider processing can affect when a credit appears. Any applicable statutory requirement takes priority over this policy.`,
     ] },
   ],
   privacy: [
@@ -79,12 +79,12 @@ export const POLICY_CONTENT: Record<PolicyKey, PolicySection[]> = {
     ] },
     { heading: 'Your choices and requests', paragraphs: [
       'Contact support to ask about access, correction, deletion, consent withdrawal or a privacy complaint, as applicable under Indian law. Some verification may be needed to protect your account. We will explain if a legal retention requirement limits a deletion request. Do not send passwords or payment credentials as identity proof.',
-      'Using optional features is your choice. This draft does not establish a separate marketing consent. Privacy information should be updated when the actual service or providers change; the effective date must be shown.',
+      'Using optional features is your choice. Optional features do not establish separate marketing consent. We update this policy and its effective date when our service or providers change.',
     ] },
   ],
   terms: [
     { heading: 'Business and scope', paragraphs: [
-      `DTH Tamizhan is operated by ${b.legalName}. Registered address: ${b.address}. GST information: ${b.gstin}. These draft terms cover use of the website and DTH recharge/support requests in India. ${b.installation}.`,
+      `DTH Tamizhan is operated by ${b.legalName}. Registered address: ${b.address}. GST information: ${b.gstin}. These terms cover use of the website and DTH recharge/support requests in India. ${b.installation}.`,
       'Operator names and logos identify the relevant services. Their appearance does not by itself establish an authorized partnership, endorsement or affiliation.',
     ] },
     { heading: 'Your request and the final amount', paragraphs: [
@@ -93,7 +93,7 @@ export const POLICY_CONTENT: Record<PolicyKey, PolicySection[]> = {
     ] },
     { heading: 'Payment and recharge status', paragraphs: [
       'A request is not a completed recharge merely because you clicked a button, saw a redirect or were debited. Payment needs provider confirmation, and the recharge needs operator confirmation. Operator or payment-provider processing can delay the outcome; activation is not guaranteed to be instant.',
-      'A clearly marked test/sandbox session simulates an outcome only. It does not take a real payment, dispatch a recharge or establish that an operator account was credited. Live payment is currently unavailable until a real payment provider is configured.',
+      'A clearly marked test/sandbox session simulates an outcome only. It does not take a real payment, dispatch a recharge or establish that an operator account was credited. The payment environment is identified on the recharge and checkout screens. Test payments do not collect real money or dispatch real recharges.',
     ] },
     { heading: 'Refunds, privacy and service issues', paragraphs: [
       'Read the Refund & Cancellation Policy for failed, duplicate and pending transactions and cancellation requests. Read the Privacy Policy for information handling and contact support if you have questions before using the service.',

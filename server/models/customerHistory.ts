@@ -6,7 +6,7 @@ export function customerHistory(uid: string, allOrders: RechargeOrder[], ledger:
   const payments = ledger.filter(payment => payment.customerUid === uid).map(payment => ({
     id: payment.id, orderId: payment.orderId, operator: payment.operator, smartCardNumber: payment.smartCardNumber,
     packName: payment.packName, amount: payment.amount, currency: payment.currency, status: payment.status,
-    paymentMethod: payment.paymentMethod, createdAt: payment.createdAt,
+    paymentMethod: payment.paymentMethod, createdAt: payment.createdAt, testMode: payment.testMode === true,
   }));
   return { orders: orders.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
     payments: payments.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)) };

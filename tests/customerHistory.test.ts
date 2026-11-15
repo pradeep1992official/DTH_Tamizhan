@@ -44,6 +44,7 @@ it('returns only the signed-in account history and ignores admin-wide/client ide
   expect(response.status).toBe(200); expect(response.headers.get('Cache-Control')).toBe('no-store');
   expect(response.json().orders.map((item: any) => item.orderId)).toEqual(['order_owner']);
   expect(response.json().payments.map((item: any) => item.id)).toEqual(['pay_owner']);
+  expect(response.json().payments[0].testMode).toBe(true);
   expect(response.body.toString()).not.toContain('Private admin notes'); expect(response.body.toString()).not.toContain('customerEmail');
 });
 it('does not give administrators all customers on the personal-history endpoint', async () => {

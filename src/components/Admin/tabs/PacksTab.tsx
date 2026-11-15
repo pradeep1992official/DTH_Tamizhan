@@ -1,3 +1,4 @@
+import { catalogItemToBrowsePlan, deduplicateBrowsePlans } from '../../../lib/browsePlansData';
 import { formatPrice, formatMonthlyEquivalent, formatDuration, validateCatalogPack } from '../../../lib/catalog';
 import { AdminRefreshButton } from '../AdminRefreshButton';
 import React, { useState } from 'react';
@@ -105,7 +106,11 @@ export const PacksTab: React.FC<PacksTabProps> = ({
 
   const operatorNames: Record<string, string> = { sun_direct: 'Sun Direct', tata_play: 'Tata Play', airtel_dth: 'Airtel DTH', dish_tv: 'Dish TV', d2h: 'D2H' };
 
+  const [showDuplicates, setShowDuplicates] = useState(false);
+  const uniqueIds = new Set(deduplicateBrowsePlans(plans.map(catalogItemToBrowsePlan)).map(plan => plan.id));
+  const duplicateCount = plans.length - uniqueIds.size;
   const filteredPlans = plans.filter((p) => {
+    if (!showDuplicates && !uniqueIds.has(p.id)) return false;
     const matchOp = selectedPackOp === 'all' || isSameDthOperatorGroup(p.operator, selectedPackOp);
     const matchSearch =
       p.plan_name.toLowerCase().includes(packSearch.toLowerCase()) ||
@@ -284,6 +289,11 @@ export const PacksTab: React.FC<PacksTabProps> = ({
           </button>
         </div>
       </div>
+
+      {duplicateCount > 0 && <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rule p-3 text-sm">
+        <span>{duplicateCount} equivalent duplicate {duplicateCount === 1 ? 'record' : 'records'} {showDuplicates ? 'included' : 'hidden'}. Stored records are preserved for review.</span>
+        <button type="button" className="underline" aria-pressed={showDuplicates} onClick={() => setShowDuplicates(value => !value)}>{showDuplicates ? 'Hide duplicate records' : 'Show duplicate records'}</button>
+      </div>}
 
       {/* Error Banner with Retry */}
       {plansError && (
