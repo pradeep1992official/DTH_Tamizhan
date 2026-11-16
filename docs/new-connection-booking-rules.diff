@@ -1,0 +1,37 @@
+diff --git a/firestore.indexes.json b/firestore.indexes.json
+index 27d3129..3ed9b7d 100644
+--- a/firestore.indexes.json
++++ b/firestore.indexes.json
+@@ -18,7 +18,11 @@
+     {"collectionGroup": "dthChannels", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "active", "order": "ASCENDING"}, {"fieldPath": "sortOrder", "order": "ASCENDING"}]},
+     {"collectionGroup": "dthEquipmentOffers", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "active", "order": "ASCENDING"}, {"fieldPath": "sortOrder", "order": "ASCENDING"}]},
+     {"collectionGroup": "dthPacks", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "brandId", "order": "ASCENDING"}, {"fieldPath": "active", "order": "ASCENDING"}, {"fieldPath": "sortOrder", "order": "ASCENDING"}]},
+-    {"collectionGroup": "dthEquipmentOffers", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "brandId", "order": "ASCENDING"}, {"fieldPath": "active", "order": "ASCENDING"}, {"fieldPath": "sortOrder", "order": "ASCENDING"}]}
++    {"collectionGroup": "dthEquipmentOffers", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "brandId", "order": "ASCENDING"}, {"fieldPath": "active", "order": "ASCENDING"}, {"fieldPath": "sortOrder", "order": "ASCENDING"}]},
++    {"collectionGroup": "newConnectionOrders", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "uid", "order": "ASCENDING"}, {"fieldPath": "createdAt", "order": "DESCENDING"}]},
++    {"collectionGroup": "newConnectionOrders", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "customer.phone", "order": "ASCENDING"}, {"fieldPath": "createdAt", "order": "DESCENDING"}]},
++    {"collectionGroup": "newConnectionOrders", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "providerOrderId", "order": "ASCENDING"}]},
++    {"collectionGroup": "newConnectionOrders", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "provider", "order": "ASCENDING"}, {"fieldPath": "paymentStatus", "order": "ASCENDING"}, {"fieldPath": "createdAt", "order": "DESCENDING"}, {"fieldPath": "id", "order": "DESCENDING"}]}
+   ],
+   "fieldOverrides": []
+ }
+diff --git a/firestore.rules b/firestore.rules
+index 480aa51..7acb7a3 100644
+--- a/firestore.rules
++++ b/firestore.rules
+@@ -47,7 +47,14 @@ service cloud.firestore {
+     }
+     match /appSettings/newConnection {
+       allow read: if true;
+-      allow write: if false; // Validated admin API only; full advance is the default.
++      allow write: if false; // Validated admin API only; booking without payment is the default.
++    }
++
++    // Server-only booking/payment mutations, including awaiting_admin_confirmation.
++    // Real internal bank-check notes live in server_new_connection_private.
++    match /newConnectionOrders/{orderId} {
++      allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
++      allow create, update, delete: if false;
+     }
+ 
+     // tickets: server-generated support/service-request records (see src/lib/tickets.ts).

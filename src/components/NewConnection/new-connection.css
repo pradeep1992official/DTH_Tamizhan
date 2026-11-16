@@ -85,3 +85,21 @@
 .connection-diff{display:flex;flex-direction:column;gap:16px}
 .connection-diff-tabs{display:flex;flex-wrap:wrap;gap:8px}
 @media(max-width:600px){.new-connection-page{gap:16px}.connection-pack{padding:14px}.connection-list-heading>label{width:100%}.connection-list-heading select{width:100%}.connection-brands button{min-width:125px}.connection-controls label{min-width:calc(50% - 12px)}.connection-controls .connection-search{flex-basis:100%}.connection-compare-bar{padding:10px;flex-wrap:wrap;bottom:8px}.connection-compare-bar>div{flex-basis:100%}.connection-selection{max-height:90px;overflow:auto}.connection-compare-table tr>:first-child{min-width:115px;max-width:125px;padding-inline:10px}.connection-compare-table :is(th,td){min-width:190px;padding:12px}.connection-state{padding:24px 16px}}
+
+.connection-booking-form{border:0;padding:0;display:flex;flex-direction:column;gap:16px;min-width:0}
+.connection-booking-steps{display:flex;gap:18px;list-style:none;padding:0;margin:0;font-size:13px;color:var(--color-muted)}
+.connection-booking-steps [aria-current]{font-weight:700;color:var(--color-accent)}
+.connection-booking-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.connection-booking-fields :is(input,select,textarea){width:100%;min-width:0}
+.connection-booking-fields textarea{min-height:90px}
+.connection-field-error{color:var(--color-error)}
+.connection-booking-fields [aria-invalid=true]{border-color:var(--color-error)}
+.connection-booking-breakdown{display:grid;gap:8px;margin:0;padding:14px 0;border-block:1px solid var(--color-rule);max-width:520px;width:100%}
+.connection-booking-breakdown>div{display:flex;align-items:baseline;justify-content:space-between;gap:16px}
+.connection-booking-breakdown dd{font-weight:650;margin:0;font-variant-numeric:tabular-nums}
+.connection-booking-breakdown>div:nth-last-child(-n+3){font-weight:700}
+.connection-policy{white-space:pre-wrap;padding:10px 0;font-size:13px}
+.connection-honeypot{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+.connection-booking-receipt{display:flex;flex-direction:column;gap:16px}
+@media(max-width:600px){.connection-booking-fields{grid-template-columns:1fr}.connection-booking-steps{gap:12px;font-size:12px}.new-connection-page .connection-check{align-items:flex-start}}
+@media print{body:has(.connection-booking-receipt) *{visibility:hidden}.connection-booking-receipt,.connection-booking-receipt *{visibility:visible!important}.connection-booking-receipt{position:absolute;left:0;top:0;width:100%;padding:20px;color:#000;background:#fff}.connection-booking-receipt .connection-no-print{display:none}}

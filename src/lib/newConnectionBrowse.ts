@@ -1,3 +1,4 @@
+import { calculateNewConnectionPrice } from './newConnectionPricing';
 import type { Brand, CatalogData, Channel, EquipmentOffer, Pack } from './newConnectionCatalog';
 
 export type ChannelCounts = Pick<Pack, 'channelCount' | 'payChannelCount' | 'freeChannelCount' | 'hdChannelCount'>;
@@ -43,7 +44,7 @@ export function compatibleEquipment(item: VisiblePack, offers: EquipmentOffer[])
 }
 export function connectionQuote(item: VisiblePack, offers: EquipmentOffer[], validity?: number) {
   const option = pricing(item.pack, validity); const offer = compatibleEquipment(item, offers)[0];
-  return { option, offer, total: offer ? option.price + offer.hardwarePrice + offer.installationCharge : null };
+  return { option, offer, total: offer ? calculateNewConnectionPrice(option.price, offer, 1).total : null };
 }
 export function parseCompare(search: string): PackSelection[] {
   const params = new URLSearchParams(search); const ids = (params.get('packs') ?? '').split(','); const days = (params.get('validities') ?? '').split(','); const seen = new Set<string>();

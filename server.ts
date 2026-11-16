@@ -1,4 +1,5 @@
 import { youpiWebhookRouter } from './server/youpi';
+import { newConnectionOrdersRouter } from './server/routes/newConnectionOrders';
 import { productionCsp, cspReport } from './server/securityHeaders';
 import { rechargeWebhookRouter, rechargeScheduleRouter } from './server/routes/rechargeRecovery';
 import { startRechargeRecoveryWorker } from './server/models/rechargeRecovery';
@@ -89,6 +90,7 @@ async function startServer() {
   app.use(rechargeScheduleRouter);
   app.use(plansRouter);
   app.use(adminRouter);
+  app.use(newConnectionOrdersRouter);
   app.use(ticketsRouter);
   app.use(serviceBrandsRouter);
   app.use(servicePaymentsRouter);

@@ -1,7 +1,7 @@
 import express from 'express';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 const f = vi.hoisted(() => ({ enabled: true, getById: vi.fn(), readOperators: vi.fn(), create: vi.fn() }));
-vi.mock('../server/middleware/auth', () => ({ verifyAuthToken: async () => ({ uid: 'owner', emailVerified: false }) }));
+vi.mock('../server/middleware/auth', () => ({ getSuperAdminEmail: () => 'root@example.com', verifyAuthToken: async () => ({ uid: 'owner', emailVerified: false }) }));
 vi.mock('../server/models/planModel', () => ({ planModel: { getById: f.getById, getAll: () => { throw new Error('Must not scan the catalog at payment creation'); } } }));
 vi.mock('../server/models/sharedStore', () => ({ readOperators: f.readOperators }));
 vi.mock('../server/razorpay', () => ({ razorpayClient: () => ({ orders: { create: f.create } }), verifyPaymentSignature: vi.fn() }));

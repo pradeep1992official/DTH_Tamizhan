@@ -47,7 +47,14 @@ service cloud.firestore {
     }
     match /appSettings/newConnection {
       allow read: if true;
-      allow write: if false; // Validated admin API only; full advance is the default.
+      allow write: if false; // Validated admin API only; booking without payment is the default.
+    }
+
+    // Server-only booking/payment mutations, including awaiting_admin_confirmation.
+    // Real internal bank-check notes live in server_new_connection_private.
+    match /newConnectionOrders/{orderId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow create, update, delete: if false;
     }
 
     // tickets: server-generated support/service-request records (see src/lib/tickets.ts).

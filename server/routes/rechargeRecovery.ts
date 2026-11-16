@@ -1,11 +1,10 @@
 import express, { Router } from 'express';
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { timingSafeEqual } from 'node:crypto';
+import { razorpayClient, verifyRazorpayWebhookSignature } from '../razorpay';
 import { reconcileRechargePayment, recoverRechargeOrder, reconcilePendingRecharges } from '../models/rechargeRecovery';
 
 export function validRechargeWebhook(body: Buffer, signature: unknown, secret = process.env.RAZORPAY_RECHARGE_WEBHOOK_SECRET): boolean {
-  if (!secret || typeof signature !== 'string' || !/^[a-f0-9]{64}$/i.test(signature)) return false;
-  const expected = createHmac('sha256', secret).update(body).digest();
-  return timingSafeEqual(expected, Buffer.from(signature, 'hex'));
+  return verifyRazorpayWebhookSignature(body, signature, secret);
 }
 export const rechargeWebhookRouter = Router();
 // Must be mounted before express.json(): the signature covers the exact bytes.
@@ -14,6 +13,16 @@ rechargeWebhookRouter.post('/api/webhooks/recharges', express.raw({ type: 'appli
   let event;
   try { event = JSON.parse(req.body.toString('utf8')); } catch { res.sendStatus(400); return; }
   try {
+    if (['payment.captured', 'order.paid', 'payment.failed'].includes(event.event)) {
+      const p = event.payload?.payment?.entity; let o = event.payload?.order?.entity;
+      if (!o && p?.order_id && p?.notes?.dth_app !== 'dth-tamizhan') o = await razorpayClient().orders.fetch(p.order_id);
+      if (o?.notes?.purpose === 'new_connection' || p?.notes?.purpose === 'new_connection') {
+        if (o) event.payload.order = { entity: o };
+        const { handleNewConnectionRazorpayEvent } = await import('../models/newConnectionOrders');
+        if (!await handleNewConnectionRazorpayEvent(event)) { res.status(503).json({ success: false, error: 'Booking confirmation remains pending. Retry delivery.' }); return; }
+        res.json({ success: true }); return;
+      }
+    }
     if (!['payment.captured', 'order.paid'].includes(event.event)) { res.json({ success: true, ignored: true }); return; }
     const payment = event.payload?.payment?.entity;
     const order = event.payload?.order?.entity;

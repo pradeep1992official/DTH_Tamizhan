@@ -5,7 +5,7 @@ vi.mock('node:fs', () => ({ default: { existsSync: () => true, mkdirSync: vi.fn(
   readFileSync: () => f.disk, writeFileSync: (_path: string, body: string) => { f.disk = body; }, renameSync: vi.fn() } }));
 vi.mock('../server/persistence', () => ({ usesFirestore: () => false, cleanData: (data: unknown) => data, paymentKey: (id: string, test: boolean) => `${test}:${id}` }));
 vi.mock('../server/middleware/auth', () => ({ getSuperAdminEmail: () => 'root@example.com', getAdminFirestore: () => { throw new Error('No live database in this test'); } }));
-vi.mock('../server/razorpay', () => ({ razorpayClient: () => ({ orders: { fetch: f.order, fetchPayments: f.payments }, payments: { fetch: f.payment } }) }));
+vi.mock('../server/razorpay', async original => ({ ...await original<typeof import('../server/razorpay')>(), razorpayClient: () => ({ orders: { fetch: f.order, fetchPayments: f.payments }, payments: { fetch: f.payment } }) }));
 vi.mock('../server/models/paymentLedger', () => ({ recordProviderPayment: f.record }));
 import { assertRechargePayment, rememberRechargeOrder, reconcilePendingRecharges } from '../server/models/rechargeRecovery';
 import { validRechargeWebhook } from '../server/routes/rechargeRecovery';

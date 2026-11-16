@@ -45,7 +45,7 @@ describe('catalog validation and CSV', () => {
     expect(pricesStale(null)).toBe(true); expect(pricesStale('bad')).toBe(true);
     expect(pricesStale(new Date(0).toISOString(), 30 * 86400000 + 1)).toBe(true);
     expect(pricesStale(new Date(0).toISOString(), 30 * 86400000)).toBe(false);
-    expect(settingsSchema.parse({}).advanceMode).toBe('full');
+    expect(settingsSchema.parse({}).advanceMode).toBe('none');
   });
   it('deduplicates channel membership and rejects missing channel references', () => {
     expect(packCounts(['one', 'one', 'two'], [{ id: 'one', isHD: true, isPay: true }, { id: 'two', isHD: false, isPay: false }])).toEqual({ channelCount: 2, hdChannelCount: 1, payChannelCount: 1, freeChannelCount: 1 });

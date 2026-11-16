@@ -47,3 +47,12 @@ export const adminLimiter = rateLimit({
     error: 'Admin action rate limit reached. Please slow down your requests.',
   },
 });
+
+// Separate store from apiLimiter: mounting the same limiter twice on one request
+// would double-count it and trigger express-rate-limit validation errors.
+export const newConnectionStatusLimiter = rateLimit({
+  ...commonRateLimitOptions,
+  windowMs: 60 * 1000,
+  max: 60,
+  message: { success: false, code: 'RATE_LIMITED' },
+});

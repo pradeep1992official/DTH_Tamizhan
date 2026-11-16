@@ -10,7 +10,7 @@ import { orderCreateLimiter } from './middleware/rateLimiter';
 import { validateBody } from './middleware/validation';
 import type { planModel } from './models/planModel';
 
-function config() {
+export function youpiGatewayConfig() {
   const { YOUPI_API_URL, YOUPI_CHECKOUT_URL, YOUPI_MERCHANT_ID, YOUPI_MERCHANT_API_KEY, APP_URL } = process.env;
   if (!YOUPI_API_URL || !YOUPI_CHECKOUT_URL || !YOUPI_MERCHANT_ID || !YOUPI_MERCHANT_API_KEY || !APP_URL) throw new PaymentError(503, 'YouPI checkout is not configured. No payment has been taken.');
   for (const value of [YOUPI_API_URL, YOUPI_CHECKOUT_URL, APP_URL]) {
@@ -19,8 +19,8 @@ function config() {
   }
   return { api: YOUPI_API_URL.replace(/\/$/, ''), checkout: new URL(YOUPI_CHECKOUT_URL), merchant: YOUPI_MERCHANT_ID, key: YOUPI_MERCHANT_API_KEY, returnUrl: APP_URL };
 }
-async function gateway(path: string, body?: unknown) {
-  const c = config();
+export async function youpiGatewayRequest(path: string, body?: unknown) {
+  const c = youpiGatewayConfig();
   const response = await fetch(`${c.api}/api/v1/${path}`, { method: body ? 'POST' : 'GET', redirect: 'error', signal: AbortSignal.timeout(15000), headers: { 'Content-Type': 'application/json', 'X-Merchant-Id': c.merchant, 'X-Merchant-Key': c.key }, ...(body ? { body: JSON.stringify(body) } : {}) });
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
@@ -29,6 +29,8 @@ async function gateway(path: string, body?: unknown) {
   }
   return response.json();
 }
+const config = youpiGatewayConfig;
+const gateway = youpiGatewayRequest;
 export async function refreshYoupiPayment(entry: PaymentLedgerEntry) {
   const data = await gateway(`payments/${encodeURIComponent(entry.orderId)}`);
   if (data.paymentId !== entry.orderId || data.orderId !== entry.id || data.currency !== 'INR' || Number(data.amountPaise) !== Math.round(entry.amount * 100) || data.method !== 'UPI') throw new PaymentError(502, 'YouPI payment details do not match this order.');
@@ -103,6 +105,10 @@ youpiWebhookRouter.post('/api/payments/youpi/webhook', raw({ type: 'application/
     const signature = String(req.headers['x-gateway-signature'] || '').replace(/^sha256=/, '');
     if (!Buffer.isBuffer(req.body) || !/^[a-f0-9]{64}$/i.test(signature) || !timingSafeEqual(Buffer.from(signature, 'hex'), createHmac('sha256', secret).update(req.body).digest())) throw new PaymentError(400, 'Invalid signature.');
     const event = JSON.parse(req.body.toString('utf8'));
+    if (typeof event.orderId === 'string' && /^nc_[a-f0-9]{48}$/.test(event.orderId)) {
+      const { handleNewConnectionYoupiCallback } = await import('./models/newConnectionOrders');
+      await handleNewConnectionYoupiCallback(req.body, req.headers); res.json({ received: true }); return;
+    }
     if (typeof event.orderId !== 'string' || !/^youpi_[a-f0-9]{64}$/.test(event.orderId)) throw new PaymentError(400, 'Invalid order.');
     // Fetch authoritative session through our own merchant credentials; do not trust event outcomes.
     const { readPaymentLedger } = await import('./models/paymentLedger');

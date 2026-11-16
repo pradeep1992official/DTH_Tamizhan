@@ -5,7 +5,7 @@ export type CatalogKind = typeof catalogKinds[number];
 export const catalogCollections = { brands: 'dthBrands', packs: 'dthPacks', channels: 'dthChannels', equipment: 'dthEquipmentOffers' } as const;
 const text = z.string().trim().max(4000);
 const name = text.min(1).max(200);
-const money = z.number().finite().min(0).max(1000000);
+const money = z.number().finite().min(0).max(1000000).refine(n => /^\d+(?:\.\d{1,2})?$/.test(String(n)), 'Use at most two decimal places');
 const order = z.number().int().min(0).max(100000).default(0);
 const id = z.string().regex(/^[\p{L}\p{N}_-]{1,128}$/u);
 const url = z.union([z.literal(''), z.url().refine(v => v.startsWith('https://'), 'Use an HTTPS URL')]).default('');
@@ -14,7 +14,7 @@ export const brandSchema = z.object({ ...common, slug: z.string().regex(/^[a-z0-
 export const channelSchema = z.object({ ...common, language: name, genre: name, isHD: z.boolean().default(false), isPay: z.boolean().default(false), logoUrl: url });
 export const packSchema = z.object({ ...common, brandId: id, type: z.enum(['SD', 'HD', '4K', 'Regional', 'Add-on']), language: text.default(''), region: text.default(''), pricingOptions: z.array(z.object({ validityDays: z.number().int().min(1).max(3650), price: money })).min(1).max(30).refine(a => new Set(a.map(p => p.validityDays)).size === a.length, 'Validity days must be unique'), channelIds: z.array(id).max(2000).transform(a => [...new Set(a)]), highlights: z.array(name).max(30).default([]) });
 export const equipmentSchema = z.object({ ...common, brandId: id, boxType: z.enum(['SD', 'HD', '4K']), hardwarePrice: money, installationCharge: money, includedFirstPackId: z.union([id, z.literal('')]).default(''), warrantyNote: text.default('') });
-export const settingsSchema = z.object({ terms: text.default(''), refundPolicy: text.default(''), serviceablePincodes: z.array(z.string().regex(/^[1-9][0-9]{5}$/)).max(10000).default([]), serviceableDistricts: z.array(name).max(1000).default([]), advanceMode: z.enum(['full', 'partial', 'none']).default('full'), partialAmount: money.default(0), priceDisclaimer: text.default('') }).refine(s => s.advanceMode !== 'partial' || s.partialAmount > 0, 'Partial mode requires a positive partial amount');
+export const settingsSchema = z.object({ terms: text.default(''), refundPolicy: text.default(''), serviceablePincodes: z.array(z.string().regex(/^[1-9][0-9]{5}$/)).max(10000).default([]), serviceableDistricts: z.array(name).max(1000).default([]), enabledProviders: z.array(z.enum(['razorpay', 'youpi'])).max(2).transform(a => [...new Set(a)]).default([]), defaultProvider: z.enum(['razorpay', 'youpi', 'none']).default('none'), advanceMode: z.enum(['full', 'partial', 'none']).default('none'), partialAmount: money.default(0), priceDisclaimer: text.default('') }).refine(s => s.advanceMode !== 'partial' || s.partialAmount > 0, 'Partial mode requires a positive partial amount').refine(s => s.defaultProvider === 'none' || s.enabledProviders.includes(s.defaultProvider), 'Default provider must be enabled').transform(s => s.enabledProviders.length ? s : { ...s, advanceMode: 'none' as const, defaultProvider: 'none' as const });
 export const catalogSchemas = { brands: brandSchema, channels: channelSchema, packs: packSchema, equipment: equipmentSchema };
 export type Brand = z.infer<typeof brandSchema> & { id: string };
 export type Channel = z.infer<typeof channelSchema> & { id: string };

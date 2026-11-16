@@ -14,3 +14,8 @@ export function verifyPaymentSignature(orderId: string, paymentId: string, signa
   const expected = createHmac('sha256', secret).update(`${orderId}|${paymentId}`).digest();
   return timingSafeEqual(expected, Buffer.from(signature, 'hex'));
 }
+
+export function verifyRazorpayWebhookSignature(body: Buffer, signature: unknown, secret?: string) {
+  if (!secret || typeof signature !== 'string' || !/^[a-f0-9]{64}$/i.test(signature)) return false;
+  return timingSafeEqual(createHmac('sha256', secret).update(body).digest(), Buffer.from(signature, 'hex'));
+}

@@ -18,7 +18,7 @@ export function isSuperAdmin(email?: string | null): boolean {
  * Verify Firebase Auth ID Token from HTTP Authorization Header (Bearer token)
  * Authenticates user cryptographically and returns their decoded UID and Email.
  */
-export async function verifyAuthToken(req: Request): Promise<{ uid: string; email: string | null; emailVerified: boolean } | null> {
+export async function verifyAuthToken(req: Request): Promise<{ uid: string; email: string | null; emailVerified: boolean; signInProvider?: string } | null> {
   const authHeader = req.headers.authorization || '';
   if (!authHeader.startsWith('Bearer ')) {
     return null;
@@ -38,6 +38,7 @@ export async function verifyAuthToken(req: Request): Promise<{ uid: string; emai
       uid: decodedToken.uid,
       email: decodedToken.email ? decodedToken.email.toLowerCase() : null,
       emailVerified: decodedToken.email_verified === true,
+      signInProvider: decodedToken.firebase?.sign_in_provider,
     };
   } catch (err: any) {
     // Log only the error code; never log bearer tokens or credential contents.

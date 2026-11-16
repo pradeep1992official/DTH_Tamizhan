@@ -16,7 +16,7 @@ export async function readNewConnectionCatalog(): Promise<CatalogData> {
     ...catalogKinds.map(k => readCollection(catalogCollections[k])),
     getAdminFirestore().doc('appSettings/newConnection').get(),
   ]);
-  return wire({ brands, packs, channels, equipment, settings: (settings as FirebaseFirestore.DocumentSnapshot).data() ?? settingsSchema.parse({}) });
+  return wire({ brands, packs, channels, equipment, settings: settingsSchema.parse((settings as FirebaseFirestore.DocumentSnapshot).data() ?? {}) });
 }
 export function catalogIdentity(kind: CatalogKind, data: any) {
   const key = kind === 'brands' ? data.slug : `${kind === 'channels' ? '' : `${data.brandId}:`}${catalogSlug(data.name)}`;

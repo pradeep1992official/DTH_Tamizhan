@@ -490,7 +490,7 @@ function MainApp() {
         {(location.pathname === '/' || location.pathname === '/recharge') && <aside className="flex flex-wrap items-center justify-between gap-3 border border-rule rounded-xl bg-accent-soft p-4 mb-5"><div><h2 className="text-base font-bold">{t.ncHomeTitle}</h2><p className="text-sm text-muted mt-1">{t.ncHomeText}</p></div><Link to="/new-connection" className="bg-accent text-accent-ink px-4 py-2.5 rounded-lg text-sm font-bold">{t.ncBrowse}</Link></aside>}
         <React.Suspense fallback={<p role="status">{translations[currentLang].loadingCatalog}</p>}>
         <Routes>
-          <Route path="/new-connection/*" element={<NewConnectionPages currentLang={currentLang} />} />
+          <Route path="/new-connection/*" element={<NewConnectionPages currentLang={currentLang} user={user} onOpenAuth={() => setIsAuthOpen(true)} />} />
           <Route
             path="/"
             element={

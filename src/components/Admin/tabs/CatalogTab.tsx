@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { catalogSchemas, catalogSlug, settingsSchema, pricesStale, csvEncode, type CatalogData, type CatalogKind } from '../../../lib/newConnectionCatalog';
 import './catalog.css';
+import { NewConnectionPaymentReview } from '../NewConnectionPaymentReview';
 
 type Section = CatalogKind | 'settings';
 const labels: Record<Section, string> = { brands: 'Brands', packs: 'Packs', channels: 'Channels', equipment: 'Equipment', settings: 'Settings' };
@@ -13,10 +14,10 @@ const defaults: Record<Section, any> = {
   equipment: { brandId: '', name: '', boxType: 'HD', hardwarePrice: 0, installationCharge: 0, includedFirstPackId: '', warrantyNote: '', active: false, sortOrder: 0 },
   settings: settingsSchema.parse({}),
 };
-const fieldLabels: Record<string, string> = { name: 'Name', slug: 'URL name', logoUrl: 'Logo URL', active: 'Available to customers', sortOrder: 'Display order', description: 'Description', supportsSD: 'Supports SD', supportsHD: 'Supports HD', serviceNote: 'Service note', language: 'Language', genre: 'Genre', isHD: 'HD channel', isPay: 'Pay channel', brandId: 'Brand', type: 'Pack type', region: 'Region', boxType: 'Box type', hardwarePrice: 'Hardware price (INR)', installationCharge: 'Installation charge (INR)', includedFirstPackId: 'Included first pack', warrantyNote: 'Warranty note', terms: 'Terms', refundPolicy: 'Refund policy', serviceablePincodes: 'Serviceable pincodes (one per line)', serviceableDistricts: 'Serviceable districts (one per line)', advanceMode: 'Advance mode', partialAmount: 'Partial amount (INR)', priceDisclaimer: 'Price disclaimer', highlights: 'Highlights (one per line)' };
+const fieldLabels: Record<string, string> = { enabledProviders: 'Enabled payment providers', defaultProvider: 'Default payment provider', name: 'Name', slug: 'URL name', logoUrl: 'Logo URL', active: 'Available to customers', sortOrder: 'Display order', description: 'Description', supportsSD: 'Supports SD', supportsHD: 'Supports HD', serviceNote: 'Service note', language: 'Language', genre: 'Genre', isHD: 'HD channel', isPay: 'Pay channel', brandId: 'Brand', type: 'Pack type', region: 'Region', boxType: 'Box type', hardwarePrice: 'Hardware price (INR)', installationCharge: 'Installation charge (INR)', includedFirstPackId: 'Included first pack', warrantyNote: 'Warranty note', terms: 'Terms', refundPolicy: 'Refund policy', serviceablePincodes: 'Serviceable pincodes (one per line)', serviceableDistricts: 'Serviceable districts (one per line)', advanceMode: 'Advance mode', partialAmount: 'Partial amount (INR)', priceDisclaimer: 'Price disclaimer', highlights: 'Highlights (one per line)' };
 const arrays = ['serviceablePincodes', 'serviceableDistricts', 'highlights'];
 const multiline = ['description', 'serviceNote', 'warrantyNote', 'terms', 'refundPolicy', 'priceDisclaimer', ...arrays];
-const choices: Record<string, string[]> = { type: ['SD', 'HD', '4K', 'Regional', 'Add-on'], boxType: ['SD', 'HD', '4K'], advanceMode: ['full', 'partial', 'none'] };
+const choices: Record<string, string[]> = { defaultProvider: ['none', 'razorpay', 'youpi'], type: ['SD', 'HD', '4K', 'Regional', 'Add-on'], boxType: ['SD', 'HD', '4K'], advanceMode: ['full', 'partial', 'none'] };
 function download(name: string, text: string) { const url = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' })); const a = document.createElement('a'); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
 // Protect spreadsheet users from formula execution in downloadable error reports.
 const safeCell = (s: string) => /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
@@ -103,7 +104,8 @@ export function CatalogTab({ getAuthHeaders }: { getAuthHeaders: () => Promise<R
     </>}
     {draft && data && <form onSubmit={save} className="catalog-editor"><h3>{section === 'settings' ? 'Connection settings' : `${editingId ? 'Edit' : 'Add'} ${singular[section]}`}</h3><fieldset disabled={busy}><div className="catalog-fields">
       {Object.keys(defaults[section]).filter(key => !['channelIds', 'pricingOptions'].includes(key)).map(key => {
-        const value = draft[key]; const label = fieldLabels[key] || key;
+        const value = draft[key] ?? defaults[section][key]; const label = fieldLabels[key] || key;
+        if (key === 'enabledProviders') return <fieldset key={key}><legend>Enabled payment providers</legend><small>Keep both off for booking without online payment. Razorpay is test-only; YouPI requires manual bank confirmation.</small>{['razorpay', 'youpi'].map(provider => <label className="catalog-checkbox" key={provider}><input type="checkbox" checked={value.includes(provider)} onChange={e => set(key, e.target.checked ? [...value, provider] : value.filter((p: string) => p !== provider))} />{provider === 'razorpay' ? 'Razorpay (test)' : 'YouPI (experimental)'}</label>)}</fieldset>;
         if (typeof defaults[section][key] === 'boolean') return <label key={key} className="catalog-checkbox"><input type="checkbox" checked={Boolean(value)} onChange={e => set(key, e.target.checked)} />{label}</label>;
         if (key === 'brandId' || key === 'includedFirstPackId') return <label key={key}>{label}<select value={value} required={key === 'brandId'} onChange={e => { set(key, e.target.value); if (key === 'brandId') set('includedFirstPackId', ''); }}><option value="">{key === 'brandId' ? 'Select brand' : 'None'}</option>{(key === 'brandId' ? data.brands : data.packs.filter(p => p.brandId === draft.brandId)).map(r => <option key={r.id} value={r.id}>{r.name}{!r.active ? ' (inactive)' : ''}</option>)}</select></label>;
         if (choices[key]) return <label key={key}>{label}<select value={value} onChange={e => set(key, e.target.value)}>{choices[key].map(v => <option key={v}>{v}</option>)}</select></label>;
@@ -119,5 +121,6 @@ export function CatalogTab({ getAuthHeaders }: { getAuthHeaders: () => Promise<R
       <p>{matchingChannels.length} matches. Showing the first 60; search to narrow results. Counts are calculated on save.</p><div className="catalog-channel-picker">{matchingChannels.slice(0, 60).map(c => <label key={c.id}><input type="checkbox" checked={draft.channelIds.includes(c.id)} onChange={e => set('channelIds', e.target.checked ? [...draft.channelIds, c.id] : draft.channelIds.filter((id: string) => id !== c.id))} />{c.name} · {c.isHD ? 'HD' : 'SD'} · {c.isPay ? 'Pay' : 'Free'}{!c.active && ' (inactive)'}</label>)}</div>
     </>}
     <div className="nc-toolbar"><button className="nc-primary" type="submit">Save {singular[section]}</button><button type="button" onClick={() => setDraft(null)}>Cancel</button></div></fieldset></form>}
+    {section === 'settings' && <NewConnectionPaymentReview getAuthHeaders={getAuthHeaders} />}
   </div>;
 }

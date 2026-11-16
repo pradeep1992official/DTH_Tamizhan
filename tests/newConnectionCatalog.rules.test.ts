@@ -18,6 +18,8 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('New connection catalog Fi
       await db.doc('appSettings/private').set({ private: true });
       await db.doc('admins/approved').set({ email: 'approved@example.com', status: 'approved' });
       await db.doc('admins/revoked').set({ email: 'revoked@example.com', status: 'revoked' });
+      await db.doc('newConnectionOrders/owner-order').set({ uid: 'customer', paymentStatus: 'awaiting_admin_confirmation', adminNotes: '' });
+      await db.doc('server_new_connection_private/owner-order').set({ adminNotes: 'Bank details: private' });
     });
   });
   afterAll(async () => { await env?.cleanup(); });
@@ -52,5 +54,19 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('New connection catalog Fi
     const db = env.unauthenticatedContext().firestore();
     await assertSucceeds(db.doc('appSettings/newConnection').get());
     await assertFails(db.doc('appSettings/private').get());
+  });
+  it('allows only the owner or approved admins to read new-connection orders, never client mutations', async () => {
+    const owner = env.authenticatedContext('customer').firestore();
+    const admin = env.authenticatedContext('approved', { email: 'approved@example.com', email_verified: true }).firestore();
+    await assertSucceeds(owner.doc('newConnectionOrders/owner-order').get());
+    await assertSucceeds(admin.doc('newConnectionOrders/owner-order').get());
+    await assertFails(env.unauthenticatedContext().firestore().doc('newConnectionOrders/owner-order').get());
+    await assertFails(env.authenticatedContext('another-customer').firestore().doc('newConnectionOrders/owner-order').get());
+    for (const db of [owner, admin]) {
+      await assertFails(db.doc('newConnectionOrders/new-order').set({ uid: 'customer', paymentStatus: 'paid' }));
+      await assertFails(db.doc('newConnectionOrders/owner-order').update({ paymentStatus: 'paid', amountDueNow: 1 }));
+      await assertFails(db.doc('newConnectionOrders/owner-order').delete());
+      await assertFails(db.doc('server_new_connection_private/owner-order').get());
+    }
   });
 });

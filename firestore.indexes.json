@@ -18,7 +18,11 @@
     {"collectionGroup": "dthChannels", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "active", "order": "ASCENDING"}, {"fieldPath": "sortOrder", "order": "ASCENDING"}]},
     {"collectionGroup": "dthEquipmentOffers", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "active", "order": "ASCENDING"}, {"fieldPath": "sortOrder", "order": "ASCENDING"}]},
     {"collectionGroup": "dthPacks", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "brandId", "order": "ASCENDING"}, {"fieldPath": "active", "order": "ASCENDING"}, {"fieldPath": "sortOrder", "order": "ASCENDING"}]},
-    {"collectionGroup": "dthEquipmentOffers", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "brandId", "order": "ASCENDING"}, {"fieldPath": "active", "order": "ASCENDING"}, {"fieldPath": "sortOrder", "order": "ASCENDING"}]}
+    {"collectionGroup": "dthEquipmentOffers", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "brandId", "order": "ASCENDING"}, {"fieldPath": "active", "order": "ASCENDING"}, {"fieldPath": "sortOrder", "order": "ASCENDING"}]},
+    {"collectionGroup": "newConnectionOrders", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "uid", "order": "ASCENDING"}, {"fieldPath": "createdAt", "order": "DESCENDING"}]},
+    {"collectionGroup": "newConnectionOrders", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "customer.phone", "order": "ASCENDING"}, {"fieldPath": "createdAt", "order": "DESCENDING"}]},
+    {"collectionGroup": "newConnectionOrders", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "providerOrderId", "order": "ASCENDING"}]},
+    {"collectionGroup": "newConnectionOrders", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "provider", "order": "ASCENDING"}, {"fieldPath": "paymentStatus", "order": "ASCENDING"}, {"fieldPath": "createdAt", "order": "DESCENDING"}, {"fieldPath": "id", "order": "DESCENDING"}]}
   ],
   "fieldOverrides": []
 }
