@@ -32,12 +32,26 @@ async function gateway(path: string, body?: unknown) {
 export async function refreshYoupiPayment(entry: PaymentLedgerEntry) {
   const data = await gateway(`payments/${encodeURIComponent(entry.orderId)}`);
   if (data.paymentId !== entry.orderId || data.orderId !== entry.id || data.currency !== 'INR' || Number(data.amountPaise) !== Math.round(entry.amount * 100) || data.method !== 'UPI') throw new PaymentError(502, 'YouPI payment details do not match this order.');
-  // Alert matches and browser callbacks never unlock recharge fulfillment.
-  const reconciled = data.status === 'RECONCILED' && data.settlementState === 'RECONCILED';
+  // Merchant policy: accept server-fetched observer matches; browser callbacks never approve payment.
+  const accepted = data.status === 'OBSERVED_SUCCESS' ||
+    (data.status === 'RECONCILED' && data.settlementState === 'RECONCILED');
+  // Hosted checkout contact belongs to the payment's gateway customer, not necessarily the sign-in profile.
+  let customerPhone: string | undefined;
+  let customerName: string | undefined;
+  try {
+    const details = await gateway(`payments/${encodeURIComponent(entry.orderId)}/cod`);
+    if (details.paymentId === entry.orderId && details.orderId === entry.id && details.currency === 'INR' &&
+      Number(details.amountPaise) === Math.round(entry.amount * 100) && details.method === 'UPI') {
+      const phone = typeof details.customer?.mobileNumber === 'string' ? details.customer.mobileNumber.replace(/[\s()-]/g, '') : '';
+      if (/^(?:\+?91)?[6-9]\d{9}$/.test(phone)) customerPhone = phone;
+      if (typeof details.customer?.name === 'string' && details.customer.name.trim()) customerName = details.customer.name.trim().slice(0, 100);
+    }
+  } catch { /* Contact lookup must not discard an otherwise verified payment. Retry on the next status check. */ }
   return mutateYoupiPayment(entry.id, previous => {
     if (!previous || previous.provider !== 'YouPI') throw new PaymentError(404, 'Payment not found.');
-    if (previous.status === 'paid') return previous;
-    return { ...previous, status: reconciled ? 'paid' : 'initiated', providerStatus: reconciled ? 'captured' : String(data.status) };
+    const contact = { ...(customerPhone ? { customerPhone } : {}), ...(customerName ? { customerName } : {}) };
+    if (previous.status === 'paid') return { ...previous, ...contact };
+    return { ...previous, ...contact, status: accepted ? 'paid' : 'initiated', providerStatus: accepted ? 'captured' : String(data.status), youpiOutcome: String(data.status) };
   });
 }
 function failure(res: import('express').Response, error: unknown) {

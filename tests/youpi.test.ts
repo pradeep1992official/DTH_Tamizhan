@@ -15,7 +15,7 @@ afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 function respond(status: string, extra = {}) {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ paymentId: 'gateway-payment', orderId: 'youpi_order', amountPaise: '10000', currency: 'INR', method: 'UPI', status, settlementState: status === 'RECONCILED' ? 'RECONCILED' : 'NOT_RECONCILED', ...extra }) }));
 }
-it.each(['SUCCESS', 'OBSERVED_SUCCESS', 'MANUAL_REVIEW', 'FAILED', 'EXPIRED'])('does not fulfill %s', async status => {
+it.each(['SUCCESS', 'MANUAL_REVIEW', 'FAILED', 'EXPIRED'])('does not fulfill %s', async status => {
   respond(status); expect(await refreshYoupiPayment(state.entry)).toMatchObject({ status: 'initiated', providerStatus: status });
 });
 it('queues reconciled payment and ignores stale notifications', async () => {
@@ -30,4 +30,30 @@ it('requires both reconciliation markers', async () => {
 });
 it('ignores unused Razorpay test keys for YouPI environment', () => {
   expect(isTestPaymentEnvironment('youpi', 'rzp_test_unused')).toBe(false);
+});
+it('imports the hosted checkout contact for an already-paid payment', async () => {
+  state.entry.status = 'paid';
+  state.entry.providerStatus = 'captured';
+  respond('OBSERVED_SUCCESS', { customer: { name: 'Checkout Customer', mobileNumber: '+91 98765 43210' } });
+  expect(await refreshYoupiPayment(state.entry)).toMatchObject({ status: 'paid', customerName: 'Checkout Customer', customerPhone: '+919876543210' });
+});
+it('does not import contacts from a mismatched payment response', async () => {
+  const payment = { paymentId: 'gateway-payment', orderId: 'youpi_order', amountPaise: '10000', currency: 'INR', method: 'UPI', status: 'OBSERVED_SUCCESS' };
+  vi.stubGlobal('fetch', vi.fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => payment })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ ...payment, orderId: 'other', customer: { name: 'Other', mobileNumber: '9876543210' } }) }));
+  const updated = await refreshYoupiPayment(state.entry);
+  expect(updated.status).toBe('paid');
+  expect(updated.customerPhone).toBeUndefined();
+});
+
+it('accepts an observed UPI payment without statement reconciliation', async () => {
+  respond('OBSERVED_SUCCESS');
+  expect(await refreshYoupiPayment(state.entry)).toMatchObject({ status: 'paid', providerStatus: 'captured', youpiOutcome: 'OBSERVED_SUCCESS' });
+  respond('ACTIVE');
+  expect((await refreshYoupiPayment(state.entry)).status).toBe('paid');
+});
+it.each([{ amountPaise: '10001' }, { orderId: 'another' }, { paymentId: 'another' }, { method: 'COD' }, { currency: 'USD' }])('rejects mismatched observed payment %j', async extra => {
+  respond('OBSERVED_SUCCESS', extra);
+  await expect(refreshYoupiPayment(state.entry)).rejects.toThrow('do not match');
 });

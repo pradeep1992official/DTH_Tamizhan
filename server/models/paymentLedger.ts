@@ -10,6 +10,7 @@ export interface PaymentLedgerEntry {
   smartCardNumber: string; packName: string; createdAt: string; operatorRefId: string;
   testMode: boolean; provider: 'Razorpay' | 'YouPI';
   checkoutUrl?: string;
+  youpiOutcome?: string;
   customerUid?: string;
   packId?: string;
   packValidity?: string;

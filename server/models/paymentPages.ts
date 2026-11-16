@@ -28,6 +28,14 @@ export async function paymentPage(page: ReturnType<typeof parsePage>, uid?: stri
   return { payments, orders: await ordersForPayments(payments), nextCursor };
 }
 export async function ordersForPayments(payments: PaymentLedgerEntry[]) {
+  // Refresh hosted-checkout contacts on admin/history reads, including already-paid sessions.
+  // Preserve the durable record when the temporary gateway is offline.
+  await Promise.all(payments.filter(payment => payment.provider === 'YouPI' && payment.orderId).map(async payment => {
+    try {
+      const { refreshYoupiPayment } = await import('../youpi');
+      Object.assign(payment, await refreshYoupiPayment(payment));
+    } catch { /* Existing payment/order data must remain readable during gateway outages. */ }
+  }));
   let saved: RechargeOrder[];
   if (usesFirestore()) {
     const refs = [...new Map(payments.filter(payment => payment.orderId).map(payment => {

@@ -18,9 +18,9 @@ Configure the merchant webhook URL as https://YOUR_STOREFRONT/api/payments/youpi
 
 The server calculates catalog prices and persists owner-bound checkout attempts in the existing payments ledger. Browser session retries reuse the order ID. After paying, return to the checkout and check status. Do not start another payment while a debit is unconfirmed.
 
-Signed webhooks trigger a server-to-server lookup. Only matching UPI sessions with status RECONCILED and settlementState RECONCILED enter the paid recharge queue. SUCCESS, OBSERVED_SUCCESS and MANUAL_REVIEW remain pending. Import the official bank statement in YouPI to reconcile; SMS/email alerts and browser callbacks cannot approve payment. Operator recharge fulfillment remains a separate admin action.
+Signed webhooks trigger a server-to-server lookup. Under the merchant-selected policy, matching UPI sessions with OBSERVED_SUCCESS enter the paid recharge queue immediately. RECONCILED with settlementState RECONCILED is also accepted. SUCCESS and MANUAL_REVIEW remain pending. The server still validates payment ID, order ID, amount, currency and UPI method. Browser callbacks cannot approve payment. Observer acceptance relies on bank-alert detection rather than proof of settlement; independent bank reconciliation remains advisable. The original outcome is retained in youpiOutcome. Operator recharge fulfillment remains a separate admin action.
 
-Before launch, test a controlled payment, repeated checkout, delayed notifications, mismatched amounts and statement reconciliation. Confirm fulfillment stays blocked before reconciliation.
+Before launch, test a controlled payment, repeated checkout, delayed notifications, mismatched amounts and statement reconciliation. Confirm observed payments enter the queue and mismatched or unobserved payments remain blocked.
 
 This adapter covers DTH recharge checkout. Complaint-assistance checkout remains on Razorpay. YouPI refunds require separate bank handling; automatic refunds and payment receipt emails are not implemented for YouPI. Razorpay sync applies only to Razorpay records.
 

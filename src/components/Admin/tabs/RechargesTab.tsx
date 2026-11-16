@@ -177,6 +177,8 @@ export const RechargesTab: React.FC<RechargesTabProps> = ({
                     </td>
                     <td data-label="Customer ID" className="p-3.5 font-mono text-xs font-bold">
                       <span className="compact-plan-pill history-customer-id">{ord.smartCardNumber}</span>
+                      <div className="mt-2 font-sans text-sm font-medium">{ord.customerName || 'Name not provided'}</div>
+                      {ord.registeredMobile ? <a className="mt-1 block font-sans text-sm underline underline-offset-2" href={`tel:${ord.registeredMobile.replace(/[^+0-9]/g, '')}`}>{ord.registeredMobile}</a> : <div className="mt-1 font-sans text-xs text-muted">Phone not provided</div>}
                     </td>
                     <td data-label="Pack" className="history-pack-cell hidden md:table-cell p-3.5">
                       <div className="font-medium">{ord.packName}</div>
@@ -223,6 +225,7 @@ export const RechargesTab: React.FC<RechargesTabProps> = ({
                 <span className="history-details-label">Customer ID</span>
                 <strong className="history-details-card">{selectedOrder.smartCardNumber}</strong>
                 {selectedOrder.customerName && <span className="text-muted text-sm">{selectedOrder.customerName}</span>}
+                {selectedOrder.registeredMobile && <a className="text-sm underline underline-offset-2" href={`tel:${selectedOrder.registeredMobile.replace(/[^+0-9]/g, '')}`}>{selectedOrder.registeredMobile}</a>}
               </div>
               <div className="history-details-total">
                 <span className="history-details-label">Recharge amount</span>

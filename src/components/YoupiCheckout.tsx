@@ -1,3 +1,6 @@
+import './RazorpayCheckout.css';
+import './YoupiCheckout.css';
+import { ArrowRight, CheckCircle2, RefreshCw, ShieldCheck, X } from '../lib/icons';
 import { useRef, useState } from 'react';
 import type { DthPlan, DthOperator, UserProfile } from '../types';
 import { paymentAuthHeaders } from '../lib/paymentAuth';
@@ -11,6 +14,7 @@ export function YoupiCheckout({ onClose, plan, operator, smartCard, user }: { on
   const lock = useRef(false);
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
+  const [paid, setPaid] = useState(false);
   const { modalRef } = useAccessibleModal({ isOpen: true, onClose });
   async function request(path: string, body: unknown) {
     const response = await fetch(`/api/payments/youpi${path}`, { method: 'POST', headers: await paymentAuthHeaders(), body: JSON.stringify(body), signal: AbortSignal.timeout(20000) });
@@ -24,7 +28,8 @@ export function YoupiCheckout({ onClose, plan, operator, smartCard, user }: { on
       const packId = (plan as DthPlan).id || 'custom';
       const data = await request('', { idempotencyKey: key.current, packId, operator: operator.id, smartCardNumber: smartCard, ...(packId === 'custom' ? { customAmount: plan.price } : {}), ...(user?.displayName ? { customerName: user.displayName } : {}) });
       setCheckout(data);
-      if (data.status === 'paid') setStatus('Payment reconciled. Your recharge is waiting to be processed.');
+      setPaid(data.status === 'paid');
+      if (data.status === 'paid') setStatus('Payment confirmed. Your recharge is waiting to be processed.');
     } catch (e) { setError(e instanceof Error ? e.message : 'Checkout unavailable.'); }
     finally { lock.current = false; setBusy(false); }
   }
@@ -32,22 +37,42 @@ export function YoupiCheckout({ onClose, plan, operator, smartCard, user }: { on
     if (!checkout || lock.current) return; lock.current = true; setBusy(true); setError('');
     try {
       const data = await request('/status', { id: checkout.id });
-      setStatus(data.status === 'paid' ? 'Payment reconciled. Your recharge is waiting to be processed.' : `Payment is awaiting bank reconciliation (${data.providerStatus}). Please do not pay again.`);
+      setPaid(data.status === 'paid');
+      setStatus(data.status === 'paid' ? 'Payment confirmed. Your recharge is waiting to be processed.' : 'Payment is awaiting confirmation. Please do not pay again.');
     } catch (e) { setError(e instanceof Error ? e.message : 'Status unavailable.'); }
     finally { lock.current = false; setBusy(false); }
   }
-  return <div className="dialog-backdrop fixed inset-0 z-50 flex items-center justify-center p-4"><div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="youpi-title" className="hm-dialog rounded-xl border border-rule bg-paper text-ink w-full max-w-lg p-6 space-y-4">
-    <div className="flex justify-between items-center"><h2 id="youpi-title" className="font-bold text-xl">Pay with UPI · YouPI</h2><button onClick={onClose} aria-label="Close checkout">Close</button></div>
-    <p>{operator.name} / {smartCard}</p>
-    <p>Temporary UPI checkout. Recharge processing starts after payment is checked against bank records.</p>
-    {error && <p role="alert" className="text-error">{error}</p>}
-    {status && <p role="status">{status}</p>}
-    {!checkout ? <button disabled={busy} onClick={() => void prepare()} className="bg-accent text-accent-ink rounded-xl px-4 py-3">{busy ? 'Preparing…' : 'Continue to UPI'}</button> : <>
-      <p className="font-bold">Amount: ?{(checkout.amountPaise / 100).toFixed(2)}</p>
-      <p className="text-sm break-all">Reference: {checkout.id}</p>
-      <a className="block bg-accent text-accent-ink rounded-xl px-4 py-3" href={checkout.checkoutUrl} target="_blank" rel="noopener noreferrer">Open UPI checkout</a>
-      <button disabled={busy} onClick={() => void check()} className="border border-rule rounded-xl px-4 py-3">{busy ? 'Checking…' : 'Check payment status'}</button>
-      <p className="text-sm">Return here after paying. A QR scan or payment alert alone does not confirm payment. Never share your UPI PIN.</p>
-    </>}
-  </div></div>;
-}
+  const amount = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(checkout ? checkout.amountPaise / 100 : plan.price);
+  return <div className="rzp-backdrop">
+    <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="youpi-title" aria-describedby="youpi-description" className="rzp-dialog youpi-dialog">
+      <header className="rzp-header">
+        <div className="rzp-eyebrow"><ShieldCheck size={15} /> UPI CHECKOUT</div>
+        <button type="button" onClick={onClose} className="rzp-close" aria-label="Close checkout"><X size={20} /></button>
+        <h2 id="youpi-title">Complete your payment</h2>
+        <p id="youpi-description">Pay with your preferred UPI app through YouPI.</p>
+      </header>
+      <div className="rzp-body">
+        <section className="rzp-summary" aria-label="Recharge summary">
+          <dl className="youpi-details">
+            <div><dt>Operator</dt><dd>{operator.name}</dd></div>
+            <div><dt>Subscriber ID</dt><dd>{smartCard}</dd></div>
+          </dl>
+          <div className="rzp-total"><span>Total to pay</span><strong>{amount}</strong></div>
+        </section>
+        <div className="youpi-notice"><span className="youpi-status-dot" />{paid ? 'Payment verified' : 'UPI payment confirmation'}</div>
+        <p className="youpi-explanation">{paid ? 'Your payment is verified. Your recharge is waiting to be processed.' : 'Your recharge will be queued once YouPI detects your payment.'}</p>
+        {error && <div role="alert" className="rzp-feedback rzp-error">{error}</div>}
+        {status && <div role="status" className={`rzp-feedback ${paid ? 'rzp-success' : ''}`}>{paid && <CheckCircle2 size={18} />}<span>{status}</span></div>}
+        {!checkout ? <button type="button" disabled={busy} onClick={() => void prepare()} className="rzp-pay"><span>{busy ? 'Preparing checkout...' : 'Continue to UPI'}</span><ArrowRight size={18} /></button> : <>
+          {!paid && <>
+            <ol className="youpi-steps"><li>Open checkout and pay the exact amount.</li><li>Return here to check your payment status.</li></ol>
+            <a className="rzp-pay youpi-open" href={checkout.checkoutUrl} target="_blank" rel="noopener noreferrer"><span>Open UPI checkout</span><ArrowRight size={18} /></a>
+            <button type="button" disabled={busy} onClick={() => void check()} className="youpi-check"><RefreshCw size={16} className={busy ? 'rzp-spinner' : ''} />{busy ? 'Checking payment...' : 'Check payment status'}</button>
+          </>}
+          <details className="youpi-reference"><summary>Payment reference</summary><code>{checkout.id}</code><p>Keep this reference if you need payment support.</p></details>
+        </>}
+        <footer className="youpi-footer"><ShieldCheck size={16} /><p>Enter your UPI PIN only in your UPI app. If money is debited, check the existing payment before paying again.</p></footer>
+      </div>
+    </div>
+  </div>;
+}

@@ -79,7 +79,7 @@ export const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
       {ordersError ? (
         <div role="alert" className={`p-6 rounded-lg border text-center ${isLight ? 'bg-error/10 border-rule text-error' : 'bg-error/10 border-rule text-error'}`}>
           <p className="text-sm font-medium">{ordersError}</p>
-          <button type="button" onClick={onRefresh} className="mt-3 rounded-lg border px-3 py-1.5 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">
+          <button type="button" onClick={() => onRefresh()} className="mt-3 rounded-lg border px-3 py-1.5 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">
             Retry loading queue
           </button>
         </div>
@@ -104,7 +104,9 @@ export const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
                   {order.testMode && <span className="compact-plan-pill">TEST · No real recharge</span>}
                 </div>
                 <div className="pending-order-summary text-sm">
-                  <strong title={`Order ${order.orderId}`}>{order.customerName || t.customer}</strong>
+                  <strong title={`Order ${order.orderId}`}>Customer: {order.customerName || 'Name not provided'}</strong>
+                  {order.registeredMobile && <a href={`tel:${order.registeredMobile.replace(/[^+0-9]/g, '')}`} className="underline underline-offset-2" aria-label={`Call customer ${order.registeredMobile}`}>Phone: {order.registeredMobile}</a>}
+                  {!order.registeredMobile && <span className="text-muted">Phone not provided</span>}
                   <span className="text-muted">{order.packName} ({order.packValidity})</span>
                 </div>
 

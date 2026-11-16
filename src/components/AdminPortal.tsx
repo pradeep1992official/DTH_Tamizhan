@@ -292,7 +292,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             customers={customers}
             custLoading={custLoading}
             customersError={customersError}
-            onRefresh={fetchCustomers}
+            onRefresh={() => void fetchCustomers()}
             getAuthHeaders={getAuthHeaders}
             currentTheme={currentTheme}
             currentLang={currentLang}
@@ -305,7 +305,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             orders={orders}
             ordersLoading={ordersLoading}
             ordersError={ordersError}
-            onRefresh={fetchOrders}
+            onRefresh={() => void fetchOrders()}
             getAuthHeaders={getAuthHeaders}
             currentTheme={currentTheme}
             currentLang={currentLang}
@@ -318,7 +318,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             orders={orders}
             ordersLoading={ordersLoading}
             ordersError={ordersError}
-            onRefresh={fetchOrders}
+            onRefresh={() => void fetchOrders()}
             getAuthHeaders={getAuthHeaders}
             currentTheme={currentTheme}
             currentLang={currentLang}
@@ -345,7 +345,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             getAuthHeaders={getAuthHeaders}
             payments={payments}
             paymentsLoading={paymentsLoading}
-            onRefresh={fetchPayments}
+            onRefresh={() => void fetchPayments()}
             currentTheme={currentTheme}
             currentLang={currentLang}
           />

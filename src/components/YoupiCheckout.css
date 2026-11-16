@@ -1,0 +1,21 @@
+.youpi-dialog .youpi-details { margin: 0; padding: 18px 19px; display: grid; gap: 12px; }
+.youpi-details > div { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+.youpi-details dt { color: var(--color-muted); font-size: 12px; }
+.youpi-details dd { margin: 0; text-align: right; font-size: 13px; font-weight: 650; overflow-wrap: anywhere; min-width: 0; font-variant-numeric: tabular-nums; }
+.youpi-notice { display: flex; align-items: center; gap: 7px; margin-top: 20px; font-size: 12px; font-weight: 650; }
+.youpi-status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-ochre, #bd852b); flex-shrink: 0; }
+.youpi-explanation { margin: 7px 0 0; font-size: 13px; line-height: 1.65; color: var(--color-muted); }
+.youpi-steps { padding-left: 20px; margin: 20px 0; font-size: 13px; line-height: 1.7; }
+.youpi-steps li + li { margin-top: 4px; }
+.youpi-open { text-decoration: none; box-sizing: border-box; }
+.youpi-check { display: flex; justify-content: center; align-items: center; gap: 9px; width: 100%; min-height: 46px; margin-top: 10px; padding: 11px 16px; border: 1px solid var(--color-rule); background: transparent; color: var(--color-ink); border-radius: 8px; font-size: 13px; font-weight: 600; }
+.youpi-check:hover:not(:disabled) { background: var(--color-paper-2); }
+.youpi-reference { border-top: 1px solid var(--color-rule); margin-top: 22px; padding-top: 15px; font-size: 12px; color: var(--color-muted); }
+.youpi-reference summary { cursor: pointer; padding: 5px 0; }
+.youpi-reference code { display: block; overflow-wrap: anywhere; margin-top: 9px; font-size: 11px; line-height: 1.6; user-select: all; }
+.youpi-reference p { margin: 8px 0 0; line-height: 1.6; }
+.youpi-footer { display: flex; gap: 9px; margin: 20px 0 6px; color: var(--color-muted); }
+.youpi-footer svg { flex-shrink: 0; margin-top: 2px; }
+.youpi-footer p { margin: 0; font-size: 11px; line-height: 1.7; }
+.youpi-dialog a:focus-visible, .youpi-reference summary:focus-visible { outline: 3px solid var(--color-ochre, #bd852b); outline-offset: 3px; }
+@media (max-width: 360px) { .youpi-details > div { flex-wrap: wrap; gap: 4px; } .youpi-details dd { text-align: left; } }
