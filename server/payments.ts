@@ -5,11 +5,11 @@ import { isSameDthOperatorGroup } from '../src/types';
 import { subscriberError, normalizeSubscriberId } from '../src/lib/subscriberValidation';
 import { validateTopUpAmount } from '../src/lib/topUpAmount';
 
-export const paymentMode = (value = process.env.PAYMENT_MODE): 'sandbox' | 'production' =>
-  value === 'sandbox' ? 'sandbox' : 'production';
+export const paymentMode = (value = process.env.PAYMENT_MODE): 'sandbox' | 'production' | 'youpi' =>
+  value === 'youpi' ? 'youpi' : value === 'sandbox' ? 'sandbox' : 'production';
 
 export const isTestPaymentEnvironment = (mode = paymentMode(), keyId = process.env.RAZORPAY_KEY_ID): boolean =>
-  mode === 'sandbox' || keyId?.startsWith('rzp_test_') === true;
+  mode === 'sandbox' || (mode !== 'youpi' && keyId?.startsWith('rzp_test_') === true);
 
 export class PaymentError extends Error {
   constructor(public status: number, message: string) { super(message); }

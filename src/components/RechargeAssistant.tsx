@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { assistantActionSchema, assistantPages, actionNotice, rechargeExplanation, type AssistantAction } from '../lib/assistantActions';
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowRight, Microphone, X } from '../lib/icons';
+import { ArrowRight, MessageSquare, Microphone, X } from '../lib/icons';
 import { beginVoiceInput, cancelVoiceInput, type VoiceRecognition } from '../lib/voiceInput';
 import '../recharge-assistant.css';
 import type { DthConnection, DthOperator, DthOperatorId, DthPlan, Language, PlanCatalogItem } from '../types';
@@ -185,8 +185,8 @@ export function RechargeAssistant({ currentLang, displayName, onCheckout }: {
   }, []);
   const paymentPrice = (amount: number) => `₹${new Intl.NumberFormat(currentLang === 'ta' ? 'ta-IN' : 'en-IN', { maximumFractionDigits: 2 }).format(amount)}`;
   return createPortal(<>
-    {createPortal(<button type="button" className="recharge-chat-launcher" aria-haspopup="dialog" aria-controls="recharge-chat-panel" aria-expanded={open} onClick={() => setOpen(true)}>
-      <span aria-hidden="true">✦</span> {text('Need help choosing?', 'பேக் தேர்வு செய்ய உதவி வேண்டுமா?')}
+    {createPortal(<button type="button" className="recharge-chat-launcher" aria-label={text('Need help choosing?', 'பேக் தேர்வு செய்ய உதவி வேண்டுமா?')} aria-haspopup="dialog" aria-controls="recharge-chat-panel" aria-expanded={open} onClick={() => setOpen(true)}>
+      <MessageSquare aria-hidden="true" /><span>{text('Need help choosing?', 'பேக் தேர்வு செய்ய உதவி வேண்டுமா?')}</span>
     </button>, launcherHost || document.body)}
     <dialog ref={panelRef} id="recharge-chat-panel" className="recharge-chat-panel" aria-labelledby="recharge-chat-title"
       onCancel={() => setOpen(false)} onClose={() => setOpen(false)} onClick={event => { if (event.target === event.currentTarget) {

@@ -1,3 +1,4 @@
+import { registerYoupiRoutes } from '../youpi';
 import { rememberRechargeOrder, reconcileRechargePayment } from '../models/rechargeRecovery';
 import { forwardAsyncErrors } from '../asyncRoutes';
 import { Router } from 'express';
@@ -27,7 +28,7 @@ export const paymentsRouter = Router();
 let sandboxPlans: Awaited<ReturnType<typeof planModel.getAll>> = [];
 const service = createPaymentService(() => sandboxPlans);
 const sessionOwners = new Map<string, { uid: string; expiresAt: number }>();
-paymentsRouter.use(['/api/create-order', '/api/verify-payment', '/api/payments/session', '/api/recharge/create'], async (req, res, next) => {
+paymentsRouter.use(['/api/payments/youpi', '/api/create-order', '/api/verify-payment', '/api/payments/session', '/api/recharge/create'], async (req, res, next) => {
   try {
     const customer = await verifyAuthToken(req);
     if (!customer) { res.status(401).json({ success: false, error: 'Please sign in to continue with payment.' }); return; }
@@ -58,7 +59,7 @@ paymentsRouter.get('/api/payments/config', (_req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   const mode = paymentMode();
   const testMode = isTestPaymentEnvironment(mode);
-  res.json({ mode, testMode, provider: mode === 'sandbox' ? 'Local sandbox simulator' : 'Razorpay' });
+  res.json({ mode, testMode, provider: mode === 'youpi' ? 'YouPI' : mode === 'sandbox' ? 'Local sandbox simulator' : 'Razorpay' });
 });
 paymentsRouter.post('/api/payments/session', orderCreateLimiter, validateBody(prepareSchema), async (req, res, next) => {
   try { await checkOperator(req.body.operator); sandboxPlans = await currentQuotePlans(req.body.packId); } catch (error) { next(error); return; }
@@ -134,4 +135,5 @@ paymentsRouter.post('/api/verify-payment', orderCreateLimiter, validateBody(sign
   } catch (error) { providerError(res, error); }
 });
 
+registerYoupiRoutes(paymentsRouter, prepareSchema, checkOperator, currentQuotePlans);
 forwardAsyncErrors(paymentsRouter);

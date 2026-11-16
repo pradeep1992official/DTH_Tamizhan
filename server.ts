@@ -1,3 +1,4 @@
+import { youpiWebhookRouter } from './server/youpi';
 import { productionCsp, cspReport } from './server/securityHeaders';
 import { rechargeWebhookRouter, rechargeScheduleRouter } from './server/routes/rechargeRecovery';
 import { startRechargeRecoveryWorker } from './server/models/rechargeRecovery';
@@ -71,6 +72,7 @@ async function startServer() {
   );
 
   // 2. Request Parsing Middleware (Mounted BEFORE route handlers)
+  app.use(youpiWebhookRouter);
   app.use(serviceWebhookRouter);
   app.use(rechargeWebhookRouter);
   app.use(express.json({ limit: '10mb' }));

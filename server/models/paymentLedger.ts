@@ -8,7 +8,8 @@ export interface PaymentLedgerEntry {
   id: string; orderId: string; paymentMethod: string; amount: number; currency: string;
   status: string; providerStatus: string; operator: string; customerName: string;
   smartCardNumber: string; packName: string; createdAt: string; operatorRefId: string;
-  testMode: boolean; provider: 'Razorpay';
+  testMode: boolean; provider: 'Razorpay' | 'YouPI';
+  checkoutUrl?: string;
   customerUid?: string;
   packId?: string;
   packValidity?: string;
@@ -62,5 +63,19 @@ export async function recordProviderPayment(payment: Payments.RazorpayPayment, o
   const temporary = `${ledgerFile()}.tmp`;
   fs.writeFileSync(temporary, JSON.stringify(entries, null, 2), 'utf8');
   fs.renameSync(temporary, ledgerFile());
+  return entry;
+}
+
+// Shared durable ledger for temporary YouPI checkout; callers own validation.
+export async function mutateYoupiPayment(id: string, update: (previous: PaymentLedgerEntry | undefined) => PaymentLedgerEntry) {
+  if (usesFirestore()) return mutateRecord<PaymentLedgerEntry>(collections.payments, paymentKey(id, false), update);
+  // No awaits between read and replacement: concurrent local updates cannot lose entries.
+  const file = ledgerFile();
+  const entries: PaymentLedgerEntry[] = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : [];
+  const index = entries.findIndex(item => item.id === id && !item.testMode);
+  const entry = update(index < 0 ? undefined : entries[index]);
+  if (index < 0) entries.unshift(entry); else entries[index] = entry;
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(`${file}.tmp`, JSON.stringify(entries, null, 2)); fs.renameSync(`${file}.tmp`, file);
   return entry;
 }
