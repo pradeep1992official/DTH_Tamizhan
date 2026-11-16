@@ -1,3 +1,4 @@
+import { MyBookings } from './components/NewConnection/MyBookings';
 import { assistantPages } from './lib/assistantActions';
 import { connectionCacheKey, ownedConnections, readConnectionCache } from './lib/connectionCache';
 import { RouteEffects } from './components/RouteEffects';
@@ -78,6 +79,7 @@ function AdminRouteWrapper({
   const navigate = useNavigate();
 
   const mapSubTab = (param?: string): AdminTabId => {
+    if (param === 'new-connections') return 'new-connections';
     if (param === 'catalog') return 'catalog';
     if (param === 'tickets') return 'tickets';
     if (param === 'api-test') return 'api-test';
@@ -447,7 +449,7 @@ function MainApp() {
     if (path.startsWith('/new-connection')) return 'new-connection';
     if (path.startsWith('/plans')) return 'plans';
     if (path.startsWith('/connections')) return 'connections';
-    if (path === '/account') return 'account';
+    if (path === '/account' || path.startsWith('/account/')) return 'account';
     if (path === '/history') return 'history';
     return 'recharge';
   };
@@ -555,6 +557,7 @@ function MainApp() {
             }
           />
           {POLICY_ROUTES.map(route => <Route key={route.key} path={route.path} element={<PolicyPage policy={route.key} currentLang={currentLang} />} />)}
+          <Route path="/account/bookings" element={<MyBookings key={user?.uid || 'guest'} user={user} lang={currentLang} onOpenAuth={() => setIsAuthOpen(true)} />} />
           <Route path="/account" element={<AccountPage key={user?.uid || 'guest'} user={user} connections={connections} currentLang={currentLang} onOpenAuth={() => setIsAuthOpen(true)} onSignOut={handleSignOut} onUpdateProfile={handleUpdateProfile} />} />
           <Route path="/history" element={<CustomerHistoryPage user={user} currentLang={currentLang} onOpenAuth={() => setIsAuthOpen(true)} />} />
           <Route path="/help" element={<HelpPage key={`${user?.uid || 'guest'}-${location.key}`} user={user} currentLang={currentLang} onOpenAuth={() => setIsAuthOpen(true)} />} />

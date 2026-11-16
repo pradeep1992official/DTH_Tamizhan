@@ -4,6 +4,7 @@ import { newConnectionCopy } from './newConnectionCopy';
 
 export interface PageMetadata { title: string; description: string; status: 200 | 404 | 500; noindex: boolean; path: string }
 const pages: Record<string, { en: [string, string]; ta: [string, string] }> = {
+  '/account/bookings': { en: ['My Bookings', 'Track your new DTH connection bookings.'], ta: ['எனது பதிவுகள்', 'உங்கள் புதிய DTH இணைப்புகளைக் கண்காணிக்கவும்.'] },
   '/help': { en: ['Get Help', 'Help with recharges, payments and DTH problems.'], ta: ['உதவி பெறுங்கள்', 'ரீசார்ஜ், கட்டணம் மற்றும் DTH பிரச்சனைகளுக்கு உதவி.'] },
   '/support': { en: ['Support', 'Create a free support ticket.'], ta: ['Support', 'Create a free support ticket.'] },
   '/service-request': { en: ['DTH service request', 'Complaint registration assistance.'], ta: ['DTH service request', 'Complaint registration assistance.'] },
@@ -21,7 +22,7 @@ const policyDescriptions = {
   privacy: ['Read the draft privacy notice covering account data, saved boxes, browser storage and privacy requests.', 'கணக்குத் தரவு, சேமித்த பெட்டிகள், உலாவிச் சேமிப்பு மற்றும் தனியுரிமைக் கோரிக்கைகள் பற்றிய வரைவைப் படிக்கவும்.'],
   terms: ['Read the draft terms for DTH recharge requests, payment status, service issues and consumer remedies.', 'டிடிஎச் கோரிக்கைகள், கட்டண நிலை மற்றும் சேவைச் சிக்கல்களுக்கான பயன்பாட்டு விதிமுறை வரைவைப் படிக்கவும்.'],
 };
-const adminTabs = new Set(['catalog', 'api-test', 'tickets', 'ai', 'customer', 'customers', 'pending', 'worker', 'dealer', 'recharge', 'recharges', 'orders', 'pack', 'packs', 'plan', 'plans', 'payment', 'payments', 'report', 'reports', 'audit', 'operator', 'operators', 'approval', 'approvals', 'admin-access']);
+const adminTabs = new Set(['new-connections', 'catalog', 'api-test', 'tickets', 'ai', 'customer', 'customers', 'pending', 'worker', 'dealer', 'recharge', 'recharges', 'orders', 'pack', 'packs', 'plan', 'plans', 'payment', 'payments', 'report', 'reports', 'audit', 'operator', 'operators', 'approval', 'approvals', 'admin-access']);
 export function normalizedPath(path: string): string { return path.split(/[?#]/)[0].replace(/\/+$/, '') || '/'; }
 export function pageMetadata(path: string, lang: Language = 'en'): PageMetadata {
   const requestedPath = normalizedPath(path);
@@ -39,7 +40,7 @@ export function pageMetadata(path: string, lang: Language = 'en'): PageMetadata 
   if (policy) return { ...base, title: `${policy[lang]} | DTH Tamizhan`, description: policyDescriptions[policy.key][lang === 'ta' ? 1 : 0] };
   if (pages[path]) {
     const [title, description] = pages[path][lang];
-    return { ...base, noindex: path === '/my-tickets' || path === '/account' || path === '/history' || path === '/auth/email-link', title: `${title} | DTH Tamizhan`, description };
+    return { ...base, noindex: path === '/account/bookings' || path === '/my-tickets' || path === '/account' || path === '/history' || path === '/auth/email-link', title: `${title} | DTH Tamizhan`, description };
   }
   return { ...base, status: 404, noindex: true, title: `${lang === 'ta' ? 'பக்கம் கிடைக்கவில்லை' : 'Page not found'} (404) | DTH Tamizhan`, description: lang === 'ta' ? 'இந்த முகவரி கிடைக்கவில்லை. முகப்புப் பக்கத்திற்குத் திரும்பவும்.' : 'This address does not exist. Return to the home page to continue.' };
 }

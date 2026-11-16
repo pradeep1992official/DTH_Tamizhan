@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { razorpayClient, verifyPaymentSignature, verifyRazorpayWebhookSignature } from './razorpay';
+import { razorpayClient, createIdempotentRazorpayRefund, verifyPaymentSignature, verifyRazorpayWebhookSignature } from './razorpay';
 import { youpiGatewayConfig, youpiGatewayRequest } from './youpi';
 import { moneyUnits, type NewConnectionOrder, type NewConnectionProvider } from '../src/lib/newConnectionOrders';
 
@@ -12,6 +12,8 @@ export interface PaymentProvider {
   verifyConfirmation(order: NewConnectionOrder, confirmation: Record<string, unknown>): Promise<ProviderResult>;
   handleWebhook?(raw: Buffer, headers: Record<string, unknown>): Record<string, any>;
   getStatus(order: NewConnectionOrder): Promise<ProviderResult>;
+  createRefund?(order: NewConnectionOrder, paymentId: string, amount: number, operationId: string): Promise<any>;
+  getRefund?(refundId: string): Promise<any>;
 }
 function testRazorpay() {
   if (!process.env.RAZORPAY_KEY_ID?.startsWith('rzp_test_') || !process.env.RAZORPAY_KEY_SECRET) throw new Error('RAZORPAY_TEST_ONLY');
@@ -23,6 +25,14 @@ function validRazorpayOrder(order: any, booking: NewConnectionOrder) {
 }
 export class RazorpayProvider implements PaymentProvider {
   readonly id = 'razorpay' as const; readonly supportsRefund = true;
+  async createRefund(order: NewConnectionOrder, paymentId: string, amount: number, operationId: string) {
+    if (process.env.NC_RAZORPAY_TEST_ENABLED !== 'true') throw new Error('PROVIDER_DISABLED');
+    const client = testRazorpay(); const payment = await client.payments.fetch(paymentId);
+    const providerOrder = await client.orders.fetch(payment.order_id); validRazorpayOrder(providerOrder, order);
+    if (payment.id !== order.providerPaymentId || payment.status !== 'captured' || !payment.captured || payment.currency !== 'INR' || Number(payment.amount) !== moneyUnits(order.amountDueNow)) throw new Error('PROVIDER_MISMATCH');
+    return createIdempotentRazorpayRefund(paymentId, operationId, { amount: moneyUnits(amount), speed: 'normal', receipt: operationId.slice(0, 40), notes: { purpose: 'new_connection', newConnectionOrderId: order.id, operationId } });
+  }
+  async getRefund(refundId: string) { if (!/^rfnd_[a-zA-Z0-9]+$/.test(refundId)) throw new Error('INVALID_REFUND_REFERENCE'); return testRazorpay().refunds.fetch(refundId); }
   async createCheckout(booking: NewConnectionOrder): Promise<Checkout> {
     if (process.env.NC_RAZORPAY_TEST_ENABLED !== 'true') throw new Error('PROVIDER_DISABLED');
     const client = testRazorpay();

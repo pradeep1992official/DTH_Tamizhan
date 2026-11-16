@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { catalogSchemas, catalogSlug, settingsSchema, pricesStale, csvEncode, type CatalogData, type CatalogKind } from '../../../lib/newConnectionCatalog';
 import './catalog.css';
-import { NewConnectionPaymentReview } from '../NewConnectionPaymentReview';
+import { Link } from 'react-router-dom';
 
 type Section = CatalogKind | 'settings';
 const labels: Record<Section, string> = { brands: 'Brands', packs: 'Packs', channels: 'Channels', equipment: 'Equipment', settings: 'Settings' };
@@ -121,6 +121,6 @@ export function CatalogTab({ getAuthHeaders }: { getAuthHeaders: () => Promise<R
       <p>{matchingChannels.length} matches. Showing the first 60; search to narrow results. Counts are calculated on save.</p><div className="catalog-channel-picker">{matchingChannels.slice(0, 60).map(c => <label key={c.id}><input type="checkbox" checked={draft.channelIds.includes(c.id)} onChange={e => set('channelIds', e.target.checked ? [...draft.channelIds, c.id] : draft.channelIds.filter((id: string) => id !== c.id))} />{c.name} · {c.isHD ? 'HD' : 'SD'} · {c.isPay ? 'Pay' : 'Free'}{!c.active && ' (inactive)'}</label>)}</div>
     </>}
     <div className="nc-toolbar"><button className="nc-primary" type="submit">Save {singular[section]}</button><button type="button" onClick={() => setDraft(null)}>Cancel</button></div></fieldset></form>}
-    {section === 'settings' && <NewConnectionPaymentReview getAuthHeaders={getAuthHeaders} />}
+    {section === 'settings' && <p><Link to="/admin/new-connections?awaiting=true">Open payment verification queue in New Connections</Link></p>}
   </div>;
 }

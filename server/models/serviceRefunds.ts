@@ -1,3 +1,4 @@
+import { createIdempotentRazorpayRefund } from '../razorpay';
 import { getAdminFirestore } from '../middleware/auth';
 import { servicePaymentConfig } from './servicePayments';
 import { ticketSchema, type Ticket } from '../../src/lib/tickets';
@@ -50,12 +51,7 @@ export async function refundServiceRequest(ticketId: string, reason: string, by:
       if (!refund) {
         // The installed SDK filters out X-Refund-Idempotency; native fetch preserves
         // Razorpay's documented refund idempotency header without a second library.
-        const response = await fetch(`https://api.razorpay.com/v1/payments/${ticket.payment.paymentId}/refund`, { method: 'POST', signal: AbortSignal.timeout(20_000), headers: {
-          Authorization: `Basic ${Buffer.from(`${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`).toString('base64')}`,
-          'Content-Type': 'application/json', 'X-Refund-Idempotency': documentKey(`service-refund:${ticket.id}:${ticket.payment.paymentId}`),
-        }, body: JSON.stringify({ amount: 5000, speed: 'normal', receipt: ticket.ticketNo, notes: { ticketId: ticket.id, ticketNo: ticket.ticketNo, reason: claimed.reason } }) });
-        if (!response.ok) throw new Error('Refund not confirmed.');
-        refund = await response.json() as Refunds.RazorpayRefund;
+        refund = await createIdempotentRazorpayRefund(ticket.payment.paymentId!, documentKey('service-refund:' + ticket.id + ':' + ticket.payment.paymentId), { amount: 5000, speed: 'normal', receipt: ticket.ticketNo!, notes: { ticketId: ticket.id, ticketNo: ticket.ticketNo!, reason: claimed.reason } }) as Refunds.RazorpayRefund;
       }
     }
     await applyServiceRefund(ticketId, refund);

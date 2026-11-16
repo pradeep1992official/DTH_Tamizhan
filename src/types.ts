@@ -228,7 +228,7 @@ export function isUserAdmin(user: UserProfile | null, approvedAdminEmails?: stri
   return false;
 }
 
-export type AdminTabId = 'catalog' | 'tickets' | 'ai' | 'customers' | 'reports' | 'pending' | 'recharges' | 'packs' | 'payments' | 'operators' | 'approvals' | 'api-test';
+export type AdminTabId = 'new-connections' | 'catalog' | 'tickets' | 'ai' | 'customers' | 'reports' | 'pending' | 'recharges' | 'packs' | 'payments' | 'operators' | 'approvals' | 'api-test';
 
 export interface AdminAccount {
   uid: string;

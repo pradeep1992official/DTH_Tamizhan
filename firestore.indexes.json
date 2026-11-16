@@ -22,7 +22,11 @@
     {"collectionGroup": "newConnectionOrders", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "uid", "order": "ASCENDING"}, {"fieldPath": "createdAt", "order": "DESCENDING"}]},
     {"collectionGroup": "newConnectionOrders", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "customer.phone", "order": "ASCENDING"}, {"fieldPath": "createdAt", "order": "DESCENDING"}]},
     {"collectionGroup": "newConnectionOrders", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "providerOrderId", "order": "ASCENDING"}]},
-    {"collectionGroup": "newConnectionOrders", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "provider", "order": "ASCENDING"}, {"fieldPath": "paymentStatus", "order": "ASCENDING"}, {"fieldPath": "createdAt", "order": "DESCENDING"}, {"fieldPath": "id", "order": "DESCENDING"}]}
+    {"collectionGroup": "newConnectionOrders", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "provider", "order": "ASCENDING"}, {"fieldPath": "paymentStatus", "order": "ASCENDING"}, {"fieldPath": "createdAt", "order": "DESCENDING"}, {"fieldPath": "id", "order": "DESCENDING"}]},
+    {"collectionGroup": "newConnectionOrders", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "createdAt", "order": "DESCENDING"}, {"fieldPath": "id", "order": "DESCENDING"}]},
+    {"collectionGroup": "server_new_connection_notifications", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "status", "order": "ASCENDING"}, {"fieldPath": "createdAt", "order": "DESCENDING"}, {"fieldPath": "id", "order": "DESCENDING"}]},
+    {"collectionGroup": "server_new_connection_notifications", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "orderId", "order": "ASCENDING"}, {"fieldPath": "status", "order": "ASCENDING"}, {"fieldPath": "createdAt", "order": "DESCENDING"}, {"fieldPath": "id", "order": "DESCENDING"}]},
+    {"collectionGroup": "newConnectionOrders", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "testMode", "order": "ASCENDING"}, {"fieldPath": "updatedAt", "order": "DESCENDING"}]}
   ],
   "fieldOverrides": []
 }

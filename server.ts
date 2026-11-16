@@ -1,3 +1,4 @@
+import { processConnectionNotifications } from './server/models/newConnectionNotifications';
 import { youpiWebhookRouter } from './server/youpi';
 import { newConnectionOrdersRouter } from './server/routes/newConnectionOrders';
 import { productionCsp, cspReport } from './server/securityHeaders';
@@ -137,6 +138,13 @@ async function startServer() {
   } catch (error) { await vite?.close(); throw error; }
   console.log(`[DTH Tamizhan] Unified Server listening on localhost:${PORT}`);
   const stopEmailWorker = startReceiptEmailWorker();
+  let connectionNotificationsRunning = false;
+  const connectionNotificationsTimer = setInterval(() => {
+    if (connectionNotificationsRunning) return;
+    connectionNotificationsRunning = true;
+    void processConnectionNotifications().catch(() => console.warn('New connection notification worker unavailable')).finally(() => { connectionNotificationsRunning = false; });
+  }, 30000);
+  connectionNotificationsTimer.unref();
   const stopRechargeWorker = startRechargeRecoveryWorker();
   const emailConfig = emailDeliveryConfig();
   console.log(`[email] Brevo ${emailConfig.enabled && emailConfig.configured ? 'enabled' : 'disabled or not configured'}.`);
@@ -146,6 +154,7 @@ async function startServer() {
     if (stopping) return;
     stopping = true;
     stopEmailWorker();
+    clearInterval(connectionNotificationsTimer);
     stopRechargeWorker();
     const timeout = setTimeout(() => process.exit(1), 5000);
     timeout.unref();

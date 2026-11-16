@@ -66,7 +66,7 @@ export function AccountPage({ user, currentLang, connections = [], onOpenAuth, o
       <div><h1>{t.uiYourAccount}</h1><p>{copy.intro}</p></div>
       {user && onSignOut && <button type="button" className="account-signout" onClick={onSignOut}>{t.signOut}</button>}
     </header>
-    {user ? <div className="account-grid">
+    {user ? <div className="account-grid"><section className="account-card"><h2>{t.ctTitle}</h2><p>{t.ctIntro}</p><Link to="/account/bookings">{t.ctTitle}</Link></section>
       <section className="account-card account-profile">
         <div className="account-identity">
           <span className="account-avatar" aria-hidden="true">{Array.from(displayName)[0]?.toLocaleUpperCase()}</span>

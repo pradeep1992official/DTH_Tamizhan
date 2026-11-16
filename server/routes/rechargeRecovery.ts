@@ -13,6 +13,13 @@ rechargeWebhookRouter.post('/api/webhooks/recharges', express.raw({ type: 'appli
   let event;
   try { event = JSON.parse(req.body.toString('utf8')); } catch { res.sendStatus(400); return; }
   try {
+    if (['refund.processed', 'refund.failed'].includes(event.event) && event.payload?.refund?.entity?.notes?.purpose === 'new_connection') {
+      const refundId = event.payload?.refund?.entity?.id;
+      if (typeof refundId !== 'string' || !/^rfnd_[a-zA-Z0-9]+$/.test(refundId)) { res.sendStatus(400); return; }
+      const { reconcileConnectionRefund } = await import('../models/newConnectionRefunds');
+      const handled = await reconcileConnectionRefund(refundId);
+      res.json({ success: true, ignored: !handled }); return;
+    }
     if (['payment.captured', 'order.paid', 'payment.failed'].includes(event.event)) {
       const p = event.payload?.payment?.entity; let o = event.payload?.order?.entity;
       if (!o && p?.order_id && p?.notes?.dth_app !== 'dth-tamizhan') o = await razorpayClient().orders.fetch(p.order_id);

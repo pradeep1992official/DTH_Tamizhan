@@ -133,6 +133,13 @@ export function emailDeliveryConfig() {
   const dailyLimit = Number.isInteger(raw) && raw > 0 ? Math.min(raw, 300) : 300;
   return { enabled, configured, dailyLimit, testEmails: process.env.BREVO_SEND_TEST_EMAILS === 'true' };
 }
+/** Shared Brevo transport; callers own durable outboxes and retry policies. */
+export async function sendBrevoMessage(recipient: string, name: string, subject: string, textContent: string, idempotencyKey: string) {
+  const config = emailDeliveryConfig();
+  if (!config.enabled || !config.configured) throw new Error('EMAIL_NOT_CONFIGURED');
+  const response = await fetch('https://api.brevo.com/v3/smtp/email', { method: 'POST', signal: AbortSignal.timeout(15_000), headers: { 'api-key': process.env.BREVO_API_KEY!, 'Content-Type': 'application/json' }, body: JSON.stringify({ sender: { email: process.env.BREVO_SENDER_EMAIL, name: process.env.BREVO_SENDER_NAME || 'DTH Tamizhan' }, to: [{ email: recipient, name }], subject, textContent, headers: { idempotencyKey } }) });
+  const data = await response.json(); if (!response.ok || !data.messageId) throw new Error('EMAIL_NOT_CONFIRMED'); return String(data.messageId);
+}
 
 export async function receiptEmailStatus() {
   if (usesFirestore()) {

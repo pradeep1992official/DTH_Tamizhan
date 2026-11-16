@@ -1,7 +1,7 @@
 import { createHmac } from 'node:crypto';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-const f = vi.hoisted(() => ({ create: vi.fn(), order: vi.fn(), payments: vi.fn(), payment: vi.fn(), gateway: vi.fn() }));
-vi.mock('../server/razorpay', async original => ({ ...await original<typeof import('../server/razorpay')>(), razorpayClient: () => ({ orders: { create: f.create, fetch: f.order, fetchPayments: f.payments }, payments: { fetch: f.payment } }) }));
+const f = vi.hoisted(() => ({ create: vi.fn(), order: vi.fn(), payments: vi.fn(), payment: vi.fn(), gateway: vi.fn(), refund: vi.fn(), fetchRefund: vi.fn() }));
+vi.mock('../server/razorpay', async original => ({ ...await original<typeof import('../server/razorpay')>(), createIdempotentRazorpayRefund: f.refund, razorpayClient: () => ({ orders: { create: f.create, fetch: f.order, fetchPayments: f.payments }, payments: { fetch: f.payment }, refunds: { fetch: f.fetchRefund } }) }));
 vi.mock('../server/youpi', () => ({ youpiGatewayConfig: () => ({ checkout: new URL('https://pay.example.com'), returnUrl: 'https://shop.example.com' }), youpiGatewayRequest: f.gateway }));
 import { NoPaymentProvider, RazorpayProvider, YoupiProvider, providerEnabled } from '../server/newConnectionPaymentProviders';
 import type { NewConnectionOrder } from '../src/lib/newConnectionOrders';
@@ -49,4 +49,15 @@ it('authenticates raw YouPI callbacks, binds delivery identity and rejects forge
   expect(() => provider.handleWebhook(Buffer.from(raw.toString() + ' '), { 'x-gateway-signature': signature, 'x-gateway-delivery-id': 'delivery-1' })).toThrow();
   expect(() => provider.handleWebhook(raw, { 'x-gateway-signature': signature, 'x-gateway-delivery-id': 'forged' })).toThrow();
   expect(() => provider.handleWebhook(raw, {})).toThrow();
+});
+
+it('refunds only captured bound test payments through the shared idempotent transport', async () => {
+  const provider = new RazorpayProvider(); const order = { ...booking, providerPaymentId: 'pay_test' };
+  f.refund.mockResolvedValue({ id: 'rfnd_test' }); await expect(provider.createRefund(order, 'pay_test', 20.05, 'stable-operation-key')).resolves.toEqual({ id: 'rfnd_test' });
+  expect(f.refund).toHaveBeenCalledWith('pay_test', 'stable-operation-key', { amount: 2005, speed: 'normal', receipt: 'stable-operation-key', notes: { purpose: 'new_connection', newConnectionOrderId: booking.id, operationId: 'stable-operation-key' } });
+  f.refund.mockClear(); vi.stubEnv('RAZORPAY_KEY_ID', 'rzp_live_forbidden');
+  await expect(provider.createRefund(order, 'pay_test', 20, 'stable-operation-key')).rejects.toThrow('RAZORPAY_TEST_ONLY'); expect(f.refund).not.toHaveBeenCalled();
+  await expect(provider.getRefund('rfnd_test')).rejects.toThrow('RAZORPAY_TEST_ONLY');
+  vi.stubEnv('RAZORPAY_KEY_ID', 'rzp_test_fixture'); vi.stubEnv('NC_RAZORPAY_TEST_ENABLED', 'false');
+  await expect(provider.createRefund(order, 'pay_test', 20, 'stable-operation-key')).rejects.toThrow('PROVIDER_DISABLED');
 });

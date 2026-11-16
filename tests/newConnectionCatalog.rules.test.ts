@@ -67,6 +67,13 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('New connection catalog Fi
       await assertFails(db.doc('newConnectionOrders/owner-order').update({ paymentStatus: 'paid', amountDueNow: 1 }));
       await assertFails(db.doc('newConnectionOrders/owner-order').delete());
       await assertFails(db.doc('server_new_connection_private/owner-order').get());
+      await assertFails(db.doc('newConnectionOrders/owner-order').update({ ledger: [{ type: 'payment', amount: 999 }], amountPaid: 999 }));
+      await assertFails(db.doc('newConnectionOrders/owner-order').update({ cancellationRequest: { status: 'open' } }));
+      for (const collection of ['server_new_connection_notifications', 'server_new_connection_operations', 'server_new_connection_refund_refs', 'server_new_connection_payment_refs']) {
+        await assertFails(db.doc(collection + '/private-record').get());
+        await assertFails(db.doc(collection + '/private-record').set({ forged: true }));
+      }
+
     }
   });
 });
