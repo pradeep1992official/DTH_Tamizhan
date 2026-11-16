@@ -163,6 +163,7 @@ export const Header: React.FC<HeaderProps> = ({
             {t.navConnections}
           </button>
 
+          <button id="nav-new-connection-btn" type="button" onClick={() => onTabChange('new-connection')} aria-current={activeTab === 'new-connection' ? 'page' : undefined} className={`px-4 py-1.5 rounded-lg text-xs font-bold ${activeTab === 'new-connection' ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText}` : `${currentTheme.navInactiveText} ${currentTheme.navInactiveHoverBg}`}`}>{t.ncNav}</button>
           <a href="/help" aria-current={activeTab === 'help' ? 'page' : undefined} className="help-navigation-link">{currentLang === 'ta' ? 'உதவி பெறுங்கள்' : 'Get Help'}</a>
         </nav>
 
@@ -373,6 +374,7 @@ export const Header: React.FC<HeaderProps> = ({
           {t.uiMobileBoxes}
         </button>
 
+        <button id="mobile-nav-new-connection-btn" type="button" onClick={() => onTabChange('new-connection')} aria-current={activeTab === 'new-connection' ? 'page' : undefined} className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold whitespace-nowrap text-center ${activeTab === 'new-connection' ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText}` : `${currentTheme.navContainerBg} ${currentTheme.navInactiveText}`}`}>{t.ncNav}</button>
         <a href="/help" aria-current={activeTab === 'help' ? 'page' : undefined} className="help-navigation-link">{t.uiMobileHelp}</a>
       </nav>
       <div id="mobile-assistance-control" className="mobile-assistance-slot" />

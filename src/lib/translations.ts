@@ -1,9 +1,11 @@
+import { newConnectionCopy } from './newConnectionCopy';
 import { customerMessages } from './customerMessages';
 import { Language } from '../types';
 
 export const translations = {
   en: {
     ...customerMessages.en,
+    ...newConnectionCopy.en,
     brandTitle: 'DTH Tamizhan',
     brandTagline: 'DTH recharge and support for Tamil Nadu.',
     heroDescription: 'Choose your DTH operator, enter your customer ID, and check the total before paying.',
@@ -374,6 +376,7 @@ export const translations = {
   },
   ta: {
     ...customerMessages.ta,
+    ...newConnectionCopy.ta,
     brandTitle: 'டிடிஎச் தமிழன்',
     // Draft Tamil copy: native-speaker review required before publication.
     brandTagline: 'தமிழ்நாட்டிற்கான டிடிஎச் ரீசார்ஜ் மற்றும் உதவி.',

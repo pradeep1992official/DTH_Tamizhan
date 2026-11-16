@@ -33,6 +33,7 @@ import { ReceiptModal } from './components/ReceiptModal';
 import { SavedConnections } from './components/SavedConnections';
 const AdminPortal = React.lazy(() => import('./components/AdminPortal').then(module => ({ default: module.AdminPortal })));
 import { NewConnectionModal } from './components/NewConnectionModal';
+const NewConnectionPages = React.lazy(() => import('./components/NewConnection/NewConnectionPages').then(module => ({ default: module.NewConnectionPages })));
 const BrowsePlansView = React.lazy(() => import('./components/BrowsePlans/BrowsePlansView').then(module => ({ default: module.BrowsePlansView })));
 import {
   Language,
@@ -443,6 +444,7 @@ function MainApp() {
     if (pageMetadata(path).status !== 200) return 'error';
     if (POLICY_ROUTES.some(route => route.path === path)) return 'policies';
     if (path.startsWith('/admin') || path === '/worker' || path === '/dealer') return 'admin-portal';
+    if (path.startsWith('/new-connection')) return 'new-connection';
     if (path.startsWith('/plans')) return 'plans';
     if (path.startsWith('/connections')) return 'connections';
     if (path === '/account') return 'account';
@@ -452,6 +454,7 @@ function MainApp() {
 
   const handleNavTabChange = (tab: string) => {
     if (tab === 'recharge') navigate('/recharge');
+    else if (tab === 'new-connection') navigate('/new-connection');
     else if (tab === 'plans') navigate('/plans');
     else if (tab === 'connections') navigate('/connections');
     else if (tab === 'account') navigate('/account');
@@ -484,8 +487,10 @@ function MainApp() {
         {sessionError && <p role="alert" className="border border-rule rounded-lg p-3 my-3 text-error">{sessionError}</p>}
         {user && (Object.values(assistantPages) as string[]).includes(location.pathname) && <RechargeAssistant key={user.uid} currentLang={currentLang} displayName={user.displayName}
           onCheckout={(plan, box, operator) => handleInitiatePayment(plan, null, operator, box.smartCardNumber, false)} />}
+        {(location.pathname === '/' || location.pathname === '/recharge') && <aside className="flex flex-wrap items-center justify-between gap-3 border border-rule rounded-xl bg-accent-soft p-4 mb-5"><div><h2 className="text-base font-bold">{t.ncHomeTitle}</h2><p className="text-sm text-muted mt-1">{t.ncHomeText}</p></div><Link to="/new-connection" className="bg-accent text-accent-ink px-4 py-2.5 rounded-lg text-sm font-bold">{t.ncBrowse}</Link></aside>}
         <React.Suspense fallback={<p role="status">{translations[currentLang].loadingCatalog}</p>}>
         <Routes>
+          <Route path="/new-connection/*" element={<NewConnectionPages currentLang={currentLang} />} />
           <Route
             path="/"
             element={

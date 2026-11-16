@@ -1,5 +1,6 @@
 import type { Language } from '../types';
 import { POLICY_ROUTES } from './trustContent';
+import { newConnectionCopy } from './newConnectionCopy';
 
 export interface PageMetadata { title: string; description: string; status: 200 | 404 | 500; noindex: boolean; path: string }
 const pages: Record<string, { en: [string, string]; ta: [string, string] }> = {
@@ -26,6 +27,10 @@ export function pageMetadata(path: string, lang: Language = 'en'): PageMetadata 
   const requestedPath = normalizedPath(path);
   path = requestedPath === '/' ? '/recharge' : requestedPath;
   const base = { path: requestedPath, status: 200 as const, noindex: false };
+  if (['/new-connection', '/new-connection/compare', '/new-connection/book'].includes(path) || /^\/new-connection\/packs\/[\p{L}\p{N}_-]{1,128}$/u.test(path)) {
+    const t = newConnectionCopy[lang];
+    return { ...base, noindex: path !== '/new-connection', title: `${path.endsWith('/compare') ? t.ncCompareTitle : path.endsWith('/book') ? t.ncBookTitle : t.ncTitle} | DTH Tamizhan`, description: t.ncIntro };
+  }
   if (path === '/500') return { ...base, status: 500, noindex: true, title: `${lang === 'ta' ? 'சேவைப் பிழை' : 'Service error'} (500) | DTH Tamizhan`, description: lang === 'ta' ? 'பக்கம் ஏற்றப்படவில்லை. முகப்புப் பக்கத்திற்குத் திரும்பவும்.' : 'The page could not be loaded. Return to the home page.' };
   if (path === '/worker' || path === '/dealer' || path === '/admin' || (path.startsWith('/admin/') && adminTabs.has(path.slice(7)))) {
     return { ...base, noindex: true, title: `${lang === 'ta' ? 'நிர்வாகம்' : 'Administration'}${path.startsWith('/admin/') ? ` - ${path.slice(7)}` : ''} | DTH Tamizhan`, description: lang === 'ta' ? 'அங்கீகரிக்கப்பட்ட நிர்வாகிகளுக்கான செயல்பாட்டுப் பக்கம்.' : 'Restricted operations for authorized administrators.' };
