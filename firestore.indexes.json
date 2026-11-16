@@ -12,7 +12,13 @@
     { "collectionGroup": "server_email_outbox", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{ "fieldPath": "lastAttemptAt", "order": "ASCENDING" }] },
     { "collectionGroup": "server_email_outbox", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{ "fieldPath": "acceptedAt", "order": "ASCENDING" }] },
     { "collectionGroup": "plan_catalog", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{ "fieldPath": "operator", "order": "ASCENDING" }] },
-    { "collectionGroup": "dth_connections", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{ "fieldPath": "user_id", "order": "ASCENDING" }, { "fieldPath": "operator", "order": "ASCENDING" }, { "fieldPath": "smartCardNumber", "order": "ASCENDING" }] }
+    { "collectionGroup": "dth_connections", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{ "fieldPath": "user_id", "order": "ASCENDING" }, { "fieldPath": "operator", "order": "ASCENDING" }, { "fieldPath": "smartCardNumber", "order": "ASCENDING" }] },
+    {"collectionGroup": "dthBrands", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "active", "order": "ASCENDING"}, {"fieldPath": "sortOrder", "order": "ASCENDING"}]},
+    {"collectionGroup": "dthPacks", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "active", "order": "ASCENDING"}, {"fieldPath": "sortOrder", "order": "ASCENDING"}]},
+    {"collectionGroup": "dthChannels", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "active", "order": "ASCENDING"}, {"fieldPath": "sortOrder", "order": "ASCENDING"}]},
+    {"collectionGroup": "dthEquipmentOffers", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "active", "order": "ASCENDING"}, {"fieldPath": "sortOrder", "order": "ASCENDING"}]},
+    {"collectionGroup": "dthPacks", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "brandId", "order": "ASCENDING"}, {"fieldPath": "active", "order": "ASCENDING"}, {"fieldPath": "sortOrder", "order": "ASCENDING"}]},
+    {"collectionGroup": "dthEquipmentOffers", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "brandId", "order": "ASCENDING"}, {"fieldPath": "active", "order": "ASCENDING"}, {"fieldPath": "sortOrder", "order": "ASCENDING"}]}
   ],
   "fieldOverrides": []
 }

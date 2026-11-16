@@ -77,6 +77,7 @@ function AdminRouteWrapper({
   const navigate = useNavigate();
 
   const mapSubTab = (param?: string): AdminTabId => {
+    if (param === 'catalog') return 'catalog';
     if (param === 'tickets') return 'tickets';
     if (param === 'api-test') return 'api-test';
     if (!param) return 'customers';

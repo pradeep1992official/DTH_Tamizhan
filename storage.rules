@@ -1,6 +1,14 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+    // Approved admins upload through /api/admin/catalog/logo, which checks the
+    // canonical registry in our NAMED Firestore database. Storage Rules cannot
+    // read that registry (cross-service lookups support only the default DB).
+    // Client writes stay denied, including for admins; the server SDK uses IAM.
+    match /catalog-logos/{logoId} {
+      allow read: if true;
+      allow write: if false;
+    }
     // Receipts are private. Owner/admin downloads use authenticated server endpoints.
     // No public URLs or Firebase download tokens are generated.
     match /{path=**} { allow read, write: if false; }

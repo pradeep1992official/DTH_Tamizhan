@@ -1,3 +1,4 @@
+import { CatalogTab } from './Admin/tabs/CatalogTab';
 import { AdminAiPanel } from './Admin/AdminAiPanel';
 import { DthLookupTestPanel } from './Admin/DthLookupTestPanel';
 import { ServiceReceiptsPanel } from './Admin/ServiceReceiptsPanel';
@@ -220,6 +221,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const pendingCount = orders.filter((o) => o.rechargeStatus === 'pending' || o.rechargeStatus === 'processing').length;
 
   const NAV_ITEMS: { id: AdminTabId; label: string; icon: React.ReactNode; badge?: number }[] = [
+    { id: 'catalog', label: currentLang === 'ta' ? 'பட்டியல்' : 'Catalog', icon: <Layers className="w-4 h-4" /> },
     { id: 'tickets', label: 'Tickets', icon: <Ticket className="w-4 h-4" /> },
     { id: 'customers', label: t.customersTab, icon: <Users className="w-4 h-4" /> },
     { id: 'pending', label: t.pendingOrdersTab, icon: <Clock className="w-4 h-4" />, badge: pendingCount },
@@ -365,6 +367,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           />
         )}
 
+        {activeTab === 'catalog' && <CatalogTab getAuthHeaders={getAuthHeaders} />}
         {activeTab === 'operators' && (
           <OperatorsTab
             operators={operators}

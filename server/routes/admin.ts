@@ -1,3 +1,4 @@
+import { newConnectionCatalogRouter } from './newConnectionCatalog';
 import { adminAiRouter } from './adminAi';
 import { forwardAsyncErrors } from '../asyncRoutes';
 import { Router } from 'express';
@@ -13,6 +14,7 @@ import {
 } from '../middleware/validation';
 
 export const adminRouter = Router();
+adminRouter.use(newConnectionCatalogRouter);
 adminRouter.use('/api/admin/ai', adminAiRouter);
 
 adminRouter.get('/api/admin/verify-token', adminController.verifyToken);

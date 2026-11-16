@@ -37,6 +37,19 @@ service cloud.firestore {
       return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
+    // New connection catalog: typed models/validation in src/lib/newConnectionCatalog.ts.
+    // Public data contains no customer details. Mutations use the authenticated
+    // admin API so reference checks and channel counts cannot be bypassed by SDK writes.
+    match /{catalog}/{itemId} {
+      allow read: if catalog in ['dthBrands', 'dthPacks', 'dthChannels', 'dthEquipmentOffers']
+        && (isAdmin() || resource.data.active == true);
+      allow write: if false;
+    }
+    match /appSettings/newConnection {
+      allow read: if true;
+      allow write: if false; // Validated admin API only; full advance is the default.
+    }
+
     // tickets: server-generated support/service-request records (see src/lib/tickets.ts).
     // All mutations, including admin actions, use authenticated server endpoints.
     // adminNotes remains empty here; real internal notes use server_ticket_private.

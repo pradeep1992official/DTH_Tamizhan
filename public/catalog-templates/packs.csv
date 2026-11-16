@@ -1,0 +1,2 @@
+brandId,name,type,language,region,pricingOptions,channelIds,highlights,active,sortOrder
+REPLACE_WITH_BRAND_ID,SAMPLE Pack,HD,Tamil,SAMPLE region,"[{""validityDays"":30,""price"":123}]",REPLACE_WITH_CHANNEL_ID,SAMPLE fictional prices only,false,0

@@ -1,0 +1,62 @@
+diff --git a/firestore.indexes.json b/firestore.indexes.json
+index b62d94d..27d3129 100644
+--- a/firestore.indexes.json
++++ b/firestore.indexes.json
+@@ -12,7 +12,13 @@
+     { "collectionGroup": "server_email_outbox", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{ "fieldPath": "lastAttemptAt", "order": "ASCENDING" }] },
+     { "collectionGroup": "server_email_outbox", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{ "fieldPath": "acceptedAt", "order": "ASCENDING" }] },
+     { "collectionGroup": "plan_catalog", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{ "fieldPath": "operator", "order": "ASCENDING" }] },
+-    { "collectionGroup": "dth_connections", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{ "fieldPath": "user_id", "order": "ASCENDING" }, { "fieldPath": "operator", "order": "ASCENDING" }, { "fieldPath": "smartCardNumber", "order": "ASCENDING" }] }
++    { "collectionGroup": "dth_connections", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{ "fieldPath": "user_id", "order": "ASCENDING" }, { "fieldPath": "operator", "order": "ASCENDING" }, { "fieldPath": "smartCardNumber", "order": "ASCENDING" }] },
++    {"collectionGroup": "dthBrands", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "active", "order": "ASCENDING"}, {"fieldPath": "sortOrder", "order": "ASCENDING"}]},
++    {"collectionGroup": "dthPacks", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "active", "order": "ASCENDING"}, {"fieldPath": "sortOrder", "order": "ASCENDING"}]},
++    {"collectionGroup": "dthChannels", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "active", "order": "ASCENDING"}, {"fieldPath": "sortOrder", "order": "ASCENDING"}]},
++    {"collectionGroup": "dthEquipmentOffers", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "active", "order": "ASCENDING"}, {"fieldPath": "sortOrder", "order": "ASCENDING"}]},
++    {"collectionGroup": "dthPacks", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "brandId", "order": "ASCENDING"}, {"fieldPath": "active", "order": "ASCENDING"}, {"fieldPath": "sortOrder", "order": "ASCENDING"}]},
++    {"collectionGroup": "dthEquipmentOffers", "queryScope": "COLLECTION", "density": "DENSE", "fields": [{"fieldPath": "brandId", "order": "ASCENDING"}, {"fieldPath": "active", "order": "ASCENDING"}, {"fieldPath": "sortOrder", "order": "ASCENDING"}]}
+   ],
+   "fieldOverrides": []
+ }
+diff --git a/firestore.rules b/firestore.rules
+index 6a50867..480aa51 100644
+--- a/firestore.rules
++++ b/firestore.rules
+@@ -37,6 +37,19 @@ service cloud.firestore {
+       return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+     }
+ 
++    // New connection catalog: typed models/validation in src/lib/newConnectionCatalog.ts.
++    // Public data contains no customer details. Mutations use the authenticated
++    // admin API so reference checks and channel counts cannot be bypassed by SDK writes.
++    match /{catalog}/{itemId} {
++      allow read: if catalog in ['dthBrands', 'dthPacks', 'dthChannels', 'dthEquipmentOffers']
++        && (isAdmin() || resource.data.active == true);
++      allow write: if false;
++    }
++    match /appSettings/newConnection {
++      allow read: if true;
++      allow write: if false; // Validated admin API only; full advance is the default.
++    }
++
+     // tickets: server-generated support/service-request records (see src/lib/tickets.ts).
+     // All mutations, including admin actions, use authenticated server endpoints.
+     // adminNotes remains empty here; real internal notes use server_ticket_private.
+diff --git a/storage.rules b/storage.rules
+index 79c4f93..568f2f0 100644
+--- a/storage.rules
++++ b/storage.rules
+@@ -1,6 +1,14 @@
+ rules_version = '2';
+ service firebase.storage {
+   match /b/{bucket}/o {
++    // Approved admins upload through /api/admin/catalog/logo, which checks the
++    // canonical registry in our NAMED Firestore database. Storage Rules cannot
++    // read that registry (cross-service lookups support only the default DB).
++    // Client writes stay denied, including for admins; the server SDK uses IAM.
++    match /catalog-logos/{logoId} {
++      allow read: if true;
++      allow write: if false;
++    }
+     // Receipts are private. Owner/admin downloads use authenticated server endpoints.
+     // No public URLs or Firebase download tokens are generated.
+     match /{path=**} { allow read, write: if false; }

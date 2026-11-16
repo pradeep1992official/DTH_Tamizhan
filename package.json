@@ -16,8 +16,10 @@
     "check:i18n": "tsx scripts/check-localization.ts",
     "test": "vitest run",
     "test:unit": "vitest run tests/calculateSavings.test.ts tests/filterAndSortPlans.test.ts tests/excelParser.test.ts",
-    "test:rules": "npx vitest run tests/firestore.rules.test.ts",
-    "test:emulator": "firebase emulators:exec --only firestore \"npx vitest run tests/firestore.rules.test.ts\""
+    "test:rules": "npx vitest run tests/firestore.rules.test.ts tests/newConnectionCatalog.rules.test.ts",
+    "test:emulator": "firebase emulators:exec --only firestore \"npx vitest run tests/firestore.rules.test.ts tests/newConnectionCatalog.rules.test.ts\"",
+    "seed:catalog": "tsx scripts/seed-new-connection.ts",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
