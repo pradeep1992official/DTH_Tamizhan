@@ -16,3 +16,7 @@ export function monthlyComparison(price: number, days: number, lang: Language, m
   }).format(months ? price / months : price * 30 / days);
   return lang === 'ta' ? `\u2248 ${amount} / \u0bae\u0bbe\u0ba4\u0bae\u0bcd` : `\u2248 ${amount}/month`;
 }
+
+export function packDisplayName(name: string) {
+  return name.replace(/\s*[-\u2014]\s*(ONLY\s*BOX|FULL\s*SET)$/i, '');
+}

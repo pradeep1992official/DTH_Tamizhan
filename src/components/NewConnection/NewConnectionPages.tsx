@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { packBoxType, packPackageType } from '../../lib/newConnectionCatalog';
-import { packageCardLabel, validityLabel } from '../../lib/newConnectionDisplay';
+import { packDisplayName, packageCardLabel, validityLabel } from '../../lib/newConnectionDisplay';
 import { Download } from '../../lib/icons';
 import { PackageInclusions } from './PackageInclusions';
 import type { CatalogData } from '../../lib/newConnectionCatalog';
@@ -35,7 +35,7 @@ export function PackChannels({ items, lang }: { items: VisiblePack[]; lang: Lang
   if (!item) return <section className="connection-state"><h1>{t.ncUnavailable}</h1><p>{t.ncUnavailableText}</p></section>;
   const option = pricing(item.pack, validity);
   const packageType = packPackageType(item.pack);
-  const name = item.pack.name.replace(/\s*[-\u2014]\s*(ONLY\s*BOX|FULL\s*SET)$/i, '');
+  const name = packDisplayName(item.pack.name);
   const term = validityLabel(option.validityDays, lang, option.validityMonths);
   const flyer = channelFlyer(item.brand.name, item.pack.name);
   return <div className="connection-pack-channels" ref={pageRef}>

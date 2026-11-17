@@ -101,3 +101,33 @@ it('restores the catalog filters and sort when returning to packs', () => {
     expect(html).toContain(`value="${data.brands[0].id}" selected=""`);
   } finally { vi.unstubAllGlobals(); }
 });
+
+it('enforces comparison limits with consistent branded chips and selection overlays', () => {
+  const catalog = seedCatalog();
+  catalog.packs = Array.from({ length: 4 }, (_, i) => ({ ...catalog.packs[0], id: `comparison-${i}`, name: `Tamil Pack ${i} - ONLY BOX`, packageType: 'only_box' as const }));
+  const visible = visibleCatalog(catalog);
+  const render = (count: number) => renderToStaticMarkup(<MemoryRouter><CatalogPage data={catalog} items={visible} lang="en" selected={visible.slice(0, count).map(item => ({ id: item.pack.id, validity: 30 }))} limit={false} onToggle={() => {}} onRemove={() => {}} onValidity={() => {}} onClear={() => {}} /></MemoryRouter>);
+  const one = render(1);
+  const cleared = render(0);
+  expect(cleared).not.toContain('Selected for comparison');
+  expect(cleared).not.toContain('checked=""');
+  expect(cleared).not.toContain('class="connection-compare-bar"');
+  expect(one).toContain('1 of 3 packs selected');
+  expect(one).toContain('Select at least 2 packs');
+  expect(one).toMatch(/<button disabled="" aria-describedby="[^"]+">Compare<\/button>/);
+  const bar = one.slice(one.indexOf('<aside'));
+  expect(bar).toContain(`${visible[0].brand.name} \u00b7 Tamil Pack 0 \u00b7 Box only (existing dish)`);
+  expect(bar).not.toContain('ONLY BOX');
+  for (const count of [0, 1, 2, 3]) {
+    const html = render(count);
+    expect(html).not.toContain('connection-comparison-slot');
+    expect((html.match(/class="connection-comparison-state"/g) ?? []).length).toBe(count);
+  }
+  expect(render(2)).toContain('class="connection-primary" href="/new-connection/compare?');
+  const full = render(3);
+  expect(full).toContain('Maximum 3 packs selected. Remove one to choose another.');
+  const inputs = full.match(/<input[^>]*type="checkbox"[^>]*>/g) ?? [];
+  expect(inputs).toHaveLength(4);
+  expect(inputs.filter(input => input.includes('disabled=""'))).toHaveLength(1);
+  expect(inputs.filter(input => input.includes('checked=""') && !input.includes('disabled=""'))).toHaveLength(3);
+});
