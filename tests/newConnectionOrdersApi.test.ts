@@ -39,6 +39,7 @@ const now = Date.parse('2026-11-16T10:00:00Z');
 beforeAll(async () => { const app = express(); app.use(express.json()); app.use(newConnectionOrdersRouter); server = await new Promise<Server>(resolve => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); }); const address = server.address(); if (!address || typeof address === 'string') throw new Error(); base = `http://127.0.0.1:${address.port}`; });
 afterAll(async () => { await new Promise<void>(resolve => server.close(() => resolve())); vi.unstubAllEnvs(); });
 beforeEach(() => {
+  vi.stubEnv('RECHARGE_ENABLED', 'false');
   f.records.clear(); f.tail = Promise.resolve(); vi.clearAllMocks(); f.catalog = seedCatalog(); f.enabled = true;
   f.create.mockImplementation(async (order: NewConnectionOrder) => ({ provider: order.provider, providerOrderId: order.provider === 'youpi' ? 'session-1' : 'order_r1', keyId: 'rzp_test_fixture', amount: Math.round(order.amountDueNow * 100), currency: 'INR', testMode: order.provider === 'razorpay' }));
   f.getStatus.mockResolvedValue({ state: 'pending', raw: {} }); f.verify.mockResolvedValue({ state: 'paid', paymentId: 'pay_r1', raw: { status: 'captured' } }); vi.stubEnv('YOUPI_WEBHOOK_SECRET', 'secret');
@@ -49,6 +50,24 @@ function input(provider: 'none' | 'razorpay' | 'youpi' = 'none', packIndex = 0):
   return { brandId: item.brand.id, packId: item.pack.id, offerId: offer.id, selectedValidityDays: 30, connectionCount: 1, customer: { name: 'Sample Customer', phone: '9876543210', altPhone: '', email: '', address: '12 Sample Road, Chennai', landmark: '', pincode: '600001', district: 'Chennai', preferredDate: installationDateBounds().min, preferredSlot: 'Any', notes: '' }, provider, consent: { terms: true, contact: true }, displayedQuote: advanceQuote(calculateNewConnectionPrice(item.pack.pricingOptions[0].price, offer, 1), f.catalog.settings), idempotencyKey: randomUUID(), honeypot: '', formStartedAt: Date.now() - 10000 };
 }
 async function call(path: string, token?: string, body?: unknown) { return fetch(`${base}${path}`, { method: body === undefined ? 'GET' : 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: body === undefined ? undefined : JSON.stringify(body) }); }
+it('saves the server-selected box type in the order and rejects a stale box selection', async () => {
+  f.catalog.packs[0].packageType = 'full_set';
+  f.catalog.packs[0].boxType = 'Android';
+  await expect(createBooking('buyer', { ...input(), boxType: 'HD' })).rejects.toMatchObject({ code: 'SELECTION_UNAVAILABLE' });
+  const result = await createBooking('buyer', { ...input(), boxType: 'Android' });
+  expect(result.order.snapshot.boxType).toBe('Android');
+  f.catalog.packs[0].boxType = 'HD';
+  expect(f.records.get(`newConnectionOrders/${result.order.id}`).snapshot.boxType).toBe('Android');
+});
+it('records calendar validity and rejects stale day-based selections', async () => {
+  f.catalog.packs[0].packageType = 'full_set';
+  f.catalog.packs[0].pricingOptions = [{ validityDays: 360, validityMonths: 12, price: 3100 }];
+  const request = { ...input(), selectedValidityDays: 360 };
+  await expect(createBooking('buyer', request)).rejects.toMatchObject({ code: 'SELECTION_UNAVAILABLE' });
+  const { order } = await createBooking('buyer', { ...request, selectedValidityMonths: 12 });
+  expect(order.selectedValidityMonths).toBe(12);
+  expect(f.records.get(`newConnectionOrders/${order.id}`).selectedValidityMonths).toBe(12);
+});
 it('runs none-mode end-to-end through HTTP, persistence and owner-only status with no gateway call', async () => {
   const config = await (await call('/api/new-connection/config')).json(); expect(config.settings.advanceMode).toBe('none'); expect(config.enabledProviders).toEqual([]);
   const created = await call('/api/new-connection/orders', 'buyer', input()); expect(created.status).toBe(200); const result = await created.json();

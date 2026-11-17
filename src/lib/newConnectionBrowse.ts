@@ -1,11 +1,12 @@
+import { packBoxType, packPackageType, packageTypeLabel } from './newConnectionCatalog';
 import { calculateNewConnectionPrice } from './newConnectionPricing';
 import type { Brand, CatalogData, Channel, EquipmentOffer, Pack } from './newConnectionCatalog';
 
 export type ChannelCounts = Pick<Pack, 'channelCount' | 'payChannelCount' | 'freeChannelCount' | 'hdChannelCount'>;
 export interface VisiblePack { pack: Pack; brand: Brand; channels: Channel[]; counts: ChannelCounts; genres: Record<string, number> }
 export interface PackSelection { id: string; validity: number }
-export interface BrowseFilters { language: string; region: string; type: string; minPrice: string; maxPrice: string; validity: string; genre: string; sort: 'price' | 'channels' | 'perChannel' }
-export const defaultBrowseFilters: BrowseFilters = { language: '', region: '', type: '', minPrice: '', maxPrice: '', validity: '', genre: '', sort: 'price' };
+export interface BrowseFilters { boxType: string; language: string; region: string; type: string; minPrice: string; maxPrice: string; validity: string; genre: string; sort: 'price' | 'channels' | 'perChannel' }
+export const defaultBrowseFilters: BrowseFilters = { boxType: '', language: '', region: '', type: '', minPrice: '', maxPrice: '', validity: '', genre: '', sort: 'price' };
 export function channelCounts(channels: Channel[]): ChannelCounts {
   return { channelCount: channels.length, payChannelCount: channels.filter(c => c.isPay).length, freeChannelCount: channels.filter(c => !c.isPay).length, hdChannelCount: channels.filter(c => c.isHD).length };
 }
@@ -19,12 +20,19 @@ export function visibleCatalog(data: CatalogData): VisiblePack[] {
   });
 }
 export function pricing(pack: Pack, validity?: number) { return pack.pricingOptions.find(p => p.validityDays === validity) ?? pack.pricingOptions.find(p => p.validityDays === 30) ?? [...pack.pricingOptions].sort((a, b) => a.validityDays - b.validityDays)[0]; }
+type PricingOption = Pack['pricingOptions'][number];
+export function matchesPricingValidity(option: PricingOption, validity: string) {
+  return validity.startsWith('months:') ? option.validityMonths === Number(validity.slice(7)) : !option.validityMonths && option.validityDays === Number(validity);
+}
+export function pricingForFilter(pack: Pack, validity: string, selected?: number) {
+  return selected ? pricing(pack, selected) : pack.pricingOptions.find(o => matchesPricingValidity(o, validity)) ?? pricing(pack);
+}
 export function pricePerChannel(item: VisiblePack) { return item.counts.channelCount ? item.pack.monthlyPrice / item.counts.channelCount : Infinity; }
-// Filter/sort amounts consistently use the stored 30-day comparison price.
-// Card selectors affect purchase quotes, never the ordering or price-range units.
-export function filterSortPacks(items: VisiblePack[], filters: BrowseFilters, brandId?: string) {
-  return items.filter(({ pack, genres }) => (!brandId || pack.brandId === brandId) && (!filters.language || pack.language === filters.language) && (!filters.region || pack.region === filters.region) && (!filters.type || pack.type === filters.type) && (!filters.validity || pack.pricingOptions.some(o => o.validityDays === Number(filters.validity))) && (!filters.genre || (genres[filters.genre] ?? 0) > 0) && (!filters.minPrice || pack.monthlyPrice >= Number(filters.minPrice)) && (!filters.maxPrice || pack.monthlyPrice <= Number(filters.maxPrice)))
-    .sort((a, b) => (filters.sort === 'channels' ? b.counts.channelCount - a.counts.channelCount : filters.sort === 'perChannel' ? pricePerChannel(a) - pricePerChannel(b) : a.pack.monthlyPrice - b.pack.monthlyPrice) || a.pack.sortOrder - b.pack.sortOrder || a.pack.name.localeCompare(b.pack.name));
+// Match price filtering and sorting to the actual amount shown on each card.
+export function filterSortPacks(items: VisiblePack[], filters: BrowseFilters, brandId?: string, validities: Record<string, number> = {}) {
+  const total = (pack: Pack) => pricingForFilter(pack, filters.validity, validities[pack.id]).price;
+  return items.filter(({ pack, genres }) => (!brandId || pack.brandId === brandId) && (!filters.boxType || packBoxType(pack) === filters.boxType) && (!filters.language || pack.language === filters.language) && (!filters.region || pack.region === filters.region) && (!filters.type || pack.type === filters.type) && (!filters.validity || pack.pricingOptions.some(o => matchesPricingValidity(o, filters.validity))) && (!filters.genre || (genres[filters.genre] ?? 0) > 0) && (!filters.minPrice || total(pack) >= Number(filters.minPrice)) && (!filters.maxPrice || total(pack) <= Number(filters.maxPrice)))
+    .sort((a, b) => (filters.sort === 'channels' ? b.counts.channelCount - a.counts.channelCount : filters.sort === 'perChannel' ? (a.counts.channelCount ? total(a.pack) / a.counts.channelCount : Infinity) - (b.counts.channelCount ? total(b.pack) / b.counts.channelCount : Infinity) : total(a.pack) - total(b.pack)) || a.pack.sortOrder - b.pack.sortOrder || a.pack.name.localeCompare(b.pack.name));
 }
 export interface ChannelFilters { search: string; genre: string; language: string; hd: string; pay: string }
 export const defaultChannelFilters: ChannelFilters = { search: '', genre: '', language: '', hd: '', pay: '' };
@@ -37,7 +45,11 @@ export function channelDiff(items: VisiblePack[]) {
   const sets = items.map(item => new Set(item.channels.map(c => c.id)));
   return { common: items[0].channels.filter(c => sets.every(set => set.has(c.id))), unique: items.map((item, i) => item.channels.filter(c => sets.every((set, j) => j === i || !set.has(c.id)))) };
 }
-export function compatibleEquipment(item: VisiblePack, offers: EquipmentOffer[]) {
+export function compatibleEquipment(item: VisiblePack, offers: EquipmentOffer[]): EquipmentOffer[] {
+  const packageType = packPackageType(item.pack);
+  // Pack packages already include their quoted costs. Adapt to the legacy order
+  // snapshot shape without selecting or charging a separate equipment offer.
+  if (packageType) return [{ id: `package_${packageType}`, brandId: item.brand.id, name: packageTypeLabel(packageType), boxType: item.pack.type === 'SD' ? 'SD' : item.pack.type === '4K' ? '4K' : 'HD', hardwarePrice: 0, installationCharge: 0, includedFirstPackId: '', warrantyNote: '', active: true, sortOrder: 0 }];
   // Regional/add-on packs have no box capability contract; show all brand offers.
   const rank = { SD: 0, HD: 1, '4K': 2 };
   return offers.filter(o => o.active && o.brandId === item.brand.id && (!(item.pack.type in rank) || rank[o.boxType] >= rank[item.pack.type as keyof typeof rank])).sort((a, b) => a.hardwarePrice + a.installationCharge - b.hardwarePrice - b.installationCharge || a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));

@@ -11,8 +11,10 @@ const id = z.string().regex(/^[\p{L}\p{N}_-]{1,128}$/u);
 const url = z.union([z.literal(''), z.url().refine(v => v.startsWith('https://'), 'Use an HTTPS URL')]).default('');
 const common = { name, active: z.boolean().default(false), sortOrder: order };
 export const brandSchema = z.object({ ...common, slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(128), logoUrl: url, description: text.default(''), supportsSD: z.boolean().default(true), supportsHD: z.boolean().default(true), serviceNote: text.default('') });
-export const channelSchema = z.object({ ...common, language: name, genre: name, isHD: z.boolean().default(false), isPay: z.boolean().default(false), logoUrl: url });
-export const packSchema = z.object({ ...common, brandId: id, type: z.enum(['SD', 'HD', '4K', 'Regional', 'Add-on']), language: text.default(''), region: text.default(''), pricingOptions: z.array(z.object({ validityDays: z.number().int().min(1).max(3650), price: money })).min(1).max(30).refine(a => new Set(a.map(p => p.validityDays)).size === a.length, 'Validity days must be unique'), channelIds: z.array(id).max(2000).transform(a => [...new Set(a)]), highlights: z.array(name).max(30).default([]) });
+export const channelSchema = z.object({ ...common, language: text.default(''), genre: name, isHD: z.boolean().default(false), isPay: z.boolean().default(false), logoUrl: url });
+// For calendar plans, validityMonths is the promised term. validityDays remains
+// a stable option key for existing booking/compare URLs, not a calendar duration.
+export const packSchema = z.object({ ...common, brandId: id, boxType: z.enum(['HD', 'Android']).optional(), packageType: z.enum(['full_set', 'only_box']).optional(), type: z.enum(['SD', 'HD', '4K', 'Regional', 'Add-on']), language: text.default(''), region: text.default(''), pricingOptions: z.array(z.object({ validityDays: z.number().int().min(1).max(3650), validityMonths: z.number().int().min(1).max(120).optional(), price: money })).min(1).max(30).refine(a => new Set(a.map(p => p.validityDays)).size === a.length, 'Validity days must be unique'), channelIds: z.array(id).max(2000).transform(a => [...new Set(a)]), highlights: z.array(name).max(30).default([]) });
 export const equipmentSchema = z.object({ ...common, brandId: id, boxType: z.enum(['SD', 'HD', '4K']), hardwarePrice: money, installationCharge: money, includedFirstPackId: z.union([id, z.literal('')]).default(''), warrantyNote: text.default('') });
 export const settingsSchema = z.object({ terms: text.default(''), refundPolicy: text.default(''), serviceablePincodes: z.array(z.string().regex(/^[1-9][0-9]{5}$/)).max(10000).default([]), serviceableDistricts: z.array(name).max(1000).default([]), enabledProviders: z.array(z.enum(['razorpay', 'youpi'])).max(2).transform(a => [...new Set(a)]).default([]), defaultProvider: z.enum(['razorpay', 'youpi', 'none']).default('none'), advanceMode: z.enum(['full', 'partial', 'none']).default('none'), partialAmount: money.default(0), priceDisclaimer: text.default('') }).refine(s => s.advanceMode !== 'partial' || s.partialAmount > 0, 'Partial mode requires a positive partial amount').refine(s => s.defaultProvider === 'none' || s.enabledProviders.includes(s.defaultProvider), 'Default provider must be enabled').transform(s => s.enabledProviders.length ? s : { ...s, advanceMode: 'none' as const, defaultProvider: 'none' as const });
 export const catalogSchemas = { brands: brandSchema, channels: channelSchema, packs: packSchema, equipment: equipmentSchema };
@@ -28,9 +30,9 @@ export function packCounts(ids: string[], channels: Pick<Channel, 'id' | 'isHD' 
   const selected = [...new Set(ids)].map(id => { const channel = byId.get(id); if (!channel) throw new Error(`Unknown channel: ${id}`); return channel; });
   return { channelCount: selected.length, payChannelCount: selected.filter(c => c.isPay).length, freeChannelCount: selected.filter(c => !c.isPay).length, hdChannelCount: selected.filter(c => c.isHD).length };
 }
-export function monthlyPrice(options: { validityDays: number; price: number }[]) {
-  const option = options.find(p => p.validityDays === 30) ?? [...options].sort((a, b) => a.validityDays - b.validityDays)[0];
-  return Math.round(option.price * 30 / option.validityDays * 100) / 100;
+export function monthlyPrice(options: { validityDays: number; validityMonths?: number; price: number }[]) {
+  const option = options.find(p => p.validityMonths === 1 || (!p.validityMonths && p.validityDays === 30)) ?? [...options].sort((a, b) => (a.validityMonths ? a.validityMonths * 30 : a.validityDays) - (b.validityMonths ? b.validityMonths * 30 : b.validityDays))[0];
+  return Math.round((option.validityMonths ? option.price / option.validityMonths : option.price * 30 / option.validityDays) * 100) / 100;
 }
 export function pricesStale(date: string | null, now = Date.now()) { return !date || !Number.isFinite(Date.parse(date)) || now - Date.parse(date) > 30 * 86400000; }
 
@@ -58,3 +60,13 @@ export function csvRecord(kind: 'channels' | 'packs', row: Record<string, string
   const base = { ...row, active: boolean('active', false), sortOrder: row.sortOrder ? Number(row.sortOrder) : 0 };
   return kind === 'channels' ? channelSchema.parse({ ...base, isHD: boolean('isHD', false), isPay: boolean('isPay', false) }) : packSchema.parse({ ...base, pricingOptions: JSON.parse(row.pricingOptions || '[]'), channelIds: (row.channelIds || '').split('|').map(s => s.trim()).filter(Boolean), highlights: (row.highlights || '').split('|').filter(Boolean) });
 }
+
+export function packPackageType(pack: Pick<Pack, 'name' | 'packageType'>): 'full_set' | 'only_box' | undefined {
+  return pack.packageType ?? (/only[\s_-]*box/i.test(pack.name) ? 'only_box' : /full[\s_-]*set/i.test(pack.name) ? 'full_set' : undefined);
+}
+export function packageTypeLabel(type: 'full_set' | 'only_box' | undefined, lang = 'en') {
+  if (!type) return '';
+  return type === 'only_box' ? (lang === 'ta' ? '\u0baa\u0bc6\u0b9f\u0bcd\u0b9f\u0bbf \u0bae\u0b9f\u0bcd\u0b9f\u0bc1\u0bae\u0bcd' : 'Set-top box only') : (lang === 'ta' ? '\u0bae\u0bc1\u0bb4\u0bc1 \u0b9a\u0bc6\u0b9f\u0bcd' : 'Full Set');
+}
+
+export function packBoxType(pack: Pick<Pack, 'boxType'>): 'HD' | 'Android' { return pack.boxType ?? 'HD'; }

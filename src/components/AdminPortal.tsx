@@ -1,3 +1,4 @@
+import { clientRechargeEnabled } from '../lib/rechargeFeature';
 import { NewConnectionsTab } from './Admin/tabs/NewConnectionsTab';
 import { CatalogTab } from './Admin/tabs/CatalogTab';
 import { AdminAiPanel } from './Admin/AdminAiPanel';
@@ -286,6 +287,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
       {/* Tab Contents */}
       <div className="admin-workspace">
+        {!clientRechargeEnabled() && ['pending', 'recharges', 'packs', 'operators'].includes(activeTab) && <p role="status">{translations[currentLang].launchHistoryNotice}</p>}
         <div className="admin-workspace-heading"><h2>{NAV_ITEMS.find((item) => item.id === activeTab)?.label}</h2></div>
         {activeTab === 'tickets' && <TicketsPanel key={user.uid} getAuthHeaders={getAuthHeaders} />}
         {activeTab === 'api-test' && <DthLookupTestPanel key={user.uid} getAuthHeaders={getAuthHeaders} />}

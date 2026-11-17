@@ -1,3 +1,4 @@
+import { packBoxType } from '../../src/lib/newConnectionCatalog';
 import { queueConnectionNotification, deliverConnectionNotifications } from './newConnectionNotifications';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
@@ -34,6 +35,8 @@ export async function createBooking(uid: string, value: unknown, now = Date.now(
     if (!bookingServiceable(input.customer, settings)) throw new BookingError('NOT_SERVICEABLE', 400);
     let selected;
     try { selected = selectedBookingItem(data, input.brandId, input.packId, input.offerId, input.selectedValidityDays); } catch { throw new BookingError('SELECTION_UNAVAILABLE'); }
+    if (input.selectedValidityMonths !== selected.option.validityMonths) throw new BookingError('SELECTION_UNAVAILABLE');
+    if (input.boxType && input.boxType !== packBoxType(selected.item.pack)) throw new BookingError('SELECTION_UNAVAILABLE');
     const quote = advanceQuote(calculateNewConnectionPrice(selected.option.price, selected.offer, input.connectionCount), settings);
     if (!sameBookingQuote(quote, input.displayedQuote)) throw new BookingError('PRICE_CHANGED', 409, quote);
     if (quote.amountDueNow === 0 ? input.provider !== 'none' : !['razorpay', 'youpi'].includes(input.provider) || !settings.enabledProviders.includes(input.provider as 'razorpay' | 'youpi') || !providerEnabled(input.provider)) throw new BookingError('PROVIDER_DISABLED');
@@ -46,7 +49,7 @@ export async function createBooking(uid: string, value: unknown, now = Date.now(
     if (byUser.filter(unpaid).length >= 3 || byPhone.filter(unpaid).length >= 3) throw new BookingError('BOOKING_LIMIT', 429);
     const counterRef = db.doc(`server_new_connection_counters/${bounds.today}`); const counter = await tx.get(counterRef); const next = Number(counter.data()?.value ?? 0) + 1;
     if (next >= 36 ** 4) throw new BookingError('BOOKING_LIMIT', 503);
-    const at = new Date(now).toISOString(); const order = newConnectionOrderSchema.parse({ ...quote, id, bookingId: `DTH-NC-${bounds.today.replaceAll('-', '').slice(2)}-${next.toString(36).toUpperCase().padStart(4, '0')}`, uid, brandId: input.brandId, packId: input.packId, offerId: input.offerId, selectedValidityDays: input.selectedValidityDays, connectionCount: input.connectionCount, snapshot: { brand: selected.item.brand.name, pack: selected.item.pack.name, offer: selected.offer.name }, customer: input.customer, provider: input.provider, providerOrderId: '', providerPaymentId: '', providerRaw: {}, paymentStatus: 'pending', status: 'received', statusHistory: [{ status: 'received', at, by: uid, note: '' }], consent: { ...input.consent, at }, createdAt: at, updatedAt: at, testMode: input.provider === 'razorpay' });
+    const at = new Date(now).toISOString(); const order = newConnectionOrderSchema.parse({ ...quote, id, bookingId: `DTH-NC-${bounds.today.replaceAll('-', '').slice(2)}-${next.toString(36).toUpperCase().padStart(4, '0')}`, uid, brandId: input.brandId, packId: input.packId, offerId: input.offerId, selectedValidityDays: input.selectedValidityDays, ...(selected.option.validityMonths ? { selectedValidityMonths: selected.option.validityMonths } : {}), connectionCount: input.connectionCount, snapshot: { brand: selected.item.brand.name, pack: selected.item.pack.name, offer: selected.offer.name, boxType: packBoxType(selected.item.pack) }, customer: input.customer, provider: input.provider, providerOrderId: '', providerPaymentId: '', providerRaw: {}, paymentStatus: 'pending', status: 'received', statusHistory: [{ status: 'received', at, by: uid, note: '' }], consent: { ...input.consent, at }, createdAt: at, updatedAt: at, testMode: input.provider === 'razorpay' });
     queueConnectionNotification(tx, deriveConnectionLedger(order), 'booking_received', id);
     tx.create(ref, deriveConnectionLedger(order)); tx.create(secretRef, { requestHash, gatewayCreationStarted: false }); tx.set(counterRef, { value: next }); tx.set(fence, { updatedAt: at });
     return { order: deriveConnectionLedger(order), duplicate: false };

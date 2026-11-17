@@ -1,3 +1,4 @@
+import { rechargeGuard } from './rechargeFeature';
 import { Router, raw } from 'express';
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
@@ -60,7 +61,7 @@ function failure(res: import('express').Response, error: unknown) {
   res.status(error instanceof PaymentError ? error.status : 503).json({ error: error instanceof PaymentError ? error.message : 'Unable to check YouPI payment. Do not pay again until the existing payment is checked.' });
 }
 export function registerYoupiRoutes(router: Router, schema: z.ZodObject<any>, checkOperator: (id: string) => Promise<void>, plans: (id: string) => ReturnType<typeof planModel.getAll>) {
-  router.post('/api/payments/youpi', orderCreateLimiter, validateBody(schema), async (req, res) => {
+  router.post('/api/payments/youpi', rechargeGuard, orderCreateLimiter, validateBody(schema), async (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     try {
       if (paymentMode() !== 'youpi') throw new PaymentError(409, 'YouPI checkout is not enabled.');

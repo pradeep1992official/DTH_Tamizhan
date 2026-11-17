@@ -1,9 +1,10 @@
+import { rechargeEnabled } from '../rechargeFeature';
 import { Router } from 'express';
 import firebaseConfig from '../../firebase-applet-config.json';
 export const authConfigRouter = Router();
 authConfigRouter.get('/api/auth/config', (_req, res) => {
   res.setHeader('Cache-Control', 'no-store');
-  res.json({ phoneEnabled: process.env.FIREBASE_PHONE_AUTH_ENABLED === 'true' });
+  res.json({ rechargeEnabled: rechargeEnabled(), phoneEnabled: process.env.FIREBASE_PHONE_AUTH_ENABLED === 'true' });
 });
 // The reCAPTCHA site key is public configuration, never a secret or debug token.
 authConfigRouter.get('/api/support/config', (_req, res) => {

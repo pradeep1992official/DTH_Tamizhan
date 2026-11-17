@@ -1,3 +1,4 @@
+import { clientRechargeEnabled } from '../lib/rechargeFeature';
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Tv,
@@ -17,6 +18,7 @@ import { translations } from '../lib/translations';
 import { OperatorTheme } from '../lib/theme';
 
 interface HeaderProps {
+  recharge?: boolean;
   currentLang: Language;
   onLanguageChange: (lang: Language) => void;
   user: UserProfile | null;
@@ -30,6 +32,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   currentLang,
+  recharge = clientRechargeEnabled(),
   onLanguageChange,
   user,
   onOpenAuth,
@@ -94,7 +97,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Brand Treatment: Official DTH Tamizhan Logo */}
         <button
           type="button"
-          onClick={() => onTabChange('recharge')}
+          onClick={() => onTabChange(recharge ? 'recharge' : 'new-connection')}
           className="flex items-center gap-3 text-left group focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current rounded-xl"
           id="brand-logo-btn"
           aria-label={translations[currentLang].uiDTHTamizhanHome}
@@ -119,7 +122,7 @@ export const Header: React.FC<HeaderProps> = ({
               </span>
             </div>
             <p className={`text-xs hidden sm:block ${isLight ? 'text-ink-2' : 'text-muted'}`}>
-              {t.brandTagline}
+              {recharge ? t.brandTagline : t.launchTagline}
             </p>
           </div>
         </button>
@@ -127,7 +130,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Center Navigation Links: Dynamic Token Styling */}
         <nav aria-label={translations[currentLang].uiMainNavigation} className={`desktop-navigation`}>
           <button id="nav-new-connection-btn" type="button" onClick={() => onTabChange('new-connection')} aria-current={activeTab === 'new-connection' ? 'page' : undefined} className={`px-4 py-1.5 rounded-lg text-xs font-bold ${activeTab === 'new-connection' ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText}` : `${currentTheme.navInactiveText} ${currentTheme.navInactiveHoverBg}`}`}>{t.ncNav}</button>
-          <button
+          {recharge && (<button
             id="nav-recharge-btn"
             onClick={() => onTabChange('recharge')}
             aria-current={activeTab === 'recharge' ? 'page' : undefined}
@@ -138,8 +141,8 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             {t.navRecharge}
-          </button>
-          <button
+          </button>)}
+          {recharge && (<button
             id="nav-plans-btn"
             onClick={() => onTabChange('plans')}
             aria-current={activeTab === 'plans' ? 'page' : undefined}
@@ -150,8 +153,8 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             {t.navPlans}
-          </button>
-          <button
+          </button>)}
+          {recharge && (<button
             id="nav-connections-btn"
             onClick={() => onTabChange('connections')}
             aria-current={activeTab === 'connections' ? 'page' : undefined}
@@ -162,7 +165,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             {t.navConnections}
-          </button>
+          </button>)}
 
           <a href="/help" aria-current={activeTab === 'help' ? 'page' : undefined} className="help-navigation-link">{currentLang === 'ta' ? 'உதவி பெறுங்கள்' : 'Get Help'}</a>
         </nav>
@@ -248,8 +251,8 @@ export const Header: React.FC<HeaderProps> = ({
                   <button type="button" onClick={() => { setIsProfileDropdownOpen(false); onTabChange('account'); }} className="w-full px-4 py-2 text-left flex items-center gap-2.5">
                     <User className="w-4 h-4" aria-hidden="true" /><span>{translations[currentLang].uiYourAccount}</span>
                   </button>
-                  <button type="button" onClick={() => { setIsProfileDropdownOpen(false); onTabChange('history'); }} className="w-full px-4 py-2 text-left flex items-center gap-2.5"><Clock className="w-4 h-4" /><span>{currentLang === 'ta' ? 'ரீசார்ஜ் வரலாறு' : 'Your recharge history'}</span></button>
-                  <button
+                  {recharge && (<button type="button" onClick={() => { setIsProfileDropdownOpen(false); onTabChange('history'); }} className="w-full px-4 py-2 text-left flex items-center gap-2.5"><Clock className="w-4 h-4" /><span>{currentLang === 'ta' ? 'ரீசார்ஜ் வரலாறு' : 'Your recharge history'}</span></button>)}
+                  {recharge && (<button
                     id="dropdown-view-profile-btn"
                     onClick={() => {
                       setIsProfileDropdownOpen(false);
@@ -262,7 +265,7 @@ export const Header: React.FC<HeaderProps> = ({
                   >
                     <UserCheck className="w-4 h-4 opacity-70" />
                     <span>{t.viewSavedBoxes}</span>
-                  </button>
+                  </button>)}
 
 
                 </div>
@@ -338,7 +341,7 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Mobile Navigation Tab Bar */}
       <nav aria-label={translations[currentLang].uiMainNavigation} className={`mobile-navigation ${currentTheme.statusStripBg}`}>
         <button id="mobile-nav-new-connection-btn" type="button" onClick={() => onTabChange('new-connection')} aria-current={activeTab === 'new-connection' ? 'page' : undefined} className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold whitespace-nowrap text-center ${activeTab === 'new-connection' ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText}` : `${currentTheme.navContainerBg} ${currentTheme.navInactiveText}`}`}>{t.ncNav}</button>
-        <button
+        {recharge && (<button
           id="mobile-nav-recharge-btn"
           onClick={() => onTabChange('recharge')}
           aria-current={activeTab === 'recharge' ? 'page' : undefined}
@@ -349,8 +352,8 @@ export const Header: React.FC<HeaderProps> = ({
           }`}
         >
           {t.uiMobileRecharge}
-        </button>
-        <button
+        </button>)}
+        {recharge && (<button
           id="mobile-nav-plans-btn"
           onClick={() => onTabChange('plans')}
           aria-current={activeTab === 'plans' ? 'page' : undefined}
@@ -361,8 +364,8 @@ export const Header: React.FC<HeaderProps> = ({
           }`}
         >
           {t.uiMobilePacks}
-        </button>
-        <button
+        </button>)}
+        {recharge && (<button
           id="mobile-nav-connections-btn"
           onClick={() => onTabChange('connections')}
           aria-current={activeTab === 'connections' ? 'page' : undefined}
@@ -373,7 +376,7 @@ export const Header: React.FC<HeaderProps> = ({
           }`}
         >
           {t.uiMobileBoxes}
-        </button>
+        </button>)}
 
         <a href="/help" aria-current={activeTab === 'help' ? 'page' : undefined} className="help-navigation-link">{t.uiMobileHelp}</a>
       </nav>

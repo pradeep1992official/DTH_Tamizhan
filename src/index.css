@@ -99,3 +99,8 @@
     font-variant-numeric: tabular-nums;
   }
 }
+
+/* Underline link labels without decorating their directional icons. */
+a:has(> .link-arrow),a:has(> .link-arrow):hover{text-decoration:none}
+a>.link-label{text-decoration:underline;text-underline-offset:3px}
+.link-arrow{display:inline-block;text-decoration:none}

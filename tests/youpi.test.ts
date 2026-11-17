@@ -57,3 +57,8 @@ it.each([{ amountPaise: '10001' }, { orderId: 'another' }, { paymentId: 'another
   respond('OBSERVED_SUCCESS', extra);
   await expect(refreshYoupiPayment(state.entry)).rejects.toThrow('do not match');
 });
+
+it('continues checking an already-created YouPI payment when new recharge is disabled', async () => {
+  vi.stubEnv('RECHARGE_ENABLED', 'false'); respond('OBSERVED_SUCCESS');
+  expect(await refreshYoupiPayment(state.entry)).toMatchObject({ status: 'paid', providerStatus: 'captured' });
+});

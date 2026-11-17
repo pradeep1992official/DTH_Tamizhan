@@ -1,3 +1,6 @@
+import { LaunchHome } from './components/NewConnection/LaunchHome';
+import { clientRechargeEnabled, setClientRechargeEnabled, rechargeReturnTarget } from './lib/rechargeFeature';
+import { paymentAuthHeaders } from './lib/paymentAuth';
 import { MyBookings } from './components/NewConnection/MyBookings';
 import { assistantPages } from './lib/assistantActions';
 import { connectionCacheKey, ownedConnections, readConnectionCache } from './lib/connectionCache';
@@ -26,14 +29,14 @@ import {
   useParams
 } from 'react-router-dom';
 import { Header } from './components/Header';
-import { RechargeFlow } from './components/RechargeFlow';
+const RechargeFlow = React.lazy(() => import('./components/RechargeFlow').then(module => ({ default: module.RechargeFlow })));
 import { AuthModal } from './components/AuthModal';
-import { PaymentModal } from './components/PaymentModal';
-import { RechargeAssistant } from './components/RechargeAssistant';
-import { ReceiptModal } from './components/ReceiptModal';
-import { SavedConnections } from './components/SavedConnections';
+const PaymentModal = React.lazy(() => import('./components/PaymentModal').then(module => ({ default: module.PaymentModal })));
+const RechargeAssistant = React.lazy(() => import('./components/RechargeAssistant').then(module => ({ default: module.RechargeAssistant })));
+const ReceiptModal = React.lazy(() => import('./components/ReceiptModal').then(module => ({ default: module.ReceiptModal })));
+const SavedConnections = React.lazy(() => import('./components/SavedConnections').then(module => ({ default: module.SavedConnections })));
 const AdminPortal = React.lazy(() => import('./components/AdminPortal').then(module => ({ default: module.AdminPortal })));
-import { NewConnectionModal } from './components/NewConnectionModal';
+const NewConnectionModal = React.lazy(() => import('./components/NewConnectionModal').then(module => ({ default: module.NewConnectionModal })));
 const NewConnectionPages = React.lazy(() => import('./components/NewConnection/NewConnectionPages').then(module => ({ default: module.NewConnectionPages })));
 const BrowsePlansView = React.lazy(() => import('./components/BrowsePlans/BrowsePlansView').then(module => ({ default: module.BrowsePlansView })));
 import {
@@ -118,6 +121,13 @@ function AdminRouteWrapper({
 
 
 function MainApp() {
+  const [recharge, setRecharge] = useState(clientRechargeEnabled);
+  useEffect(() => {
+    let active = true;
+    fetch('/api/auth/config', { cache: 'no-store' }).then(async response => { if (!response.ok) return; const data = await response.json(); if (active) { setClientRechargeEnabled(data.rechargeEnabled === true); setRecharge(data.rechargeEnabled === true); } }).catch(() => { /* Bootstrap remains authoritative; missing configuration fails closed. */ });
+    return () => { active = false; };
+  }, []);
+
   const navigate = useNavigate();
   const location = useLocation();
   const requestCustomTopUp = new URLSearchParams(location.search).get('topup') === '1';
@@ -146,6 +156,18 @@ function MainApp() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [authInitializing, setAuthInitializing] = useState(!!auth);
   const [sessionError, setSessionError] = useState('');
+  const [pastOrders, setPastOrders] = useState<{ uid: string; has: boolean } | null>(null);
+  const hasPastRecharges = !!user && pastOrders?.uid === user.uid && pastOrders.has;
+  useEffect(() => {
+    let active = true; setPastOrders(null);
+    if (user && !recharge) void (async () => { try {
+      const response = await fetch('/api/my/history-presence', { headers: await paymentAuthHeaders(), cache: 'no-store' });
+      if (!response.ok) return; const data = await response.json();
+      if (active) setPastOrders({ uid: user.uid, has: data.hasOrders === true });
+    } catch { /* Historical shortcut is optional, never expose another account's state. */ } })();
+    return () => { active = false; };
+  }, [user?.uid, recharge]);
+
   const signingOut = useRef(false);
 
 
@@ -213,7 +235,7 @@ function MainApp() {
   // Load saved connections only for the active Firebase-backed account.
   useEffect(() => {
     let cancelled = false;
-    if (user) {
+    if (user && recharge) {
       if (isFirebaseConfigured && db && user.uid) {
         const q = query(collection(db, 'dth_connections'), where('user_id', '==', user.uid));
         getDocs(q).then((snap) => {
@@ -259,7 +281,7 @@ function MainApp() {
       localStorage.removeItem('dth_tamizhan_user');
     }
     return () => { cancelled = true; };
-  }, [user?.uid]);
+  }, [user?.uid, recharge]);
 
   // Persist Connections
   useEffect(() => {
@@ -442,6 +464,7 @@ function MainApp() {
   // Determine active tab name for header navigation highlighting
   const getActiveNavTab = () => {
     const path = location.pathname;
+    if (!recharge && path === '/') return 'new-connection';
     if (path === '/help') return 'help';
     if (pageMetadata(path).status !== 200) return 'error';
     if (POLICY_ROUTES.some(route => route.path === path)) return 'policies';
@@ -456,6 +479,7 @@ function MainApp() {
 
   const handleNavTabChange = (tab: string) => {
     if (tab === 'recharge') navigate('/recharge');
+    else if (tab === 'bookings') navigate('/account/bookings');
     else if (tab === 'new-connection') navigate('/new-connection');
     else if (tab === 'plans') navigate('/plans');
     else if (tab === 'connections') navigate('/connections');
@@ -470,9 +494,10 @@ function MainApp() {
 
   return (
     <div className={`app-shell min-h-screen flex flex-col ${currentTheme.pageBg} ${currentTheme.pageText}`}>
-      <RouteEffects currentLang={currentLang} />
+      <RouteEffects recharge={recharge} currentLang={currentLang} />
       <a href="#main-content" className="skip-link">{t.uiSkipContent}</a>
       <Header
+        recharge={recharge}
         currentLang={currentLang}
         onLanguageChange={handleLanguageChange}
         user={user}
@@ -487,15 +512,16 @@ function MainApp() {
       {/* Main Content View Container */}
       <main id="main-content" className="app-main">
         {sessionError && <p role="alert" className="border border-rule rounded-lg p-3 my-3 text-error">{sessionError}</p>}
-        {user && (Object.values(assistantPages) as string[]).includes(location.pathname) && <RechargeAssistant key={user.uid} currentLang={currentLang} displayName={user.displayName}
-          onCheckout={(plan, box, operator) => handleInitiatePayment(plan, null, operator, box.smartCardNumber, false)} />}
-        {(location.pathname === '/' || location.pathname === '/recharge') && <aside className="flex flex-wrap items-center justify-between gap-3 border border-rule rounded-xl bg-accent-soft p-4 mb-5"><div><h2 className="text-base font-bold">{t.ncHomeTitle}</h2><p className="text-sm text-muted mt-1">{t.ncHomeText}</p></div><Link to="/new-connection" className="bg-accent text-accent-ink px-4 py-2.5 rounded-lg text-sm font-bold">{t.ncBrowse}</Link></aside>}
+        {recharge && user && (Object.values(assistantPages) as string[]).includes(location.pathname) && <React.Suspense fallback={null}><RechargeAssistant key={user.uid} currentLang={currentLang} displayName={user.displayName}
+          onCheckout={(plan, box, operator) => handleInitiatePayment(plan, null, operator, box.smartCardNumber, false)} /></React.Suspense>}
+        {recharge && (location.pathname === '/' || location.pathname === '/recharge') && <aside className="flex flex-wrap items-center justify-between gap-3 border border-rule rounded-xl bg-accent-soft p-4 mb-5"><div><h2 className="text-base font-bold">{t.ncHomeTitle}</h2><p className="text-sm text-muted mt-1">{t.ncHomeText}</p></div><Link to="/new-connection" className="bg-accent text-accent-ink px-4 py-2.5 rounded-lg text-sm font-bold">{t.ncBrowse}</Link></aside>}
         <React.Suspense fallback={<p role="status">{translations[currentLang].loadingCatalog}</p>}>
         <Routes>
           <Route path="/new-connection/*" element={<NewConnectionPages currentLang={currentLang} user={user} onOpenAuth={() => setIsAuthOpen(true)} />} />
           <Route
             path="/"
             element={
+              recharge ? (
               <RechargeFlow
                 onOpenAuth={() => setIsAuthOpen(true)}
                 currentLang={currentLang}
@@ -508,11 +534,13 @@ function MainApp() {
                 onSelectOpId={handleSelectOpId}
                 currentTheme={currentTheme}
               />
+              ) : (rechargeReturnTarget(location.search).startsWith('/history') ? <Navigate to={rechargeReturnTarget(location.search)} replace /> : <LaunchHome currentLang={currentLang} />)
             }
           />
           <Route
             path="/recharge"
             element={
+              recharge ? (
               <RechargeFlow
                 onOpenAuth={() => setIsAuthOpen(true)}
                 currentLang={currentLang}
@@ -525,11 +553,13 @@ function MainApp() {
                 onSelectOpId={handleSelectOpId}
                 currentTheme={currentTheme}
               />
+              ) : <Navigate to={rechargeReturnTarget(location.search)} replace />
             }
           />
           <Route
             path="/plans"
             element={
+              recharge ? (
               <BrowsePlansView
                 currentTheme={currentTheme}
                 currentLang={currentLang}
@@ -539,11 +569,13 @@ function MainApp() {
                 onApplyPlanToBox={handleApplyPlanFromBrowse}
                 onAddNewConnectionAndApply={handleAddNewConnectionAndApply}
               />
+              ) : <Navigate to={rechargeReturnTarget(location.search)} replace />
             }
           />
           <Route
             path="/connections"
             element={
+              recharge ? (
               <SavedConnections
                 connections={connections}
                 currentLang={currentLang}
@@ -554,13 +586,15 @@ function MainApp() {
                 onOpenAuth={() => setIsAuthOpen(true)}
                 currentTheme={currentTheme}
               />
+              ) : <Navigate to={rechargeReturnTarget(location.search)} replace />
             }
           />
+          {!recharge && ['/recharge/*', '/plans/*', '/connections/*'].map(path => <Route key={path} path={path} element={<Navigate to={rechargeReturnTarget(location.search)} replace />} />)}
           {POLICY_ROUTES.map(route => <Route key={route.key} path={route.path} element={<PolicyPage policy={route.key} currentLang={currentLang} />} />)}
           <Route path="/account/bookings" element={<MyBookings key={user?.uid || 'guest'} user={user} lang={currentLang} onOpenAuth={() => setIsAuthOpen(true)} />} />
-          <Route path="/account" element={<AccountPage key={user?.uid || 'guest'} user={user} connections={connections} currentLang={currentLang} onOpenAuth={() => setIsAuthOpen(true)} onSignOut={handleSignOut} onUpdateProfile={handleUpdateProfile} />} />
+          <Route path="/account" element={<AccountPage recharge={recharge} hasPastRecharges={hasPastRecharges} key={user?.uid || 'guest'} user={user} connections={connections} currentLang={currentLang} onOpenAuth={() => setIsAuthOpen(true)} onSignOut={handleSignOut} onUpdateProfile={handleUpdateProfile} />} />
           <Route path="/history" element={<CustomerHistoryPage user={user} currentLang={currentLang} onOpenAuth={() => setIsAuthOpen(true)} />} />
-          <Route path="/help" element={<HelpPage key={`${user?.uid || 'guest'}-${location.key}`} user={user} currentLang={currentLang} onOpenAuth={() => setIsAuthOpen(true)} />} />
+          <Route path="/help" element={recharge ? <HelpPage key={`${user?.uid || 'guest'}-${location.key}`} user={user} currentLang={currentLang} onOpenAuth={() => setIsAuthOpen(true)} /> : <PolicyPage policy="contact" currentLang={currentLang} />} />
           <Route path="/support" element={<Navigate to="/help" replace state={location.state} />} />
           <Route path="/service-request" element={<Navigate to="/help" replace state={location.state} />} />
           <Route path="/my-tickets" element={<SupportTicketsPage key={user?.uid || 'guest'} user={user} list onOpenAuth={() => setIsAuthOpen(true)} />} />
@@ -605,15 +639,15 @@ function MainApp() {
                 DTH <span style={{ color: currentTheme.primaryColor }}>தமிழன்</span>
               </span>
             </div>
-            <p className="footer-tagline">{t.brandTagline}</p>
+            <p className="footer-tagline">{recharge ? t.brandTagline : t.launchTagline}</p>
             <p className="footer-tagline">{t.madeWithLove}</p>
           </div>
           <div className="footer-link-group">
             <h2>{currentLang === 'ta' ? 'விரைவு இணைப்புகள்' : 'Quick links'}</h2>
             <nav aria-label={currentLang === 'ta' ? 'விரைவு இணைப்புகள்' : 'Quick links'}>
-              <Link to="/recharge">{t.navRecharge}</Link>
+{recharge ? <>              <Link to="/recharge">{t.navRecharge}</Link>
               <Link to="/plans">{t.navPlans}</Link>
-              <Link to="/connections">{t.navConnections}</Link>
+              <Link to="/connections">{t.navConnections}</Link></> : <><Link to="/new-connection">{t.ncNav}</Link><Link to="/new-connection/compare">{t.ncCompareTitle}</Link><Link to="/account/bookings">{t.ctTitle}</Link></>}
             </nav>
           </div>
           <div className="footer-link-group">
@@ -621,7 +655,7 @@ function MainApp() {
             <nav aria-label={currentLang === 'ta' ? 'உதவி மற்றும் கணக்கு' : 'Help and account'}>
               <Link to="/help">{currentLang === 'ta' ? 'உதவி பெறுங்கள்' : 'Get help'}</Link>
               <Link to="/my-tickets">{currentLang === 'ta' ? 'எனது கோரிக்கைகள்' : 'My tickets'}</Link>
-              <Link to="/history">{currentLang === 'ta' ? 'ரீசார்ஜ் வரலாறு' : 'Recharge history'}</Link>
+{recharge && (              <Link to="/history">{currentLang === 'ta' ? 'ரீசார்ஜ் வரலாறு' : 'Recharge history'}</Link>)}
               <Link to="/account">{currentLang === 'ta' ? 'என் கணக்கு' : 'My account'}</Link>
             </nav>
           </div>
@@ -630,7 +664,7 @@ function MainApp() {
             <PolicyLinks currentLang={currentLang} />
           </div>
         </div>
-        <div className="footer-bottom"><p className="footer-disclaimer">{t.footerDisclaimer}</p></div>
+        <div className="footer-bottom"><p className="footer-disclaimer">{recharge ? t.footerDisclaimer : t.launchFooter}</p></div>
       </footer>
 
       {/* Global Modals */}
@@ -642,7 +676,8 @@ function MainApp() {
         onSuccess={handleAuthSuccess}
       />
 
-      {activeOperator && (
+      <React.Suspense fallback={null}>
+      {recharge && activeOperator && (
         <PaymentModal
           isOpen={isPaymentOpen}
           onClose={() => setIsPaymentOpen(false)}
@@ -658,17 +693,18 @@ function MainApp() {
         />
       )}
 
-      <ReceiptModal
+      {lastCompletedOrder && <ReceiptModal
         order={lastCompletedOrder}
         onClose={() => setIsReceiptOpen(false)}
         currentLang={currentLang}
-      />
+      />}
 
-      <NewConnectionModal
+      {recharge && isNewDishOpen && <NewConnectionModal
         isOpen={isNewDishOpen}
         onClose={() => setIsNewDishOpen(false)}
         currentLang={currentLang}
-      />
+      />}
+      </React.Suspense>
     </div>
   );
 }

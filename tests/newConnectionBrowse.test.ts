@@ -29,20 +29,27 @@ describe('Part 1 sample catalog in the public browser', () => {
     data.packs[4].active = false;
     expect(visibleCatalog(data).some(i => i.pack.id === data.packs[4].id)).toBe(false);
   });
-  it('filters language, region, type, validity, genre and monthly price together', () => {
+  it('filters language, region, type, validity, genre and total price together', () => {
     const items = visibleCatalog(seedCatalog()); const base = items[0];
-    const filters = { ...defaultBrowseFilters, language: 'Tamil', region: 'SAMPLE region', type: 'SD', validity: '90', genre: 'News', minPrice: '100', maxPrice: '115' };
+    const filters = { ...defaultBrowseFilters, language: 'Tamil', region: 'SAMPLE region', type: 'SD', validity: '90', genre: 'News', minPrice: '300', maxPrice: '315' };
     const result = filterSortPacks(items, filters, base.brand.id);
     expect(result.map(i => i.pack.id)).toEqual([base.pack.id]);
     expect(filterSortPacks(items, { ...filters, validity: '365' })).toEqual([]);
     expect(filterSortPacks(items, { ...filters, minPrice: '999' })).toEqual([]);
     expect(filterSortPacks(items, { ...filters, genre: 'Unknown' })).toEqual([]);
   });
-  it('sorts price and channel value in consistent 30-day units without mutating input', () => {
+  it('sorts displayed totals rather than monthly equivalents and follows chosen durations', () => {
+    const base = visibleCatalog(seedCatalog())[0];
+    const annual = { ...base, pack: { ...base.pack, id: 'annual', monthlyPrice: 100, pricingOptions: [{ validityDays: 360, price: 1200 }] } };
+    const flexible = { ...base, pack: { ...base.pack, id: 'flexible', monthlyPrice: 300, pricingOptions: [{ validityDays: 30, price: 300 }, { validityDays: 360, price: 3600 }] } };
+    expect(filterSortPacks([annual, flexible], defaultBrowseFilters).map(i => i.pack.id)).toEqual(['flexible', 'annual']);
+    expect(filterSortPacks([annual, flexible], defaultBrowseFilters, undefined, { flexible: 360 }).map(i => i.pack.id)).toEqual(['annual', 'flexible']);
+  });
+  it('sorts actual price and channel value without mutating input', () => {
     const items = visibleCatalog(seedCatalog()); const original = items.map(i => i.pack.id);
     for (const sort of ['price', 'channels', 'perChannel'] as const) {
       const sorted = filterSortPacks(items, { ...defaultBrowseFilters, sort });
-      const values = sorted.map(i => sort === 'price' ? i.pack.monthlyPrice : sort === 'channels' ? -i.counts.channelCount : i.pack.monthlyPrice / i.counts.channelCount);
+      const values = sorted.map(i => sort === 'price' ? pricing(i.pack).price : sort === 'channels' ? -i.counts.channelCount : pricing(i.pack).price / i.counts.channelCount);
       expect(values).toEqual([...values].sort((a, b) => a - b));
     }
     expect(items.map(i => i.pack.id)).toEqual(original);

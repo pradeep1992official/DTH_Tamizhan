@@ -1,1 +1,78 @@
 .connection-counters{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:8px}.connection-counters>div{border:1px solid var(--color-rule);border-radius:8px;padding:10px;display:grid;gap:4px}.connection-counters strong{font-size:18px}.connection-filters{display:flex;flex-wrap:wrap;gap:10px;align-items:end}.connection-filters label{display:grid;gap:3px;font-size:12px}.connection-filters input,.connection-filters select{max-width:200px}.connection-drawer-backdrop{position:fixed;inset:0;z-index:1000;background:#0006;display:flex;justify-content:flex-end}.connection-drawer{width:min(720px,100%);height:100%;overflow-y:auto;background:var(--color-paper);padding:20px;display:flex;flex-direction:column;gap:18px;box-shadow:-4px 0 24px #0002}.connection-drawer section{border-bottom:1px solid var(--color-rule);padding-bottom:14px}.connection-drawer fieldset{border:1px solid var(--color-rule);border-radius:8px;padding:12px}.connection-drawer legend{font-weight:600}.connection-drawer p,.connection-drawer small{overflow-wrap:anywhere}.connection-drawer ul,.connection-drawer ol{padding-left:20px}.connection-drawer li{margin-block:8px}.connection-admin .catalog-table-wrap{overflow:auto}.connection-admin table{min-width:1080px}.connection-admin th{white-space:nowrap}.connection-admin a{color:var(--color-accent);text-decoration:underline}.connection-admin button:focus-visible,.connection-admin a:focus-visible{outline:2px solid var(--color-accent);outline-offset:3px}@media(max-width:600px){.connection-drawer{padding:14px}.connection-filters label{flex:1 1 130px}.connection-filters input,.connection-filters select{width:100%;max-width:none}.connection-counters{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* Keep the management view aligned independently of catalog editor layouts. */
+.connection-admin{gap:12px;min-width:0}
+.connection-admin .nc-heading{align-items:flex-start}
+.connection-counters{grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.connection-counters>div{padding:10px 12px;gap:4px;align-content:start;min-height:0;background:var(--color-paper)}
+.connection-counters small{line-height:1.5;max-width:24ch}
+.connection-counters strong{font-size:20px;line-height:1.2;font-variant-numeric:tabular-nums}
+.connection-admin .connection-views{gap:6px;padding-bottom:8px;border-bottom:1px solid var(--color-rule)}
+.connection-views button[aria-pressed="true"]{background:var(--color-accent-soft,var(--color-paper-2));border-color:var(--color-accent);color:var(--color-accent);font-weight:600}
+.connection-admin .connection-filters{display:flex;flex-direction:column;align-items:stretch;gap:8px;padding:12px;border:1px solid var(--color-rule);border-radius:8px;background:var(--color-paper)}
+.connection-filter-main{display:grid;grid-template-columns:minmax(180px,2fr) repeat(2,minmax(130px,1fr)) auto auto;gap:8px;align-items:end}
+.connection-admin .connection-filters label{display:flex;gap:4px;min-width:0}
+.connection-admin .connection-filters input,.connection-admin .connection-filters select{width:100%;min-width:0;max-width:none;min-height:36px;box-sizing:border-box}
+.connection-more-filters summary{cursor:pointer;font-size:12px;color:var(--color-accent);width:fit-content;padding:4px 0}
+.connection-more-filters .nc-count{display:inline-block;margin-left:6px}
+.connection-filter-extra{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:end;gap:10px;margin-top:8px;padding-top:10px;border-top:1px solid var(--color-rule)}
+.connection-admin .connection-filter-extra .catalog-checkbox{flex-direction:row;align-items:center;gap:8px;min-height:36px}
+.connection-admin .connection-filters input[type="checkbox"]{width:16px;min-height:0}
+.connection-admin .catalog-table-wrap{max-width:100%;border:1px solid var(--color-rule);border-radius:10px;isolation:isolate}
+.connection-admin table{min-width:960px}
+.connection-admin th{background:var(--color-paper-2);font-weight:600;padding-block:12px}
+.connection-admin td{padding-block:10px}
+.connection-admin td small{margin-top:3px;line-height:1.4}
+.connection-admin :is(th,td):last-child{position:sticky;right:0;width:72px;min-width:72px;background:var(--color-paper);box-shadow:-1px 0 0 var(--color-rule)}
+.connection-admin th:last-child{background:var(--color-paper-2)}
+.connection-admin td:nth-child(1){white-space:nowrap}
+.connection-admin td:nth-child(5),.connection-admin td:nth-child(6){white-space:nowrap;font-variant-numeric:tabular-nums}
+.connection-admin tbody tr:hover td{background:var(--color-paper-2)}
+.connection-admin .connection-pagination{justify-content:flex-end;padding-top:2px}
+.connection-pagination span{font-size:13px;color:var(--color-muted);margin-inline:4px}
+.connection-admin .catalog-table-wrap:focus-visible{outline:2px solid var(--color-accent);outline-offset:3px}
+@media(max-width:1000px){.connection-counters{grid-template-columns:repeat(3,minmax(0,1fr))}.connection-filter-main{grid-template-columns:minmax(0,2fr) repeat(2,minmax(0,1fr))}.connection-filter-main>button{justify-self:start}.connection-filter-main>button:last-child{grid-column:2;justify-self:start}}
+@media(max-width:600px){.connection-counters{grid-template-columns:repeat(2,minmax(0,1fr))}.connection-counters>div{padding:10px}.connection-filter-main,.connection-filter-extra{grid-template-columns:repeat(2,minmax(0,1fr))}.connection-filter-main .connection-search{grid-column:1/-1}.connection-filter-main>button{width:100%}.connection-filter-extra .catalog-checkbox{grid-column:1/-1}.connection-admin .connection-views{align-items:stretch}.connection-views button{flex:1}.connection-admin .nc-heading .nc-toolbar{width:100%}.connection-admin :is(button,input,select){min-height:40px}}
+/* Compact booking drawer: keep contact, balance and the current action in view. */
+.connection-admin .connection-drawer{width:min(600px,100%);padding:0 18px 18px;gap:12px;box-sizing:border-box;font-size:13px}
+.connection-drawer .connection-drawer-heading{position:sticky;top:0;z-index:2;flex-direction:row;align-items:center;padding:12px 0;background:var(--color-paper);border-bottom:1px solid var(--color-rule)}
+.connection-drawer-heading h2{font-size:14px;overflow-wrap:anywhere}
+.connection-drawer-heading button{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:36px;padding:8px}
+.connection-drawer section{padding-bottom:12px}
+.connection-drawer .connection-customer-heading{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px}
+.connection-customer-heading h3{margin-right:auto}
+.connection-drawer .nc-status{text-transform:capitalize;font-size:11px}
+.connection-drawer .connection-contact-actions{margin-block:10px;gap:8px}
+.connection-drawer .connection-contact-actions a{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:6px 10px;box-sizing:border-box;border:1px solid var(--color-rule);border-radius:6px;text-decoration:none;font-size:12px}
+.connection-contact-actions .connection-whatsapp svg{color:#128c46}
+.connection-drawer svg{flex-shrink:0}
+.connection-schedule{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;background:var(--color-paper-2);border-radius:6px}
+.connection-schedule>svg{margin-top:2px;color:var(--color-muted)}
+.connection-drawer .connection-customer-note{margin-top:8px}
+.connection-drawer .connection-pack{font-weight:400;font-size:12px;color:var(--color-muted)}
+.connection-money-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:10px 0;gap:8px}
+.connection-money-grid>div{padding:8px 10px;border:1px solid var(--color-rule);border-radius:6px;min-width:0}
+.connection-money-grid>div:last-child{background:var(--color-paper-2);border-color:var(--color-accent)}
+.connection-money-grid strong{display:block;margin-top:3px;font-size:16px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.connection-drawer .connection-detail{border-bottom:1px solid var(--color-rule);padding-bottom:8px}
+.connection-drawer .connection-payment-summary .connection-detail{border:0;padding:0}
+.connection-detail>summary{display:flex;align-items:center;gap:6px;cursor:pointer;list-style:none;min-height:32px;font-size:12px;font-weight:600;color:var(--color-ink)}
+.connection-detail>summary::-webkit-details-marker{display:none}
+.connection-detail>summary::after{content:'\203A';margin-left:auto;font-size:18px;transition:transform .15s}
+.connection-detail[open]>summary::after{transform:rotate(90deg)}
+.connection-detail>summary:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
+.connection-detail-content{padding:6px 0}
+.connection-detail-content h4{margin-top:10px}
+.connection-detail-content :is(ul,ol){margin:4px 0}
+.connection-drawer nav.nc-toolbar{gap:4px;padding:0;border:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));overflow:visible}
+.connection-drawer nav.nc-toolbar button{display:flex;align-items:center;justify-content:center;gap:6px;white-space:normal;min-height:38px;padding:6px;font-size:12px;border:1px solid var(--color-rule);color:var(--color-muted)}
+.connection-drawer nav.nc-toolbar button[aria-pressed="true"]{background:var(--color-accent-soft,var(--color-paper-2));border-color:var(--color-accent);color:var(--color-accent);font-weight:600}
+.connection-drawer .connection-action-form fieldset{padding:12px;border:1px solid var(--color-rule);border-radius:8px}
+.connection-action-form .catalog-fields{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:8px 0 12px}
+.connection-action-form label{min-width:0}
+.connection-action-form :is(input,select,textarea){box-sizing:border-box;width:100%;min-width:0}
+.connection-action-form textarea{resize:vertical;min-height:56px}
+.connection-form-notes{grid-column:1/-1}
+.connection-action-form .connection-form-notes .catalog-fields{margin-bottom:0}
+.connection-history-author summary{font-size:11px;color:var(--color-muted);cursor:pointer;margin-top:4px}
+@media(max-width:600px){.connection-admin .connection-drawer{padding:0 12px 12px}.connection-drawer .connection-drawer-heading{padding-block:10px}.connection-action-form .catalog-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.connection-drawer .connection-contact-actions a{min-height:40px}.connection-drawer nav.nc-toolbar button{min-height:44px}}
+@media(max-width:380px){.connection-action-form .catalog-fields{grid-template-columns:minmax(0,1fr)}.connection-money-grid{gap:4px}.connection-money-grid>div{padding:6px}.connection-money-grid strong{font-size:14px}.connection-drawer nav.nc-toolbar button{flex-direction:column;gap:3px}}

@@ -5,7 +5,15 @@ import { readPaymentLedger } from './paymentLedger';
 import { mergePaidRechargeOrders, readSavedRechargeOrders } from './paidRechargeOrders';
 import { getAdminFirestore } from '../middleware/auth';
 import { collections, paymentKey, usesFirestore } from '../persistence';
-import { queryRecords, type Filter } from '../queries';
+import { queryRecords, limitedRecords, type Filter } from '../queries';
+
+export async function hasCustomerRechargeHistory(uid: string) {
+  if (!usesFirestore()) return mergePaidRechargeOrders(await readSavedRechargeOrders(), (await readPaymentLedger()).filter(p => p.customerUid === uid)).some(o => o.user_id === uid);
+  const existing = await limitedRecords<RechargeOrder>(collections.recharges, [{ field: 'user_id', op: 'eq', value: uid }], 1);
+  if (existing.length) return true;
+  const captures = await limitedRecords<PaymentLedgerEntry>(collections.payments, [{ field: 'customerUid', op: 'eq', value: uid }, { field: 'status', op: 'eq', value: 'paid' }, { field: 'providerStatus', op: 'eq', value: 'captured' }], 1);
+  return (await ordersForPayments(captures)).some(o => o.user_id === uid);
+}
 
 const cursorSchema = z.object({ time: z.string().max(50), id: z.string().max(200) });
 export function parsePage(query: Record<string, unknown>) {

@@ -8,13 +8,45 @@ import { CatalogPage } from '../src/components/NewConnection/CatalogPage';
 import { ChannelBrowser } from '../src/components/NewConnection/Shared';
 import { ComparePage } from '../src/components/NewConnection/ComparePage';
 const data = seedCatalog(); const items = visibleCatalog(data);
-it('renders the Part 1 sample packs in English and Tamil with booking links and visible counts', () => {
+it('renders compact package cards with clear pricing, accessible comparison and balanced footer actions', () => {
+  const catalog = seedCatalog();
+  catalog.packs[0] = { ...catalog.packs[0], name: 'Tamil Super Star HD - ONLY BOX', packageType: 'only_box', boxType: 'Android', pricingOptions: [{ validityDays: 360, validityMonths: 12, price: 3100 }] };
+  const visible = visibleCatalog(catalog);
+  const html = renderToStaticMarkup(<MemoryRouter><CatalogPage data={catalog} items={visible} lang="en" selected={[{ id: visible[0].pack.id, validity: 360 }]} limit={false} onToggle={() => {}} onRemove={() => {}} onValidity={() => {}} onClear={() => {}} /></MemoryRouter>);
+  expect(html).toContain('Set-top box only');
+  expect(html.replace(/<[^>]*>/g, '')).toContain('Android box');
+  expect(html).toContain('≈ ₹258/month');
+  expect(html).toContain('for 12 months');
+  expect(html).not.toContain('for 360 days');
+  expect(html).toContain('Box only (existing dish)');
+  expect(html).toContain('Free installation');
+  expect(html).toContain('Remote control');
+  expect(html).toContain('New dish. An existing dish is required.');
+  expect(html).toContain('data-selected="true"');
+  expect(html).toContain('aria-label="Compare: Tamil Super Star HD - ONLY BOX"');
+  expect(html).toContain('connection-package-info');
+  expect(html).not.toContain('class="connection-badge"');
+  expect(html).toContain('Compare packs and choose your connection.');
+  expect(html).toContain('aria-expanded="false"');
+  expect(html).toMatch(/class="connection-filter-panel"[^>]*hidden=""/);
+  expect(html).not.toContain(catalog.brands[0].description);
+  expect(html).not.toContain('₹3,100.00');
+  const footer = html.match(/class="connection-card-actions">([\s\S]*?)<\/div>/)?.[1];
+  expect(footer).toBeDefined();
+  expect(footer).toContain('checkbox');
+  expect((footer?.match(/<a /g) ?? []).length).toBe(2);
+});
+it('renders all available brands together in English and Tamil with booking links and visible counts', () => {
   for (const lang of ['en', 'ta'] as const) {
     const html = renderToStaticMarkup(<MemoryRouter><CatalogPage data={data} items={items} lang={lang} selected={[]} limit={false} onToggle={() => {}} onRemove={() => {}} onValidity={() => {}} onClear={() => {}} /></MemoryRouter>);
-    expect((html.match(/class="connection-pack"/g) ?? []).length).toBe(3);
+    expect((html.match(/class="connection-pack"/g) ?? []).length).toBe(items.length);
     expect(html).toContain('/new-connection/book?brand='); expect(html).toContain('validity=30');
     expect(html).toContain(lang === 'ta' ? 'சேனல்களைப் பார்க்க' : 'View channels');
     expect(html).toContain('SAMPLE');
+    expect(html).not.toContain('class="connection-brands"');
+    expect(html).toContain('<option value="" selected="">');
+    for (const item of items) expect(html).toContain(item.pack.name);
+    for (const brand of data.brands) expect(html).toContain(brand.name);
   }
 });
 it('renders shared comparisons with an inactive column and keeps it out of cost estimates', () => {

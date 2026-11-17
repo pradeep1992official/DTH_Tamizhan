@@ -1,3 +1,4 @@
+import { rechargeGuard } from '../rechargeFeature';
 import { registerYoupiRoutes } from '../youpi';
 import { rememberRechargeOrder, reconcileRechargePayment } from '../models/rechargeRecovery';
 import { forwardAsyncErrors } from '../asyncRoutes';
@@ -25,6 +26,7 @@ async function currentQuotePlans(packId: string) {
 }
 
 export const paymentsRouter = Router();
+paymentsRouter.use(rechargeGuard);
 let sandboxPlans: Awaited<ReturnType<typeof planModel.getAll>> = [];
 const service = createPaymentService(() => sandboxPlans);
 const sessionOwners = new Map<string, { uid: string; expiresAt: number }>();

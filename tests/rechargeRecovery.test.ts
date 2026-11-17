@@ -58,3 +58,9 @@ it('rejects wrong owner, amount, currency and non-recharge metadata', () => {
   expect(() => assertRechargePayment(order, { ...payment, currency: 'USD' })).toThrow('does not match');
   expect(() => assertRechargePayment({ ...order, notes: { ticketId: 'service' } }, payment)).toThrow('metadata');
 });
+
+it('drains a previously created recharge after new checkout is disabled', async () => {
+  await rememberRechargeOrder(order); vi.stubEnv('RECHARGE_ENABLED', 'false');
+  expect(await reconcilePendingRecharges(Date.now() + 1000)).toEqual({ checked: 1, recovered: 1, failed: 0 });
+  expect(f.record).toHaveBeenCalledWith(payment, order);
+});

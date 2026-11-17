@@ -1,3 +1,5 @@
+import { clientRechargeEnabled, isRechargePage } from './rechargeFeature';
+import { rechargeLaunchCopy } from './rechargeLaunchCopy';
 import type { Language } from '../types';
 import { POLICY_ROUTES } from './trustContent';
 import { newConnectionCopy } from './newConnectionCopy';
@@ -24,8 +26,20 @@ const policyDescriptions = {
 };
 const adminTabs = new Set(['new-connections', 'catalog', 'api-test', 'tickets', 'ai', 'customer', 'customers', 'pending', 'worker', 'dealer', 'recharge', 'recharges', 'orders', 'pack', 'packs', 'plan', 'plans', 'payment', 'payments', 'report', 'reports', 'audit', 'operator', 'operators', 'approval', 'approvals', 'admin-access']);
 export function normalizedPath(path: string): string { return path.split(/[?#]/)[0].replace(/\/+$/, '') || '/'; }
-export function pageMetadata(path: string, lang: Language = 'en'): PageMetadata {
+export function pageMetadata(path: string, lang: Language = 'en', recharge = clientRechargeEnabled()): PageMetadata {
   const requestedPath = normalizedPath(path);
+  if (!recharge) {
+    const copy = rechargeLaunchCopy[lang];
+    const launch = { path: requestedPath, status: 200 as const, noindex: false };
+    if (isRechargePage(requestedPath)) return { ...launch, noindex: true, title: copy.launchUnavailable + ' | DTH Tamizhan', description: copy.launchTagline };
+    if (requestedPath === '/') return { ...launch, title: copy.launchHeroTitle + ' | DTH Tamizhan', description: copy.launchHeroText };
+    if (requestedPath === '/help') return { ...launch, title: POLICY_ROUTES[0][lang] + ' | DTH Tamizhan', description: copy.launchSupport };
+    if (requestedPath === '/account') return { ...launch, noindex: true, title: copy.launchAccountTitle + ' | DTH Tamizhan', description: copy.launchAccountIntro };
+    if (requestedPath === '/history') return { ...launch, noindex: true, title: copy.launchPast + ' | DTH Tamizhan', description: copy.launchHistoryNotice };
+    const policy = POLICY_ROUTES.find(r => r.path === requestedPath);
+    if (policy) return { ...launch, title: policy[lang] + ' | DTH Tamizhan', description: copy.launchTagline + ' ' + copy.launchDraft };
+  }
+
   path = requestedPath === '/' ? '/recharge' : requestedPath;
   const base = { path: requestedPath, status: 200 as const, noindex: false };
   if (['/new-connection', '/new-connection/compare', '/new-connection/book'].includes(path) || /^\/new-connection\/packs\/[\p{L}\p{N}_-]{1,128}$/u.test(path)) {
@@ -45,8 +59,8 @@ export function pageMetadata(path: string, lang: Language = 'en'): PageMetadata 
   return { ...base, status: 404, noindex: true, title: `${lang === 'ta' ? 'பக்கம் கிடைக்கவில்லை' : 'Page not found'} (404) | DTH Tamizhan`, description: lang === 'ta' ? 'இந்த முகவரி கிடைக்கவில்லை. முகப்புப் பக்கத்திற்குத் திரும்பவும்.' : 'This address does not exist. Return to the home page to continue.' };
 }
 
-export function updatePageMetadata(doc: Document, path: string, lang: Language, origin: string): void {
-  const meta = pageMetadata(path, lang);
+export function updatePageMetadata(doc: Document, path: string, lang: Language, origin: string, recharge = clientRechargeEnabled()): void {
+  const meta = pageMetadata(path, lang, recharge);
   doc.title = meta.title;
   doc.documentElement.lang = lang;
   const set = (attribute: 'name' | 'property', key: string, value: string) => {

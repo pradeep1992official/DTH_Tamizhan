@@ -1,3 +1,4 @@
+import { clientRechargeEnabled } from '../lib/rechargeFeature';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
 import type { Language } from '../types';
@@ -11,7 +12,7 @@ function readPositions(): Map<string, ScrollPosition> {
     return new Map(Object.entries(values).filter(([, value]: [string, any]) => Number.isFinite(value?.x) && Number.isFinite(value?.y) && value.x >= 0 && value.y >= 0) as [string, ScrollPosition][]);
   } catch { return new Map(); }
 }
-export function RouteEffects({ currentLang }: { currentLang: Language }) {
+export function RouteEffects({ currentLang, recharge = clientRechargeEnabled() }: { currentLang: Language; recharge?: boolean }) {
   const location = useLocation();
   const navigationType = useNavigationType();
   const [positions] = useState(readPositions);
@@ -82,8 +83,8 @@ export function RouteEffects({ currentLang }: { currentLang: Language }) {
   }, [location.key, location.hash, navigationType, positions]);
 
   useEffect(() => {
-    updatePageMetadata(document, location.pathname, currentLang, window.location.origin);
+    updatePageMetadata(document, location.pathname, currentLang, window.location.origin, recharge);
     document.cookie = `dth_lang=${currentLang}; Path=/; Max-Age=31536000; SameSite=Lax${window.location.protocol === 'https:' ? '; Secure' : ''}`;
-  }, [location.pathname, currentLang]);
+  }, [location.pathname, currentLang, recharge]);
   return null;
 }

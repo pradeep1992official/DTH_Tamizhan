@@ -4,6 +4,7 @@ import { BrowsePlan, Language } from '../../types';
 import { OperatorTheme } from '../../lib/theme';
 import { translations } from '../../lib/translations';
 import { OperatorCardLogo } from '../BrandAssets';
+import { channelFlyer } from '../../lib/channelFlyers';
 
 interface PlanCardProps {
   plan: BrowsePlan;
@@ -59,6 +60,8 @@ export const PlanCard: React.FC<PlanCardProps> = ({
   const planName = currentLang === 'ta' && plan.tamilName ? plan.tamilName : plan.name;
 
   const channelListUrl = (() => {
+    const flyer = channelFlyer(plan.operator, plan.name);
+    if (flyer) return flyer;
     if (!plan.channel_list_url) return null;
     try {
       const url = new URL(plan.channel_list_url, window.location.origin);
@@ -94,8 +97,8 @@ export const PlanCard: React.FC<PlanCardProps> = ({
       <h3 className="font-bold wrap-break-word">{planName}</h3>
       {validateCatalogPack(plan).length > 0 && <p role="status" className="text-error text-xs">{translations[currentLang].uiCatalogReview}: {formatCatalogIssues(plan, currentLang)}</p>}
       {channelListUrl && (
-        <a className="compact-plan-channel-link" href={channelListUrl} target="_blank" rel="noopener noreferrer" aria-label={`${channelListLabel}: ${planName}`}>
-          {channelListLabel} <span aria-hidden="true">&rarr;</span>
+        <a className="compact-plan-channel-link" href={channelListUrl} download={channelFlyer(plan.operator, plan.name) ? channelListUrl.split('/').pop() : undefined} target="_blank" rel="noopener noreferrer" aria-label={`${channelListLabel}: ${planName}`}>
+          <span className="link-label">{channelListLabel}</span> <span className="link-arrow" aria-hidden="true">&rarr;</span>
         </a>
       )}
       {children}

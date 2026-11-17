@@ -1,3 +1,4 @@
+import { discoveryRouter } from './server/routes/discovery';
 import { processConnectionNotifications } from './server/models/newConnectionNotifications';
 import { youpiWebhookRouter } from './server/youpi';
 import { newConnectionOrdersRouter } from './server/routes/newConnectionOrders';
@@ -106,6 +107,8 @@ async function startServer() {
   app.use(dthLookupRouter);
 
   app.use('/api', (_req, res) => { res.status(404).json({ success: false, error: 'API route not found.' }); });
+
+  app.use(discoveryRouter);
 
   // 5. Vite middleware for development or Static Asset serving in Production
   if (process.env.NODE_ENV !== 'production') {

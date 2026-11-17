@@ -10,11 +10,13 @@ import { CatalogPage } from './CatalogPage';
 import { ComparePage } from './ComparePage';
 import { ChannelBrowser, currency, PriceNotice, SampleNote } from './Shared';
 import './new-connection.css';
+import { channelFlyer } from '../../lib/channelFlyers';
 import { BookingPage } from './BookingPage';
 
 function PackChannels({ items, lang }: { items: VisiblePack[]; lang: Language }) {
   const { packId } = useParams(); const { search } = useLocation(); const validity = Number(new URLSearchParams(search).get('validity')); const item = items.find(i => i.pack.id === packId); const t = translations[lang];
-  return <><Link className="connection-back" to="/new-connection">← {t.ncBack}</Link>{item ? <><header className="connection-heading"><p className="connection-eyebrow">{item.brand.name}</p><h1>{item.pack.name}</h1><SampleNote name={item.pack.name} lang={lang} /><PriceNotice pack={item.pack} lang={lang} /></header><ChannelBrowser key={item.pack.id} channels={item.channels} lang={lang} /><Link className="connection-primary" to={bookingUrl(item.pack, pricing(item.pack, validity).validityDays)}>{t.ncSelect}</Link></> : <section className="connection-state"><h1>{t.ncUnavailable}</h1><p>{t.ncUnavailableText}</p></section>}</>;
+  const flyer = item ? channelFlyer(item.brand.name, item.pack.name) : null;
+  return <><Link className="connection-back" to="/new-connection"><span className="link-arrow" aria-hidden="true">&larr;</span> <span className="link-label">{t.ncBack}</span></Link>{item ? <><header className="connection-heading"><p className="connection-eyebrow">{item.brand.name}</p><h1>{item.pack.name}</h1><SampleNote name={item.pack.name} lang={lang} /><PriceNotice pack={item.pack} lang={lang} />{flyer && <a className="connection-back" href={flyer} download={flyer.split('/').pop()}>{lang === 'ta' ? 'சேனல் பட்டியலைப் பதிவிறக்கவும்' : 'Download channels list'}</a>}</header><ChannelBrowser key={item.pack.id} channels={item.channels} lang={lang} /><Link className="connection-primary" to={bookingUrl(item.pack, pricing(item.pack, validity).validityDays)}>{t.ncSelect}</Link></> : <section className="connection-state"><h1>{t.ncUnavailable}</h1><p>{t.ncUnavailableText}</p></section>}</>;
 }
 export function NewConnectionPages({ currentLang: lang, user = null, onOpenAuth = () => {} }: { currentLang: Language; user?: UserProfile | null; onOpenAuth?: () => void }) {
   const t = translations[lang]; const location = useLocation(); const [data, setData] = useState<CatalogData | null>(null); const [error, setError] = useState(false); const [attempt, setAttempt] = useState(0);

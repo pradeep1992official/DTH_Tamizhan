@@ -1,3 +1,4 @@
+import { clientRechargeEnabled } from '../lib/rechargeFeature';
 import { lookupOperators } from '../lib/dthLookup';
 import { translations } from '../lib/translations';
 import React, { useState } from 'react';
@@ -7,6 +8,8 @@ import type { DthConnection, Language, UserProfile } from '../types';
 
 interface AccountPageProps {
   user: UserProfile | null;
+  recharge?: boolean;
+  hasPastRecharges?: boolean;
   currentLang: Language;
   connections?: DthConnection[];
   onOpenAuth: () => void;
@@ -14,7 +17,7 @@ interface AccountPageProps {
   onUpdateProfile?: (updates: Pick<UserProfile, 'displayName' | 'phoneNumber'>) => Promise<void>;
 }
 
-export function AccountPage({ user, currentLang, connections = [], onOpenAuth, onSignOut, onUpdateProfile }: AccountPageProps) {
+export function AccountPage({ recharge = clientRechargeEnabled(), hasPastRecharges = false, user, currentLang, connections = [], onOpenAuth, onSignOut, onUpdateProfile }: AccountPageProps) {
   const t = translations[currentLang];
   const ta = currentLang === 'ta';
   const [editing, setEditing] = useState(false);
@@ -63,7 +66,7 @@ export function AccountPage({ user, currentLang, connections = [], onOpenAuth, o
 
   return <section className="account-page">
     <header className="account-heading">
-      <div><h1>{t.uiYourAccount}</h1><p>{copy.intro}</p></div>
+      <div><h1>{t.uiYourAccount}</h1><p>{recharge ? copy.intro : t.launchAccountIntro}</p></div>
       {user && onSignOut && <button type="button" className="account-signout" onClick={onSignOut}>{t.signOut}</button>}
     </header>
     {user ? <div className="account-grid"><section className="account-card"><h2>{t.ctTitle}</h2><p>{t.ctIntro}</p><Link to="/account/bookings">{t.ctTitle}</Link></section>
@@ -90,31 +93,31 @@ export function AccountPage({ user, currentLang, connections = [], onOpenAuth, o
           <div key={label}><dt>{label}</dt><dd>{value || copy.missing}</dd></div>
         )}</dl>}
         {savedProfile && <p role="status">{ta ? 'சுயவிவரம் சேமிக்கப்பட்டது.' : 'Profile saved.'}</p>}
-        <Link className="account-text-link" to="/privacy-policy">{copy.privacy} &rarr;</Link>
+        <Link className="account-text-link" to="/privacy-policy"><span className="link-label">{copy.privacy}</span> <span className="link-arrow" aria-hidden="true">&rarr;</span></Link>
       </section>
       <div className="account-secondary">
         <section className="account-card"><h2>{ta ? 'உள்நுழைவு முறைகள்' : 'Sign-in methods'}</h2><p className="text-sm text-muted mt-2 mb-4">{ta ? 'இதே கணக்கில் மின்னஞ்சல் கடவுச்சொல் அல்லது சரிபார்த்த தொலைபேசி எண்ணைச் சேர்க்கவும்.' : 'Add email/password or a verified phone number to this account, keeping your boxes and history together.'}</p><button type="button" className="account-primary" onClick={onOpenAuth}>{ta ? 'உள்நுழைவு முறைகளை நிர்வகிக்கவும்' : 'Manage sign-in methods'}</button></section>
-        <section className="account-card"><h2>{ta ? 'உங்கள் ரீசார்ஜ் வரலாறு' : 'Your recharge history'}</h2><p className="text-sm text-muted mt-2 mb-4">{ta ? 'அனைத்து பாக்ஸ்களின் ரீசார்ஜ், கட்டண நிலை மற்றும் ரசீதுகளைப் பார்க்கவும்.' : 'View recharges, payment status and PDF receipts for all your boxes.'}</p><Link className="account-primary" to="/history">{ta ? 'வரலாற்றைப் பார்க்கவும்' : 'View history'}</Link></section>
-        <section className="account-card">
+        {recharge ? (<section className="account-card"><h2>{ta ? 'உங்கள் ரீசார்ஜ் வரலாறு' : 'Your recharge history'}</h2><p className="text-sm text-muted mt-2 mb-4">{ta ? 'அனைத்து பாக்ஸ்களின் ரீசார்ஜ், கட்டண நிலை மற்றும் ரசீதுகளைப் பார்க்கவும்.' : 'View recharges, payment status and PDF receipts for all your boxes.'}</p><Link className="account-primary" to="/history">{ta ? 'வரலாற்றைப் பார்க்கவும்' : 'View history'}</Link></section>) : hasPastRecharges && <section className="account-card"><h2>{t.launchPast}</h2><Link className="account-text-link" to="/history">{t.launchPast}</Link></section>}
+{recharge && (        <section className="account-card">
           <div className="account-card-heading"><h2>{copy.boxes}</h2><span className="account-count">{saved.length}</span></div>
           {saved.length ? <ul className="account-boxes">{saved.slice(0, 3).map(connection => <li key={connection.id}>
             <span><strong>{connection.nickname || (connection.operator === 'd2h' ? 'D2H' : lookupOperators[connection.operator as keyof typeof lookupOperators] || connection.operatorName)}</strong><small>{connection.operator === 'd2h' ? 'D2H' : lookupOperators[connection.operator as keyof typeof lookupOperators] || connection.operatorName}</small></span>
             <span className="account-box-id">&bull;&bull;&bull;&bull; {connection.smartCardNumber.slice(-4)}</span>
           </li>)}</ul> : <div className="account-empty"><h3>{copy.empty}</h3><p>{copy.emptyHelp}</p></div>}
-          <div className="account-actions"><Link className="account-primary" to="/connections">{copy.manage}</Link><Link className="account-text-link" to="/recharge">{t.navRecharge} &rarr;</Link></div>
-        </section>
+          <div className="account-actions"><Link className="account-primary" to="/connections">{copy.manage}</Link><Link className="account-text-link" to="/recharge"><span className="link-label">{t.navRecharge}</span> <span className="link-arrow" aria-hidden="true">&rarr;</span></Link></div>
+        </section>)}
         <section className="account-card account-help">
-          <h2>{copy.help}</h2><p>{copy.helpText}</p>
+          <h2>{copy.help}</h2><p>{recharge ? copy.helpText : t.launchSupport}</p>
           <div className="account-actions flex-wrap">
-            <Link className="account-text-link" to="/help">{ta ? 'உதவி பெறுக' : 'Get help'} &rarr;</Link>
-            <Link className="account-text-link" to="/my-tickets">{ta ? 'எனது கோரிக்கைகள்' : 'My tickets'} &rarr;</Link>
+            <Link className="account-text-link" to="/help"><span className="link-label">{ta ? 'உதவி பெறுக' : 'Get help'}</span> <span className="link-arrow" aria-hidden="true">&rarr;</span></Link>
+            <Link className="account-text-link" to="/my-tickets"><span className="link-label">{ta ? 'எனது கோரிக்கைகள்' : 'My tickets'}</span> <span className="link-arrow" aria-hidden="true">&rarr;</span></Link>
           </div>
         </section>
       </div>
     </div> : <section className="account-card account-guest">
-      <h2>{copy.guest}</h2><p>{copy.guestHelp}</p>
-      <div className="account-actions"><button type="button" className="account-primary" onClick={onOpenAuth}>{t.uiSignIn}</button><Link className="account-text-link" to="/plans">{t.navPlans} &rarr;</Link></div>
-      <p className="account-guest-note">{copy.guestBrowse}</p>
+      <h2>{recharge ? copy.guest : t.launchGuest}</h2><p>{recharge ? copy.guestHelp : t.launchGuestHint}</p>
+      <div className="account-actions"><button type="button" className="account-primary" onClick={onOpenAuth}>{t.uiSignIn}</button><Link className="account-text-link" to={recharge ? "/plans" : "/new-connection"}><span className="link-label">{recharge ? t.navPlans : t.launchCTA}</span> <span className="link-arrow" aria-hidden="true">&rarr;</span></Link></div>
+      <p className="account-guest-note">{recharge ? copy.guestBrowse : t.launchFooter}</p>
     </section>}
   </section>;
 }

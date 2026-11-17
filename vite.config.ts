@@ -1,9 +1,10 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import {defineConfig} from 'vite';
+import {defineConfig} from 'vitest/config';
 
 export default defineConfig(() => {
   return {
+    test: { setupFiles: ['./tests/setup/rechargeEnabled.ts'] },
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

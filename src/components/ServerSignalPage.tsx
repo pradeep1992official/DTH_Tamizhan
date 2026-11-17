@@ -1,3 +1,5 @@
+import { clientRechargeEnabled } from '../lib/rechargeFeature';
+import { translations } from '../lib/translations';
 import type { Language } from '../types';
 
 export function safeRetryPath(value?: string): string {
@@ -5,7 +7,7 @@ export function safeRetryPath(value?: string): string {
   return path && path.startsWith('/') && !path.startsWith('//') && !/[\\\u0000-\u001f]/.test(path) ? path.slice(0, 500) : '/500';
 }
 
-export function ServerSignalPage({ currentLang = 'en', retryPath }: { currentLang?: Language; retryPath?: string }) {
+export function ServerSignalPage({ recharge = clientRechargeEnabled(), currentLang = 'en', retryPath }: { recharge?: boolean; currentLang?: Language; retryPath?: string }) {
   const ta = currentLang === 'ta'; const text = (en: string, tamil: string) => ta ? tamil : en;
   const target = safeRetryPath(retryPath || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('retry') || window.location.pathname : '/500'));
   return <>
@@ -33,7 +35,7 @@ export function ServerSignalPage({ currentLang = 'en', retryPath }: { currentLan
             <h1 id="server-error-title">{text('Server signal lost', 'சேவையக சிக்னல் கிடைக்கவில்லை')}</h1>
             <p className="server-error-lead">{text('We could not load this page.', 'இந்தப் பக்கத்தை ஏற்ற முடியவில்லை.')}</p>
             <p className="server-error-description">{text('Something on our side interrupted the connection. Give it a moment, then try tuning in again.', 'எங்கள் தரப்பில் ஏற்பட்ட ஒரு சிக்கலால் இணைப்பு தடைப்பட்டது. சிறிது நேரம் கழித்து மீண்டும் முயற்சிக்கவும்.')}</p>
-            <div className="server-error-actions"><a className="server-error-button server-error-primary" href={target}><span aria-hidden="true">↻</span>{text('Try again', 'மீண்டும் முயற்சிக்கவும்')}</a><a className="server-error-button server-error-secondary" href="/">{text('Back to Recharge Home', 'ரீசார்ஜ் முகப்பிற்குத் திரும்பவும்')}<span aria-hidden="true">→</span></a></div>
+            <div className="server-error-actions"><a className="server-error-button server-error-primary" href={target}><span aria-hidden="true">↻</span>{text('Try again', 'மீண்டும் முயற்சிக்கவும்')}</a><a className="server-error-button server-error-secondary" href="/">{recharge ? text('Back to Recharge Home', 'ரீசார்ஜ் முகப்பிற்குத் திரும்பவும்') : translations[currentLang].ncNav}<span aria-hidden="true">→</span></a></div>
           </div>
         </div>
         <div className="server-error-status" aria-label={text('Service status', 'சேவை நிலை')}>

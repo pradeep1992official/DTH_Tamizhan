@@ -1,3 +1,4 @@
+import { rechargeLaunchCopy } from './rechargeLaunchCopy';
 import { newConnectionTrackingCopy } from './newConnectionTrackingCopy';
 import { newConnectionBookingCopy } from './newConnectionBookingCopy';
 import { newConnectionCopy } from './newConnectionCopy';
@@ -10,6 +11,7 @@ export const translations = {
     ...newConnectionCopy.en,
     ...newConnectionBookingCopy.en,
     ...newConnectionTrackingCopy.en,
+    ...rechargeLaunchCopy.en,
     brandTitle: 'DTH Tamizhan',
     brandTagline: 'DTH recharge and support for Tamil Nadu.',
     heroDescription: 'Choose your DTH operator, enter your customer ID, and check the total before paying.',
@@ -383,6 +385,7 @@ export const translations = {
     ...newConnectionCopy.ta,
     ...newConnectionBookingCopy.ta,
     ...newConnectionTrackingCopy.ta,
+    ...rechargeLaunchCopy.ta,
     brandTitle: 'டிடிஎச் தமிழன்',
     // Draft Tamil copy: native-speaker review required before publication.
     brandTagline: 'தமிழ்நாட்டிற்கான டிடிஎச் ரீசார்ஜ் மற்றும் உதவி.',

@@ -1,3 +1,4 @@
+import { rechargeEnabled } from '../rechargeFeature';
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
@@ -27,7 +28,7 @@ brokenLinksRouter.post('/api/broken-links', limiter, async (req, res) => {
     fs.mkdirSync(path.dirname(file()), { recursive: true }); fs.writeFileSync(`${file()}.tmp`, JSON.stringify(reports, null, 2)); fs.renameSync(`${file()}.tmp`, file());
   }
   if (req.accepts(['json', 'html']) === 'html') {
-    res.type('html').send('<!doctype html><html lang="en"><meta charset="utf-8"><meta name="robots" content="noindex"><title>Link reported | DTH Tamizhan</title><body><main><h1>Thank you. The broken link has been reported.</h1><a href="/">Go to Homepage</a> · <a href="/plans">Check Popular Packs</a></main></body></html>'); return;
+    res.type('html').send(('<!doctype html><html lang="en"><meta charset="utf-8"><meta name="robots" content="noindex"><title>Link reported | DTH Tamizhan</title><body><main><h1>Thank you. The broken link has been reported.</h1><a href="/">Go to Homepage</a> · <a href="/plans">Check Popular Packs</a></main></body></html>').replace('href="/plans"', rechargeEnabled() ? 'href="/plans"' : 'href="/new-connection"')); return;
   }
   res.json({ success: true });
 });

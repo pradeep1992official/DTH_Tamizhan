@@ -76,4 +76,20 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('New connection catalog Fi
 
     }
   });
+  it('closes direct recharge plan/operator SDK reads while keeping approved-admin reads', async () => {
+    await env.withSecurityRulesDisabled(async context => {
+      await context.firestore().doc('plan_catalog/old-plan').set({ id: 'old-plan', plan_name: 'Historical pack' });
+      await context.firestore().doc('operator_settings/old-operator').set({ id: 'old-operator', isEnabled: true });
+    });
+    const admin = env.authenticatedContext('approved', { email: 'approved@example.com', email_verified: true }).firestore();
+    for (const [collection, id] of [['plan_catalog', 'old-plan'], ['operator_settings', 'old-operator']]) {
+      const publicDb = env.unauthenticatedContext().firestore();
+      await assertFails(publicDb.doc(collection + '/' + id).get());
+      await assertFails(publicDb.collection(collection).get());
+      await assertFails(env.authenticatedContext('customer').firestore().doc(collection + '/' + id).get());
+      await assertFails(env.authenticatedContext('revoked', { email: 'revoked@example.com', email_verified: true }).firestore().doc(collection + '/' + id).get());
+      await assertSucceeds(admin.doc(collection + '/' + id).get());
+    }
+  });
+
 });

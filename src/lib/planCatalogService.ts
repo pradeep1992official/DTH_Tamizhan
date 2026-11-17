@@ -1,3 +1,4 @@
+import { clientRechargeEnabled } from './rechargeFeature';
 import { normalizeCatalogRecord, assertValidCatalogPack } from './catalog';
 import { PlanCatalogItem, PlanAuditLog, DthOperatorId, BrowsePlan, isSameDthOperatorGroup } from '../types';
 import { db, auth, isFirebaseConfigured, sanitizePayload } from './firebase';
@@ -1007,7 +1008,9 @@ export class PlanCatalogService {
 
   // Public views, admin listing and payment quotes use the same server catalog.
   static async getAllPlans(_options: { allowFallback?: boolean } = {}): Promise<PlanCatalogItem[]> {
-    const response = await fetch('/api/catalog');
+    const response = clientRechargeEnabled()
+      ? await fetch('/api/catalog')
+      : await fetch('/api/admin/plans', { headers: { Authorization: 'Bearer ' + await auth?.currentUser?.getIdToken() } });
     const data = await response.json();
     if (!response.ok || !data.success || !Array.isArray(data.plans)) throw new Error(data.error || 'Unable to load catalog.');
     return data.plans.map(normalizeCatalogRecord);

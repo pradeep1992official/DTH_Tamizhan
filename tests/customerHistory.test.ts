@@ -10,6 +10,7 @@ vi.mock('../server/models/paidRechargeOrders', () => ({ getRechargeOrders: () =>
 vi.mock('../server/models/paymentPages', async importOriginal => {
   const original = await importOriginal<typeof import('../server/models/paymentPages')>();
   return { ...original,
+    hasCustomerRechargeHistory: async (uid: string) => fixture.orders.some(order => order.user_id === uid),
     paymentPage: async (_page: unknown, uid?: string) => ({ payments: fixture.ledger.filter(payment => !uid || payment.customerUid === uid), orders: fixture.orders.filter(order => !uid || order.user_id === uid), nextCursor: null }),
     customerPayment: async (uid: string, id: string) => fixture.ledger.find(payment => payment.customerUid === uid && payment.id === id),
     ordersForPayments: async (payments: any[]) => fixture.orders.filter(order => payments.some(payment => payment.orderId === order.orderId)),
@@ -72,4 +73,15 @@ it('uses a completed recharge confirmation when downloading a completed order re
 });
 it('serves history metadata as a private page rather than 404', () => {
   expect(pageMetadata('/history')).toMatchObject({ status: 200, noindex: true });
+});
+
+it('shows a historical shortcut only after an owner-authenticated presence check, even while disabled', async () => {
+  vi.stubEnv('RECHARGE_ENABLED', 'false');
+  try {
+    expect((await request('/api/my/history-presence')).status).toBe(401);
+    const present = await request('/api/my/history-presence?uid=other', 'owner');
+    expect(present.status).toBe(200); expect(present.json()).toEqual({ success: true, hasOrders: true });
+    fixture.orders = fixture.orders.filter(order => order.user_id !== 'owner');
+    expect((await request('/api/my/history-presence?uid=other', 'owner')).json()).toEqual({ success: true, hasOrders: false });
+  } finally { vi.unstubAllEnvs(); }
 });

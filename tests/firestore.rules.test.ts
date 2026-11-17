@@ -176,7 +176,7 @@ describe('Firestore Security Rules', () => {
     });
 
     describe('/plan_catalog/{planId}', () => {
-      it('allows public unauthenticated read on plan catalog', async () => {
+      it('blocks public SDK plan reads; public browsing uses the feature-guarded server API', async () => {
         if (!testEnv) return;
         // Seed plan doc
         await testEnv.withSecurityRulesDisabled(async (context) => {
@@ -189,7 +189,7 @@ describe('Firestore Security Rules', () => {
         });
 
         const unauthDb = testEnv.unauthenticatedContext().firestore();
-        await assertSucceeds(unauthDb.doc('plan_catalog/sun_hd_1m').get());
+        await assertFails(unauthDb.doc('plan_catalog/sun_hd_1m').get());
       });
 
       it('blocks regular users from modifying plan catalog', async () => {

@@ -6,7 +6,7 @@ import { brandSchema, channelSchema, equipmentSchema, packSchema, settingsSchema
 import { visibleCatalog } from './newConnectionBrowse';
 
 const TTL = 5 * 60 * 1000;
-const KEY = `dth:new-connection:v1:${config.projectId}:${config.firestoreDatabaseId}`;
+const KEY = `dth:new-connection:v2:${config.projectId}:${config.firestoreDatabaseId}`;
 let memory: { expires: number; data: CatalogData } | null = null;
 let pending: Promise<CatalogData> | null = null;
 const count = z.number().int().nonnegative();

@@ -12,8 +12,8 @@ async function configuration(path = '/api/auth/config') {
   } finally { server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve())); }
 }
 it('keeps SMS sign-in off unless explicitly opted in', async () => {
-  vi.stubEnv('FIREBASE_PHONE_AUTH_ENABLED', 'false'); expect((await configuration()).data).toEqual({ phoneEnabled: false });
-  vi.stubEnv('FIREBASE_PHONE_AUTH_ENABLED', 'TRUE'); expect((await configuration()).data).toEqual({ phoneEnabled: false });
+  vi.stubEnv('FIREBASE_PHONE_AUTH_ENABLED', 'false'); expect((await configuration()).data).toEqual({ rechargeEnabled: true, phoneEnabled: false });
+  vi.stubEnv('FIREBASE_PHONE_AUTH_ENABLED', 'TRUE'); expect((await configuration()).data).toEqual({ rechargeEnabled: true, phoneEnabled: false });
 });
 it('exposes only the public runtime App Check key, with no secrets and no caching', async () => {
   vi.stubEnv('FIREBASE_APPCHECK_SITE_KEY', 'public_recaptcha_site_key_fixture'); vi.stubEnv('RAZORPAY_KEY_SECRET', 'never-public');
@@ -23,8 +23,8 @@ it('exposes only the public runtime App Check key, with no secrets and no cachin
   vi.stubEnv('FIREBASE_APPCHECK_SITE_KEY', ''); vi.stubEnv('VITE_FIREBASE_APPCHECK_SITE_KEY', '');
   expect((await configuration('/api/support/config')).data).toEqual({ appCheckSiteKey: null });
 });
-it('exposes only the phone availability flag and no credentials', async () => {
+it('exposes only public phone/feature availability flags and no credentials', async () => {
   vi.stubEnv('FIREBASE_PHONE_AUTH_ENABLED', 'true'); vi.stubEnv('BREVO_API_KEY', 'private-fixture');
-  const response = await configuration(); expect(response.data).toEqual({ phoneEnabled: true });
+  const response = await configuration(); expect(response.data).toEqual({ rechargeEnabled: true, phoneEnabled: true });
   expect(response.headers.get('Cache-Control')).toBe('no-store');
 });

@@ -1,3 +1,4 @@
+import { rechargeGuard } from '../rechargeFeature';
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { isCallerAdminAuthorized, verifyAuthToken } from '../middleware/auth';
@@ -8,6 +9,7 @@ import { customerDthLookup, LookupLimitError } from '../models/customerDthLookup
 import { ticketProtection } from '../middleware/ticketProtection';
 
 export const dthLookupRouter = Router();
+dthLookupRouter.use(rechargeGuard);
 dthLookupRouter.use('/api/admin/dth-lookup', async (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
   try {

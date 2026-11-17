@@ -4,7 +4,7 @@ import { verifyAuthToken } from '../middleware/auth';
 import { customerHistory } from '../models/customerHistory';
 import { receiptEmail } from '../receiptEmail';
 import { receiptPdf } from '../receiptPdf';
-import { customerPayment, ordersForPayments, parsePage, paymentPage } from '../models/paymentPages';
+import { customerPayment, ordersForPayments, parsePage, paymentPage, hasCustomerRechargeHistory } from '../models/paymentPages';
 
 export const customerHistoryRouter = Router();
 customerHistoryRouter.use('/api/my', async (req, res, next) => {
@@ -21,6 +21,10 @@ customerHistoryRouter.get('/api/my/history', async (req, res) => {
   try { const result = await paymentPage(page, res.locals.customerUid);
     res.json({ success: true, ...customerHistory(res.locals.customerUid, result.orders, result.payments), nextCursor: result.nextCursor }); }
   catch { res.status(503).json({ success: false, error: 'Your history could not be loaded. Please retry.' }); }
+});
+customerHistoryRouter.get('/api/my/history-presence', async (_req, res) => {
+  try { res.json({ success: true, hasOrders: await hasCustomerRechargeHistory(res.locals.customerUid) }); }
+  catch { res.status(503).json({ success: false, error: 'History availability could not be checked.' }); }
 });
 customerHistoryRouter.get('/api/my/payments/:paymentId/receipt', async (req, res) => {
   try {

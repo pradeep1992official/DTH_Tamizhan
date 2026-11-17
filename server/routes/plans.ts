@@ -1,3 +1,4 @@
+import { rechargeGuard } from '../rechargeFeature';
 import { forwardAsyncErrors } from '../asyncRoutes';
 import { Router } from 'express';
 import { plansController } from '../controllers/plansController';
@@ -5,6 +6,7 @@ import { adminLimiter } from '../middleware/rateLimiter';
 import { validateBody, SavePlanSchema, DeletePlanSchema, SyncPlansSchema } from '../middleware/validation';
 
 export const plansRouter = Router();
+plansRouter.use(rechargeGuard);
 
 plansRouter.get('/api/catalog', plansController.listCatalog);
 plansRouter.get('/api/plans', plansController.list);

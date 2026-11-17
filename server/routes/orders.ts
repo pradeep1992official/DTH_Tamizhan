@@ -1,3 +1,4 @@
+import { rechargeGuard } from '../rechargeFeature';
 import { forwardAsyncErrors } from '../asyncRoutes';
 import { Router } from 'express';
 import { ordersController } from '../controllers/ordersController';
@@ -7,6 +8,7 @@ import {
 } from '../middleware/validation';
 
 export const ordersRouter = Router();
+ordersRouter.use(rechargeGuard);
 
 ordersRouter.get('/api/orders', ordersController.list);
 ordersRouter.get('/api/admin/orders', ordersController.listAdmin);

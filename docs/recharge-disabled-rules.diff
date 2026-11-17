@@ -1,0 +1,26 @@
+diff --git a/firestore.rules b/firestore.rules
+index 7acb7a3..aa0c53d 100644
+--- a/firestore.rules
++++ b/firestore.rules
+@@ -140,9 +140,10 @@ service cloud.firestore {
+       allow delete: if false; // Audit trail: recharges must not be deleted
+     }
+ 
+-    // Plan Catalog collection (Public read for recharge customer flow, write restricted to admin)
++    // Recharge plan catalog: public reads go through the server feature guard.
++    // Direct SDK access stays approved-admin-only in either switch state.
+     match /plan_catalog/{planId} {
+-      allow read: if true;
++      allow read: if isAdmin();
+       allow create: if isAdmin() && isValidId(planId);
+       allow update: if isAdmin();
+       allow delete: if isAdmin();
+@@ -164,7 +165,7 @@ service cloud.firestore {
+ 
+     // Operator Control & Availability Settings
+     match /operator_settings/{operatorId} {
+-      allow read: if true;
++      allow read: if isAdmin();
+       allow create, update, delete: if isAdmin() && isValidId(operatorId);
+     }
+   }

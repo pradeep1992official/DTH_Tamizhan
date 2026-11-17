@@ -1,3 +1,6 @@
+import { rechargeEnabled } from './rechargeFeature';
+import { isRechargePage, rechargeReturnTarget } from '../src/lib/rechargeFeature';
+import { rechargeLaunchCopy } from '../src/lib/rechargeLaunchCopy';
 import type { ErrorRequestHandler, Request, RequestHandler } from 'express';
 import { pageMetadata } from '../src/lib/pageMetadata';
 import type { Language } from '../src/types';
@@ -12,12 +15,13 @@ export function requestLanguage(req: Request): Language {
   return cookie === 'ta' || (!cookie && req.headers['accept-language']?.startsWith('ta')) ? 'ta' : 'en';
 }
 export function statusPageBody(status: 404 | 500, lang: Language = 'en', path?: string): string {
-  if (status === 404) return renderToStaticMarkup(createElement(SignalLostPage, { currentLang: lang, path }));
-  return renderToStaticMarkup(createElement(ServerSignalPage, { currentLang: lang, retryPath: path }));
+  if (status === 404) return renderToStaticMarkup(createElement(SignalLostPage, { currentLang: lang, path, recharge: rechargeEnabled() }));
+  return renderToStaticMarkup(createElement(ServerSignalPage, { currentLang: lang, retryPath: path, recharge: rechargeEnabled() }));
 }
 
 export function injectPageMetadata(html: string, pathname: string, lang: Language, origin: string): string {
-  const meta = pageMetadata(pathname, lang);
+  const meta = pageMetadata(pathname, lang, rechargeEnabled());
+  html = html.replace(/<script\b(?=[^>]*id=["']dth-features["'])[^>]*>[\s\S]*?<\/script>/gi, '');
   html = html.replace(/<title>[\s\S]*?<\/title>/gi, '').replace(/<link\b(?=[^>]*rel=["']canonical["'])[^>]*>/gi, '');
   const keys = ['description', 'robots', 'og:title', 'og:description', 'og:type', 'og:url', 'og:image', 'og:locale'];
   for (const key of keys) html = html.replace(new RegExp(`<meta\\b(?=[^>]*(?:name|property)=["']${key}["'])[^>]*>`, 'gi'), '');
@@ -26,6 +30,9 @@ export function injectPageMetadata(html: string, pathname: string, lang: Languag
   const head = `<title>${escapeHtml(meta.title)}</title>\n${tag('name', 'description', meta.description)}\n${tag('name', 'robots', meta.noindex ? 'noindex, nofollow' : 'index, follow')}\n${tag('property', 'og:title', meta.title)}\n${tag('property', 'og:description', meta.description)}\n${tag('property', 'og:type', 'website')}\n${tag('property', 'og:url', url)}\n${tag('property', 'og:image', new URL('/icon-512.png', origin).href)}\n${tag('property', 'og:locale', lang === 'ta' ? 'ta_IN' : 'en_IN')}\n${meta.status === 200 ? `<link rel="canonical" href="${escapeHtml(url)}" />` : ''}`;
   if (!/<meta\s+charset=/i.test(html)) html = html.replace('</head>', '<meta charset="UTF-8" /></head>');
   const icons = /<link\b[^>]*rel=["'][^"']*icon/i.test(html) ? '' : '<link rel="icon" href="/favicon.ico" /><link rel="icon" type="image/png" href="/favicon.png" sizes="32x32" /><link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" /><link rel="manifest" href="/site.webmanifest" />';
+  const bootstrap = '<script id="dth-features" type="application/json">' + JSON.stringify({ rechargeEnabled: rechargeEnabled() }) + '</script>';
+  const structured = rechargeEnabled() ? '' : '<script type="application/ld+json">' + JSON.stringify({ '@context': 'https://schema.org', '@type': 'LocalBusiness', name: 'DTH Tamizhan', description: rechargeLaunchCopy[lang].launchHeroText, url: origin }).replaceAll('<', '\\u003c') + '</script>';
+  html = html.replace('</head>', bootstrap + structured + '</head>');
   return html.replace(/<html\b[^>]*>/i, `<html lang="${lang}">`).replace('</head>', `${head}\n${icons}\n</head>`);
 }
 function originForRequest(req: Request): string {
@@ -39,7 +46,11 @@ export function pageHandler(readTemplate: (req: Request) => string | Promise<str
   return async (req, res, next) => {
     if (!['GET', 'HEAD'].includes(req.method)) { res.status(404).send('Not found'); return; }
     try {
-      const meta = pageMetadata(req.path, requestLanguage(req));
+      if (!rechargeEnabled() && (isRechargePage(req.path) || (req.path === '/' && rechargeReturnTarget(req.url.slice(req.url.indexOf('?'))).startsWith('/history')))) {
+        res.setHeader('Cache-Control', 'no-store'); res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+        res.redirect(301, rechargeReturnTarget(req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '')); return;
+      }
+      const meta = pageMetadata(req.path, requestLanguage(req), rechargeEnabled());
       const template = meta.status === 500 ? '<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1" /></head><body style="margin:0;background:#080f20"></body></html>' : await readTemplate(req);
       let html = injectPageMetadata(template, req.path, requestLanguage(req), originForRequest(req));
       if (meta.status === 404) html = html.replace(/<div id="root">[\s\S]*?<\/div>/, `<div id="root">${statusPageBody(404, requestLanguage(req), req.path)}</div>`);

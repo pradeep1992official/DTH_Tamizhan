@@ -1,3 +1,4 @@
+import { rechargeGuard } from '../rechargeFeature';
 import { aiRequestScope, AiToolAccessDenied } from '../utils/aiToolSecurity';
 import { executeAssistantTool } from '../utils/assistantTools';
 import { verifyAuthToken } from '../middleware/auth';
@@ -10,6 +11,7 @@ import { forwardAsyncErrors } from '../asyncRoutes';
 import { prepareAssistantRecharge } from '../controllers/rechargeAssistant';
 
 export const aiRouter = Router();
+aiRouter.use(rechargeGuard);
 aiRouter.use(aiRequestScope);
 
 aiRouter.post('/api/ai/recommend-plans', apiLimiter, recommendPlans);

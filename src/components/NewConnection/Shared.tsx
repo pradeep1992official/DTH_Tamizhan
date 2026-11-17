@@ -1,19 +1,23 @@
 import React, { useMemo, useState } from 'react';
 import type { Channel, Pack } from '../../lib/newConnectionCatalog';
-import { pricesStale } from '../../lib/newConnectionCatalog';
 import { defaultChannelFilters, filterChannels, genreCounts, type ChannelFilters } from '../../lib/newConnectionBrowse';
 import { catalogTerm } from '../../lib/newConnectionCopy';
 import { translations } from '../../lib/translations';
 import type { Language } from '../../types';
 
-export const currency = (value: number, lang: Language) => new Intl.NumberFormat(lang === 'ta' ? 'ta-IN' : 'en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(value);
+export const currency = (value: number, lang: Language) => new Intl.NumberFormat(lang === 'ta' ? 'ta-IN' : 'en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(value);
+export function ChannelQuality({ type, hdCount, totalCount, lang }: { totalCount?: number; type: Pack['type']; hdCount: number; lang: Language }) {
+  const hd = type !== 'SD' && (hdCount > 0 || type === 'HD' || type === '4K');
+  const label = hd ? `${hdCount} ${translations[lang].ncHD}` : lang === 'ta' ? 'SD \u0b9a\u0bc7\u0ba9\u0bb2\u0bcd\u0b95\u0bb3\u0bcd' : 'SD channels';
+  return <p className={`connection-channel-quality ${hd ? 'is-hd' : 'is-sd'}`}><span className="connection-quality-icon" aria-hidden="true">{hd ? 'HD' : 'SD'}</span>{totalCount !== undefined && <><span>{totalCount} {translations[lang].ncChannels}</span><span aria-hidden="true">&middot;</span></>}<strong>{label}</strong></p>;
+}
 export function CatalogLogo({ url, name, size = 40 }: { url: string; name: string; size?: number }) {
   const [failed, setFailed] = useState(false);
   return <span className="connection-logo" style={{ width: size, height: size }}>{url && !failed ? <img src={url} alt="" loading="lazy" width={size} height={size} onError={() => setFailed(true)} /> : <span aria-hidden="true">{name.trim().slice(0, 2).toUpperCase()}</span>}</span>;
 }
 export function PriceNotice({ pack, lang }: { pack: Pack; lang: Language }) {
   const t = translations[lang]; const validDate = pack.priceLastVerifiedAt && Number.isFinite(Date.parse(pack.priceLastVerifiedAt));
-  return <div className="connection-price-note">{validDate && <p>{t.ncVerified} {new Intl.DateTimeFormat(lang === 'ta' ? 'ta-IN' : 'en-IN', { dateStyle: 'medium' }).format(new Date(pack.priceLastVerifiedAt!))}</p>}{pricesStale(pack.priceLastVerifiedAt) && <p>{t.ncUnverified}</p>}</div>;
+  return <div className="connection-price-note">{validDate && <p>{t.ncVerified} {new Intl.DateTimeFormat(lang === 'ta' ? 'ta-IN' : 'en-IN', { dateStyle: 'medium' }).format(new Date(pack.priceLastVerifiedAt!))}</p>}</div>;
 }
 export function SampleNote({ name, lang }: { name: string; lang: Language }) { return name.includes('SAMPLE') ? <small className="connection-sample">{translations[lang].ncSample}</small> : null; }
 export function ChannelBrowser({ channels, lang, emptyText }: { channels: Channel[]; lang: Language; emptyText?: string }) {
