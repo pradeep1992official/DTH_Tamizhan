@@ -252,14 +252,14 @@
 .connection-channel-grid .connection-channel-lcn small{font-size:12px;line-height:1.2;margin:0;color:var(--color-ink-2);font-weight:500}
 
 .connection-channel-toolbar{position:sticky;top:var(--channel-header-offset,0px);z-index:20;background:var(--color-paper);border-bottom:1px solid var(--color-rule);padding:10px 0}
-.connection-channel-results{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;color:var(--color-ink-2)}
+.connection-channel-results{display:flex;align-items:flex-start;justify-content:flex-start;gap:16px;font-size:13px;color:var(--color-ink-2)}
 .connection-channel-results p{margin:8px 0}
 .connection-channel-results .connection-clear-channel-filters{border:0;background:transparent;padding:8px 0;text-decoration:underline;color:var(--color-accent);min-height:44px}
 .connection-channel-group>summary{cursor:pointer;min-height:44px;align-content:center;font-size:16px;font-weight:700;color:var(--color-ink)}
 .connection-channel-group>summary span{font-size:13px;color:var(--color-ink-2);margin-left:8px}
 .connection-pack-channels>.connection-back{display:inline-flex;align-items:center;gap:8px;min-height:44px;font-size:16px;font-weight:600;margin-bottom:12px}
-.connection-channel-download{display:inline-flex;align-self:flex-start;align-items:center;justify-content:center;gap:8px;width:fit-content;min-height:44px;box-sizing:border-box;padding:10px 14px;border:1px solid var(--color-accent);border-radius:var(--radius-input);background:var(--color-accent);color:var(--color-accent-ink);font-size:14px;font-weight:600;text-decoration:none}
-.connection-channel-download:hover{background:var(--color-accent-deep);border-color:var(--color-accent-deep);color:var(--color-accent-ink)}
+.connection-channel-download{display:inline-flex;align-self:flex-start;align-items:center;justify-content:center;gap:8px;width:fit-content;min-height:44px;box-sizing:border-box;padding:10px 14px;border:1px solid var(--color-accent);border-radius:var(--radius-input);background:transparent;color:var(--color-accent);font-size:14px;font-weight:600;text-decoration:none}
+.connection-channel-download:hover{background:var(--color-accent-soft);border-color:var(--color-accent-deep);color:var(--color-accent-deep)}
 .connection-channel-download svg{flex-shrink:0}
 @media(max-width:600px){.connection-channel-toolbar .connection-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.connection-channel-toolbar .connection-search{grid-column:1/-1}.connection-channel-toolbar .connection-controls label{min-width:0;font-size:12px}.connection-channel-toolbar .connection-controls select{min-width:0;width:100%;padding-inline:6px}.connection-channel-toolbar .connection-controls input{min-width:0;width:100%}}
 
@@ -302,3 +302,10 @@
 .connection-selection-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;overflow-wrap:normal}
 .connection-catalog[data-has-comparison=true]>.connection-compare-bar{margin-top:calc(var(--compare-bar-height,150px) + 24px);flex-shrink:0}
 @media(max-width:600px){.connection-compare-bar{display:grid;grid-template-columns:minmax(0,1fr);align-items:stretch}.connection-compare-bar .connection-selection{display:flex;flex-flow:row nowrap;align-items:center;max-height:none;overflow-x:auto;overflow-y:hidden;gap:8px;padding-bottom:4px}.connection-compare-bar .connection-selection button{flex:0 0 auto;max-width:min(260px,80vw)}.connection-compare-bar>.connection-compare-actions{display:grid;grid-template-columns:1fr 1fr;width:100%}.connection-compare-actions>*{width:100%}}
+
+.connection-detail-purchase{display:flex;align-items:center;flex-wrap:wrap;gap:12px 24px;margin-block:4px 8px}
+.connection-detail-purchase .connection-detail-price{margin:0}
+.connection-detail-purchase .connection-primary{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 18px;box-sizing:border-box}
+.connection-pack-channels .connection-heading>.connection-package-type{align-self:flex-start;margin-block:6px}
+.connection-channel-results .connection-clear-channel-filters{display:inline-flex;align-items:flex-start;flex-shrink:0;line-height:1.5;padding-top:8px;text-underline-offset:3px}
+@media(min-width:640px){.connection-pack-channels .connection-package-inclusions ul{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 20px}.connection-pack-channels .connection-package-inclusions[data-package-type=full_set]>.connection-included{grid-column:1/-1}}

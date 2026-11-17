@@ -43,7 +43,7 @@ export function PackChannels({ items, lang }: { items: VisiblePack[]; lang: Lang
     <header className="connection-heading">
       <div className="connection-detail-brand"><CatalogLogo url={item.brand.logoUrl || (item.brand.name.toLowerCase().includes('airtel') ? '/airtel_logo.png' : item.brand.name.toLowerCase().replace(/[^a-z]/g, '').includes('tataplay') ? '/tata_logo.png' : '')} name={item.brand.name} size={44} /><span>{item.brand.name}</span></div><h1>{name}</h1>
       {packageType && <span className="connection-package-type">{packageCardLabel(packageType, lang)}</span>}
-      <p className="connection-detail-price"><strong>{currency(option.price, lang)}</strong> / {term}</p>
+      <div className="connection-detail-purchase"><p className="connection-detail-price"><strong>{currency(option.price, lang)}</strong> / {term}</p><Link className="connection-primary" to={bookingUrl(item.pack, option.validityDays)}>{lang === 'en' ? 'Select pack' : t.ncSelect}</Link></div>
       {packageType && <PackageInclusions packageType={packageType} boxType={packBoxType(item.pack)} lang={lang} />}
       <SampleNote name={item.pack.name} lang={lang} /><PriceNotice pack={item.pack} lang={lang} />
       {flyer && <a className="connection-channel-download" href={flyer} download={flyer.split('/').pop()}><Download size={18} aria-hidden="true" />{lang === 'ta' ? '\u0b9a\u0bc7\u0ba9\u0bb2\u0bcd \u0baa\u0b9f\u0bcd\u0b9f\u0bbf\u0baf\u0bb2\u0bc8\u0baa\u0bcd \u0baa\u0ba4\u0bbf\u0bb5\u0bbf\u0bb1\u0b95\u0bcd\u0b95\u0bb5\u0bc1\u0bae\u0bcd' : 'Download channel list'} (JPG)</a>}

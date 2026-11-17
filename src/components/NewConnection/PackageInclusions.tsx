@@ -9,7 +9,7 @@ export function PackageInclusions({ packageType, boxType, lang }: {
   lang: Language;
 }) {
   const ta = lang === 'ta';
-  return <div className="connection-package-inclusions">
+  return <div className="connection-package-inclusions" data-package-type={packageType}>
     <section className="connection-included"><strong>{ta ? 'சேர்ந்துள்ளவை' : 'Included'}</strong>
     <ul>
       <li><Check size={16} aria-hidden="true" />{boxType} {ta ? 'செட்-டாப் பெட்டி' : 'set-top box'}</li>

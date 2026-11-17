@@ -87,6 +87,10 @@ it('keeps pack context, calendar pricing and booking action beside verifiable HD
   expect(html).toContain('12 months');
   expect(html).toContain('connection-pack-select-bar');
   expect(html).toContain('Select pack');
+  const header = html.match(/<header[\s\S]*?<\/header>/)?.[0] ?? '';
+  expect(header).toContain('connection-detail-purchase');
+  expect(header).toContain('Select pack');
+  expect(header).toContain(`pack=${item.pack.id}&amp;validity=360`);
   expect(html).toContain(`pack=${item.pack.id}&amp;validity=360`);
   expect(html).toContain(`connection-channel-hd-count">${item.channels.filter(c => c.isHD).length} HD`);
   expect((html.match(/connection-channel-hd-badge/g) ?? []).length).toBe(item.channels.filter(c => c.isHD).length);
