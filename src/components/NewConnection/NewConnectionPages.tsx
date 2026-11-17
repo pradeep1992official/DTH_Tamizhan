@@ -41,7 +41,7 @@ export function PackChannels({ items, lang }: { items: VisiblePack[]; lang: Lang
   return <div className="connection-pack-channels" ref={pageRef}>
     <Link className="connection-back" to="/new-connection"><span className="link-arrow" aria-hidden="true">&larr;</span> <span className="link-label">{t.ncBack}</span></Link>
     <header className="connection-heading">
-      <div className="connection-detail-brand"><CatalogLogo url={item.brand.logoUrl || (item.brand.name.toLowerCase().includes('airtel') ? '/airtel_logo.png' : item.brand.name.toLowerCase().replace(/[^a-z]/g, '').includes('tataplay') ? '/tata_logo.png' : '')} name={item.brand.name} size={44} /><span>{item.brand.name}</span></div><h1>{name}</h1>
+      <div className="connection-detail-brand" role="img" aria-label={item.brand.name}><CatalogLogo url={item.brand.logoUrl || (item.brand.name.toLowerCase().includes('airtel') ? '/airtel_logo.png' : item.brand.name.toLowerCase().replace(/[^a-z]/g, '').includes('tataplay') ? '/tata_logo.png' : '')} name={item.brand.name} size={64} /></div><h1>{name}</h1>
       {packageType && <span className="connection-package-type">{packageCardLabel(packageType, lang)}</span>}
       <div className="connection-detail-purchase"><p className="connection-detail-price"><strong>{currency(option.price, lang)}</strong> / {term}</p><Link className="connection-primary" to={bookingUrl(item.pack, option.validityDays)}>{lang === 'en' ? 'Select pack' : t.ncSelect}</Link></div>
       {packageType && <PackageInclusions packageType={packageType} boxType={packBoxType(item.pack)} lang={lang} />}

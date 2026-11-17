@@ -62,9 +62,9 @@ it('offers collapsible genres, a sticky toolbar, clear filters and totals withou
 
 it('shows the stored catalog update date without claiming channel verification', () => {
   const html = renderToStaticMarkup(<ChannelBrowser channels={[]} lang="en" catalogUpdatedAt="2026-11-18T00:00:00Z" />);
-  expect(html).toContain('Last updated');
+  expect(html).toContain('Updated');
   expect(html).toContain('18 Nov 2026');
   expect(html).toContain('dateTime="2026-11-18T00:00:00Z"');
   const invalid = renderToStaticMarkup(<ChannelBrowser channels={[]} lang="en" catalogUpdatedAt="invalid" />);
-  expect(invalid).not.toContain('Last updated');
+  expect(invalid).not.toContain('Updated');
 });
