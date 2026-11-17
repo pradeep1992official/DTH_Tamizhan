@@ -5,8 +5,8 @@ import type { Brand, CatalogData, Channel, EquipmentOffer, Pack } from './newCon
 export type ChannelCounts = Pick<Pack, 'channelCount' | 'payChannelCount' | 'freeChannelCount' | 'hdChannelCount'>;
 export interface VisiblePack { pack: Pack; brand: Brand; channels: Channel[]; counts: ChannelCounts; genres: Record<string, number> }
 export interface PackSelection { id: string; validity: number }
-export interface BrowseFilters { boxType: string; language: string; region: string; type: string; minPrice: string; maxPrice: string; validity: string; genre: string; sort: 'price' | 'channels' | 'perChannel' }
-export const defaultBrowseFilters: BrowseFilters = { boxType: '', language: '', region: '', type: '', minPrice: '', maxPrice: '', validity: '', genre: '', sort: 'price' };
+export interface BrowseFilters { boxType: string; packageType: '' | 'only_box' | 'full_set'; language: string; region: string; type: string; minPrice: string; maxPrice: string; validity: string; genre: string; sort: 'price' | 'channels' | 'perChannel' }
+export const defaultBrowseFilters: BrowseFilters = { boxType: '', packageType: '', language: '', region: '', type: '', minPrice: '', maxPrice: '', validity: '', genre: '', sort: 'price' };
 export function channelCounts(channels: Channel[]): ChannelCounts {
   return { channelCount: channels.length, payChannelCount: channels.filter(c => c.isPay).length, freeChannelCount: channels.filter(c => !c.isPay).length, hdChannelCount: channels.filter(c => c.isHD).length };
 }
@@ -31,7 +31,7 @@ export function pricePerChannel(item: VisiblePack) { return item.counts.channelC
 // Match price filtering and sorting to the actual amount shown on each card.
 export function filterSortPacks(items: VisiblePack[], filters: BrowseFilters, brandId?: string, validities: Record<string, number> = {}) {
   const total = (pack: Pack) => pricingForFilter(pack, filters.validity, validities[pack.id]).price;
-  return items.filter(({ pack, genres }) => (!brandId || pack.brandId === brandId) && (!filters.boxType || packBoxType(pack) === filters.boxType) && (!filters.language || pack.language === filters.language) && (!filters.region || pack.region === filters.region) && (!filters.type || pack.type === filters.type) && (!filters.validity || pack.pricingOptions.some(o => matchesPricingValidity(o, filters.validity))) && (!filters.genre || (genres[filters.genre] ?? 0) > 0) && (!filters.minPrice || total(pack) >= Number(filters.minPrice)) && (!filters.maxPrice || total(pack) <= Number(filters.maxPrice)))
+  return items.filter(({ pack, genres }) => (!brandId || pack.brandId === brandId) && (!filters.boxType || packBoxType(pack) === filters.boxType) && (!filters.packageType || packPackageType(pack) === filters.packageType) && (!filters.language || pack.language === filters.language) && (!filters.region || pack.region === filters.region) && (!filters.type || pack.type === filters.type) && (!filters.validity || pack.pricingOptions.some(o => matchesPricingValidity(o, filters.validity))) && (!filters.genre || (genres[filters.genre] ?? 0) > 0) && (!filters.minPrice || total(pack) >= Number(filters.minPrice)) && (!filters.maxPrice || total(pack) <= Number(filters.maxPrice)))
     .sort((a, b) => (filters.sort === 'channels' ? b.counts.channelCount - a.counts.channelCount : filters.sort === 'perChannel' ? (a.counts.channelCount ? total(a.pack) / a.counts.channelCount : Infinity) - (b.counts.channelCount ? total(b.pack) / b.counts.channelCount : Infinity) : total(a.pack) - total(b.pack)) || a.pack.sortOrder - b.pack.sortOrder || a.pack.name.localeCompare(b.pack.name));
 }
 export interface ChannelFilters { search: string; genre: string; language: string; hd: string; pay: string }

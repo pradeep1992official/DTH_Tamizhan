@@ -29,14 +29,14 @@ it('renders compact package cards with clear pricing, accessible comparison and 
   expect(html).toContain('New dish. An existing dish is required.');
   expect(html).toContain('data-selected="true"');
   expect(html).toContain('Selected for comparison');
-  expect(html).toContain('More filters');
-  expect(html).toContain('aria-label="Sort by"');
+  expect(html).not.toContain('More filters');
+  expect(html).not.toContain('aria-label="Sort by"');
+  expect(html).toContain('aria-label="Package option"');
   expect(html).toContain('aria-label="Compare: Tamil Super Star HD - ONLY BOX"');
   expect(html).toContain('connection-package-info');
   expect(html).not.toContain('class="connection-badge"');
   expect(html).toContain('Compare packs and choose your connection.');
-  expect(html).toContain('aria-expanded="false"');
-  expect(html).toMatch(/class="connection-filter-panel"[^>]*hidden=""/);
+  expect(html).not.toContain('class="connection-filter-panel"');
   expect(html).not.toContain(catalog.brands[0].description);
   expect(html).not.toContain('₹3,100.00');
   const footer = html.match(/class="connection-card-actions">([\s\S]*?)<\/div>/)?.[1];
@@ -96,12 +96,14 @@ it('keeps pack context, calendar pricing and booking action beside verifiable HD
   expect((html.match(/connection-channel-hd-badge/g) ?? []).length).toBe(item.channels.filter(c => c.isHD).length);
 });
 
-it('restores the catalog filters and sort when returning to packs', () => {
-  vi.stubGlobal('sessionStorage', { getItem: () => JSON.stringify({ brandId: data.brands[0].id, filters: { language: 'Tamil', sort: 'channels' } }) });
+it('restores the primary catalog filters when returning to packs', () => {
+  vi.stubGlobal('sessionStorage', { getItem: () => JSON.stringify({ brandId: data.brands[0].id, filters: { packageType: 'only_box', sort: 'channels' } }) });
   try {
     const html = renderToStaticMarkup(<MemoryRouter><CatalogPage data={data} items={items} lang="en" selected={[]} limit={false} onToggle={() => {}} onRemove={() => {}} onValidity={() => {}} onClear={() => {}} /></MemoryRouter>);
-    expect(html).toContain('value="channels" selected=""');
-    expect(html).toContain('Language: Tamil');
+    expect(html).toContain('value="only_box" selected=""');
+    expect(html).not.toContain('aria-label="Sort by"');
+    expect(html).not.toContain('More filters');
+    expect(html).not.toContain('Language: Tamil');
     expect(html).toContain(`value="${data.brands[0].id}" selected=""`);
   } finally { vi.unstubAllGlobals(); }
 });

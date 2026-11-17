@@ -28,5 +28,9 @@ export function packageImage({ brand, pack, packageType, boxType, offer = '' }: 
 
 export function PackageImage(props: Props) {
   const image = packageImage(props);
-  return image ? <div className="connection-package-image"><img {...image} loading="lazy" decoding="async" /></div> : null;
+  if (!image) return null;
+  const normalizedBrand = props.brand.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const brand = normalizedBrand.includes('airtel') ? 'airtel' : normalizedBrand.includes('tataplay') ? 'tata-play' : '';
+  const packageType = packPackageType({ name: props.pack, packageType: props.packageType });
+  return <div className="connection-package-image" data-brand={brand} data-package-type={packageType || ''}><img {...image} loading="lazy" decoding="async" /></div>;
 }
