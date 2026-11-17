@@ -1,9 +1,10 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { MemoryRouter } from 'react-router-dom';
-import { expect, it } from 'vitest';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { expect, it, vi } from 'vitest';
 import { seedCatalog } from './fixtures/newConnectionCatalog';
 import { visibleCatalog, compareUrl } from '../src/lib/newConnectionBrowse';
+import { PackChannels } from '../src/components/NewConnection/NewConnectionPages';
 import { CatalogPage } from '../src/components/NewConnection/CatalogPage';
 import { ChannelBrowser } from '../src/components/NewConnection/Shared';
 import { ComparePage } from '../src/components/NewConnection/ComparePage';
@@ -70,4 +71,33 @@ it('paginates a 650-channel list to 60 fixed-size, lazy-loading rows', () => {
   expect((html.match(/<li>/g) ?? []).length).toBe(60);
   expect((html.match(/loading="lazy"/g) ?? []).length).toBe(60);
   expect(html).toContain('width="32" height="32"'); expect(html).toContain('650 channels');
+});
+
+it('keeps pack context, calendar pricing and booking action beside verifiable HD channels', () => {
+  const catalog = seedCatalog();
+  catalog.packs[0] = { ...catalog.packs[0], name: 'Tamil HD - ONLY BOX', packageType: 'only_box', pricingOptions: [{ validityDays: 360, validityMonths: 12, price: 3100 }, { validityDays: 30, price: 400 }] };
+  const visible = visibleCatalog(catalog);
+  const item = visible[0];
+  const html = renderToStaticMarkup(<MemoryRouter initialEntries={[`/packs/${item.pack.id}?validity=360`]}><Routes><Route path="/packs/:packId" element={<PackChannels items={visible} lang="en" />} /></Routes></MemoryRouter>);
+  expect(html).toContain('<h1>Tamil HD</h1>');
+  expect(html).not.toContain('ONLY BOX');
+  expect(html).toContain('Box only (existing dish)');
+  expect(html).toContain('Free installation');
+  expect(html).toContain('An existing dish is required.');
+  expect(html).toContain('12 months');
+  expect(html).toContain('connection-pack-select-bar');
+  expect(html).toContain('Select pack');
+  expect(html).toContain(`pack=${item.pack.id}&amp;validity=360`);
+  expect(html).toContain(`connection-channel-hd-count">${item.channels.filter(c => c.isHD).length} HD`);
+  expect((html.match(/connection-channel-hd-badge/g) ?? []).length).toBe(item.channels.filter(c => c.isHD).length);
+});
+
+it('restores the catalog filters and sort when returning to packs', () => {
+  vi.stubGlobal('sessionStorage', { getItem: () => JSON.stringify({ brandId: data.brands[0].id, filters: { language: 'Tamil', sort: 'channels' } }) });
+  try {
+    const html = renderToStaticMarkup(<MemoryRouter><CatalogPage data={data} items={items} lang="en" selected={[]} limit={false} onToggle={() => {}} onRemove={() => {}} onValidity={() => {}} onClear={() => {}} /></MemoryRouter>);
+    expect(html).toContain('value="channels" selected=""');
+    expect(html).toContain('Language: Tamil');
+    expect(html).toContain(`value="${data.brands[0].id}" selected=""`);
+  } finally { vi.unstubAllGlobals(); }
 });

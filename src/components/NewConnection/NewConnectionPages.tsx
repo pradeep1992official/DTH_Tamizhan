@@ -1,5 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Route, Routes, useLocation, useParams } from 'react-router-dom';
+import { packBoxType, packPackageType } from '../../lib/newConnectionCatalog';
+import { packageCardLabel, validityLabel } from '../../lib/newConnectionDisplay';
+import { Download } from '../../lib/icons';
+import { PackageInclusions } from './PackageInclusions';
 import type { CatalogData } from '../../lib/newConnectionCatalog';
 import { loadPublicCatalog } from '../../lib/newConnectionPublicCatalog';
 import { bookingUrl, parseCompare, pricing, visibleCatalog, type PackSelection, type VisiblePack } from '../../lib/newConnectionBrowse';
@@ -8,15 +12,48 @@ import type { Language, UserProfile } from '../../types';
 import { ErrorPage } from '../ErrorPages';
 import { CatalogPage } from './CatalogPage';
 import { ComparePage } from './ComparePage';
-import { ChannelBrowser, currency, PriceNotice, SampleNote } from './Shared';
+import { CatalogLogo, ChannelBrowser, currency, PriceNotice, SampleNote } from './Shared';
 import './new-connection.css';
+import { channelNumbersForPack } from '../../lib/airtelChannelNumbers';
 import { channelFlyer } from '../../lib/channelFlyers';
 import { BookingPage } from './BookingPage';
 
-function PackChannels({ items, lang }: { items: VisiblePack[]; lang: Language }) {
-  const { packId } = useParams(); const { search } = useLocation(); const validity = Number(new URLSearchParams(search).get('validity')); const item = items.find(i => i.pack.id === packId); const t = translations[lang];
-  const flyer = item ? channelFlyer(item.brand.name, item.pack.name) : null;
-  return <><Link className="connection-back" to="/new-connection"><span className="link-arrow" aria-hidden="true">&larr;</span> <span className="link-label">{t.ncBack}</span></Link>{item ? <><header className="connection-heading"><p className="connection-eyebrow">{item.brand.name}</p><h1>{item.pack.name}</h1><SampleNote name={item.pack.name} lang={lang} /><PriceNotice pack={item.pack} lang={lang} />{flyer && <a className="connection-back" href={flyer} download={flyer.split('/').pop()}>{lang === 'ta' ? 'சேனல் பட்டியலைப் பதிவிறக்கவும்' : 'Download channels list'}</a>}</header><ChannelBrowser key={item.pack.id} channels={item.channels} lang={lang} /><Link className="connection-primary" to={bookingUrl(item.pack, pricing(item.pack, validity).validityDays)}>{t.ncSelect}</Link></> : <section className="connection-state"><h1>{t.ncUnavailable}</h1><p>{t.ncUnavailableText}</p></section>}</>;
+export function PackChannels({ items, lang }: { items: VisiblePack[]; lang: Language }) {
+  const { packId } = useParams(); const { search } = useLocation();
+  const validity = Number(new URLSearchParams(search).get('validity'));
+  const item = items.find(i => i.pack.id === packId); const t = translations[lang];
+  const pageRef = useRef<HTMLDivElement>(null);
+  const selectBarRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const bar = selectBarRef.current;
+    if (!bar) return;
+    const measure = () => pageRef.current?.style.setProperty('--pack-select-height', `${bar.getBoundingClientRect().height}px`);
+    measure();
+    const observer = new ResizeObserver(measure); observer.observe(bar);
+    return () => observer.disconnect();
+  }, [item?.pack.id]);
+  if (!item) return <section className="connection-state"><h1>{t.ncUnavailable}</h1><p>{t.ncUnavailableText}</p></section>;
+  const option = pricing(item.pack, validity);
+  const packageType = packPackageType(item.pack);
+  const name = item.pack.name.replace(/\s*[-\u2014]\s*(ONLY\s*BOX|FULL\s*SET)$/i, '');
+  const term = validityLabel(option.validityDays, lang, option.validityMonths);
+  const flyer = channelFlyer(item.brand.name, item.pack.name);
+  return <div className="connection-pack-channels" ref={pageRef}>
+    <Link className="connection-back" to="/new-connection"><span className="link-arrow" aria-hidden="true">&larr;</span> <span className="link-label">{t.ncBack}</span></Link>
+    <header className="connection-heading">
+      <div className="connection-detail-brand"><CatalogLogo url={item.brand.logoUrl || (item.brand.name.toLowerCase().includes('airtel') ? '/airtel_logo.png' : item.brand.name.toLowerCase().replace(/[^a-z]/g, '').includes('tataplay') ? '/tata_logo.png' : '')} name={item.brand.name} size={44} /><span>{item.brand.name}</span></div><h1>{name}</h1>
+      {packageType && <span className="connection-package-type">{packageCardLabel(packageType, lang)}</span>}
+      <p className="connection-detail-price"><strong>{currency(option.price, lang)}</strong> / {term}</p>
+      {packageType && <PackageInclusions packageType={packageType} boxType={packBoxType(item.pack)} lang={lang} />}
+      <SampleNote name={item.pack.name} lang={lang} /><PriceNotice pack={item.pack} lang={lang} />
+      {flyer && <a className="connection-channel-download" href={flyer} download={flyer.split('/').pop()}><Download size={18} aria-hidden="true" />{lang === 'ta' ? '\u0b9a\u0bc7\u0ba9\u0bb2\u0bcd \u0baa\u0b9f\u0bcd\u0b9f\u0bbf\u0baf\u0bb2\u0bc8\u0baa\u0bcd \u0baa\u0ba4\u0bbf\u0bb5\u0bbf\u0bb1\u0b95\u0bcd\u0b95\u0bb5\u0bc1\u0bae\u0bcd' : 'Download channel list'} (JPG)</a>}
+    </header>
+    <ChannelBrowser key={item.pack.id} catalogUpdatedAt={item.pack.updatedAt} channels={item.channels} channelNumbers={channelNumbersForPack(item.brand.name, item.pack.name)} lang={lang} />
+    <aside ref={selectBarRef} className="connection-pack-select-bar" aria-label={lang === 'en' ? 'Selected pack' : t.ncPack}>
+      <div><strong className="connection-select-name">{name}</strong><span><b>{currency(option.price, lang)}</b><span className="connection-select-term"> / {term}</span></span></div>
+      <Link className="connection-primary" to={bookingUrl(item.pack, option.validityDays)}>{lang === 'en' ? 'Select pack' : t.ncSelect}</Link>
+    </aside>
+  </div>;
 }
 export function NewConnectionPages({ currentLang: lang, user = null, onOpenAuth = () => {} }: { currentLang: Language; user?: UserProfile | null; onOpenAuth?: () => void }) {
   const t = translations[lang]; const location = useLocation(); const [data, setData] = useState<CatalogData | null>(null); const [error, setError] = useState(false); const [attempt, setAttempt] = useState(0);

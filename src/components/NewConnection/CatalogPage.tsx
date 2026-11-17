@@ -1,4 +1,4 @@
-import React, { useId, useMemo, useState } from 'react';
+import React, { useEffect, useId, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { packBoxType, packPackageType, type CatalogData } from '../../lib/newConnectionCatalog';
 import { bookingUrl, compareUrl, defaultBrowseFilters, filterSortPacks, pricingForFilter, type BrowseFilters, type PackSelection, type VisiblePack } from '../../lib/newConnectionBrowse';
@@ -15,9 +15,15 @@ interface Props { data: CatalogData; items: VisiblePack[]; lang: Language; selec
 export function CatalogPage({ data, items, lang, selected, limit, onToggle, onRemove, onValidity, onClear }: Props) {
   const [filtersOpen, setFiltersOpen] = useState(false); const filtersId = useId();
   const t = translations[lang]; const brands = useMemo(() => [...data.brands].sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)), [data.brands]);
-  const [brandId, setBrandId] = useState('');
-  const [filters, setFilters] = useState<BrowseFilters>(defaultBrowseFilters);
+  const [savedBrowse] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem('dth:pack-browse') || '{}') ?? {}; } catch { return {}; }
+  });
+  const [brandId, setBrandId] = useState<string>(typeof savedBrowse.brandId === 'string' ? savedBrowse.brandId : '');
+  const [filters, setFilters] = useState<BrowseFilters>(() => ({ ...defaultBrowseFilters, ...Object.fromEntries(Object.entries(defaultBrowseFilters).filter(([key]) => typeof savedBrowse.filters?.[key] === 'string' && (key !== 'sort' || ['price', 'channels', 'perChannel'].includes(savedBrowse.filters[key]))).map(([key]) => [key, savedBrowse.filters[key]])) }));
   const [validities, setValidities] = useState<Record<string, number>>({});
+  useEffect(() => {
+    try { sessionStorage.setItem('dth:pack-browse', JSON.stringify({ brandId, filters })); } catch { /* Storage can be unavailable. */ }
+  }, [brandId, filters]);
   const listed = useMemo(() => filterSortPacks(items, filters, brandId || undefined, { ...Object.fromEntries(selected.map(s => [s.id, s.validity])), ...validities }), [items, filters, brandId, selected, validities]);
   function chooseBrand(id: string) { setBrandId(id); }
   function clearFilters() { setBrandId(''); setFilters(current => ({ ...defaultBrowseFilters, sort: current.sort })); }

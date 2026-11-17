@@ -8,7 +8,8 @@ it('states all full-set inclusions without requiring an existing dish', () => {
   expect(html.replace(/<[^>]*>/g, '')).toContain('HD set-top box');
   expect(html).toContain('Remote control');
   expect(html).toContain('Free installation');
-  expect(html).toContain('<li>New dish</li>');
+  expect(html.replace(/<[^>]*>/g, '')).toContain('New dish');
+  expect((html.match(/<svg/g) ?? []).length).toBe(4);
   expect(html).toContain('No existing dish required.');
 });
 
@@ -19,5 +20,6 @@ it('makes the box-only exclusion explicit for Android and HD packages', () => {
   expect(html).toContain('Free installation');
   expect(html).toContain('Not included');
   expect(html).toContain('New dish. An existing dish is required.');
-  expect(html).not.toContain('<li>New dish</li>');
+  expect(html).toContain('connection-excluded');
+  expect((html.match(/<svg/g) ?? []).length).toBe(4);
 });
