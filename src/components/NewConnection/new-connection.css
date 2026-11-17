@@ -62,9 +62,10 @@
 .connection-package-inclusions strong{font-size:12px;font-weight:700}
 .new-connection-page .connection-card-compare{min-height:44px;padding:0 8px;cursor:pointer;gap:8px;font-size:12px;border-radius:6px;margin-left:auto}
 .connection-card-compare:hover{background:var(--color-paper-2)}
+.connection-comparison-state{display:inline-flex;align-items:center;align-self:flex-start;gap:5px;padding:3px 7px;border-radius:5px;background:var(--color-accent-soft);color:var(--color-accent);font-size:11px;font-weight:600;line-height:1.4}
 .connection-price-amount{display:flex;flex-direction:column;gap:4px;min-width:0}
 .connection-price-amount strong{font-size:25px;line-height:1.2;letter-spacing:-.02em}
-.connection-price-amount small{font-size:12px;color:var(--color-ink)}
+.connection-price-amount small{font-size:12px;font-weight:500;color:color-mix(in srgb,var(--color-ink) 90%,black)}
 .connection-pack .connection-validity{display:flex;flex-direction:column;gap:3px;align-items:flex-end;white-space:normal;text-align:right}
 .connection-validity small{font-size:11px}
 .connection-pack .connection-card-actions{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px}
@@ -178,6 +179,7 @@
 .connection-catalog-actions{display:flex;align-items:center;gap:8px;min-width:0}
 .connection-filter-button{display:inline-flex;align-items:center;justify-content:center;gap:6px}
 .connection-filter-button svg{flex-shrink:0}
+.connection-filter-count{display:inline-flex;align-items:center;justify-content:center;min-width:24px;padding:2px 5px;border-radius:999px;background:var(--color-accent-soft);color:var(--color-accent);font-size:12px;font-weight:600;line-height:1.2}
 .connection-catalog-actions :is(button,select){min-height:44px;font-size:12px}
 .connection-catalog-actions select{max-width:190px}
 .connection-catalog .connection-filter-panel{padding:12px;border:1px solid var(--color-rule);border-radius:8px;background:var(--color-paper)}
@@ -191,13 +193,13 @@
 /* Keep the card hierarchy and action spacing consistent. */
 .connection-pack{gap:8px;container-type:inline-size}
 .connection-pack .connection-card-brand{display:flex;align-items:center;gap:8px;color:var(--color-ink);font-size:12px;font-weight:600;line-height:1.3}
-.connection-pack .connection-card-brand{min-height:16px;margin-bottom:0}
-.connection-pack .connection-card-brand .connection-logo{width:auto!important;height:16px!important}
-.connection-pack .connection-card-brand .connection-logo img{width:auto;height:16px;max-width:100%}
+.connection-pack .connection-card-brand{min-height:24px;margin-bottom:0}
+.connection-pack .connection-card-brand .connection-logo{width:88px!important;height:24px!important;max-width:100%;justify-content:flex-start}
+.connection-pack .connection-card-brand .connection-logo img{width:100%;height:100%;max-width:88px;max-height:24px;object-fit:contain;object-position:left center}
 .connection-pack-title{gap:6px}
 .connection-pack .connection-package-row{justify-content:flex-start;min-height:36px}
 .connection-pack .connection-package-type{font-size:13px;font-weight:700}
-.connection-package-includes{font-size:12px;line-height:1.4;color:var(--color-ink)}
+.connection-package-includes{font-size:14px;line-height:1.4;color:color-mix(in srgb,var(--color-ink) 90%,black)}
 .connection-package-info>summary{min-width:36px;min-height:36px}
 .connection-channel-quality{min-height:28px;gap:7px;flex-wrap:wrap;font-size:12px}
 .connection-channel-quality strong{font-size:13px}
@@ -218,3 +220,13 @@
 .connection-active-filters button>span{font-size:17px;line-height:1}
 .connection-active-filters .connection-clear-filters{background:transparent;border-color:transparent;text-decoration:underline;text-underline-offset:3px}
 @media(max-width:760px){.connection-catalog-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);width:100%;justify-content:stretch;gap:8px}.connection-catalog-actions>label{min-width:0}.connection-catalog .connection-catalog-actions select{max-width:none;width:100%}.connection-catalog-actions .connection-filter-button{min-height:44px}.connection-catalog .connection-list-heading{gap:8px}.connection-active-filters{gap:4px}}
+
+.connection-package-includes{display:flex;align-items:center;gap:6px;min-height:18px}
+.connection-package-includes svg{flex-shrink:0;color:var(--color-success,#376246)}
+.connection-price-line{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.connection-price-line .connection-validity{display:inline;white-space:nowrap;text-align:left}
+.connection-price-line>label{display:inline-flex;min-width:0}
+.connection-price-separator{font-size:13px;color:var(--color-ink)}
+.connection-pack .connection-card-compare{box-sizing:border-box;min-width:100px;min-height:44px;padding:8px 10px;border:1px solid var(--color-rule);border-radius:7px;justify-content:center;cursor:pointer}
+.connection-pack .connection-card-compare input{width:20px;height:20px;flex:0 0 20px;margin:0;cursor:pointer}
+.connection-pack .connection-card-compare[data-selected=true]{border-color:var(--color-accent);background:var(--color-accent-soft)}

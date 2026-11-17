@@ -59,12 +59,14 @@ it('saves the server-selected box type in the order and rejects a stale box sele
   f.catalog.packs[0].boxType = 'HD';
   expect(f.records.get(`newConnectionOrders/${result.order.id}`).snapshot.boxType).toBe('Android');
 });
-it('records calendar validity and rejects stale day-based selections', async () => {
+it.each([360, 365])('records the catalog calendar term for option %i and rejects stale selections', async (days) => {
   f.catalog.packs[0].packageType = 'full_set';
-  f.catalog.packs[0].pricingOptions = [{ validityDays: 360, validityMonths: 12, price: 3100 }];
-  const request = { ...input(), selectedValidityDays: 360 };
+  f.catalog.packs[0].pricingOptions = [{ validityDays: days, validityMonths: 12, price: 3100 }];
+  const request = { ...input(), selectedValidityDays: days };
   await expect(createBooking('buyer', request)).rejects.toMatchObject({ code: 'SELECTION_UNAVAILABLE' });
+  await expect(createBooking('buyer', { ...request, selectedValidityMonths: 11 })).rejects.toMatchObject({ code: 'SELECTION_UNAVAILABLE' });
   const { order } = await createBooking('buyer', { ...request, selectedValidityMonths: 12 });
+  expect(order.selectedValidityDays).toBe(days);
   expect(order.selectedValidityMonths).toBe(12);
   expect(f.records.get(`newConnectionOrders/${order.id}`).selectedValidityMonths).toBe(12);
 });
