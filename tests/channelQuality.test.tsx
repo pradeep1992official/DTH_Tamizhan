@@ -2,7 +2,7 @@ import { airtelSuperStarChannelNumbers, channelNumbersForPack } from '../src/lib
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { expect, it } from 'vitest';
-import { ChannelQuality, ChannelBrowser } from '../src/components/NewConnection/Shared';
+import { CatalogLogo, ChannelQuality, ChannelBrowser } from '../src/components/NewConnection/Shared';
 import { filterChannels, sortChannels, defaultChannelFilters, genreCounts } from '../src/lib/newConnectionBrowse';
 import { brandChannelNumbers } from '../src/lib/channelLcn';
 
@@ -67,14 +67,16 @@ it('uses a silver SD badge without revealing the total channel count', () => {
   expect(html).not.toContain('0 HD');
 });
 
-it('keeps real logos, removes initials and hides repetitive free pricing', () => {
+it('keeps real logos and neutral placeholder tiles without repetitive free pricing', () => {
   const channels = [
     { id: 'star-one', name: 'Star One', active: true, sortOrder: 0, language: 'Tamil', genre: 'Entertainment', isHD: true, isPay: false, logoUrl: 'https://example.com/star.png' },
     { id: 'star-two', name: 'Star Two', active: true, sortOrder: 1, language: 'Tamil', genre: 'Entertainment', isHD: false, isPay: false, logoUrl: '' },
   ];
   const html = renderToStaticMarkup(<ChannelBrowser channels={channels} lang="en" />);
   expect(html).toContain('https://example.com/star.png');
-  expect((html.match(/class="connection-logo"/g) ?? []).length).toBe(1);
+  expect((html.match(/class="connection-logo"/g) ?? []).length).toBe(2);
+  expect((html.match(/class="connection-channel-logo-slot"/g) ?? []).length).toBe(2);
+  expect(html).toContain('connection-channel-logo-placeholder');
   expect(html).not.toContain('>ST<');
   expect(html).not.toContain('Channel pricing');
   expect(html).not.toContain('connection-channel-paid');
@@ -83,6 +85,18 @@ it('keeps real logos, removes initials and hides repetitive free pricing', () =>
   expect(mixed).toContain('Channel pricing');
   expect((mixed.match(/connection-channel-paid/g) ?? []).length).toBe(1);
   expect(mixed).toContain('Pay');
+});
+
+it('reserves a fixed decorative logo tile for missing images and lazy loads sized images', () => {
+  const missing = renderToStaticMarkup(<CatalogLogo url="" name="Missing channel" size={32} showInitials={false} keepSpace />);
+  expect(missing).toContain('width:32px;height:32px');
+  expect(missing).toContain('connection-channel-logo-placeholder');
+  expect(missing).not.toContain('>MI<');
+  const logo = renderToStaticMarkup(<CatalogLogo url="/channel-logos/sun-tv-hd.webp" name="Sun TV HD" size={32} showInitials={false} keepSpace />);
+  expect(logo).toContain('alt=""');
+  expect(logo).toContain('loading="lazy"');
+  expect(logo).toContain('decoding="async"');
+  expect(logo).toContain('width="32" height="32"');
 });
 
 it('shows flyer LCNs only in the matching Airtel pack context', () => {
@@ -95,7 +109,8 @@ it('shows flyer LCNs only in the matching Airtel pack context', () => {
   const html = renderToStaticMarkup(<ChannelBrowser channels={[{ id: 'sun', name: 'Sun TV HD', active: true, sortOrder: 0, language: 'Tamil', genre: 'Entertainment', isHD: true, isPay: false, logoUrl: '' }]} channelNumbers={numbers} lang="en" />);
   expect(html).toContain('aria-label="LCN 755"');
   expect(html).toContain('<strong>Sun TV HD</strong><span class="is-hd connection-channel-quality-tag">');
-  expect(html).toContain('Tamil \u00b7 HD');
+  expect(html).not.toContain('Tamil \u00b7 HD');
+  expect(html).not.toContain('Tamil \u00b7 SD');
   expect(html).toContain('LCN may vary by region');
   expect(html).toContain('<option value="lcn">LCN</option>');
 });

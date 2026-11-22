@@ -45,10 +45,26 @@ it('summarizes identical hardware variants once without tabs or self-comparisons
   expect(section).not.toContain('aria-labelledby="diff-tab-');
   expect(section).not.toContain('adds 0');
   expect(section).not.toContain('Only in');
-  expect((section.match(/<li>/g) ?? []).length).toBe(59);
+  expect((section.match(/<li\b[^>]*>/g) ?? []).length).toBe(59);
   expect((section.match(/connection-channel-hd-badge/g) ?? []).length).toBe(4);
   // Two packs from one brand produce one operator badge per channel, not two.
   expect((section.match(/class="connection-brand-lcn"/g) ?? []).length).toBe(59);
+});
+it('keeps operator badges and LCN sort choices in comparison column order', () => {
+  const catalog = seedCatalog();
+  catalog.brands[0] = { ...catalog.brands[0], name: 'Tata Play', slug: 'tata-play' };
+  catalog.brands[1] = { ...catalog.brands[1], name: 'Airtel', slug: 'airtel' };
+  catalog.channels[0] = { ...catalog.channels[0], name: 'Sun TV HD', isHD: true };
+  catalog.packs = catalog.packs.slice(0, 2).map((pack, i) => ({ ...pack, brandId: catalog.brands[i].id, channelIds: [catalog.channels[0].id] }));
+  const visible = visibleCatalog(catalog);
+  for (const ordered of [visible, [...visible].reverse()]) {
+    const html = renderToStaticMarkup(<MemoryRouter initialEntries={[compareUrl(ordered.map(item => ({ id: item.pack.id, validity: 30 })))]}><ComparePage data={catalog} items={visible} lang="en" onSelection={() => {}} /></MemoryRouter>);
+    const first = ordered[0].brand.name; const second = ordered[1].brand.name;
+    expect(html.indexOf(`aria-label="${first} LCN`)).toBeLessThan(html.indexOf(`aria-label="${second} LCN`));
+    expect(html.indexOf(`LCN by ${first}`)).toBeLessThan(html.indexOf(`LCN by ${second}`));
+    expect(html).toContain('Tata Play <b>1503</b>');
+    expect(html).toContain('Airtel <b>755</b>');
+  }
 });
 it('uses hardware labels in a single subset insight for packs with the same name', () => {
   const catalog = seedCatalog();
@@ -135,9 +151,9 @@ it('renders shared comparisons with an inactive column and keeps it out of cost 
 it('paginates a 650-channel list to 60 fixed-size, lazy-loading rows', () => {
   const channels = Array.from({ length: 650 }, (_, i) => ({ ...data.channels[0], id: `channel-${i}`, name: `Channel ${i}`, logoUrl: 'https://example.com/channel.png' }));
   const html = renderToStaticMarkup(<ChannelBrowser channels={channels} lang="en" />);
-  expect((html.match(/<li>/g) ?? []).length).toBe(60);
+  expect((html.match(/<li\b[^>]*>/g) ?? []).length).toBe(60);
   expect((html.match(/loading="lazy"/g) ?? []).length).toBe(60);
-  expect(html).toContain('width="32" height="32"'); expect(html).toContain('650 channels');
+  expect(html).toContain('width="72" height="72"'); expect(html).toContain('650 channels');
 });
 
 it('keeps pack context, calendar pricing and booking action beside verifiable HD channels', () => {
@@ -161,6 +177,15 @@ it('keeps pack context, calendar pricing and booking action beside verifiable HD
   expect(html).toContain(`pack=${item.pack.id}&amp;validity=360`);
   expect(html).toContain(`connection-channel-hd-count">${item.channels.filter(c => c.isHD).length} HD`);
   expect((html.match(/connection-channel-hd-badge/g) ?? []).length).toBe(item.channels.filter(c => c.isHD).length);
+  expect((html.match(/class="connection-channel-logo-slot"/g) ?? []).length).toBe(item.channels.length);
+  expect((html.match(/class="connection-brand-lcn"/g) ?? []).length).toBe(item.channels.length);
+  expect(html).not.toContain('class="connection-channel-lcn"');
+  expect(html).not.toContain('class="connection-brand-dot"');
+  expect(html).toContain('LCN <b>');
+  expect(html).toContain('LCN by');
+  expect(html).toContain('LCN may vary by region');
+  expect(html).not.toContain('Tamil \u00b7 SD');
+  expect(html).toContain('width:72px;height:72px');
 });
 
 it('restores the primary catalog filters when returning to packs', () => {

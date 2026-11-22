@@ -1,0 +1,16 @@
+Channel logo reuse review - 22 November 2026
+
+Status: permission for this site's use is NOT confirmed.
+
+Source URLs and hashes are recorded in src/lib/channelLogos.json and sources.json
+in channel-logos.zip. Download availability is not evidence of a reuse licence.
+The logos remain the marks of their respective channel owners.
+
+Tata Play website usage terms:
+https://www.tataplay.com/dth/website-usage
+These terms reserve intellectual property rights in website information and
+require prior written approval for use of Tata Play's own trademark/logo.
+They do not provide blanket permission for this site's channel-logo collection.
+
+Confirm applicable broadcaster/operator asset licences or existing dealership
+agreements before public use. No rights-holder has been contacted by this task.

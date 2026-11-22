@@ -1,0 +1,862 @@
+{
+  "7S Music": {
+    "path": "/channel-logos/7s-music.webp",
+    "source": "https://i.imgur.com/zDiIhdN.png",
+    "sourceName": "7S Music",
+    "sha256": "7fcd3a491af81d71b4c5f0b363df4d780ac40e61378ee1af7090b7066c00e26f",
+    "originalSha256": "f0d6a475a8456fd250cde0f26c018c16e2120eda42d69fa9bdc42bd364863a95",
+    "width": 96,
+    "height": 96,
+    "bytes": 2170
+  },
+  "Aaseervatham TV": {
+    "path": "/channel-logos/aaseervatham-tv.webp",
+    "source": "https://i.imgur.com/GlfrYs7.png",
+    "sourceName": "Aaseervatham TV",
+    "sha256": "73b299e178d897d6b24fc727cbefa66e024d815ea752f2e8acba995987751321",
+    "originalSha256": "6de4b96ff77cc967cfef5668bf8d60bd552747a31fe57a198c4a6aaf6bc3d9bd",
+    "width": 96,
+    "height": 96,
+    "bytes": 1650
+  },
+  "Adithya TV": {
+    "path": "/channel-logos/adithya-tv.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/adithya-tv.webp",
+    "sourceName": "Adithya TV",
+    "sha256": "93591301784c6d9c2291e156c6ea643f3633e045a34a5809529b115c0e69716e",
+    "originalSha256": "9121cb2a91b6e780d0cc6a16d72e93ab6a554205f3e735947ef6cf6dc38549cd",
+    "width": 96,
+    "height": 96,
+    "bytes": 2258
+  },
+  "Angel TV": {
+    "path": "/channel-logos/angel-tv.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/angel-tv.webp",
+    "sourceName": "Angel TV",
+    "sha256": "9e55cf894d671e7f438569abfcda5adcea4347e40792a387985b183537796a9c",
+    "originalSha256": "b38d9f3c9390f4ecfd7ca3a6c53f309f9f5bef5206140cedcd22333ae29d7a32",
+    "width": 96,
+    "height": 96,
+    "bytes": 2232
+  },
+  "Animal Planet": {
+    "path": "/channel-logos/animal-planet.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/animal-planet.webp",
+    "sourceName": "Animal Planet",
+    "sha256": "a153a50ade0da3363bfdfd936eb4890839d20ad301cd3b2ec35d827fc83ae90d",
+    "originalSha256": "3e1d7bd2e3821c6f91b0755d62ec989e36d6bf19e5a42ddd3d11e287b7a79173",
+    "width": 96,
+    "height": 96,
+    "bytes": 1574
+  },
+  "Cartoon Network": {
+    "path": "/channel-logos/cartoon-network.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/cartoon-network.webp",
+    "sourceName": "Cartoon Network",
+    "sha256": "b99b1f6baa053198643ee73bdb25f2ce8005e019e0c6c5a98b9fa1c4e6c3c773",
+    "originalSha256": "bf37209e238a82750478c2af922369137a8220197863855556cfbfe240edad77",
+    "width": 96,
+    "height": 96,
+    "bytes": 1362
+  },
+  "Chutti TV": {
+    "path": "/channel-logos/chutti-tv.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/chutti-tv.webp",
+    "sourceName": "Chutti TV",
+    "sha256": "c100df79a47362dddc99e772c94110fa7fe1ecec3f6e9d35ea0cd89c37439763",
+    "originalSha256": "ff696b2cc51edea243fcf3548a0fc043e6e66899c77eb8b08234a5515ffd6e2f",
+    "width": 96,
+    "height": 96,
+    "bytes": 2166
+  },
+  "Colors Tamil HD": {
+    "path": "/channel-logos/colors-tamil-hd.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/colors-tamil-hd.webp",
+    "sourceName": "Colors Tamil HD",
+    "sha256": "80f6a3e7e7ef19da5f3148ae07fa4b3350eb0f9f5e109ebb344bc9f48416901a",
+    "originalSha256": "3b03bd00666bbd645ac74e9c6db907b5c0420ae21b633882c145721badc67304",
+    "width": 96,
+    "height": 96,
+    "bytes": 1662
+  },
+  "DD India HD": {
+    "path": "/channel-logos/dd-india-hd.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/dd-india-hd.webp",
+    "sourceName": "DD India HD",
+    "sha256": "2b6d06b31b553b272379921ba51a5c2671fd51f34f22df2bdab9cc5f1994cc08",
+    "originalSha256": "e9f2c90c9b11c928ca448dce9f234a86d44e729ee20e46a6906eee233cf846fd",
+    "width": 96,
+    "height": 96,
+    "bytes": 1154
+  },
+  "DD National HD": {
+    "path": "/channel-logos/dd-national-hd.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/dd-national-hd.webp",
+    "sourceName": "DD National HD",
+    "sha256": "64917c6fb0fc62e9434d436b30a9f77fb045c67e6b99713b3351de79a7210c7c",
+    "originalSha256": "14c9dcadc730fda9423a329e5e48c6c82496bb737f9f2f8b17898299db117125",
+    "width": 96,
+    "height": 96,
+    "bytes": 1690
+  },
+  "DD News HD": {
+    "path": "/channel-logos/dd-news-hd.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/dd-news-hd.webp",
+    "sourceName": "DD News HD",
+    "sha256": "3d3aa348ea030c97349f110a88e70a41c8c690c1952590adb0a83aca451ac102",
+    "originalSha256": "eb0753355c08777449ac13111fe18ca7da713f347e403e7bdc01a6f4987c3ad5",
+    "width": 96,
+    "height": 96,
+    "bytes": 2668
+  },
+  "DD Sports HD": {
+    "path": "/channel-logos/dd-sports-hd.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/dd-sports-hd.webp",
+    "sourceName": "DD Sports HD",
+    "sha256": "7c2c0cb350dff2733b8d1bace7be5a930d29193c9dc34f43e10376ddfc16a71a",
+    "originalSha256": "365d6b145877fbd2a3a72e5b46ee02c65cd5b4893b1d4ee6a46de481dd684523",
+    "width": 96,
+    "height": 96,
+    "bytes": 1604
+  },
+  "DD Tamil": {
+    "path": "/channel-logos/dd-tamil.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/dd-tamil.webp",
+    "sourceName": "DD Tamil",
+    "sha256": "9938a096f5e37303ab8bd61c308c5a6a981a3f95a0f37b7f37d71d3a3534db2e",
+    "originalSha256": "cfc680e6c922fb2bc53a8864b25c99a31b85a2f55dffffd1d549a65052ce5612",
+    "width": 96,
+    "height": 96,
+    "bytes": 1374
+  },
+  "Discovery Channel": {
+    "path": "/channel-logos/discovery-channel.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/discovery-channel.webp",
+    "sourceName": "Discovery Channel",
+    "sha256": "4a99c47b3c5613b98c762fad808ed9f771603efb5f502113297e6d90e08717d8",
+    "originalSha256": "ec4308b2e2718e28dfb86c3476429c6e4903dc3eb34fdf1d1a4f71368ab8a701",
+    "width": 96,
+    "height": 96,
+    "bytes": 1044
+  },
+  "Discovery Kids": {
+    "path": "/channel-logos/discovery-kids.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/discovery-kids.webp",
+    "sourceName": "Discovery Kids",
+    "sha256": "9e360738aa38949b94d069cdd02cdf64635a979ffe23594ea82f02a8cfdfa868",
+    "originalSha256": "a1aea86cad2d5822db2a3c136bc3b48a924c9a081d2ee595cc10cf21ab0e72bb",
+    "width": 96,
+    "height": 96,
+    "bytes": 1226
+  },
+  "Discovery Tamil": {
+    "path": "/channel-logos/discovery-tamil.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/d-tamil.webp",
+    "sourceName": "D Tamil",
+    "sha256": "7c8f626cc920a27ae5389cb56f2f11bc8536c85c216b3754d4eef1ce6f60ce5d",
+    "originalSha256": "f4220c93af3dda308e9690ca8694958798263a9d62c0bcb7926398ee054a167a",
+    "width": 96,
+    "height": 96,
+    "bytes": 1312
+  },
+  "ETV Bal Bharat": {
+    "path": "/channel-logos/etv-bal-bharat.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/etv-bal-bharat.webp",
+    "sourceName": "ETV Bal Bharat",
+    "sha256": "57d1be2475c4dfe3c28f0e01c7b2f2498a8ed1a691febf46334a77338c172707",
+    "originalSha256": "1da049cc2e355e3f9f5c2c538ff8dd80b84e7d6ac73e2fc1ea289a859891c849",
+    "width": 96,
+    "height": 96,
+    "bytes": 1826
+  },
+  "Eurosport": {
+    "path": "/channel-logos/eurosport.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/eurosport.webp",
+    "sourceName": "Eurosport",
+    "sha256": "6bb24286b251ff5437db7a00c4b665a274a277c851466238eac7e52b2b3ccce2",
+    "originalSha256": "f5bc991e46d5602932d314c879bf1e58da573fd2d7b3d59e6ef2bc79ffdc6d24",
+    "width": 96,
+    "height": 96,
+    "bytes": 924
+  },
+  "History TV18 HD": {
+    "path": "/channel-logos/history-tv18-hd.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/history-tv18-hd.webp",
+    "sourceName": "History TV18 HD",
+    "sha256": "6dcd17c4bfc9c994d62adec9e2332f194405c83e2a43d9c9a19cd37a0ca99bc0",
+    "originalSha256": "6d0c8874b77b181e6e4eddea61284f252e834c6824ac3434b51dca9c988bb814",
+    "width": 96,
+    "height": 96,
+    "bytes": 2390
+  },
+  "Hungama": {
+    "path": "/channel-logos/hungama.webp",
+    "source": "https://xstreamcp-assets-msp.streamready.in/assets/LIVETV/LIVECHANNEL/LIVETV_LIVETVCHANNEL_HUNGAMA/images/LOGO_HD/image.png",
+    "sourceName": "Hungama",
+    "sha256": "0512b2c2eb8ec16de64393b658b2e153b57cbf3264987104a3857142e633c1c3",
+    "originalSha256": "369169749d4fd0e8936f300b424dd00c533422369c7dfe3afd6d81b3126e769b",
+    "width": 96,
+    "height": 96,
+    "bytes": 3028
+  },
+  "Isaiaruvi": {
+    "path": "/channel-logos/isaiaruvi.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/isaiaruvi.webp",
+    "sourceName": "Isaiaruvi",
+    "sha256": "2820bd0e6f4bd1471dc051baa493aecae194325405d123c4cd9bbc2d91273099",
+    "originalSha256": "2823f7b81244e03dc1265be812f9929d4fb3ddcf61bb85e082d57dc9a8545c41",
+    "width": 96,
+    "height": 96,
+    "bytes": 820
+  },
+  "J Movie": {
+    "path": "/channel-logos/j-movie.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/j-movies.webp",
+    "sourceName": "J Movies",
+    "sha256": "ccc7fe9601b9d7822a8eefcaf47e9c9018cce90dc562065841b13662959478fc",
+    "originalSha256": "1437bc977a482113ac3838bd0169deb9a57d61649c735fea3697aaaf4526fe82",
+    "width": 96,
+    "height": 96,
+    "bytes": 1894
+  },
+  "Jaya Max": {
+    "path": "/channel-logos/jaya-max.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/jaya-max.webp",
+    "sourceName": "Jaya Max",
+    "sha256": "4869da66667346c4aa334008ca3ae4a043790386a9c5eb369d831fca47d7f638",
+    "originalSha256": "77f415e1e76281fa122a51a25ed1333e03d8d965ef728fef2bb299399a3bfb3b",
+    "width": 96,
+    "height": 96,
+    "bytes": 2024
+  },
+  "Jaya Plus": {
+    "path": "/channel-logos/jaya-plus.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/jaya-plus.webp",
+    "sourceName": "Jaya Plus",
+    "sha256": "516372cb82040c669729e4a144362f6072ae5552b0c3e41de9b02ca9a1a23487",
+    "originalSha256": "79a585b878bfdb4afa43d8c001e78275f82a3bb593cc08d3c68a4d05bdd12bcb",
+    "width": 96,
+    "height": 96,
+    "bytes": 2072
+  },
+  "Jaya TV": {
+    "path": "/channel-logos/jaya-tv.webp",
+    "source": "https://xstreamcp-assets-msp.streamready.in/assets/LIVETV/LIVECHANNEL/LIVETV_LIVETVCHANNEL_JAYA_TV/images/LOGO_HD/image.png",
+    "sourceName": "Jaya TV",
+    "sha256": "4425e3fa476241896d42883f3a2d9ffd82b51a976b25b9ab5bd4be4da732cb9c",
+    "originalSha256": "d9b16b2a2498952ec3daa569f009c67b5a4f492048842ec69190c9f9fbd85fa6",
+    "width": 96,
+    "height": 96,
+    "bytes": 2000
+  },
+  "Jothi TV": {
+    "path": "/channel-logos/jothi-tv.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/jothi-tv.webp",
+    "sourceName": "Jothi TV",
+    "sha256": "a51411c7d1e63ed74df59076ecaa28a163e327787e2881b1aed0fed5f021ff37",
+    "originalSha256": "1d3e015012f8c3d0b2e105103326988e4fe46374e59255defce375921c1ea42b",
+    "width": 96,
+    "height": 96,
+    "bytes": 1352
+  },
+  "KTV HD": {
+    "path": "/channel-logos/ktv-hd.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/ktv-hd.webp",
+    "sourceName": "KTV HD",
+    "sha256": "6120248d02007078a4b2acbbfae1b7d5323bd9a01e6e6b1fc8eff9bb149622d5",
+    "originalSha256": "0d6918ce2bcd81d919b3ae8ad1a8871317cbf346b4c85016dec3062e10f34283",
+    "width": 96,
+    "height": 96,
+    "bytes": 1326
+  },
+  "Kalaignar TV": {
+    "path": "/channel-logos/kalaignar-tv.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/kalaignar-tv.webp",
+    "sourceName": "Kalaignar TV",
+    "sha256": "6597a9b40f6e6c083653f0f93195887ad01d57a7cf45ad43d08ab8204fccf8d2",
+    "originalSha256": "d9ba82994effeb11106b5d97fa8e8713d47e9bc60b8b04edf6ae652024397059",
+    "width": 96,
+    "height": 96,
+    "bytes": 1250
+  },
+  "Madha TV": {
+    "path": "/channel-logos/madha-tv.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/madha-tv.webp",
+    "sourceName": "Madha TV",
+    "sha256": "22898f8e7a6ed3e75642b8ea6b531468df5046eb1e2d7d82b1494f4de897cbcd",
+    "originalSha256": "e37783290c4cf0c6f21f226f4a0d88e90da7216a71fd98b6992b086557fbf8a0",
+    "width": 96,
+    "height": 96,
+    "bytes": 1282
+  },
+  "Makkal TV": {
+    "path": "/channel-logos/makkal-tv.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/makkal-tv.webp",
+    "sourceName": "Makkal TV",
+    "sha256": "1b3e3893f3d7e2e0795d4f43709a2c953f794c7c46d9d47d5b9e50b7162c5ff4",
+    "originalSha256": "e8934e83a68014adb88c42bf25f957d74dfbb70a70d5ef584de50040e5932c86",
+    "width": 96,
+    "height": 96,
+    "bytes": 1786
+  },
+  "Malai Murasu": {
+    "path": "/channel-logos/malai-murasu.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/malaimurasu-seithigal.webp",
+    "sourceName": "MalaiMurasu Seithigal",
+    "sha256": "f6ec1fc12e6067179208d16c0cf01360dc4fcd2ff48960b0b1f0fea3a3472dc3",
+    "originalSha256": "acb684ceb6b461f939658de33fa7fa189d353439bf2561fe806399aeae3a6d8c",
+    "width": 96,
+    "height": 96,
+    "bytes": 2432
+  },
+  "Mega 24": {
+    "path": "/channel-logos/mega-24.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/mega-24.webp",
+    "sourceName": "Mega 24",
+    "sha256": "cd76e7e1291bb7571d9d7a2818594aae03f4544e7a850338f62b9983ea245b5d",
+    "originalSha256": "77211bf9928d2cf64041266556f03b07fe9e1a3bf94ac33416524ade7b2c7fe2",
+    "width": 96,
+    "height": 96,
+    "bytes": 1444
+  },
+  "Mega Musiq": {
+    "path": "/channel-logos/mega-musiq.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/mega-musiq.webp",
+    "sourceName": "Mega Musiq",
+    "sha256": "2756d67bde32963cc899d1d93fa949413bdefbec663b5d10e0f955ea7798e68d",
+    "originalSha256": "a71ade8b04ce179c4c4591b455c9e4a53620a31c2cb8204cc06d753fe14489c3",
+    "width": 96,
+    "height": 96,
+    "bytes": 2822
+  },
+  "Mega TV": {
+    "path": "/channel-logos/mega-tv.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/mega-tv.webp",
+    "sourceName": "Mega TV",
+    "sha256": "875285886c90a6a7706b31b0ba42ab0450cc996b6d57f11f4d97486034c46669",
+    "originalSha256": "e6b30869dc3bc09646d022a0692625f0e580ef88ec3817d75889b3ca40465968",
+    "width": 96,
+    "height": 96,
+    "bytes": 1418
+  },
+  "Murasu TV": {
+    "path": "/channel-logos/murasu-tv.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/murasu-tv.webp",
+    "sourceName": "Murasu TV",
+    "sha256": "45face07740744f3c57c8d96f104a6f524d5a6eed047847aa5e9a01b9618a89c",
+    "originalSha256": "9892a1ed948a2e70ee81ccaf47e08419318658eb70626b3ddea423180e2b724e",
+    "width": 96,
+    "height": 96,
+    "bytes": 916
+  },
+  "Nambikkai TV": {
+    "path": "/channel-logos/nambikkai-tv.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/nambikkai-tv.webp",
+    "sourceName": "Nambikkai TV",
+    "sha256": "3389a00db48a963587179afe175bf8478cdf3845ecc317735521205e5c07b6f2",
+    "originalSha256": "452ca3ec5a606ca5fe8c676468bfc2825c4db148567977aaf5fab292f599faa0",
+    "width": 96,
+    "height": 96,
+    "bytes": 2276
+  },
+  "Nat Geo Wild": {
+    "path": "/channel-logos/nat-geo-wild.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/nat-geo-wild.webp",
+    "sourceName": "Nat Geo Wild",
+    "sha256": "288b6be7d334b8ab3515589279333f4089634af112bfbcdcc90edd710b061d99",
+    "originalSha256": "e968ff35deb6bf1a3c0324139827ead845d06a8be9ca51b1cb274676593d26fa",
+    "width": 96,
+    "height": 96,
+    "bytes": 1082
+  },
+  "Nat Geo Wild HD": {
+    "path": "/channel-logos/nat-geo-wild-hd.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/nat-geo-wild-hd.webp",
+    "sourceName": "Nat Geo Wild HD",
+    "sha256": "9b789d483dd8a964c393f64bcab35e9dfe641a3630a90893bdaec3eeabbd1f7d",
+    "originalSha256": "5fcbc4022b2198a77fe93777436a22db2ee150707815577056f6328e1799196b",
+    "width": 96,
+    "height": 96,
+    "bytes": 1162
+  },
+  "National Geographic": {
+    "path": "/channel-logos/national-geographic.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/national-geographic.webp",
+    "sourceName": "National Geographic",
+    "sha256": "ec07148f068b1642e526748f0bfa94e4a9efc60feb88f6b78f492d547e6a897d",
+    "originalSha256": "f974276a6d37e8c6fd7053f886178f48bc3656ed13888a4b50f6361a519b139d",
+    "width": 96,
+    "height": 96,
+    "bytes": 1448
+  },
+  "National Geographic HD": {
+    "path": "/channel-logos/national-geographic-hd.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/national-geographic-hd.webp",
+    "sourceName": "NATIONAL GEOGRAPHIC HD",
+    "sha256": "ec07148f068b1642e526748f0bfa94e4a9efc60feb88f6b78f492d547e6a897d",
+    "originalSha256": "f974276a6d37e8c6fd7053f886178f48bc3656ed13888a4b50f6361a519b139d",
+    "width": 96,
+    "height": 96,
+    "bytes": 1448
+  },
+  "News J": {
+    "path": "/channel-logos/news-j.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/news-j.webp",
+    "sourceName": "News J",
+    "sha256": "e0cfc46b21f9e4a164b24415d6f9a6451d9d9b6f3700a8846764290a223d06e5",
+    "originalSha256": "f76056f3449d621c203c02805989236ff5b8de97ae179964e3657bdcbdb63568",
+    "width": 96,
+    "height": 96,
+    "bytes": 1290
+  },
+  "News Tamil 24x7": {
+    "path": "/channel-logos/news-tamil-24x7.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/news-tamil-24x7.webp",
+    "sourceName": "News Tamil 24x7",
+    "sha256": "8ff68d9185552ca345e669a8fc906098a453e40f75d6f1d81b57276c10cd279f",
+    "originalSha256": "244b9ee11e8d4a1a2386ff79e424f16408022c871a21a667ed373cb2abfa1bbf",
+    "width": 96,
+    "height": 96,
+    "bytes": 1226
+  },
+  "News18 Tamil": {
+    "path": "/channel-logos/news18-tamil.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/news18-tamil-nadu.webp",
+    "sourceName": "News18 Tamil Nadu",
+    "sha256": "696c2d7411e1f05ca9895dddabf459677bfc61142e62525eaf30a7c11a62726a",
+    "originalSha256": "3270b11148481db948766fe22e2f5742ec180613fe53ce198b87e2536f934e10",
+    "width": 96,
+    "height": 96,
+    "bytes": 2886
+  },
+  "News7 Tamil": {
+    "path": "/channel-logos/news7-tamil.webp",
+    "source": "https://jiotvimages.cdn.jio.com/dare_images/images/News7_Tamil.png",
+    "sourceName": "News7 Tamil",
+    "sha256": "7cfb497ba2c8e8d95eda47b6daf1c49c080a6d05916af6a16c90cb71cdab69cf",
+    "originalSha256": "8cb1507b5b4f7d3838ec41b3351bec66f34458a828f58bf317950d42b9fa652a",
+    "width": 96,
+    "height": 96,
+    "bytes": 1168
+  },
+  "Nick": {
+    "path": "/channel-logos/nick.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/nick.webp",
+    "sourceName": "Nick",
+    "sha256": "be89c6ce06f651aae1ff6253ffb3589f50de5addc2d869a349894e673dd3fa97",
+    "originalSha256": "103cafbea25c12db1e4c0195815274e17a93282ac074769a1d5684a7c1e69265",
+    "width": 96,
+    "height": 96,
+    "bytes": 1362
+  },
+  "Nick HD+": {
+    "path": "/channel-logos/nick-hd.webp",
+    "source": "https://jiotvimages.cdn.jio.com/dare_images/images/Nick_HD_Plus.png",
+    "sourceName": "Nick HD+",
+    "sha256": "127f417ba8300d07bece99580767824f697cbab77e56f744088b13726c682f49",
+    "originalSha256": "3c0ecf1a9fb813fdd9dfcfd2bfa80a3e4b909fa0b5d704aead564c154008bf1a",
+    "width": 96,
+    "height": 96,
+    "bytes": 1148
+  },
+  "Nick Jr.": {
+    "path": "/channel-logos/nick-jr.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/nick-jr.webp",
+    "sourceName": "Nick Jr",
+    "sha256": "be651a021bcdfae8948e000f119446c4e4638e4a44465ef6c9ac134372c2aa67",
+    "originalSha256": "ad12f30ab1332645945c0da7e59016ab81ba2528112acef03845b8f341b5d382",
+    "width": 96,
+    "height": 96,
+    "bytes": 1910
+  },
+  "Pogo": {
+    "path": "/channel-logos/pogo.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/pogo.webp",
+    "sourceName": "Pogo",
+    "sha256": "e666396d9295240d50dbc99d233611c4aba338b6519cb71f32312458e235667b",
+    "originalSha256": "1df9fe80bc49026f4e2e8220c19af4c4c64a9267efed022de522ae43d4004735",
+    "width": 96,
+    "height": 96,
+    "bytes": 1186
+  },
+  "Polimer News": {
+    "path": "/channel-logos/polimer-news.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/polimer-news.webp",
+    "sourceName": "Polimer News",
+    "sha256": "68dababcf7b11f52e3c10b0ea80b780ef434adcf1ca1c9fd9723d33fe922b5cb",
+    "originalSha256": "c8bd05ac81b49b598d534a2b317eeb628910803bb373b8576936d1a53531c64d",
+    "width": 96,
+    "height": 96,
+    "bytes": 2028
+  },
+  "Polimer TV": {
+    "path": "/channel-logos/polimer-tv.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/polimer-tv.webp",
+    "sourceName": "Polimer TV",
+    "sha256": "e617caeae944f8041867b949646a055f53742c90c1f106cae644255e865c5bfc",
+    "originalSha256": "172634d853bbef6f11a619a7d4be8d2f604c435eeabbf8c435cfff7260e8f5c6",
+    "width": 96,
+    "height": 96,
+    "bytes": 1692
+  },
+  "Puthiya Thalaimurai": {
+    "path": "/channel-logos/puthiya-thalaimurai.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/puthiya-thalaimurai.webp",
+    "sourceName": "Puthiya Thalaimurai",
+    "sha256": "c1d0e9009ea1141358824bfadf9c8710ea859892e4f43f6b19d5e991c82b63fb",
+    "originalSha256": "5418653c42435200362f1e9098c43e8f01c2be8ea2c73a7f3afd4caf234a69d1",
+    "width": 96,
+    "height": 96,
+    "bytes": 1340
+  },
+  "Puthu Yugam": {
+    "path": "/channel-logos/puthu-yugam.webp",
+    "source": "https://xstreamcp-assets-msp.streamready.in/assets/LIVETV/LIVECHANNEL/LIVETV_LIVETVCHANNEL_PUTHU_YUGAM/images/LOGO_HD/image.png",
+    "sourceName": "Puthu Yugam",
+    "sha256": "4c41a036aa079a99d06cd65723d4e1ff1f1feadca94c5a27b8e2b693d6f30bc6",
+    "originalSha256": "306a6c32891e70bd7480bb99446fc82123240c786c146ea9f684b616d204b0d0",
+    "width": 96,
+    "height": 96,
+    "bytes": 1112
+  },
+  "Raj Digital Plus": {
+    "path": "/channel-logos/raj-digital-plus.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/raj-digital-plus.webp",
+    "sourceName": "Raj Digital Plus",
+    "sha256": "abdb81482936ddccf801b32f87853c0bb915813229b5b43eb9a9a5fc6a731250",
+    "originalSha256": "78fde4a29e0371b8603bdadf3228e802a231b5d0bc8107ef34efb93dd2380796",
+    "width": 96,
+    "height": 96,
+    "bytes": 1812
+  },
+  "Raj Musix": {
+    "path": "/channel-logos/raj-musix.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/raj-musix.webp",
+    "sourceName": "Raj Musix",
+    "sha256": "6e77872c941de28a3e7fa8e3a5a070ea64749cdb08a9f306b0810c0e37f6b76e",
+    "originalSha256": "3891684f80b3af5471bb3591dd0d4ebea6a67c1fbf35fc2e25b5ed562e07af15",
+    "width": 96,
+    "height": 96,
+    "bytes": 1632
+  },
+  "Raj Nagaichuvai": {
+    "path": "/channel-logos/raj-nagaichuvai.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/raj-nagaichuvai.webp",
+    "sourceName": "Raj Nagaichuvai",
+    "sha256": "b42e8a8242a47ac5450f0e20e4d33f4ab6e2f3b7c5a0756c7c8c769a4b932031",
+    "originalSha256": "5a3788a30fd024467b95f0ba6136d4d2de71417fd220a6d752cea5e2a5ac519d",
+    "width": 96,
+    "height": 96,
+    "bytes": 1822
+  },
+  "Raj News": {
+    "path": "/channel-logos/raj-news.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/raj-news-tamil.webp",
+    "sourceName": "Raj News Tamil",
+    "sha256": "8f9e13f92b75070d7640424985c1ba39b88a250f420e22a38281d6b02ec0fadd",
+    "originalSha256": "71df73113646bf14054860e286758dbfd3ac965362c324eb38f5122b633b71b8",
+    "width": 96,
+    "height": 96,
+    "bytes": 3234
+  },
+  "Raj TV": {
+    "path": "/channel-logos/raj-tv.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/raj-tv.webp",
+    "sourceName": "Raj TV",
+    "sha256": "63428cecef29f6cd02cb6e4ce9ca24d8f58fde5d98fc166c133e57ba84f659a4",
+    "originalSha256": "b785b3a26643707c89217cdb7ea2f4afaa26061301cbaaa6797df9ab15903e07",
+    "width": 96,
+    "height": 96,
+    "bytes": 1892
+  },
+  "SVBC 2 Tamil": {
+    "path": "/channel-logos/svbc-2-tamil.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/svbc-2.webp",
+    "sourceName": "SVBC 2",
+    "sha256": "61c9404e47bb00925f307ab8a2c19ad0bc0dcddbd051433554ad41eab0280c8a",
+    "originalSha256": "c777d6dd01c3141d7118cb3ea4cccede5b060069c848b305c37ceb3bbb68161a",
+    "width": 96,
+    "height": 96,
+    "bytes": 4052
+  },
+  "Sai TV": {
+    "path": "/channel-logos/sai-tv.webp",
+    "source": "https://xstreamcp-assets-msp.streamready.in/assets/LIVETV/LIVECHANNEL/LIVETV_LIVETVCHANNEL_SAI_TV/images/LOGO_HD/image.png",
+    "sourceName": "Sai TV",
+    "sha256": "35fc2627f8f1318397426604d2dcc07b7a84792d59ca829e302a0c4d3b03603c",
+    "originalSha256": "be2eb7b22dd0dcbf779fdfeb0ac8c6a2f1d66b3fefb6f4fff14a80d486319ea0",
+    "width": 96,
+    "height": 96,
+    "bytes": 3580
+  },
+  "Sansad TV 2 HD": {
+    "path": "/channel-logos/sansad-tv-2-hd.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/sansad-tv-2-hd.webp",
+    "sourceName": "Sansad TV 2 HD",
+    "sha256": "41e2abf7d84b36ca596a09314eb024cb784ac4d6c4dbb372d661e3ba675ebc6b",
+    "originalSha256": "a0b4acf6c51dfdd331c35a89c489fc2019b7ee951f8dd722249213be23d3ba31",
+    "width": 96,
+    "height": 96,
+    "bytes": 2276
+  },
+  "Sathiyam TV": {
+    "path": "/channel-logos/sathiyam-tv.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/sathiyam-tv.webp",
+    "sourceName": "Sathiyam TV",
+    "sha256": "3faf94ad0a8cf4a6f01d070e148a65f245bcef63d8485815152256d1ffe8dc5e",
+    "originalSha256": "8fc9722877498bbcd5454b42412334462f7cb9e5234d5029c60e0dfe4695e9df",
+    "width": 96,
+    "height": 96,
+    "bytes": 2646
+  },
+  "Seithigal 24x7": {
+    "path": "/channel-logos/seithigal-24x7.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/seithigal-tv.webp",
+    "sourceName": "Seithigal TV",
+    "sha256": "444d422f4bb271fb35d327dcfae88c63f0fb1524e9921c51ba6ce307ff58c7a5",
+    "originalSha256": "393407d0f7a3613e85d9f0dc7a1e0fdafbd096370181e8f491268fa47168220e",
+    "width": 96,
+    "height": 96,
+    "bytes": 2382
+  },
+  "Sirippoli": {
+    "path": "/channel-logos/sirippoli.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/sirippoli.webp",
+    "sourceName": "Sirippoli",
+    "sha256": "09bee5cbf91593b89de31fe83973beb60a11cf0a1644d5a8e3f02f65d3dec83c",
+    "originalSha256": "9ba0467edd0c8bd8d9238aa136c65098755ef3da6eda305c0d134b4ef918ac61",
+    "width": 96,
+    "height": 96,
+    "bytes": 2336
+  },
+  "Sonic": {
+    "path": "/channel-logos/sonic.webp",
+    "source": "https://xstreamcp-assets-msp.streamready.in/assets/LIVETV/LIVECHANNEL/LIVETV_LIVETVCHANNEL_SONIC/images/LOGO_HD/image.png",
+    "sourceName": "Sonic",
+    "sha256": "44f4dafabdbad9e7bac47f756ba958c32541ec1aa88f790f811f482d865cef49",
+    "originalSha256": "13b20849230750623a522942f453e5f29e1a0766929cce4e813941d6e5ea550f",
+    "width": 96,
+    "height": 96,
+    "bytes": 1774
+  },
+  "Sony Sports Ten 4 Tamil": {
+    "path": "/channel-logos/sony-sports-ten-4-tamil.webp",
+    "source": "https://xstreamcp-assets-msp.streamready.in/assets/LIVETV/LIVECHANNEL/LIVETV_LIVETVCHANNEL_SONY_SPORTS_TEN_4/images/LOGO_HD/LOGO_HD_image.png",
+    "sourceName": "Sony Sports Ten 4 Tamil",
+    "sha256": "7e0f99e0055f55ca50ecaef1504a38b0520fb00241c7ee34880393b0d827b34e",
+    "originalSha256": "96121989f57efca954fac46c307274cd21139c038bef1dfee555a026d426c312",
+    "width": 96,
+    "height": 96,
+    "bytes": 2416
+  },
+  "Sony YAY!": {
+    "path": "/channel-logos/sony-yay.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/sony-yay.webp",
+    "sourceName": "Sony YAY!",
+    "sha256": "945bb761404534fdd3b38c7e2db862cea496e44fde61a024114e13f4e722180a",
+    "originalSha256": "a9c7639dbae9ac026670d5672a33c3554684a9786ee0fb2f0553ed874811cdb6",
+    "width": 96,
+    "height": 96,
+    "bytes": 1416
+  },
+  "Sri Sankara TV": {
+    "path": "/channel-logos/sri-sankara-tv.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/sri-sankara-tv.webp",
+    "sourceName": "Sri Sankara TV",
+    "sha256": "ca4946521fa99dd5008022d4a9ad791c1f323ef88cae591343cb8ec7d75c24a4",
+    "originalSha256": "196b86b5fa18fc648c616dfdb48ba81ea18c041aa9f158305832a05b5a9d1bff",
+    "width": 96,
+    "height": 96,
+    "bytes": 3044
+  },
+  "Star Sports 1 Tamil": {
+    "path": "/channel-logos/star-sports-1-tamil.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/star-sports-1-tamil.webp",
+    "sourceName": "Star Sports 1 Tamil",
+    "sha256": "b0eb72a108c733a48744c12d06b37e685e66f6d4db01fdedd0f9e2888b4d1806",
+    "originalSha256": "e6d04afab77e83820b114074f1eb1137c2e9fb367c7b2647ddcfda3f8c965ba9",
+    "width": 96,
+    "height": 96,
+    "bytes": 2424
+  },
+  "Star Sports 1 Tamil HD": {
+    "path": "/channel-logos/star-sports-1-tamil-hd.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/star-sports-1-tamil-hd.webp",
+    "sourceName": "Star Sports 1 Tamil HD",
+    "sha256": "c70d5f4d432e5d2739c913340a0f8200187f759555f5cb06ad03a198912e7dae",
+    "originalSha256": "ce28d178378c75e8bddcae7493eb774fd622094e916c95427b4dba9b89b61675",
+    "width": 96,
+    "height": 96,
+    "bytes": 1284
+  },
+  "Star Sports 2 Tamil HD": {
+    "path": "/channel-logos/star-sports-2-tamil-hd.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/star-sports-2-tamil-hd.webp",
+    "sourceName": "Star Sports 2 Tamil HD",
+    "sha256": "53338dc331c96ff65a749c661d2ca225ca467c42278ffea2cbf8057a0096ae5b",
+    "originalSha256": "22d5d2f6e4a3072f4a5202bd5e20a549f69cd61fc497ec17dd3e7a69bd586f96",
+    "width": 96,
+    "height": 96,
+    "bytes": 986
+  },
+  "Star Sports 3": {
+    "path": "/channel-logos/star-sports-3.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/star-sports-3.webp",
+    "sourceName": "Star Sports 3",
+    "sha256": "0a4117be5212d7fc83997d86262871ad78b53ae76499a8de6d1215a9eeb8ec13",
+    "originalSha256": "826551705b7c02c9c6241aead54329ed22aa30e3e18c265a89fc29fd93778cd6",
+    "width": 96,
+    "height": 96,
+    "bytes": 1724
+  },
+  "Star Vijay HD": {
+    "path": "/channel-logos/star-vijay-hd.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/star-vijay-hd.webp",
+    "sourceName": "Star Vijay HD",
+    "sha256": "d61fc31554b801849efef18f0fbe5189d162ba7d6861b2b0e2c32088aff4f5db",
+    "originalSha256": "fe250550f52cef8acd3d05626bddab1ddd3999ee2036fb24cf2b8a62544ab37e",
+    "width": 96,
+    "height": 96,
+    "bytes": 780
+  },
+  "Star Vijay Super": {
+    "path": "/channel-logos/star-vijay-super.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/vijay-super.webp",
+    "sourceName": "Vijay Super",
+    "sha256": "69af49cd262c13cdaf0bdd47938fd9dfda7fb574f78440a58c97b714acd35a0c",
+    "originalSha256": "155a6d83f1a74d5b2641dbd81147e3f232d5d1195c20d15b366b0732bb66dfc0",
+    "width": 96,
+    "height": 96,
+    "bytes": 998
+  },
+  "Star Vijay Super HD": {
+    "path": "/channel-logos/star-vijay-super-hd.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/vijay-super-hd.webp",
+    "sourceName": "Vijay Super HD",
+    "sha256": "f5a2671f5a9df107bcc22da77e3d0c557f46733a99e1e86fe17b84962da98484",
+    "originalSha256": "08cd2e6680e64de54d602562929213fd5476674f6403541f4c5502c8e72f18f9",
+    "width": 96,
+    "height": 96,
+    "bytes": 1052
+  },
+  "Star Vijay Takkar": {
+    "path": "/channel-logos/star-vijay-takkar.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/vijay-takkar.webp",
+    "sourceName": "Vijay Takkar",
+    "sha256": "69885035f41967d010a9113b9da40e0a835b57de867582f7647d95283986ae5c",
+    "originalSha256": "59cfef1bac36149f527537ce77c4a8e92b8d48341e6e8af362ef8d33e2225820",
+    "width": 96,
+    "height": 96,
+    "bytes": 868
+  },
+  "Sun Life": {
+    "path": "/channel-logos/sun-life.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/sun-life.webp",
+    "sourceName": "Sun Life",
+    "sha256": "437a14578ace25c17a57ba7e604cafc8112b874ccfa700638750cc9dbec824ba",
+    "originalSha256": "a9222a0a0cf6f98b94ce44523ab43cd17c39d70ee2d9c20bfc57bfcf25620994",
+    "width": 96,
+    "height": 96,
+    "bytes": 2584
+  },
+  "Sun Music HD": {
+    "path": "/channel-logos/sun-music-hd.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/sun-music-hd.webp",
+    "sourceName": "Sun Music HD",
+    "sha256": "22cf1a3d76ce26a122e888d37eb3911df4f9d0de17884d76d5d6f85589380181",
+    "originalSha256": "3bf3f4af81b4b16d76084fa38d4a0bd24b50bf3a9a03423666b456d5fa8fd890",
+    "width": 96,
+    "height": 96,
+    "bytes": 2520
+  },
+  "Sun News": {
+    "path": "/channel-logos/sun-news.webp",
+    "source": "https://jiotvimages.cdn.jio.com/dare_images/images/Sun_News.png",
+    "sourceName": "Sun News",
+    "sha256": "8c6904f768f4397ab7aa368f2342fb2241b351d2848b1e66dcd861e10ad72c4b",
+    "originalSha256": "c5d632c7e01d70974148e9bed7f62751e81f405e1c8c915fa0cd423e3c51c624",
+    "width": 96,
+    "height": 96,
+    "bytes": 2874
+  },
+  "Sun TV HD": {
+    "path": "/channel-logos/sun-tv-hd.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/sun-tv-hd.webp",
+    "sourceName": "Sun TV HD",
+    "sha256": "b336faf3bcefed3af50833112042f13bfa4d0f33e16bfde5ab6f36d7baa20b39",
+    "originalSha256": "467168d6e330d8a40805d9e0db8b79f878a0eab23650d58e7b4f3b4ef1a37ebc",
+    "width": 96,
+    "height": 96,
+    "bytes": 2090
+  },
+  "TLC": {
+    "path": "/channel-logos/tlc.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/tlc.webp",
+    "sourceName": "TLC",
+    "sha256": "a2bdbdfd163ebd32ff2bb3b4e38f682931433bed691855374c470eb6194f71b2",
+    "originalSha256": "ffb2358394ae0d30a38dbeb9da21deac6309cb6b3b6369ba297536737c183703",
+    "width": 96,
+    "height": 96,
+    "bytes": 846
+  },
+  "Tamil Janam": {
+    "path": "/channel-logos/tamil-janam.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/tamil-janam.webp",
+    "sourceName": "Tamil Janam",
+    "sha256": "08bc571b8db85de73a72804f8e5fb3baf059c14ce41a20abc15b0d07b4cc3a14",
+    "originalSha256": "deed0e3d1da804209d1c339e3ab36a179b606a09847ded027acee06513c7b993",
+    "width": 96,
+    "height": 96,
+    "bytes": 2224
+  },
+  "Thanthi TV": {
+    "path": "/channel-logos/thanthi-tv.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/thanthi-tv.webp",
+    "sourceName": "Thanthi TV",
+    "sha256": "34880ca9beda188050708b06bd11eefff158116e4bc11005b38ea836d0edfa26",
+    "originalSha256": "206b53952f477e90fbf298da63f2dd55ec09a885dc47f02e15191e2b2adfbd85",
+    "width": 96,
+    "height": 96,
+    "bytes": 3174
+  },
+  "Vasanth TV": {
+    "path": "/channel-logos/vasanth-tv.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/vasanth-tv.webp",
+    "sourceName": "Vasanth TV",
+    "sha256": "6cc09d3021becb7290cd5bb75a0175d61b59f050055487260ac9dd957a7208ac",
+    "originalSha256": "5d35fec157fb7df891968c1b39a2e9b9c14d807e932fe87ee91b062fa936bff0",
+    "width": 96,
+    "height": 96,
+    "bytes": 1306
+  },
+  "Zee Tamil HD": {
+    "path": "/channel-logos/zee-tamil-hd.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/zee-tamil-hd.webp",
+    "sourceName": "Zee Tamil HD",
+    "sha256": "e45ec92161e00f09632be192a7564a5f88a5448e69440b086d99fcc60f022e9f",
+    "originalSha256": "48be6e19631a26f4090799ee3d0f54e3754860c52473b3fe818a9516f4d0eab2",
+    "width": 96,
+    "height": 96,
+    "bytes": 1222
+  },
+  "Zee Thirai": {
+    "path": "/channel-logos/zee-thirai.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/zee-thirai.webp",
+    "sourceName": "Zee Thirai",
+    "sha256": "9b5d2251eb287b6626b8ce9926c12e5404d917c57259394fd0e20e6f7b247755",
+    "originalSha256": "85eb19b7e81230c206f753bdffbde2758564bbda008eed7f5a3ab53d21bf0b29",
+    "width": 96,
+    "height": 96,
+    "bytes": 1036
+  },
+  "Zee Zest HD": {
+    "path": "/channel-logos/zee-zest-hd.webp",
+    "source": "https://www.tataplay.com/s3-api/v1/assets/channels/zee-zest-hd.webp",
+    "sourceName": "Zee Zest HD",
+    "sha256": "c5bf802a49612c0910f404f0a8c87947b95867dff0dc84a04173b031571fc149",
+    "originalSha256": "0b46bdd305c5fdaacfc854938a49d307a02f6aa8712dc9d06fba36594a485727",
+    "width": 96,
+    "height": 96,
+    "bytes": 986
+  }
+}
