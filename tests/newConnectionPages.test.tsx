@@ -47,6 +47,8 @@ it('summarizes identical hardware variants once without tabs or self-comparisons
   expect(section).not.toContain('Only in');
   expect((section.match(/<li>/g) ?? []).length).toBe(59);
   expect((section.match(/connection-channel-hd-badge/g) ?? []).length).toBe(4);
+  // Two packs from one brand produce one operator badge per channel, not two.
+  expect((section.match(/class="connection-brand-lcn"/g) ?? []).length).toBe(59);
 });
 it('uses hardware labels in a single subset insight for packs with the same name', () => {
   const catalog = seedCatalog();

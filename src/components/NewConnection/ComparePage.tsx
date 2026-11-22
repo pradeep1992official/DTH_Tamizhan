@@ -1,4 +1,4 @@
-import { channelNumbersForPack } from '../../lib/airtelChannelNumbers';
+import { brandChannelNumbers } from '../../lib/channelLcn';
 import { packDisplayName, packageCardLabel, validityLabel } from '../../lib/newConnectionDisplay';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -46,11 +46,7 @@ export function ComparePage({ data, items, lang, onSelection }: { data: CatalogD
       : <>{packLabel(larger)}: +{extra.length} {'\u0b9a\u0bc7\u0ba9\u0bb2\u0bcd\u0b95\u0bb3\u0bcd'} ({extra.filter(channel => channel.isHD).length} HD).</>;
   }
   const filterOptions = useMemo(() => [...new Map(available.flatMap(item => item.channels).map(channel => [channel.id, channel])).values()], [items, location.search]);
-  const numberMaps = available.map(item => channelNumbersForPack(item.brand.name, item.pack.name));
-  const channelNumbers = Object.fromEntries(diffChannels.flatMap(channel => {
-    const numbers = [...new Set(available.flatMap((item, i) => item.channels.some(c => c.id === channel.id) && numberMaps[i]?.[channel.name] !== undefined ? [numberMaps[i]![channel.name]] : []))];
-    return numbers.length === 1 ? [[channel.name, numbers[0]]] : [];
-  }));
+  const lcnBrands = [...new Map(available.map(item => [item.brand.id, item.brand])).values()].map(brand => brandChannelNumbers(brand, filterOptions));
   const change = (updated: PackSelection[]) => { onSelection(updated); navigate(compareUrl(updated), { replace: true }); };
   // Canonicalize a validity removed since the link was shared, using the value
   // actually displayed. Unavailable pack slots remain intact in the shared URL.
@@ -89,6 +85,6 @@ export function ComparePage({ data, items, lang, onSelection }: { data: CatalogD
         const next = enabled[event.key === 'Home' ? 0 : event.key === 'End' ? enabled.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + enabled.length) % enabled.length];
         setDiffGroup(next.id); document.getElementById(`diff-tab-${next.id}`)?.focus();
       }} onClick={() => { if (group.channels.length || group.id === 'common') setDiffGroup(group.id); }}>{group.label} ({group.channels.length} &middot; {group.channels.filter(c => c.isHD).length} HD)</button>)}</div>}
-      <div id="diff-panel" role={showTabs ? "tabpanel" : undefined} aria-labelledby={showTabs ? `diff-tab-${activeGroup}` : undefined}><ChannelBrowser key={selection.map(s => s.id).join(',')} channels={diffChannels} filterOptions={filterOptions} channelNumbers={channelNumbers} lang={lang} emptyText={t.ncNoDiff} /></div></>}</section>
+      <div id="diff-panel" role={showTabs ? "tabpanel" : undefined} aria-labelledby={showTabs ? `diff-tab-${activeGroup}` : undefined}><ChannelBrowser key={selection.map(s => s.id).join(',')} channels={diffChannels} filterOptions={filterOptions} lcnBrands={lcnBrands} lang={lang} emptyText={t.ncNoDiff} /></div></>}</section>
   </>;
 }

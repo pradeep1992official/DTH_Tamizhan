@@ -36,6 +36,9 @@ export function filterSortPacks(items: VisiblePack[], filters: BrowseFilters, br
 }
 export interface ChannelFilters { search: string; genre: string; language: string; hd: string; pay: string }
 export const defaultChannelFilters: ChannelFilters = { search: '', genre: '', language: '', hd: '', pay: '' };
+export function sortChannels(channels: Channel[], sort: 'name' | 'lcn', numbers?: Readonly<Record<string, number>>) {
+  return [...channels].sort((a, b) => a.genre.localeCompare(b.genre) || (sort === 'lcn' ? (numbers?.[a.name] ?? Infinity) - (numbers?.[b.name] ?? Infinity) : 0) || a.name.localeCompare(b.name));
+}
 export function filterChannels(channels: Channel[], filters: ChannelFilters) {
   const needle = filters.search.trim().toLocaleLowerCase();
   return channels.filter(c => (!needle || `${c.name} ${c.language} ${c.genre}`.toLocaleLowerCase().includes(needle)) && (!filters.genre || c.genre === filters.genre) && (!filters.language || c.language === filters.language) && (!filters.hd || String(c.isHD) === filters.hd) && (!filters.pay || String(c.isPay) === filters.pay)).sort((a, b) => a.genre.localeCompare(b.genre) || a.name.localeCompare(b.name));
