@@ -3,10 +3,11 @@ import { Check, X } from '../../lib/icons';
 import type { Pack } from '../../lib/newConnectionCatalog';
 import type { Language } from '../../types';
 
-export function PackageInclusions({ packageType, boxType, lang }: {
+export function PackageInclusions({ packageType, boxType, lang, existingDishNote }: {
   packageType: NonNullable<Pack['packageType']>;
   boxType: 'HD' | 'Android';
   lang: Language;
+  existingDishNote?: string;
 }) {
   const ta = lang === 'ta';
   return <div className="connection-package-inclusions" data-package-type={packageType}>
@@ -19,7 +20,7 @@ export function PackageInclusions({ packageType, boxType, lang }: {
     </ul></section>
     {packageType === 'only_box' ? <section className="connection-excluded">
       <strong>{ta ? 'சேர்க்கப்படாதது' : 'Not included'}</strong>
-      <p><X size={16} aria-hidden="true" />{ta ? 'புதிய டிஷ் சேர்க்கப்படாது. ஏற்கனவே உள்ள டிஷ் தேவை.' : 'New dish. An existing dish is required.'}</p>
+      <p><X size={16} aria-hidden="true" />{existingDishNote ?? (ta ? 'புதிய டிஷ் சேர்க்கப்படாது. ஏற்கனவே உள்ள டிஷ் தேவை.' : 'New dish. An existing dish is required.')}</p>
     </section> : <p className="connection-inclusion-note">{ta ? 'ஏற்கனவே டிஷ் வைத்திருக்க வேண்டியதில்லை.' : 'No existing dish required.'}</p>}
   </div>;
 }

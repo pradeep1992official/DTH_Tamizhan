@@ -3,6 +3,7 @@ import { beforeEach, afterEach, expect, it, vi } from 'vitest';
 import { seedCatalog } from './fixtures/newConnectionCatalog';
 import { visibleCatalog } from '../src/lib/newConnectionBrowse';
 import { installationDateBounds, newConnectionOrderSchema } from '../src/lib/newConnectionOrders';
+import { PackageInclusions } from '../src/components/NewConnection/PackageInclusions';
 const f = vi.hoisted(() => ({ values: [] as any[], cursor: 0, effects: [] as (() => any)[], fetch: vi.fn(), load: vi.fn(), navigate: vi.fn(), openAuth: vi.fn(), google: true, search: '' }));
 vi.mock('react', async original => ({ ...await original<any>(),
   useState: (initial: any) => { const index = f.cursor++; if (!(index in f.values)) f.values[index] = typeof initial === 'function' ? initial() : initial; return [f.values[index], (value: any) => { f.values[index] = typeof value === 'function' ? value(f.values[index]) : value; }]; },
@@ -52,4 +53,82 @@ it('requires fresh explicit consent after a server price-change response', async
 });
 it('requires Google sign-in at confirmation and preserves the form when another provider is signed in', async () => {
   await toReview(); accept(); f.google = false; await submit(); expect(f.openAuth).toHaveBeenCalledOnce(); expect(f.fetch.mock.calls.some(([url]) => String(url).endsWith('/orders'))).toBe(false); expect(text(render())).toContain('Please sign in with Google');
+});
+
+it('locks a URL-selected pack and uses a single plan card with only the required price lines', async () => {
+  const catalog = seedCatalog();
+  catalog.packs[0] = { ...catalog.packs[0], name: 'Tamil Super Star HD - ONLY BOX', packageType: 'only_box', pricingOptions: [{ validityDays: 360, validityMonths: 12, price: 3100 }, { validityDays: 30, price: 400 }] };
+  const visible = visibleCatalog(catalog); const item = visible[0];
+  // A pack ID alone resolves its brand; it does not rely on a brand parameter.
+  f.search = `?pack=${item.pack.id}&validity=360`;
+  const draw = () => { f.cursor = 0; f.effects = []; return BookingPage({ data: catalog, items: visible, lang: 'en', user, onOpenAuth: f.openAuth }); };
+  const initial = draw();
+  expect(nodes(initial).find(node => node.props.className === 'connection-plan-card')).toBeTruthy();
+  expect(text(initial)).not.toContain('ONLY BOX');
+  expect(text(initial)).toContain('Box only (existing dish)');
+  expect(text(initial)).not.toContain('Number of connections');
+  const selectLabels = nodes(initial).filter(node => node.type === 'label' && nodes(node).some(child => child.type === 'select')).map(text);
+  expect(selectLabels.every(label => !label.startsWith('Brand') && !label.startsWith('Pack'))).toBe(true);
+  expect(nodes(initial).filter(node => node.type === 'dt').map(text)).toEqual(['Pack price (12 months)', 'Total due now', 'Pay at installation']);
+  expect(nodes(initial).find(node => node.type === PackageInclusions)?.props.packageType).toBe('only_box');
+  expect(nodes(initial).find(node => node.type === 'button' && node.props.type === 'submit').props.disabled).toBe(true);
+  f.effects.forEach(effect => effect()); await new Promise(resolve => setTimeout(resolve, 0));
+  const validityLabel = nodes(draw()).find(node => node.type === 'label' && text(node).startsWith('Validity'));
+  nodes(validityLabel).find(node => node.type === 'select').props.onChange({ target: { value: '30' } });
+  expect(nodes(draw()).filter(node => node.type === 'dt').map(text)).toEqual(['Pack price (30 days)', 'Total due now', 'Pay at installation']);
+  expect(text(draw())).toContain('\u20b9400');
+  await nodes(draw()).find(node => node.type === 'form').props.onSubmit({ preventDefault() {} });
+  expect(nodes(draw()).some(node => node.type === 'li' && node.props['data-state'] === 'complete')).toBe(true);
+});
+
+it('shows Brand and Pack selectors only when no pack is preselected and keeps brand changes valid', () => {
+  f.search = '';
+  const tree = render();
+  const brandLabel = nodes(tree).find(node => node.type === 'label' && text(node).startsWith('Brand'));
+  const packLabel = nodes(tree).find(node => node.type === 'label' && text(node).startsWith('Pack'));
+  expect(brandLabel).toBeTruthy(); expect(packLabel).toBeTruthy();
+  const next = items.find(item => item.brand.id !== items[0].brand.id)!;
+  nodes(brandLabel).find(node => node.type === 'select').props.onChange({ target: { value: next.brand.id } });
+  const updatedPack = nodes(nodes(render()).find(node => node.type === 'label' && text(node).startsWith('Pack'))).find(node => node.type === 'select');
+  expect(items.find(item => item.pack.id === updatedPack.props.value)?.brand.id).toBe(next.brand.id);
+});
+
+it('normalizes a saved draft to one connection and locks the restored pack', () => {
+  render(); const saved = { ...f.values[0], count: 3 };
+  f.values = []; f.search = '';
+  vi.stubGlobal('sessionStorage', { getItem: () => JSON.stringify(saved), setItem() {}, removeItem() {} });
+  const restored = render();
+  expect(f.values[0].count).toBe(1);
+  expect(f.values[0].packId).toBe(saved.packId);
+  expect(nodes(restored).some(node => node.type === 'label' && ['Brand', 'Pack'].some(label => text(node).startsWith(label)))).toBe(false);
+});
+
+it('shows a single validity as text and rejects an invalid URL validity', () => {
+  const catalog = seedCatalog(); catalog.packs[0].pricingOptions = [{ validityDays: 360, validityMonths: 12, price: 3100 }];
+  const visible = visibleCatalog(catalog); const item = visible[0];
+  const draw = () => { f.cursor = 0; f.effects = []; return BookingPage({ data: catalog, items: visible, lang: 'en', user, onOpenAuth: f.openAuth }); };
+  f.search = `?pack=${item.pack.id}&validity=360`;
+  const initial = draw();
+  expect(nodes(initial).some(node => node.props.className === 'connection-plan-term')).toBe(true);
+  expect(nodes(initial).some(node => node.type === 'label' && text(node).startsWith('Validity') && nodes(node).some(child => child.type === 'select'))).toBe(false);
+  expect(text(initial)).toContain('12 months');
+  f.values = []; f.search = `?pack=${item.pack.id}&validity=31`;
+  expect(text(draw())).toContain('no longer available');
+  expect(nodes(draw()).some(node => node.type === 'button' && node.props.type === 'submit')).toBe(false);
+});
+
+it('deduplicates a fully prepaid price and keeps fixed validity and zero balance context in the card', () => {
+  const catalog = seedCatalog();
+  catalog.settings = { ...catalog.settings, advanceMode: 'full', enabledProviders: ['razorpay'], defaultProvider: 'razorpay' };
+  catalog.packs[0] = { ...catalog.packs[0], packageType: 'only_box', name: 'Tamil Super Star HD - ONLY BOX', pricingOptions: [{ validityDays: 360, validityMonths: 12, price: 3100 }] };
+  const visible = visibleCatalog(catalog); const item = visible[0];
+  f.search = `?pack=${item.pack.id}&validity=360`; f.cursor = 0;
+  const tree = BookingPage({ data: catalog, items: visible, lang: 'en', user, onOpenAuth: f.openAuth });
+  expect(nodes(tree).filter(node => node.type === 'dt').map(text)).toEqual(['Total due now', 'Pay at installation']);
+  expect(text(tree)).toContain('\u2248 \u20b9258/month');
+  expect(text(tree)).toContain('no balance due');
+  expect(nodes(tree).find(node => node.props.className === 'connection-plan-term')).toBeTruthy();
+  expect(nodes(tree).some(node => node.props.className === 'connection-booking-payment-note')).toBe(false);
+  expect(nodes(tree).find(node => node.type === PackageInclusions)?.props.existingDishNote).toBe('Dish not included. Your existing dish is required.');
+  expect(nodes(tree).find(node => node.props.className === 'connection-plan-type') && text(nodes(tree).find(node => node.props.className === 'connection-plan-type'))).toBe('Box only (existing dish)');
 });

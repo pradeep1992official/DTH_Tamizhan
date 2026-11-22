@@ -362,3 +362,63 @@
 .connection-brand-lcn b{color:#211b1d}
 .connection-brand-lcn[data-missing=true]{background:#f1eeea;border-color:#aaa197;color:#655d55}
 .connection-channel-grid .connection-channel-name>strong{font-family:var(--font-sans);font-size:15px;font-weight:650;line-height:1.4;letter-spacing:.01em;color:var(--color-ink);text-wrap:pretty}
+.connection-booking-layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(320px,.85fr);gap:32px;align-items:start}
+.connection-booking-main{min-width:0}
+.connection-booking-selectors{display:flex;flex-direction:column;gap:20px}
+.connection-booking-selectors h2{font-size:20px}
+.connection-booking-form .connection-booking-fields{gap:20px 16px}
+.connection-booking-form label{display:flex;flex-direction:column;gap:7px;font-size:14px;font-weight:600;min-width:0}
+.connection-booking-form :is(select,input,textarea){font-size:16px;min-height:48px;padding:11px 12px;box-sizing:border-box}
+.connection-booking-form .connection-check{flex-direction:row;align-items:center;font-weight:400}
+.connection-booking-form .connection-check input{min-height:0}
+.connection-booking-form label>small{font-size:13px;line-height:1.5;font-weight:400;color:var(--color-ink-2)}
+.connection-booking-summary{position:sticky;top:96px;min-width:0;border:1px solid var(--color-rule);border-radius:16px;background:var(--color-paper);padding:24px;display:flex;flex-direction:column;gap:12px}
+.connection-booking-summary h2{font-size:21px;line-height:1.35}
+.connection-booking-summary-brand{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600}
+.connection-booking-summary-brand .connection-logo{background:transparent}
+.connection-booking-summary .connection-package-type{align-self:flex-start;font-size:13px}
+.connection-booking-summary .connection-package-image{align-self:center;width:160px;height:100px;flex:none}
+.connection-booking-channel-count{font-size:15px}
+.connection-booking-monthly{color:var(--color-accent);font-weight:650;font-size:16px}
+.connection-booking-summary .connection-booking-breakdown{max-width:none;box-sizing:border-box;font-size:14px}
+.connection-booking-payment-note,.connection-booking-session{font-size:13px;line-height:1.5;color:var(--color-ink-2)}
+.connection-booking-actions{display:flex;align-items:center;gap:12px;text-align:center}
+.connection-booking-actions .connection-primary{flex:1;min-height:48px;font-size:16px}
+.connection-booking-actions>a{padding:6px;text-underline-offset:3px;color:var(--color-accent)}
+.connection-booking-steps{display:flex;gap:0;width:100%;margin:8px 0 24px;font-size:14px;color:var(--color-ink-2)}
+.connection-booking-steps>li{display:flex;position:relative;align-items:center;gap:8px;flex:1;min-width:0;font-weight:600}
+.connection-booking-steps>li:not(:last-child)::after{content:'';height:2px;flex:1;margin:0 12px;background:var(--color-rule)}
+.connection-step-number{display:inline-flex;align-items:center;justify-content:center;flex:0 0 32px;width:32px;height:32px;border:1px solid var(--color-rule);border-radius:50%;font-size:15px;background:var(--color-paper-2);color:var(--color-ink-2)}
+.connection-booking-steps [data-state=current]{color:var(--color-accent)}
+.connection-booking-steps [data-state=current] .connection-step-number,.connection-booking-steps [data-state=complete] .connection-step-number{background:var(--color-accent);color:#fff;border-color:var(--color-accent)}
+.connection-booking-steps [data-state=complete]::after{background:var(--color-accent)}
+@media(max-width:900px){.connection-booking-layout{grid-template-columns:minmax(0,1fr);gap:24px}.connection-booking-summary{position:static;padding:20px}.connection-booking-steps{font-size:13px}.connection-booking-steps>li{gap:6px}.connection-booking-steps>li:not(:last-child)::after{margin:0 6px}}
+@media(max-width:600px){.connection-booking-steps>li{flex-direction:column;gap:6px;text-align:center}.connection-booking-steps>li:not(:last-child)::after{position:absolute;top:16px;left:calc(50% + 24px);right:calc(-50% + 24px);margin:0}.connection-booking-summary{padding:16px}.connection-booking-actions{flex-direction:column-reverse;align-items:stretch}.connection-booking-actions .connection-primary{width:100%;flex:auto}}
+.connection-plan-card,.connection-plan-steps{width:100%;max-width:720px;margin-inline:auto;box-sizing:border-box}
+.connection-plan-card{border:1px solid var(--color-rule);border-radius:16px;background:var(--color-paper);padding:24px}
+.connection-plan-card-body{border:0;padding:0;margin:0;min-width:0;display:flex;flex-direction:column;gap:20px}
+.connection-plan-card-body label{display:flex;flex-direction:column;gap:8px;font-size:14px;font-weight:600;min-width:0}
+.connection-plan-card-body select{font-size:16px;min-height:48px;width:100%;box-sizing:border-box}
+.connection-plan-selectors{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.connection-plan-header{display:grid;grid-template-columns:minmax(0,1fr) 192px;gap:24px;align-items:start}
+.connection-plan-identity{display:flex;flex-direction:column;gap:10px;min-width:0}
+.connection-plan-identity h2{font-size:22px;line-height:1.3}
+.connection-plan-type{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:13px}
+.connection-plan-type .connection-package-type{white-space:normal}
+.connection-plan-product{padding:16px;border-radius:14px;background:var(--color-paper-2);box-sizing:border-box}
+.connection-plan-product .connection-package-image{width:160px;height:128px;flex:none;max-width:100%}
+.connection-plan-product .connection-package-image img{width:100%;height:100%;object-fit:contain}
+.connection-plan-card .connection-package-inclusions{display:grid;grid-template-columns:1fr 1fr;gap:24px;min-width:0}
+.connection-plan-card .connection-package-inclusions :is(section,ul,p){min-width:0}
+.connection-plan-validity{display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:15px}
+.connection-plan-price{max-width:none;box-sizing:border-box;padding-block:16px;margin:0}
+.connection-plan-term{font-size:14px;color:var(--color-ink-2)}
+.connection-plan-card .connection-package-inclusions section>strong{font-size:16px;line-height:1.4}
+.connection-plan-price .connection-plan-due{font-size:18px;font-weight:700}
+.connection-plan-price .connection-plan-due dd{display:flex;align-items:baseline;justify-content:flex-end;flex-wrap:wrap;gap:6px 10px}
+.connection-plan-price .connection-plan-due dd>strong{font-size:22px}
+.connection-plan-price small{font-size:13px;line-height:1.5;font-weight:400;color:var(--color-ink-2)}
+.connection-plan-price .connection-plan-balance{font-size:14px;font-weight:400}
+.connection-plan-card .connection-booking-session{margin-top:8px;padding-top:8px}
+.connection-plan-card .connection-booking-actions>a{color:var(--color-ink);font-weight:600;text-decoration:underline;text-underline-offset:3px}
+@media(max-width:600px){.connection-plan-header{grid-template-columns:minmax(0,1fr) 128px;gap:12px}.connection-plan-product .connection-package-image{width:96px;height:96px}.connection-plan-identity h2{font-size:18px}.connection-plan-card .connection-package-inclusions{gap:16px}.connection-plan-selectors{grid-template-columns:1fr}.connection-plan-card .connection-booking-actions .connection-primary{width:100%}}

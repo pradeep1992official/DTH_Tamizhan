@@ -59,6 +59,17 @@ it('saves the server-selected box type in the order and rejects a stale box sele
   f.catalog.packs[0].boxType = 'HD';
   expect(f.records.get(`newConnectionOrders/${result.order.id}`).snapshot.boxType).toBe('Android');
 });
+it('resolves the submitted pack from the server catalog and rejects foreign validities and mismatched IDs', async () => {
+  const selected = input();
+  await expect(createBooking('buyer', { ...selected, selectedValidityDays: 31 })).rejects.toMatchObject({ code: 'SELECTION_UNAVAILABLE' });
+  await expect(createBooking('buyer', { ...selected, packId: 'missing-pack' })).rejects.toMatchObject({ code: 'SELECTION_UNAVAILABLE' });
+  await expect(createBooking('buyer', { ...selected, brandId: 'different-brand' })).rejects.toMatchObject({ code: 'SELECTION_UNAVAILABLE' });
+  // A saved/URL ID cannot keep a removed validity alive on the server.
+  f.catalog.packs.find((pack: any) => pack.id === selected.packId).pricingOptions = [{ validityDays: 90, price: 1000 }];
+  await expect(createBooking('buyer', selected)).rejects.toMatchObject({ code: 'SELECTION_UNAVAILABLE' });
+  expect([...f.records.keys()].filter(key => key.startsWith('newConnectionOrders/'))).toHaveLength(0);
+  expect(f.create).not.toHaveBeenCalled();
+});
 it.each([360, 365])('records the catalog calendar term for option %i and rejects stale selections', async (days) => {
   f.catalog.packs[0].packageType = 'full_set';
   f.catalog.packs[0].pricingOptions = [{ validityDays: days, validityMonths: 12, price: 3100 }];
