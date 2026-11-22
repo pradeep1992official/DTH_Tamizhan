@@ -4,6 +4,7 @@ import { seedCatalog } from './fixtures/newConnectionCatalog';
 import { visibleCatalog } from '../src/lib/newConnectionBrowse';
 import { installationDateBounds, newConnectionOrderSchema } from '../src/lib/newConnectionOrders';
 import { PackageInclusions } from '../src/components/NewConnection/PackageInclusions';
+import { PackChips, PackQualityChip } from '../src/components/NewConnection/PackChips';
 const f = vi.hoisted(() => ({ values: [] as any[], cursor: 0, effects: [] as (() => any)[], fetch: vi.fn(), load: vi.fn(), navigate: vi.fn(), openAuth: vi.fn(), google: true, search: '' }));
 vi.mock('react', async original => ({ ...await original<any>(),
   useState: (initial: any) => { const index = f.cursor++; if (!(index in f.values)) f.values[index] = typeof initial === 'function' ? initial() : initial; return [f.values[index], (value: any) => { f.values[index] = typeof value === 'function' ? value(f.values[index]) : value; }]; },
@@ -16,8 +17,8 @@ vi.mock('../src/lib/paymentAuth', () => ({ paymentAuthHeaders: async () => ({ Au
 vi.mock('../src/components/RazorpayCheckout', () => ({ loadCheckout: f.load }));
 import { BookingPage } from '../src/components/NewConnection/BookingPage';
 const data = seedCatalog(); const items = visibleCatalog(data); const user = { uid: 'buyer', displayName: 'Sample Customer', email: 'sample@example.com', role: 'customer' } as any;
-function nodes(tree: any): any[] { if (Array.isArray(tree)) return tree.flatMap(nodes); if (!React.isValidElement(tree)) return []; return [tree, ...nodes((tree.props as any).children)]; }
-function text(tree: any): string { if (typeof tree === 'string' || typeof tree === 'number') return String(tree); if (Array.isArray(tree)) return tree.map(text).join(' '); if (!React.isValidElement(tree)) return ''; return text((tree.props as any).children); }
+function nodes(tree: any): any[] { if (Array.isArray(tree)) return tree.flatMap(nodes); if (!React.isValidElement(tree)) return []; return [tree, ...nodes(tree.type === PackChips ? PackChips(tree.props as any) : tree.type === PackQualityChip ? PackQualityChip(tree.props as any) : (tree.props as any).children)]; }
+function text(tree: any): string { if (typeof tree === 'string' || typeof tree === 'number') return String(tree); if (Array.isArray(tree)) return tree.map(text).join(' '); if (!React.isValidElement(tree)) return ''; return text(tree.type === PackChips ? PackChips(tree.props as any) : tree.type === PackQualityChip ? PackQualityChip(tree.props as any) : (tree.props as any).children); }
 const render = () => { f.cursor = 0; f.effects = []; return BookingPage({ data, items, lang: 'en', user, onOpenAuth: f.openAuth }); };
 const form = () => nodes(render()).find(n => n.type === 'form');
 const submit = () => form().props.onSubmit({ preventDefault() {} });
@@ -69,13 +70,13 @@ it('locks a URL-selected pack and uses a single plan card with only the required
   expect(text(initial)).not.toContain('Number of connections');
   const selectLabels = nodes(initial).filter(node => node.type === 'label' && nodes(node).some(child => child.type === 'select')).map(text);
   expect(selectLabels.every(label => !label.startsWith('Brand') && !label.startsWith('Pack'))).toBe(true);
-  expect(nodes(initial).filter(node => node.type === 'dt').map(text)).toEqual(['Pack price (12 months)', 'Total due now', 'Pay at installation']);
+  expect(nodes(initial).filter(node => node.type === 'dt').map(text)).toEqual(['Total price']);
+  expect(text(nodes(initial).find(node => node.props.className === 'connection-plan-price-amount'))).toContain('\u20b93,100');
   expect(nodes(initial).find(node => node.type === PackageInclusions)?.props.packageType).toBe('only_box');
   expect(nodes(initial).find(node => node.type === 'button' && node.props.type === 'submit').props.disabled).toBe(true);
   f.effects.forEach(effect => effect()); await new Promise(resolve => setTimeout(resolve, 0));
-  const validityLabel = nodes(draw()).find(node => node.type === 'label' && text(node).startsWith('Validity'));
-  nodes(validityLabel).find(node => node.type === 'select').props.onChange({ target: { value: '30' } });
-  expect(nodes(draw()).filter(node => node.type === 'dt').map(text)).toEqual(['Pack price (30 days)', 'Total due now', 'Pay at installation']);
+  nodes(draw()).find(node => node.type === 'select' && node.props['aria-label']?.startsWith('Validity:')).props.onChange({ target: { value: '30' } });
+  expect(nodes(draw()).filter(node => node.type === 'dt').map(text)).toEqual(['Total price']);
   expect(text(draw())).toContain('\u20b9400');
   await nodes(draw()).find(node => node.type === 'form').props.onSubmit({ preventDefault() {} });
   expect(nodes(draw()).some(node => node.type === 'li' && node.props['data-state'] === 'complete')).toBe(true);
@@ -109,7 +110,7 @@ it('shows a single validity as text and rejects an invalid URL validity', () => 
   const draw = () => { f.cursor = 0; f.effects = []; return BookingPage({ data: catalog, items: visible, lang: 'en', user, onOpenAuth: f.openAuth }); };
   f.search = `?pack=${item.pack.id}&validity=360`;
   const initial = draw();
-  expect(nodes(initial).some(node => node.props.className === 'connection-plan-term')).toBe(true);
+  expect(nodes(initial).some(node => node.props.className === 'connection-plan-validity-text')).toBe(true);
   expect(nodes(initial).some(node => node.type === 'label' && text(node).startsWith('Validity') && nodes(node).some(child => child.type === 'select'))).toBe(false);
   expect(text(initial)).toContain('12 months');
   f.values = []; f.search = `?pack=${item.pack.id}&validity=31`;
@@ -124,11 +125,33 @@ it('deduplicates a fully prepaid price and keeps fixed validity and zero balance
   const visible = visibleCatalog(catalog); const item = visible[0];
   f.search = `?pack=${item.pack.id}&validity=360`; f.cursor = 0;
   const tree = BookingPage({ data: catalog, items: visible, lang: 'en', user, onOpenAuth: f.openAuth });
-  expect(nodes(tree).filter(node => node.type === 'dt').map(text)).toEqual(['Total due now', 'Pay at installation']);
+  expect(nodes(tree).filter(node => node.type === 'dt').map(text)).toEqual(['Total price']);
   expect(text(tree)).toContain('\u2248 \u20b9258/month');
-  expect(text(tree)).toContain('no balance due');
-  expect(nodes(tree).find(node => node.props.className === 'connection-plan-term')).toBeTruthy();
+  expect(text(tree)).not.toContain('Pay at installation');
+  expect(text(tree)).not.toContain('no balance due');
+  expect(nodes(tree).find(node => node.props.className === 'connection-plan-validity-text')).toBeTruthy();
   expect(nodes(tree).some(node => node.props.className === 'connection-booking-payment-note')).toBe(false);
   expect(nodes(tree).find(node => node.type === PackageInclusions)?.props.existingDishNote).toBe('Dish not included. Your existing dish is required.');
-  expect(nodes(tree).find(node => node.props.className === 'connection-plan-type') && text(nodes(tree).find(node => node.props.className === 'connection-plan-type'))).toBe('Box only (existing dish)');
+  expect(text(tree)).toContain('Box only (existing dish)');
+  const heading = nodes(tree).find(node => node.props.className === 'connection-plan-heading');
+  expect(text(heading)).toContain('Tamil Super Star HD');
+  const coverage = nodes(tree).find(node => node.props.className === 'connection-plan-coverage');
+  expect(text(coverage)).toBe('Pack 12 months + HD set-top box + installation');
+  expect(nodes(tree).some(node => node.props.className === 'connection-card-validity')).toBe(false);
+  expect(text(tree)).not.toMatch(/incl.*tax/i);
+  expect(nodes(tree).some(node => node.props.className === 'connection-plan-terms')).toBe(false);
+  expect(nodes(tree).some(node => node.props.className === 'connection-plan-next')).toBe(false);
+  expect(text(tree)).not.toContain('24\u201348 hours');
+  expect(nodes(tree).find(node => node.type === 'a' && text(node) === 'Call support').props.href).toMatch(/^tel:\+91/);
+});
+
+it('shows a loading state and blocks a second Plan submission while advancing', async () => {
+  render(); f.effects.forEach(effect => effect()); await new Promise(resolve => setTimeout(resolve, 0));
+  const advancing = submit();
+  const button = nodes(render()).find(node => node.type === 'button' && node.props.type === 'submit');
+  expect(button.props.disabled).toBe(true); expect(button.props['aria-busy']).toBe(true);
+  expect(text(button)).toContain('Please wait');
+  await submit(); await advancing;
+  expect(nodes(render()).find(node => node.type === 'li' && node.props['aria-current'] === 'step') && text(nodes(render()).find(node => node.type === 'li' && node.props['aria-current'] === 'step'))).toContain('Your details');
+  expect(f.fetch.mock.calls.some(([url]) => String(url).endsWith('/orders'))).toBe(false);
 });

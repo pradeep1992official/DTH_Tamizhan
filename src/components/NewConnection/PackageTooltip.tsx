@@ -4,7 +4,7 @@ import { PackageInclusions } from './PackageInclusions';
 
 type Props = React.ComponentProps<typeof PackageInclusions>;
 
-export function PackageTooltip(props: Props) {
+export function PackageTooltip({ summaryOnly = false, ...props }: Props & { summaryOnly?: boolean }) {
   const ref = useRef<HTMLDetailsElement>(null);
   useEffect(() => {
     const details = ref.current;
@@ -34,6 +34,6 @@ export function PackageTooltip(props: Props) {
     }
   }}>
     <summary aria-label={`About ${packageTypeLabel(props.packageType, props.lang)}`}><span aria-hidden="true">i</span></summary>
-    <PackageInclusions {...props} />
+    {summaryOnly ? <p className="connection-package-tooltip-summary">{props.lang === 'en' ? `${props.boxType} box, remote and installation included${props.packageType === 'full_set' ? ', with a new dish.' : '; your existing dish is required.'}` : `${props.boxType} ${props.packageType === 'full_set' ? '\u0b9f\u0bbf\u0bb7\u0bcd' : '\u0baa\u0bc6\u0b9f\u0bcd\u0b9f\u0bbf'}`}</p> : <PackageInclusions {...props} />}
   </details>;
 }

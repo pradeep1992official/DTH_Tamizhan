@@ -17,15 +17,16 @@ describe('trust and legal routes (QA-07)', () => {
       {POLICY_ROUTES.map(item => <Route key={item.key} path={item.path} element={<PolicyPage policy={item.key} currentLang="en" />} />)}
     </Routes></MemoryRouter>);
     expect(html).toContain(`<h1 class="text-2xl font-bold">${route.en.replace(/&/g, '&amp;')}</h1>`);
-    expect(html).toContain('15 November 2026');
+    expect(html).toContain('22 November 2026');
     expect(html).not.toContain('Draft');
     expect(html).not.toContain('[FILL IN]');
     expect(policyPageTitle(route.key, 'en')).toBe(`${route.en} | DTH Tamizhan`);
     expect(policyPageTitle(route.key, 'ta')).toContain(route.ta);
   });
   it('publishes confirmed business details and an effective date', () => {
-    expect(BUSINESS_DETAILS.policyDate).toBe('15 November 2026');
-    expect(BUSINESS_DETAILS.installation).toContain('provides DTH recharges');
+    expect(BUSINESS_DETAILS.policyDate).toBe('22 November 2026');
+    expect(BUSINESS_DETAILS.installation).toContain('24\u201348 hours');
+    expect(POLICY_CONTENT.terms.flatMap(section => section.paragraphs).join(' ')).toContain('The set-top box is provided on a rental basis');
     expect(BUSINESS_DETAILS.processors).toContain('Netlify');
     expect(BUSINESS_DETAILS.retention).toContain('72 months from the due date');
     expect(BUSINESS_DETAILS.retention).toContain('automatic deletion is not implemented');

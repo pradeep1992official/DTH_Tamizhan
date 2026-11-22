@@ -98,11 +98,11 @@ it('renders compact package cards with clear pricing, accessible comparison and 
   catalog.packs[1].packageType = 'full_set';
   const visible = visibleCatalog(catalog);
   const html = renderToStaticMarkup(<MemoryRouter><CatalogPage data={catalog} items={visible} lang="en" selected={[{ id: visible[0].pack.id, validity: 360 }]} limit={false} onToggle={() => {}} onRemove={() => {}} onValidity={() => {}} onClear={() => {}} /></MemoryRouter>);
-  expect(html).toContain('Set-top box only');
-  expect(html.replace(/<[^>]*>/g, '')).toContain('Android box');
+  expect(html).not.toContain('Set-top box only');
+  expect(html.replace(/<[^>]*>/g, '')).toContain('Android');
   expect(html).toContain('≈ ₹258/month');
   expect(html).toContain('class="connection-price-line"');
-  expect(html).toContain('class="connection-validity">12 months');
+  expect(html).toContain('class="connection-card-validity"><span>Validity :</span><strong>12 months');
   expect(html).not.toContain('for 360 days');
   expect(html).toContain('Box only (existing dish)');
   expect(html).toContain('Free installation');
@@ -112,10 +112,10 @@ it('renders compact package cards with clear pricing, accessible comparison and 
   expect(html).toContain('New dish. An existing dish is required.');
   expect(html).toContain('data-selected="true"');
   expect(html).toContain('Selected for comparison');
-  expect(html).not.toContain('More filters');
-  expect(html).not.toContain('aria-label="Sort by"');
-  expect(html).toContain('aria-label="Package option"');
-  expect(html).toContain('aria-label="Compare: Tamil Super Star HD - ONLY BOX"');
+  expect(html).toContain('More filters');
+  expect(html).toContain('aria-label="Sort by"');
+  expect(html).toContain('aria-label="Box type"');
+  expect(html).toContain('aria-label="Compare: Tamil Super Star HD"');
   expect(html).toContain('connection-package-info');
   expect(html).not.toContain('class="connection-badge"');
   expect(html).toContain('Compare packs and choose your connection.');
@@ -140,6 +140,23 @@ it('renders all available brands together in English and Tamil with booking link
     for (const item of items) expect(html).toContain(item.pack.name);
     for (const brand of data.brands) expect(html).toContain(brand.name);
   }
+});
+it('puts brand, quality, box type, validity and price before pack details in cards and comparisons', () => {
+  const catalog = seedCatalog();
+  catalog.packs = catalog.packs.slice(0, 2).map((pack, i) => ({ ...pack, type: i ? 'SD' as const : 'HD' as const, packageType: i ? 'full_set' as const : 'only_box' as const }));
+  const visible = visibleCatalog(catalog);
+  const grid = renderToStaticMarkup(<MemoryRouter><CatalogPage data={catalog} items={visible} lang="en" selected={[{ id: visible[0].pack.id, validity: 30 }]} limit={false} onToggle={() => {}} onRemove={() => {}} onValidity={() => {}} onClear={() => {}} /></MemoryRouter>);
+  const cards = grid.match(/<article[\s\S]*?<\/article>/g)!;
+  for (const card of cards) {
+    const sections = ['connection-pack-product', 'connection-pack-chips', 'connection-price', 'connection-pack-muted', 'connection-card-actions'].map(name => card.indexOf(`class="${name}"`));
+    expect(sections.every((position, i) => position >= 0 && (!i || position > sections[i - 1]))).toBe(true);
+    expect(card).not.toContain('connection-price-separator');
+  }
+  expect(cards[0]).toContain('connection-pack-quality is-hd'); expect(cards[1]).toContain('connection-pack-quality is-sd');
+  const html = renderToStaticMarkup(<MemoryRouter initialEntries={[compareUrl(visible.map(item => ({ id: item.pack.id, validity: 30 })))]}><ComparePage data={catalog} items={visible} lang="en" onSelection={() => {}} /></MemoryRouter>);
+  const rows = html.slice(html.indexOf('<tbody>')).match(/<tr[\s\S]*?<\/tr>/g)!;
+  ['Brand', 'Picture quality', 'Box type', 'Validity', 'Price for selected validity'].forEach((label, i) => expect(rows[i]).toContain(`<th scope="row">${label}</th>`));
+  expect(rows[4]).toContain('/month');
 });
 it('renders shared comparisons with an inactive column and keeps it out of cost estimates', () => {
   const selection = [{ id: items[0].pack.id, validity: 90 }, { id: 'inactive-pack', validity: 30 }];
@@ -193,8 +210,8 @@ it('restores the primary catalog filters when returning to packs', () => {
   try {
     const html = renderToStaticMarkup(<MemoryRouter><CatalogPage data={data} items={items} lang="en" selected={[]} limit={false} onToggle={() => {}} onRemove={() => {}} onValidity={() => {}} onClear={() => {}} /></MemoryRouter>);
     expect(html).toContain('value="only_box" selected=""');
-    expect(html).not.toContain('aria-label="Sort by"');
-    expect(html).not.toContain('More filters');
+    expect(html).toContain('aria-label="Sort by"');
+    expect(html).toContain('More filters');
     expect(html).not.toContain('Language: Tamil');
     expect(html).toContain(`value="${data.brands[0].id}" selected=""`);
   } finally { vi.unstubAllGlobals(); }

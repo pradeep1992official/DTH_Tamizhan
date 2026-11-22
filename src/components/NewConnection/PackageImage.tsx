@@ -16,7 +16,7 @@ export function packageImage({ brand, pack, packageType, boxType, offer = '' }: 
   const tataPlay = normalizedBrand.includes('tataplay');
   if (!airtel && !tataPlay) return null;
   const type = packPackageType({ name: pack, packageType })
-    ?? (/set-top box only|only[\s_-]*box/i.test(offer) ? 'only_box' : /full[\s_-]*set/i.test(offer) ? 'full_set' : undefined);
+    ?? (/box[\s_-]*only|set-top box only|only[\s_-]*box/i.test(offer) ? 'only_box' : /full[\s_-]*set/i.test(offer) ? 'full_set' : undefined);
   if (!type) return null;
   if (tataPlay) return type === 'full_set'
     ? { src: '/package-images/tata-play-full-set.png', alt: 'Tata Play dish, set-top box and remote', width: 500, height: 500 }

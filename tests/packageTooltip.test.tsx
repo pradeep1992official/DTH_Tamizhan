@@ -22,6 +22,16 @@ it('closes on an outside click or tap without stealing focus', () => {
   expect(focus).not.toHaveBeenCalled();
 });
 
+it('keeps the native tap toggle and gives the Plan tooltip a single inclusion summary', () => {
+  const tooltip = PackageTooltip({ ...props, summaryOnly: true }) as React.ReactElement<any>;
+  expect(tooltip.type).toBe('details');
+  const [toggle, content] = tooltip.props.children;
+  expect(toggle.type).toBe('summary');
+  expect(toggle.props['aria-label']).toBe('About Box only (existing dish)');
+  expect(content.type).toBe('p');
+  expect(content.props.children).toBe('HD box, remote and installation included; your existing dish is required.');
+});
+
 it('keeps clicks within the tooltip open, and closes when keyboard focus leaves', () => {
   PackageTooltip(props);
   f.listeners.get('pointerdown')!({ target: inside });

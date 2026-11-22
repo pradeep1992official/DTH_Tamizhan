@@ -1,5 +1,6 @@
+import { PackQualityChip } from './PackChips';
 import { brandChannelNumbers } from '../../lib/channelLcn';
-import { packDisplayName, packageCardLabel, validityLabel } from '../../lib/newConnectionDisplay';
+import { monthlyComparison, packDisplayName, packageCardLabel, validityLabel } from '../../lib/newConnectionDisplay';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { packBoxType, packPackageType, type CatalogData } from '../../lib/newConnectionCatalog';
@@ -57,9 +58,9 @@ export function ComparePage({ data, items, lang, onSelection }: { data: CatalogD
   }, [location.search, items]);
   useEffect(() => { setDiffGroup('common'); }, [selection.map(s => s.id).join(',')]);
   const genres = [...new Set(available.flatMap(i => Object.keys(i.genres)))].sort();
-  const metric = (label: string, values: (number | null)[], display: (value: number) => React.ReactNode, highest = false) => {
+  const metric = (label: string, values: (number | null)[], display: (value: number, index: number) => React.ReactNode, highest = false) => {
     const best = bestValue(values, highest);
-    return <tr key={label}><th scope="row">{label}</th>{values.map((value, i) => <td key={selection[i].id} className={best[i] ? 'connection-best-cell' : ''}>{value === null ? t.ncUnknown : display(value)}{best[i] && <small className="connection-best">{highest ? (lang === 'en' ? 'Most channels' : '\u0b85\u0ba4\u0bbf\u0b95 \u0b9a\u0bc7\u0ba9\u0bb2\u0bcd\u0b95\u0bb3\u0bcd') : t.ncBest}</small>}</td>)}</tr>;
+    return <tr key={label}><th scope="row">{label}</th>{values.map((value, i) => <td key={selection[i].id} className={best[i] ? 'connection-best-cell' : ''}>{value === null ? t.ncUnknown : display(value, i)}{best[i] && <small className="connection-best">{highest ? (lang === 'en' ? 'Most channels' : '\u0b85\u0ba4\u0bbf\u0b95 \u0b9a\u0bc7\u0ba9\u0bb2\u0bcd\u0b95\u0bb3\u0bcd') : t.ncBest}</small>}</td>)}</tr>;
   };
   return <>
     <Link className="connection-back" to="/new-connection"><span className="link-arrow" aria-hidden="true">&larr;</span> <span className="link-label">{t.ncBack}</span></Link><header className="connection-heading"><h1>{t.ncCompareTitle}</h1><p>{t.ncCompareIntro}</p></header>
@@ -67,9 +68,10 @@ export function ComparePage({ data, items, lang, onSelection }: { data: CatalogD
     {selection.length < 2 && <p className="connection-state">{t.ncChooseTwo}</p>}
     {selection.length > 0 && <div className="connection-compare-scroll" role="region" aria-label={t.ncCompareTitle} tabIndex={0}><table className="connection-compare-table"><caption className="sr-only">{t.ncCompareTitle}</caption><thead><tr><th scope="col">{t.ncPack}</th>{columns.map(({ selected, item }) => <th scope="col" key={selected.id}><strong>{item ? packDisplayName(item.pack.name) : t.ncUnavailable}</strong>{item ? <><SampleNote name={item.pack.name} lang={lang} /><PriceNotice pack={item.pack} lang={lang} /></> : <p>{t.ncUnavailableText}</p>}<button aria-label={`${t.ncRemove}: ${item ? packDisplayName(item.pack.name) : t.ncUnavailable}`} onClick={() => change(selection.filter(s => s.id !== selected.id))}>{t.ncRemove}</button></th>)}</tr></thead><tbody>
       <tr><th scope="row">{t.ncBrand}</th>{columns.map(c => <td key={c.selected.id}>{c.item?.brand.name ?? t.ncUnknown}</td>)}</tr>
-      <tr><th scope="row">{t.ncValidity}</th>{columns.map(c => <td key={c.selected.id}>{c.item && c.quote ? c.item.pack.pricingOptions.length === 1 ? validityLabel(c.quote.option.validityDays, lang, c.quote.option.validityMonths) : <label><span className="sr-only">{t.ncValidity}: {c.item.pack.name}</span><select value={c.quote.option.validityDays} onChange={e => change(selection.map(s => s.id === c.selected.id ? { ...s, validity: Number(e.target.value) } : s))}>{c.item.pack.pricingOptions.map(o => <option key={o.validityDays} value={o.validityDays}>{validityLabel(o.validityDays, lang, o.validityMonths)}</option>)}</select></label> : t.ncUnknown}</td>)}</tr>
+      <tr><th scope="row">{t.ncQuality}</th>{columns.map(c => <td key={c.selected.id}>{c.item ? <PackQualityChip pack={c.item.pack} hdCount={c.item.counts.hdChannelCount} /> : t.ncUnknown}</td>)}</tr>
       <tr><th scope="row">{lang === 'en' ? 'Box type' : '\u0baa\u0bc6\u0b9f\u0bcd\u0b9f\u0bbf \u0bb5\u0b95\u0bc8'}</th>{columns.map(c => <td key={c.selected.id}>{c.item ? (packPackageType(c.item.pack) ? packageCardLabel(packPackageType(c.item.pack)!, lang) : `${packBoxType(c.item.pack)} box`) : t.ncUnknown}</td>)}</tr>
-      {metric(t.ncChosenPrice, columns.map(c => c.quote?.option.price ?? null), v => currency(v, lang))}
+      <tr><th scope="row">{t.ncValidity}</th>{columns.map(c => <td key={c.selected.id}>{c.item && c.quote ? c.item.pack.pricingOptions.length === 1 ? validityLabel(c.quote.option.validityDays, lang, c.quote.option.validityMonths) : <label><span className="sr-only">{t.ncValidity}: {c.item.pack.name}</span><select value={c.quote.option.validityDays} onChange={e => change(selection.map(s => s.id === c.selected.id ? { ...s, validity: Number(e.target.value) } : s))}>{c.item.pack.pricingOptions.map(o => <option key={o.validityDays} value={o.validityDays}>{validityLabel(o.validityDays, lang, o.validityMonths)}</option>)}</select></label> : t.ncUnknown}</td>)}</tr>
+      {metric(t.ncChosenPrice, columns.map(c => c.quote?.option.price ?? null), (v, i) => <><strong>{currency(v, lang)}</strong>{columns[i].quote && <small className="connection-compare-monthly">{monthlyComparison(v, columns[i].quote!.option.validityDays, lang, columns[i].quote!.option.validityMonths)}</small>}</>)}
       {([[t.ncTotal, 'channelCount'], [t.ncPay, 'payChannelCount'], [t.ncFree, 'freeChannelCount'], [t.ncHD, 'hdChannelCount']] as const).map(([label, key]) => metric(label, columns.map(c => c.item?.counts[key] ?? null), v => v, true))}
       <tr className="connection-table-section"><th colSpan={columns.length + 1}>{t.ncGenreCounts}</th></tr>{genres.map(g => metric(catalogTerm(g, lang), columns.map(c => c.item ? c.item.genres[g] ?? 0 : null), v => v, true))}
       <tr><th scope="row">{t.ncSelect}</th>{columns.map(c => <td key={c.selected.id}>{c.item && c.quote ? <Link className="connection-primary" to={bookingUrl(c.item.pack, c.quote.option.validityDays)}>{t.ncSelect}</Link> : t.ncUnavailable}</td>)}</tr>

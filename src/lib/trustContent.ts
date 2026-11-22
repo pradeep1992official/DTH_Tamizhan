@@ -16,10 +16,10 @@ export const BUSINESS_DETAILS = {
   bankCredit: 'Normally 7–10 working days after initiation of a normal Razorpay refund, to the original payment method. Timing depends on the bank and payment method; contact support with the refund reference if the stated period is exceeded',
   reconciliation: 'Report a debit with an unconfirmed payment immediately. Razorpay may check the bank for late authorisation for up to 3 days from payment creation. This is a payment-status reconciliation window, not a promise of recharge completion or bank-refund credit within 3 days',
   feesAndTaxes: 'The amount displayed at checkout is the amount charged; this checkout does not add a separate Razorpay gateway surcharge. Razorpay processing fees and 18% GST on those fees are merchant charges under the merchant agreement, not an automatic 18% tax on the recharge value. Any applicable customer charges or taxes must be disclosed before payment. The payment receipt is not a tax invoice',
-  policyDate: '15 November 2026',
+  policyDate: '22 November 2026',
   retention: 'Account profiles and saved boxes are kept while needed to provide the account service; verified deletion requests are reviewed by support, subject to required records. Closed support correspondence is retained for 2 years after closure as our business retention period. Payment, recharge and refund records needed for GST accounts are retained for 72 months from the due date for the annual return for the relevant year. Records involved in proceedings or investigations are retained until one year after final disposal or the statutory retention period, whichever is later. Other applicable legal holds may extend retention. Removal or anonymisation of records no longer needed is handled through manual review; automatic deletion is not implemented',
   processors: 'Netlify is the current hosting provider selected for deployment. Google/Firebase provides authentication and database storage; Razorpay processes payments; Brevo sends transactional emails. Optional AI pack suggestions send preferences and plan information to Google Gemini. Information shared with each provider is limited to its service purpose. Hosting, logs and provider processing may occur in India or other countries according to deployment configuration and provider terms; India-only processing is not promised',
-  installation: 'DTH Tamizhan provides DTH recharges. Installation services are not offered',
+  installation: 'For new-connection bookings, a technician will contact you within 24\u201348 hours after booking to arrange installation. The set-top box is provided on a rental basis',
 } as const;
 
 export const POLICY_ROUTES = [
@@ -84,7 +84,7 @@ export const POLICY_CONTENT: Record<PolicyKey, PolicySection[]> = {
   ],
   terms: [
     { heading: 'Business and scope', paragraphs: [
-      `DTH Tamizhan is operated by ${b.legalName}. Registered address: ${b.address}. GST information: ${b.gstin}. These terms cover use of the website and DTH recharge/support requests in India. ${b.installation}.`,
+      `DTH Tamizhan is operated by ${b.legalName}. Registered address: ${b.address}. GST information: ${b.gstin}. These terms cover use of the website, DTH recharges, new-connection bookings and support requests in India. ${b.installation}.`,
       'Operator names and logos identify the relevant services. Their appearance does not by itself establish an authorized partnership, endorsement or affiliation.',
     ] },
     { heading: 'Your request and the final amount', paragraphs: [

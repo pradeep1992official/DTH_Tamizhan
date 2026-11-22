@@ -17,7 +17,7 @@ it.each(['full_set', 'only_box'] as const)('books %s at its saved price without 
   expect(connectionQuote(item, data.equipment, 360).total).toBe(3100);
   data.equipment = [];
   const selection = selectedBookingItem(data, item.brand.id, item.pack.id, offer.id, 360);
-  expect(selection.offer.name).toBe(packageType === 'full_set' ? 'Full Set' : 'Set-top box only');
+  expect(selection.offer.name).toBe(packageType === 'full_set' ? 'Full set with dish' : 'Box only (existing dish)');
   expect(calculateNewConnectionPrice(selection.option.price, selection.offer, 2)).toMatchObject({ hardware: 0, installation: 0, perConnectionTotal: 3100, total: 6200 });
   expect(() => selectedBookingItem(data, item.brand.id, item.pack.id, 'arbitrary-offer', 360)).toThrow('SELECTION_UNAVAILABLE');
 });
@@ -37,9 +37,9 @@ it('compares package options and saved prices without separate equipment rows', 
   const items = visibleCatalog(data);
   const selection = items.slice(0, 2).map(i => ({ id: i.pack.id, validity: 30 }));
   const html = renderToStaticMarkup(<MemoryRouter initialEntries={[compareUrl(selection)]}><ComparePage data={data} items={items} lang="en" onSelection={() => {}} /></MemoryRouter>);
-  expect(html).toContain('Package option');
-  expect(html).toContain('Full Set');
-  expect(html).toContain('Set-top box only');
+  expect(html).toContain('Box type');
+  expect(html).toContain('Full set with dish');
+  expect(html).toContain('Box only (existing dish)');
   expect(html).not.toContain('Equipment offer used for estimate');
   expect(html).not.toContain('30-day comparison price');
   expect(html).not.toContain('Box price');

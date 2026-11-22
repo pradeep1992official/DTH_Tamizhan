@@ -1,3 +1,4 @@
+import { packageCardLabel } from './newConnectionDisplay';
 import { z } from 'zod';
 
 export const catalogKinds = ['brands', 'packs', 'channels', 'equipment'] as const;
@@ -66,7 +67,7 @@ export function packPackageType(pack: Pick<Pack, 'name' | 'packageType'>): 'full
 }
 export function packageTypeLabel(type: 'full_set' | 'only_box' | undefined, lang = 'en') {
   if (!type) return '';
-  return type === 'only_box' ? (lang === 'ta' ? '\u0baa\u0bc6\u0b9f\u0bcd\u0b9f\u0bbf \u0bae\u0b9f\u0bcd\u0b9f\u0bc1\u0bae\u0bcd' : 'Set-top box only') : (lang === 'ta' ? '\u0bae\u0bc1\u0bb4\u0bc1 \u0b9a\u0bc6\u0b9f\u0bcd' : 'Full Set');
+  return packageCardLabel(type, lang === 'ta' ? 'ta' : 'en');
 }
 
 export function packBoxType(pack: Pick<Pack, 'boxType'>): 'HD' | 'Android' { return pack.boxType ?? 'HD'; }
