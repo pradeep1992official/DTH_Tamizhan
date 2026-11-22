@@ -41,9 +41,10 @@ export function filterChannels(channels: Channel[], filters: ChannelFilters) {
   return channels.filter(c => (!needle || `${c.name} ${c.language} ${c.genre}`.toLocaleLowerCase().includes(needle)) && (!filters.genre || c.genre === filters.genre) && (!filters.language || c.language === filters.language) && (!filters.hd || String(c.isHD) === filters.hd) && (!filters.pay || String(c.isPay) === filters.pay)).sort((a, b) => a.genre.localeCompare(b.genre) || a.name.localeCompare(b.name));
 }
 export function channelDiff(items: VisiblePack[]) {
-  if (items.length < 2) return { common: [] as Channel[], unique: items.map(() => [] as Channel[]) };
+  if (items.length < 2) return { sharedByTwo: [] as Channel[], common: [] as Channel[], unique: items.map(() => [] as Channel[]) };
   const sets = items.map(item => new Set(item.channels.map(c => c.id)));
-  return { common: items[0].channels.filter(c => sets.every(set => set.has(c.id))), unique: items.map((item, i) => item.channels.filter(c => sets.every((set, j) => j === i || !set.has(c.id)))) };
+  const all = [...new Map(items.flatMap(item => item.channels).map(channel => [channel.id, channel])).values()];
+  return { sharedByTwo: items.length === 3 ? all.filter(c => sets.filter(set => set.has(c.id)).length === 2) : [], common: items[0].channels.filter(c => sets.every(set => set.has(c.id))), unique: items.map((item, i) => item.channels.filter(c => sets.every((set, j) => j === i || !set.has(c.id)))) };
 }
 export function compatibleEquipment(item: VisiblePack, offers: EquipmentOffer[]): EquipmentOffer[] {
   const packageType = packPackageType(item.pack);
@@ -69,6 +70,8 @@ export function compareUrl(selection: PackSelection[]) { const params = new URLS
 export function bookingUrl(pack: Pack, validity: number) { return `/new-connection/book?${new URLSearchParams({ brand: pack.brandId, pack: pack.id, validity: String(validity) })}`; }
 export function bestValue(values: (number | null)[], highest = false) {
   const finite = values.filter((value): value is number => value !== null && Number.isFinite(value));
-  if (!finite.length) return values.map(() => false);
-  const best = highest ? Math.max(...finite) : Math.min(...finite); return values.map(value => value !== null && Number.isFinite(value) && value === best);
+  if (finite.length < 2) return values.map(() => false);
+  const best = highest ? Math.max(...finite) : Math.min(...finite);
+  if (finite.filter(value => value === best).length !== 1) return values.map(() => false);
+  return values.map(value => value !== null && Number.isFinite(value) && value === best);
 }

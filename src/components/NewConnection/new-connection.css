@@ -299,3 +299,19 @@
 .connection-pack-channels .connection-heading>.connection-package-type{align-self:flex-start;margin-block:6px}
 .connection-channel-results .connection-clear-channel-filters{display:inline-flex;align-items:flex-start;flex-shrink:0;line-height:1.5;padding-top:8px;text-underline-offset:3px}
 @media(min-width:640px){.connection-pack-channels .connection-package-inclusions ul{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 20px}.connection-pack-channels .connection-package-inclusions[data-package-type=full_set]>.connection-included{grid-column:1/-1}}
+
+.connection-diff-tabs{flex-wrap:nowrap;overflow-x:auto;padding:6px;gap:4px;background:var(--color-accent-soft);border-radius:12px;margin:0;width:100%;max-width:100%;min-width:0;box-sizing:border-box}
+.connection-diff-tabs button{flex:1 0 0;min-width:max-content;white-space:nowrap;background:var(--color-paper-2);border:2px solid var(--color-rule)}
+.connection-diff-tabs button[aria-selected=false]:hover{background:var(--color-paper);border-color:var(--color-accent);color:var(--color-accent)}
+.connection-diff-tabs button[aria-selected=true]{background:var(--color-accent);border-color:var(--color-accent);color:#fff;font-weight:700;box-shadow:0 2px 5px #0002}
+.connection-diff-tabs button[aria-disabled=true]{opacity:1;color:var(--color-ink-2);background:var(--color-paper-2);cursor:default}
+.connection-diff-tabs button:focus-visible{outline:2px solid var(--color-ink);outline-offset:2px}
+.connection-diff-insight{font-size:14px;line-height:1.6}
+.connection-diff{min-width:0}
+.connection-diff>h2,.connection-diff-help,.connection-diff-insight{margin:0}
+.connection-diff .connection-diff-help{color:var(--color-ink-2);font-size:13px;line-height:1.6}
+.connection-diff-zero-note{display:block;color:var(--color-ink-2);font-size:13px;margin-top:4px}
+.connection-diff>[role=tabpanel]{width:100%;box-sizing:border-box;margin:0;padding:0}
+.connection-diff [role=tabpanel],.connection-diff .connection-channel-browser{min-width:0;max-width:100%}
+.connection-channel-results{justify-content:space-between}
+.connection-channel-toolbar .connection-controls label{font-size:12px}

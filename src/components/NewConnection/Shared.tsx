@@ -21,17 +21,18 @@ export function PriceNotice({ pack, lang }: { pack: Pack; lang: Language }) {
   return <div className="connection-price-note">{validDate && <p>{t.ncVerified} {new Intl.DateTimeFormat(lang === 'ta' ? 'ta-IN' : 'en-IN', { dateStyle: 'medium' }).format(new Date(pack.priceLastVerifiedAt!))}</p>}</div>;
 }
 export function SampleNote({ name, lang }: { name: string; lang: Language }) { return name.includes('SAMPLE') ? <small className="connection-sample">{translations[lang].ncSample}</small> : null; }
-export function ChannelBrowser({ channels, lang, emptyText, channelNumbers, catalogUpdatedAt }: { channels: Channel[]; lang: Language; emptyText?: string; catalogUpdatedAt?: string; channelNumbers?: Readonly<Record<string, number>> }) {
+export function ChannelBrowser({ channels, lang, emptyText, channelNumbers, catalogUpdatedAt, filterOptions = channels }: { filterOptions?: Channel[]; channels: Channel[]; lang: Language; emptyText?: string; catalogUpdatedAt?: string; channelNumbers?: Readonly<Record<string, number>> }) {
   const t = translations[lang]; const [filters, setFilters] = useState<ChannelFilters>(defaultChannelFilters); const [page, setPage] = useState(0);
   const filtered = useMemo(() => filterChannels(channels, filters), [channels, filters]);
   const counts = useMemo(() => genreCounts(filtered), [filtered]);
   const pageSize = filtered.length > 120 ? 60 : 120;
   const currentPage = Math.min(page, Math.max(0, Math.ceil(filtered.length / pageSize) - 1));
   const paged = filtered.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
-  const genres = [...new Set(channels.map(c => c.genre))].sort(); const languages = [...new Set(channels.map(c => c.language))].sort();
+  const genres = [...new Set(filterOptions.map(c => c.genre))].sort(); const languages = [...new Set(filterOptions.map(c => c.language))].sort();
   const updateDate = catalogUpdatedAt && Number.isFinite(Date.parse(catalogUpdatedAt)) ? new Intl.DateTimeFormat(lang === 'ta' ? 'ta-IN' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }).format(new Date(catalogUpdatedAt)) : null;
   const hasActiveFilters = Object.values(filters).some(Boolean);
-  const hasPricingChoices = channels.some(c => c.isPay) && channels.some(c => !c.isPay);
+  const hasPricingChoices = filterOptions.some(c => c.isPay) && filterOptions.some(c => !c.isPay);
+  useEffect(() => { setPage(0); }, [channels]);
   const update = (key: keyof ChannelFilters, value: string) => { setFilters(f => ({ ...f, [key]: value })); setPage(0); };
   const toolbarRef = useRef<HTMLDivElement>(null);
   useEffect(() => {

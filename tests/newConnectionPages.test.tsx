@@ -1,3 +1,4 @@
+import { translations } from '../src/lib/translations';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
@@ -9,6 +10,70 @@ import { CatalogPage } from '../src/components/NewConnection/CatalogPage';
 import { ChannelBrowser } from '../src/components/NewConnection/Shared';
 import { ComparePage } from '../src/components/NewConnection/ComparePage';
 const data = seedCatalog(); const items = visibleCatalog(data);
+it('renders readable comparison punctuation, short brand tabs and subset insights in both languages', () => {
+  const catalog = seedCatalog();
+  const [first, second] = catalog.brands;
+  const channelIds = catalog.channels.slice(0, 3).map(channel => channel.id);
+  catalog.packs = catalog.packs.slice(0, 2).map((pack, i) => ({ ...pack, brandId: i ? second.id : first.id, name: i ? 'Tamil Super Star HD - ONLY BOX' : 'Tamil Thalaiva HDs - FULL SET', channelIds: i ? channelIds : channelIds.slice(0, 1) }));
+  const visible = visibleCatalog(catalog);
+  const selection = visible.map(item => ({ id: item.pack.id, validity: 30 }));
+  const render = (lang: 'en' | 'ta') => renderToStaticMarkup(<MemoryRouter initialEntries={[compareUrl(selection)]}><ComparePage data={catalog} items={visible} lang={lang} onSelection={() => {}} /></MemoryRouter>);
+  const html = render('en');
+  const text = html.replace(/<[^>]*>/g, '');
+  expect(text).toContain('\u201cOnly in\u201d shows channels found in just that pack.');
+  expect(text).toContain(`Only in ${second.name} (2 \u00b7`);
+  expect(text).toContain(`${second.name} Super Star adds 2 channels, including`);
+  expect(text).toContain(`Every channel in ${first.name} Thalaiva is also in the ${second.name} Super Star pack.`);
+  expect(text).not.toContain(`Only in ${first.name} (0`);
+  expect(html).toContain('role="tablist"');
+  expect(html).toContain('aria-selected="true"');
+  expect(html.slice(html.indexOf('<section class="connection-diff"'))).not.toContain('?');
+  const tamil = render('ta');
+  expect(tamil.slice(tamil.indexOf('<section class="connection-diff"'))).not.toContain('?');
+});
+it('summarizes identical hardware variants once without tabs or self-comparisons', () => {
+  const catalog = seedCatalog();
+  catalog.channels = Array.from({ length: 59 }, (_, i) => ({ ...catalog.channels[0], id: `same-${i}`, name: `Channel ${i}`, isHD: i < 4 }));
+  catalog.packs = catalog.packs.slice(0, 2).map((pack, i) => ({ ...pack, brandId: catalog.brands[0].id, name: `Tamil Thalaiva HDs - ${i ? 'ONLY BOX' : 'FULL SET'}`, packageType: i ? 'only_box' as const : 'full_set' as const, channelIds: catalog.channels.map(channel => channel.id) }));
+  const visible = visibleCatalog(catalog);
+  const html = renderToStaticMarkup(<MemoryRouter initialEntries={[compareUrl(visible.map(item => ({ id: item.pack.id, validity: 30 })))]}><ComparePage data={catalog} items={visible} lang="en" onSelection={() => {}} /></MemoryRouter>);
+  const section = html.slice(html.indexOf('<section class="connection-diff"'));
+  expect((section.match(/connection-diff-insight/g) ?? []).length).toBe(1);
+  expect(section).toContain('Both packs have the same 59 channels (4 HD). They differ only in hardware and price.');
+  expect(section).not.toContain('role="tablist"');
+  expect(section).not.toContain('role="tab"');
+  expect(section).not.toContain('aria-labelledby="diff-tab-');
+  expect(section).not.toContain('adds 0');
+  expect(section).not.toContain('Only in');
+  expect((section.match(/<li>/g) ?? []).length).toBe(59);
+  expect((section.match(/connection-channel-hd-badge/g) ?? []).length).toBe(4);
+});
+it('uses hardware labels in a single subset insight for packs with the same name', () => {
+  const catalog = seedCatalog();
+  catalog.packs = catalog.packs.slice(0, 2).map((pack, i) => ({ ...pack, brandId: catalog.brands[0].id, name: 'Tamil Thalaiva HDs', packageType: i ? 'only_box' as const : 'full_set' as const, channelIds: catalog.channels.slice(0, i ? 2 : 1).map(channel => channel.id) }));
+  const visible = visibleCatalog(catalog);
+  const html = renderToStaticMarkup(<MemoryRouter initialEntries={[compareUrl(visible.map(item => ({ id: item.pack.id, validity: 30 })))]}><ComparePage data={catalog} items={visible} lang="en" onSelection={() => {}} /></MemoryRouter>);
+  const section = html.slice(html.indexOf('<section class="connection-diff"'));
+  const insight = section.match(/<p class="connection-diff-insight">([\s\S]*?)<\/p>/)?.[1] ?? '';
+  expect((section.match(/connection-diff-insight/g) ?? []).length).toBe(1);
+  expect(insight).toContain('Thalaiva (Box only (existing dish)) adds');
+  expect(insight).toContain('Thalaiva (Full set with dish) doesn');
+  expect((section.match(/role="tab"/g) ?? []).length).toBe(2);
+});
+it('disambiguates same-brand comparison tabs by pack and package type', () => {
+  const catalog = seedCatalog();
+  catalog.packs = catalog.packs.slice(0, 2).map((pack, i) => ({ ...pack, brandId: catalog.brands[0].id, name: i ? 'Tamil Super Star HD - ONLY BOX' : 'Tamil Thalaiva HDs - FULL SET', channelIds: [catalog.channels[i].id] }));
+  const render = () => {
+    const visible = visibleCatalog(catalog);
+    return renderToStaticMarkup(<MemoryRouter initialEntries={[compareUrl(visible.map(item => ({ id: item.pack.id, validity: 30 })))]}><ComparePage data={catalog} items={visible} lang="en" onSelection={() => {}} /></MemoryRouter>);
+  };
+  expect(render()).toContain(`Only in ${catalog.brands[0].name} Thalaiva`);
+  expect(render()).toContain(`Only in ${catalog.brands[0].name} Super Star`);
+  catalog.packs.forEach((pack, i) => { pack.name = 'Tamil Super Star HD'; pack.packageType = i ? 'only_box' : 'full_set'; });
+  const html = render();
+  expect(html).toContain(`Only in ${catalog.brands[0].name} Super Star (Box only (existing dish))`);
+  expect(html).toContain(`Only in ${catalog.brands[0].name} Super Star (Full set with dish)`);
+});
 it('renders compact package cards with clear pricing, accessible comparison and balanced footer actions', () => {
   const catalog = seedCatalog();
   catalog.packs[0] = { ...catalog.packs[0], name: 'Tamil Super Star HD - ONLY BOX', packageType: 'only_box', boxType: 'Android', pricingOptions: [{ validityDays: 360, validityMonths: 12, price: 3100 }] };
@@ -136,4 +201,31 @@ it('enforces comparison limits with consistent branded chips and selection overl
   expect(inputs).toHaveLength(4);
   expect(inputs.filter(input => input.includes('disabled=""'))).toHaveLength(1);
   expect(inputs.filter(input => input.includes('checked=""') && !input.includes('disabled=""'))).toHaveLength(3);
+});
+
+it('compares distinct metrics without tied awards or duplicate box and validity rows', () => {
+  const catalog = seedCatalog();
+  catalog.packs = catalog.packs.slice(0, 2).map((pack, i) => ({ ...pack, packageType: 'only_box' as const, pricingOptions: [{ validityDays: 365, validityMonths: 12, price: 3100 }], channelIds: catalog.channels.slice(0, i === 0 ? 2 : 1).map(c => c.id) }));
+  const visible = visibleCatalog(catalog);
+  const selection = visible.map(item => ({ id: item.pack.id, validity: 365 }));
+  const render = () => renderToStaticMarkup(<MemoryRouter initialEntries={[compareUrl(selection)]}><ComparePage data={catalog} items={visible} lang="en" onSelection={() => {}} /></MemoryRouter>);
+  const html = render();
+  const rows = html.match(/<tr[\s\S]*?<\/tr>/g) ?? [];
+  const price = rows.find(row => row.includes(translations.en.ncChosenPrice))!;
+  expect(price).not.toContain('connection-best');
+  const total = rows.find(row => row.includes(translations.en.ncTotal))!;
+  expect(total).toContain('Most channels');
+  expect(total).not.toContain('Best value');
+  expect(html).not.toContain('Package option');
+  expect(html).not.toContain(`<th scope="row">${translations.en.ncType}</th>`);
+  expect(html).not.toContain(translations.en.ncValidityOptions);
+  expect((html.match(/Box only \(existing dish\)/g) ?? []).length).toBe(2);
+  const validityRow = rows.find(row => row.includes(`<th scope="row">${translations.en.ncValidity}</th>`))!;
+  expect(validityRow).not.toContain('<select');
+  expect(validityRow).toContain('12 months');
+  catalog.packs[0].pricingOptions.push({ validityDays: 30, price: 300 });
+  const multi = visibleCatalog(catalog);
+  const multiHtml = renderToStaticMarkup(<MemoryRouter initialEntries={[compareUrl(selection)]}><ComparePage data={catalog} items={multi} lang="en" onSelection={() => {}} /></MemoryRouter>);
+  const multiValidity = (multiHtml.match(/<tr[\s\S]*?<\/tr>/g) ?? []).find(row => row.includes(`<th scope="row">${translations.en.ncValidity}</th>`))!;
+  expect((multiValidity.match(/<select/g) ?? []).length).toBe(1);
 });

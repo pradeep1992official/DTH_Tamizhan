@@ -79,6 +79,8 @@ describe('channel filters and differences', () => {
     const items = [['common', 'ab', 'a'], ['common', 'ab', 'b'], ['common', 'c']].map(ids => ({ ...template, channels: ids.map(id => channel(id, { name: 'Same display name' })) }));
     const pair = channelDiff(items.slice(0, 2)); expect(pair.common.map(c => c.id)).toEqual(['common', 'ab']); expect(pair.unique.map(group => group.map(c => c.id))).toEqual([['a'], ['b']]);
     const triple = channelDiff(items); expect(triple.common.map(c => c.id)).toEqual(['common']); expect(triple.unique.map(group => group.map(c => c.id))).toEqual([['a'], ['b'], ['c']]);
+    expect(triple.sharedByTwo.map(c => c.id)).toEqual(['ab']);
+    expect(pair.sharedByTwo).toEqual([]);
     expect(channelDiff(items.slice(0, 1)).common).toEqual([]);
   });
 });
@@ -92,7 +94,10 @@ describe('share links, unavailable packs and sample-only operations', () => {
   it('deduplicates, validates IDs and days, and limits shared comparisons to three', () => {
     expect(parseCompare('?packs=a,a,b,c,d&validities=30,90,bad,0,365')).toEqual([{ id: 'a', validity: 30 }, { id: 'b', validity: 30 }, { id: 'c', validity: 30 }]);
     expect(parseCompare('?packs=../users')).toEqual([]);
-    expect(bestValue([null, 0, 2, 0])).toEqual([false, true, false, true]);
+    expect(bestValue([null, 0, 2, 0])).toEqual([false, false, false, false]);
+    expect(bestValue([3100, 3100])).toEqual([false, false]);
+    expect(bestValue([null, 3100])).toEqual([false, false]);
+    expect(bestValue([3100, 3200])).toEqual([true, false]);
     expect(bestValue([0, 3, 2], true)).toEqual([false, true, false]);
     expect(bestValue([null, Infinity])).toEqual([false, false]);
   });
