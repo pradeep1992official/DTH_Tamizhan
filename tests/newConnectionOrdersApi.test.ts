@@ -88,6 +88,8 @@ it('runs none-mode end-to-end through HTTP, persistence and owner-only status wi
   expect(f.create).not.toHaveBeenCalled(); expect(f.getStatus).not.toHaveBeenCalled();
   expect((await call(`/api/new-connection/orders/${result.order.id}`, 'buyer')).status).toBe(200);
   expect((await call(`/api/new-connection/orders/${result.order.id}`, 'other-user')).status).toBe(404);
+  expect((await call(`/api/new-connection/orders/${result.order.id}`)).status).toBe(401);
+  expect((await call(`/api/new-connection/orders/${result.order.bookingId}`, 'buyer')).status).toBe(404);
   expect((await call('/api/new-connection/orders', undefined, input())).status).toBe(401);
   expect((await call('/api/new-connection/orders', 'password-user', input())).status).toBe(403);
 });

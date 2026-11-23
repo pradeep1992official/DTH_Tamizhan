@@ -1,3 +1,4 @@
+import { NEW_CONNECTION_REFUND } from './newConnectionPolicy';
 export const BUSINESS_DETAILS = {
   legalName: 'SMP Enterprises',
   address: 'I, 68/72C, East Street, Thirukoilur - 605757',
@@ -16,7 +17,7 @@ export const BUSINESS_DETAILS = {
   bankCredit: 'Normally 7–10 working days after initiation of a normal Razorpay refund, to the original payment method. Timing depends on the bank and payment method; contact support with the refund reference if the stated period is exceeded',
   reconciliation: 'Report a debit with an unconfirmed payment immediately. Razorpay may check the bank for late authorisation for up to 3 days from payment creation. This is a payment-status reconciliation window, not a promise of recharge completion or bank-refund credit within 3 days',
   feesAndTaxes: 'The amount displayed at checkout is the amount charged; this checkout does not add a separate Razorpay gateway surcharge. Razorpay processing fees and 18% GST on those fees are merchant charges under the merchant agreement, not an automatic 18% tax on the recharge value. Any applicable customer charges or taxes must be disclosed before payment. The payment receipt is not a tax invoice',
-  policyDate: '22 November 2026',
+  policyDate: '23 November 2026',
   retention: 'Account profiles and saved boxes are kept while needed to provide the account service; verified deletion requests are reviewed by support, subject to required records. Closed support correspondence is retained for 2 years after closure as our business retention period. Payment, recharge and refund records needed for GST accounts are retained for 72 months from the due date for the annual return for the relevant year. Records involved in proceedings or investigations are retained until one year after final disposal or the statutory retention period, whichever is later. Other applicable legal holds may extend retention. Removal or anonymisation of records no longer needed is handled through manual review; automatic deletion is not implemented',
   processors: 'Netlify is the current hosting provider selected for deployment. Google/Firebase provides authentication and database storage; Razorpay processes payments; Brevo sends transactional emails. Optional AI pack suggestions send preferences and plan information to Google Gemini. Information shared with each provider is limited to its service purpose. Hosting, logs and provider processing may occur in India or other countries according to deployment configuration and provider terms; India-only processing is not promised',
   installation: 'For new-connection bookings, a technician will contact you within 24\u201348 hours after booking to arrange installation. The set-top box is provided on a rental basis',
@@ -44,6 +45,7 @@ export const POLICY_CONTENT: Record<PolicyKey, PolicySection[]> = {
     ] },
   ],
   refund: [
+    { heading: 'New-connection installation', paragraphs: [NEW_CONNECTION_REFUND.en] },
     { heading: 'Before you confirm a recharge', paragraphs: [
       'Check the operator, subscriber ID, selected pack, validity and final amount before paying. A payment confirmation and an operator recharge confirmation are separate events. A pending payment is not proof that a recharge has succeeded.',
       `Any fees, taxes or non-refundable components must be shown before confirmation: ${b.feesAndTaxes}.`,

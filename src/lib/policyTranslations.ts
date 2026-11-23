@@ -1,3 +1,4 @@
+import { NEW_CONNECTION_REFUND } from './newConnectionPolicy';
 import { BUSINESS_DETAILS, type PolicyKey, type PolicySection } from './trustContent';
 import type { Language } from '../types';
 
@@ -39,6 +40,7 @@ export const POLICY_CONTENT_TA: Record<PolicyKey, PolicySection[]> = {
     ] },
   ],
   refund: [
+    { heading: '\u0baa\u0bc1\u0ba4\u0bbf\u0baf \u0b87\u0ba3\u0bc8\u0baa\u0bcd\u0baa\u0bc1 \u0ba8\u0bbf\u0bb1\u0bc1\u0bb5\u0bb2\u0bcd', paragraphs: [NEW_CONNECTION_REFUND.ta] },
     { heading: 'ரீசார்ஜை உறுதிசெய்யும் முன்', paragraphs: [
       'பணம் செலுத்தும் முன் ஆபரேட்டர், கணக்கு எண், தேர்ந்தெடுத்த பேக், காலம் மற்றும் மொத்தத் தொகையைச் சரிபார்க்கவும். கட்டணம் உறுதியாவதும் ஆபரேட்டரிடம் ரீசார்ஜ் உறுதியாவதும் வெவ்வேறு நிகழ்வுகள். நிலுவைக் கட்டணம் ரீசார்ஜ் வெற்றியடைந்ததற்கான சான்று அல்ல.',
       `உறுதிசெய்யும் முன் கூடுதல் கட்டணங்கள், வரிகள் மற்றும் திருப்பித் தர முடியாத தொகைகள் இருந்தால் அவை காட்டப்பட வேண்டும்: ${b.feesAndTaxes}.`,

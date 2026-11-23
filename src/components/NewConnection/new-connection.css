@@ -578,3 +578,168 @@
 /* Let the connectors fill the space up to the final step. */
 .connection-booking-steps{width:100%;max-width:none;box-sizing:border-box}
 @media(min-width:601px){.connection-booking-steps>li:last-child{flex:0 0 auto}}
+
+.connection-payment-banner{margin:0 0 24px;padding:16px 20px;border:1px solid #a87525;border-radius:10px;background:#fff4d8;color:#553a13;font-size:14px;line-height:1.6}
+.connection-payment-banner p{margin:4px 0 8px}
+.connection-payment-banner a{color:#57132d;font-weight:650;text-decoration:underline;text-underline-offset:3px}
+.connection-review{display:flex;flex-direction:column;gap:20px;font-size:14px;line-height:1.6;min-width:0}
+.connection-review-section{padding-bottom:20px;border-bottom:1px solid var(--color-rule)}
+.connection-review-section>header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:8px}
+.connection-review-section h2{margin:0;font-size:18px;font-weight:650;line-height:1.4}
+.connection-review-section p{margin:4px 0}
+.connection-review-section address{font-style:normal;overflow-wrap:anywhere}
+.new-connection-page .connection-review .connection-edit-link{padding:8px 0;min-height:44px;border:0;background:transparent;color:var(--color-accent);font-size:14px;text-decoration:underline;text-underline-offset:3px}
+.connection-review :is(.connection-policy,.connection-muted,.connection-check,.connection-field-error){font-size:14px;line-height:1.6}
+.connection-review details>summary{min-height:44px;align-content:center;cursor:pointer;font-weight:600}
+.connection-review :is(.connection-review-refund,.connection-review-rental,.connection-review-support,.connection-review-secure){margin:0;font-size:14px;line-height:1.6}
+.connection-review-provider{display:flex;flex-direction:column;gap:6px}
+.connection-booking-summary.connection-review-summary{gap:12px}
+.connection-review-summary .connection-booking-summary-brand>span:not(.connection-logo){font-size:calc(32px - 2pt)}
+.connection-review-summary .connection-plan-muted h2{font-size:22px}
+.connection-review-summary .connection-review-balance{font-size:14px;line-height:1.5;margin:0;padding-bottom:16px;border-bottom:1px solid var(--color-rule)}
+.connection-review-summary .connection-pack-chips{flex-wrap:wrap}
+.connection-confirmation-next{font-size:14px;line-height:1.6}
+
+.connection-booking-form .connection-review :is(details>summary,.connection-policy,.connection-review-refund,.connection-review-rental,.connection-review-support,.connection-review-secure,.connection-check){font-size:16px;line-height:1.6}
+.connection-booking-form .connection-review .connection-check{align-items:flex-start;gap:12px;min-height:44px;padding-block:8px}
+.connection-booking-form .connection-review .connection-check input[type=checkbox]{width:20px;height:20px;min-height:20px;padding:0;margin:3px 0 0;flex:0 0 20px;accent-color:var(--color-accent)}
+.connection-review details{padding-bottom:8px;border-bottom:1px solid var(--color-rule)}
+
+.connection-review-terms h3{margin:16px 0 8px;font-size:16px;font-weight:650}
+
+.connection-confirmation{max-width:960px;margin-inline:auto;font-size:15px;line-height:1.6}
+.connection-confirmation-header{display:flex;align-items:flex-start;gap:16px;padding:24px;border:1px solid var(--color-rule);border-radius:14px;background:var(--color-paper)}
+.connection-confirmation-header h1{margin:0;font-size:28px;line-height:1.2}
+.connection-confirmation-header p{margin:12px 0 4px;font-size:14px}
+.connection-confirmation-tick{display:flex;align-items:center;justify-content:center;width:48px;height:48px;flex:0 0 48px;border-radius:50%;background:#e5f3e8;color:#256139}
+.connection-confirmation-reference{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.connection-confirmation-reference>strong{font-size:24px;line-height:1.4;overflow-wrap:anywhere;user-select:all}
+.connection-confirmation-status{margin-left:auto;white-space:nowrap;border:1px solid var(--color-rule);border-radius:999px;padding:4px 12px;font-size:14px;font-weight:650}
+.connection-confirmation-status[data-paid=true]{background:#e5f3e8;color:#215431;border-color:#9dbda5}
+.connection-confirmation-test{padding:14px 18px;background:#fff1cd;border:2px dashed #a06b13;border-radius:8px;color:#593a09;font-size:15px;font-weight:700}
+.connection-confirmation-sections{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.connection-confirmation-sections>section{padding:20px;border:1px solid var(--color-rule);border-radius:12px;min-width:0;overflow-wrap:anywhere}
+.connection-confirmation :is(h2,h3){margin:0 0 8px;font-size:18px;line-height:1.4}
+.connection-confirmation p{margin:4px 0}
+.connection-confirmation address{font-style:normal}
+.connection-confirmation-sections .connection-package-image{max-width:160px;height:100px;object-fit:contain}
+.connection-confirmation-totals{margin:0;padding:20px;background:var(--color-paper-2);border-radius:12px}
+.connection-confirmation-totals>div{display:flex;justify-content:space-between;gap:16px;padding:6px 0}
+.connection-confirmation-totals dd{margin:0;font-size:20px;font-weight:700}
+.connection-confirmation-next,.connection-confirmation-support{padding:20px;border:1px solid var(--color-rule);border-radius:12px;font-size:14px}
+.connection-confirmation-next ol{padding-left:22px;margin:8px 0 16px}
+.connection-confirmation-next li{padding-block:4px}
+.connection-confirmation-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px}
+.connection-confirmation-actions :is(a,button){min-height:44px;box-sizing:border-box;display:inline-flex;align-items:center;padding:10px 14px;font-size:14px}
+.connection-print-only{display:none}
+@media(max-width:600px){.connection-confirmation-sections{grid-template-columns:1fr}.connection-confirmation-header{flex-wrap:wrap;padding:18px}.connection-confirmation-status{margin-left:64px}.connection-confirmation-reference>strong{font-size:21px}.connection-confirmation-actions .connection-primary{width:100%;justify-content:center}}
+@media print{.connection-booking-receipt .connection-print-only{display:block}.connection-booking-receipt .connection-no-print{display:none!important}.connection-confirmation-sections>section{break-inside:avoid}.connection-confirmation-actions{display:none}.connection-confirmation{font-size:12px}}
+
+.connection-confirmation-sections{align-items:start}
+.connection-confirmation .connection-confirmation-sections>section{font-size:14px;line-height:1.6;color:var(--color-ink)}
+.connection-confirmation .connection-confirmation-sections :is(p,address){font-size:14px;color:var(--color-ink)}
+.connection-confirmation .connection-confirmation-sections h2{font-size:18px;font-weight:650;color:var(--color-ink)}
+.connection-confirmation-plan{display:grid;grid-template-columns:minmax(0,1fr) 128px;gap:16px;align-items:start}
+.connection-confirmation-plan-identity{min-width:0}
+.connection-confirmation-plan .connection-pack-chips{grid-column:1/-1;flex-wrap:wrap}
+.connection-confirmation-product{padding:16px;border-radius:12px;background:var(--color-paper-2);box-sizing:border-box}
+.connection-confirmation-sections .connection-confirmation-product .connection-package-image{width:96px;height:96px;max-width:100%;object-fit:contain}
+.connection-confirmation-actions :is(a,button):not(.connection-primary){border:1px solid var(--color-rule-strong);border-radius:var(--radius-input);background:var(--color-paper);color:var(--color-ink);font-weight:600;text-decoration:none}
+.connection-confirmation-actions :is(a,button):not(.connection-primary):hover{border-color:var(--color-accent);background:var(--color-accent-soft);color:var(--color-accent)}
+.connection-confirmation-totals>div{align-items:center}
+.connection-confirmation-totals dt{font-size:16px;font-weight:600;color:var(--color-ink)}
+.connection-confirmation-paid-amount{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end}
+.connection-confirmation-paid-amount>strong{font-size:26px;font-weight:800}
+.connection-confirmation-paid-amount .connection-confirmation-status{margin:0}
+.connection-confirmation-next ol{list-style:decimal}
+@media(max-width:420px){.connection-confirmation-plan{grid-template-columns:minmax(0,1fr) 104px;gap:12px}.connection-confirmation-product{padding:12px}.connection-confirmation-sections .connection-confirmation-product .connection-package-image{width:80px;height:80px}}
+
+.connection-confirmation .connection-confirmation-header{padding:32px;gap:20px;min-height:150px;align-items:center;background:linear-gradient(120deg,#fffdf8,#f4f8f1);box-sizing:border-box}
+.connection-confirmation-header h1{font-size:32px}
+.connection-confirmation-reference>strong{font-size:30px}
+.connection-confirmation .connection-confirmation-sections{display:flex;flex-direction:column;gap:12px}
+.connection-confirmation-disclosure{width:100%;box-sizing:border-box;border:1px solid var(--color-rule);border-radius:12px;background:var(--color-paper);overflow:hidden;color:var(--color-ink)}
+.connection-confirmation .connection-confirmation-disclosure>summary{display:list-item;padding:18px 20px;min-height:60px;box-sizing:border-box;cursor:pointer;font-size:16px;font-weight:650;line-height:1.5;list-style-position:inside;color:var(--color-ink)}
+.connection-confirmation-disclosure>summary:hover{background:var(--color-paper-2)}
+.connection-confirmation-disclosure>summary:focus-visible{outline:2px solid var(--color-focus);outline-offset:-4px}
+.connection-confirmation-disclosure[open]>summary{border-bottom:1px solid var(--color-rule)}
+.connection-confirmation .connection-confirmation-detail-body,.connection-confirmation .connection-confirmation-plan{padding:20px;font-size:16px;line-height:1.6;color:var(--color-ink)}
+.connection-confirmation .connection-confirmation-disclosure :is(p,address,li){font-size:16px;line-height:1.6;color:var(--color-ink)}
+.connection-confirmation .connection-confirmation-plan{grid-template-columns:minmax(0,1fr) 180px;gap:24px}
+.connection-confirmation-product{padding:16px}
+.connection-confirmation .connection-confirmation-product .connection-package-image{width:148px;height:120px;max-width:100%;object-fit:contain}
+.connection-confirmation .connection-confirmation-next,.connection-confirmation .connection-confirmation-support{padding:0}
+@media(max-width:600px){.connection-confirmation .connection-confirmation-header{padding:24px 18px;align-items:flex-start}.connection-confirmation-header h1{font-size:26px}.connection-confirmation-reference>strong{font-size:23px}.connection-confirmation .connection-confirmation-plan{grid-template-columns:minmax(0,1fr) 128px;gap:16px}.connection-confirmation .connection-confirmation-product .connection-package-image{width:96px;height:96px}}
+@media print{.connection-confirmation-disclosure{break-inside:avoid;overflow:visible}.connection-confirmation-disclosure::details-content{display:block!important;content-visibility:visible!important}.connection-confirmation .connection-confirmation-header{background:#fff;min-height:0}.connection-confirmation-disclosure>summary{list-style:none}}
+
+.connection-confirmation-header .connection-confirmation-toggle{margin-left:auto;min-height:44px;padding:10px 16px;flex-shrink:0;border:1px solid var(--color-rule-strong);border-radius:var(--radius-input);background:var(--color-paper);color:var(--color-accent);font-size:15px;font-weight:600}
+.connection-confirmation-expanded{display:flex;flex-direction:column;gap:16px}
+.connection-confirmation-expanded[hidden]{display:none}
+.connection-confirmation .connection-confirmation-expanded .connection-confirmation-sections{display:grid;grid-template-columns:1fr 1fr;align-items:start;gap:16px}
+.connection-confirmation-expanded .connection-confirmation-disclosure>h2{margin:0;padding:18px 20px 0;font-size:18px;line-height:1.4;font-weight:650}
+.connection-confirmation-expanded .connection-confirmation-disclosure{overflow:visible}
+@media(max-width:600px){.connection-confirmation .connection-confirmation-expanded .connection-confirmation-sections{grid-template-columns:1fr}.connection-confirmation-header .connection-confirmation-toggle{margin-left:68px}}
+@media print{.connection-confirmation-expanded[hidden]{display:flex!important}.connection-confirmation-expanded{gap:12px}}
+
+/* Payment success hero: one centred icon, heading and booking reference. */
+.connection-confirmation .connection-confirmation-header{flex-direction:column;flex-wrap:nowrap;align-items:center;justify-content:center;text-align:center;gap:24px;padding:48px 24px;border-radius:20px;background:linear-gradient(180deg,#f1faf3 0%,var(--color-paper) 75%);box-shadow:0 8px 28px #183d2310}
+.connection-confirmation-header .connection-confirmation-tick{width:112px;height:112px;flex:0 0 112px;background:#23834b;color:#fff;box-shadow:0 0 0 12px #23834b12,0 8px 20px #23834b20}
+.connection-confirmation-hero-copy{width:100%;min-width:0}
+.connection-confirmation-header .connection-confirmation-hero-copy h1{font-size:34px;font-weight:750;line-height:1.2;letter-spacing:-.02em}
+.connection-confirmation-header .connection-confirmation-success-note{margin:12px auto 24px;max-width:460px;font-size:16px;line-height:1.6;color:var(--color-ink-2)}
+.connection-confirmation-header .connection-confirmation-reference{justify-content:center;margin-top:8px}
+.connection-confirmation-header .connection-confirmation-toggle{margin:0;align-self:center;padding:10px 20px}
+@media(max-width:600px){.connection-confirmation .connection-confirmation-header{padding:36px 18px;gap:24px}.connection-confirmation-header .connection-confirmation-tick{width:96px;height:96px;flex-basis:96px}.connection-confirmation-header .connection-confirmation-hero-copy h1{font-size:28px}.connection-confirmation-header .connection-confirmation-reference>strong{font-size:22px}}
+@media print{.connection-confirmation .connection-confirmation-header{padding:20px;background:#fff;box-shadow:none}.connection-confirmation-header .connection-confirmation-tick{width:64px;height:64px;flex-basis:64px;box-shadow:none}}
+
+.connection-booking-receipt.connection-confirmation{width:100%;min-width:0;box-sizing:border-box;align-items:stretch}
+.connection-confirmation .connection-confirmation-header{width:100%;min-width:0;flex:0 0 auto;align-self:stretch;align-items:center;text-align:center}
+.connection-confirmation .connection-confirmation-expanded .connection-confirmation-sections{display:flex;flex-direction:column;align-items:stretch;gap:16px}
+.connection-confirmation-expanded{min-width:0;width:100%}
+.connection-confirmation .connection-confirmation-header .connection-confirmation-toggle{min-width:140px;margin-inline:auto;align-self:center}
+
+/* Override general heading/paragraph width limits inside the centred hero. */
+.connection-confirmation-header .connection-confirmation-hero-copy>h1,.connection-confirmation-header .connection-confirmation-hero-copy>p:not(.connection-confirmation-success-note){width:100%;max-width:none;margin-inline:auto;text-align:center}
+.connection-confirmation-header .connection-confirmation-hero-copy{display:flex;flex-direction:column;align-items:center;text-align:center}
+.connection-confirmation-header .connection-confirmation-reference{width:100%;justify-content:center}
+
+/* Compact detail rows: one outer border and one consistent content inset. */
+.connection-confirmation .connection-confirmation-expanded{gap:12px}
+.connection-confirmation .connection-confirmation-expanded .connection-confirmation-sections{gap:12px}
+.connection-confirmation .connection-confirmation-expanded .connection-confirmation-disclosure{display:block;padding:0;margin:0;min-width:0;border-radius:10px;overflow:hidden}
+.connection-confirmation .connection-confirmation-expanded .connection-confirmation-disclosure>h2{padding:16px 16px 0;margin:0;max-width:none;font-size:16px;font-weight:650;line-height:1.5}
+.connection-confirmation .connection-confirmation-detail-body,.connection-confirmation .connection-confirmation-plan{padding:12px 16px 16px;margin:0;min-width:0;font-size:14px;line-height:1.6}
+.connection-confirmation .connection-confirmation-disclosure :is(p,address,li){font-size:14px;line-height:1.6}
+.connection-confirmation .connection-confirmation-detail-body>p:first-child,.connection-confirmation-plan-identity>p:first-child{margin-top:0}
+.connection-confirmation .connection-confirmation-detail-body>p:last-child{margin-bottom:0}
+.connection-confirmation .connection-confirmation-plan{grid-template-columns:minmax(0,1fr) 144px;gap:12px 20px;align-items:start}
+.connection-confirmation .connection-confirmation-product{padding:12px}
+.connection-confirmation .connection-confirmation-product .connection-package-image{width:120px;height:90px}
+.connection-confirmation-plan .connection-pack-chips{gap:6px}
+.connection-confirmation-plan .connection-pack-chip{min-height:32px;padding:5px 8px;font-size:13px}
+.connection-confirmation-plan-identity h3{font-size:18px;margin:4px 0}
+.connection-confirmation-facts{display:flex;flex-direction:column;gap:8px;margin:0}
+.connection-confirmation-facts>div{display:grid;grid-template-columns:140px minmax(0,1fr);gap:12px;align-items:baseline}
+.connection-confirmation-facts dt{font-size:14px;color:var(--color-ink-2);line-height:1.6}
+.connection-confirmation-facts dd{margin:0;min-width:0;overflow-wrap:anywhere;font-size:14px;line-height:1.6;color:var(--color-ink)}
+.connection-confirmation-facts a{text-decoration:underline;text-underline-offset:3px}
+.connection-confirmation .connection-confirmation-expanded .connection-confirmation-totals{padding:12px 16px 16px;margin:0;border-radius:0;background:transparent;min-width:0}
+.connection-confirmation-expanded .connection-confirmation-totals>div{padding:0;min-height:32px;align-items:baseline;gap:16px}
+.connection-confirmation-expanded .connection-confirmation-totals>div+div{margin-top:8px}
+.connection-confirmation-expanded .connection-confirmation-totals dt{font-size:14px;font-weight:500;line-height:1.6}
+.connection-confirmation-expanded .connection-confirmation-totals dd{font-size:18px;line-height:1.4}
+.connection-confirmation-expanded .connection-confirmation-paid-amount>strong{font-size:22px;line-height:1.4}
+.connection-confirmation-next ol{margin:0 0 12px;padding-left:20px}
+.connection-confirmation-next li{padding-block:2px}
+@media(min-width:701px){
+ .connection-confirmation .connection-confirmation-expanded .connection-confirmation-disclosure{display:grid;grid-template-columns:170px minmax(0,1fr);gap:0;align-items:start}
+ .connection-confirmation .connection-confirmation-expanded .connection-confirmation-disclosure>h2{padding:16px}
+ .connection-confirmation .connection-confirmation-detail-body,.connection-confirmation .connection-confirmation-plan,.connection-confirmation .connection-confirmation-expanded .connection-confirmation-totals{padding:16px}
+ .connection-confirmation-disclosure>.connection-confirmation-detail-body:last-child:not(:nth-child(2)){grid-column:2;padding-top:0}
+}
+@media(max-width:600px){
+ .connection-confirmation .connection-confirmation-plan{grid-template-columns:minmax(0,1fr) 112px;gap:12px}
+ .connection-confirmation .connection-confirmation-product .connection-package-image{width:88px;height:80px}
+ .connection-confirmation-facts>div{grid-template-columns:125px minmax(0,1fr);gap:8px}
+}
+@media(max-width:420px){.connection-confirmation-facts>div{grid-template-columns:1fr;gap:2px}}

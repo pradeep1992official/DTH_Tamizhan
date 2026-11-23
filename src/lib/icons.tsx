@@ -22,6 +22,7 @@ import {
   ClockIcon,
   ClockCounterClockwiseIcon,
   CoinsIcon,
+  CopySimpleIcon,
   CreditCardIcon,
   CrownIcon,
   DatabaseIcon,
@@ -98,6 +99,7 @@ export const ChevronUp = /* @__PURE__ */ themedIcon(CaretUpIcon);
 export const Circle = /* @__PURE__ */ themedIcon(CircleIcon);
 export const Clock = /* @__PURE__ */ themedIcon(ClockIcon);
 export const Coins = /* @__PURE__ */ themedIcon(CoinsIcon);
+export const Copy = /* @__PURE__ */ themedIcon(CopySimpleIcon);
 export const CreditCard = /* @__PURE__ */ themedIcon(CreditCardIcon);
 export const Crown = /* @__PURE__ */ themedIcon(CrownIcon);
 export const Database = /* @__PURE__ */ themedIcon(DatabaseIcon);
