@@ -10,7 +10,9 @@ import {
   UserCheck,
   Sliders,
   Clock,
-  Ticket
+  Ticket,
+  Calendar,
+  Wrench
 } from '../lib/icons';
 import { Language, UserProfile } from '../types';
 import { AdminNavigationError, verifyAdminNavigationAccess } from '../lib/adminNavigationAccess';
@@ -54,15 +56,21 @@ export const Header: React.FC<HeaderProps> = ({
     let active = true;
     const controller = new AbortController();
     setAdminAccess({ uid: user.uid, status: 'checking' });
+    const timeout = setTimeout(() => {
+      if (!active) return;
+      controller.abort();
+      setAdminAccessError('network');
+      setAdminAccess({ uid: user.uid, status: 'error' });
+    }, 10000);
     verifyAdminNavigationAccess(user.uid, controller.signal).then(allowed => {
-      if (active) setAdminAccess({ uid: user.uid, status: allowed ? 'allowed' : 'denied' });
+      if (active && !controller.signal.aborted) setAdminAccess({ uid: user.uid, status: allowed ? 'allowed' : 'denied' });
     }).catch(error => {
       if (active) {
         setAdminAccessError(error instanceof AdminNavigationError ? error.reason : 'server');
         setAdminAccess({ uid: user.uid, status: 'error' });
       }
-    });
-    return () => { active = false; controller.abort(); };
+    }).finally(() => clearTimeout(timeout));
+    return () => { active = false; clearTimeout(timeout); controller.abort(); };
   }, [user?.uid, isProfileDropdownOpen, adminAccessRetry]);
 
   useEffect(() => {
@@ -130,44 +138,8 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Center Navigation Links: Dynamic Token Styling */}
         <nav aria-label={translations[currentLang].uiMainNavigation} className={`desktop-navigation`}>
           <button id="nav-new-connection-btn" type="button" onClick={() => onTabChange('new-connection')} aria-current={activeTab === 'new-connection' ? 'page' : undefined} className={`px-4 py-1.5 rounded-lg text-xs font-bold ${activeTab === 'new-connection' ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText}` : `${currentTheme.navInactiveText} ${currentTheme.navInactiveHoverBg}`}`}>{t.ncNav}</button>
-          {recharge && (<button
-            id="nav-recharge-btn"
-            onClick={() => onTabChange('recharge')}
-            aria-current={activeTab === 'recharge' ? 'page' : undefined}
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold  transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current ${
-              activeTab === 'recharge'
-                ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText} shadow-sm`
-                : `${currentTheme.navInactiveText} ${currentTheme.navInactiveHoverBg}`
-            }`}
-          >
-            {t.navRecharge}
-          </button>)}
-          {recharge && (<button
-            id="nav-plans-btn"
-            onClick={() => onTabChange('plans')}
-            aria-current={activeTab === 'plans' ? 'page' : undefined}
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold  transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current ${
-              activeTab === 'plans'
-                ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText} shadow-sm`
-                : `${currentTheme.navInactiveText} ${currentTheme.navInactiveHoverBg}`
-            }`}
-          >
-            {t.navPlans}
-          </button>)}
-          {recharge && (<button
-            id="nav-connections-btn"
-            onClick={() => onTabChange('connections')}
-            aria-current={activeTab === 'connections' ? 'page' : undefined}
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold  transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current ${
-              activeTab === 'connections'
-                ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText} shadow-sm`
-                : `${currentTheme.navInactiveText} ${currentTheme.navInactiveHoverBg}`
-            }`}
-          >
-            {t.navConnections}
-          </button>)}
-
-          <a href="/help" aria-current={activeTab === 'help' ? 'page' : undefined} className="help-navigation-link">{currentLang === 'ta' ? 'உதவி பெறுங்கள்' : 'Get Help'}</a>
+          <button id="nav-bookings-btn" type="button" onClick={() => onTabChange('bookings')} aria-current={activeTab === 'bookings' ? 'page' : undefined} className={`px-4 py-1.5 rounded-lg text-xs font-bold ${activeTab === 'bookings' ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText}` : `${currentTheme.navInactiveText} ${currentTheme.navInactiveHoverBg}`}`}>{t.ctTitle}</button>
+          <a href="/service-request" aria-current={activeTab === 'help' ? 'page' : undefined} className="help-navigation-link">{currentLang === 'ta' ? 'சேவை கோரிக்கை' : 'Service Request'}</a>
         </nav>
 
         {/* Right Action: Unified Profile & Settings Dropdown */}
@@ -208,9 +180,9 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
               )}
 
-              <div className="text-left hidden sm:block">
+              <div className="text-left">
                 <p className={`text-xs font-bold leading-tight ${isLight ? 'text-ink' : 'text-accent-ink'}`}>
-                  {user ? (user.displayName || (user.email ? user.email.split('@')[0] : t.customer)) : (translations[currentLang].uiAccount)}
+                  {currentLang === 'ta' ? 'சுயவிவரம்' : 'Profile'}
                 </p>
 
               </div>
@@ -247,7 +219,9 @@ export const Header: React.FC<HeaderProps> = ({
 
                 {/* Primary Menu Actions */}
                 <div className="py-1">
-                  <a href="/my-tickets" className="profile-tickets-link"><Ticket className="w-4 h-4" aria-hidden="true" /><span>{currentLang === 'ta' ? 'எனது கோரிக்கைகள்' : 'My tickets'}</span></a>
+                  <button id="dropdown-bookings-btn" type="button" onClick={() => { setIsProfileDropdownOpen(false); onTabChange('bookings'); }} aria-current={activeTab === 'bookings' ? 'page' : undefined} className="w-full px-4 py-2 text-left flex items-center gap-2.5"><Calendar className="w-4 h-4" aria-hidden="true" /><span>{t.ctTitle}</span></button>
+                  <a id="dropdown-service-request-link" href="/service-request" className="profile-tickets-link" onClick={() => setIsProfileDropdownOpen(false)}><Wrench className="w-4 h-4" aria-hidden="true" /><span>{currentLang === 'ta' ? 'சேவை கோரிக்கை' : 'Raise service request'}</span></a>
+                  <a href="/my-tickets" className="profile-tickets-link" onClick={() => setIsProfileDropdownOpen(false)}><Ticket className="w-4 h-4" aria-hidden="true" /><span>{currentLang === 'ta' ? 'எனது கோரிக்கைகள்' : 'My tickets'}</span></a>
                   <button type="button" onClick={() => { setIsProfileDropdownOpen(false); onTabChange('account'); }} className="w-full px-4 py-2 text-left flex items-center gap-2.5">
                     <User className="w-4 h-4" aria-hidden="true" /><span>{translations[currentLang].uiYourAccount}</span>
                   </button>
@@ -341,44 +315,8 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Mobile Navigation Tab Bar */}
       <nav aria-label={translations[currentLang].uiMainNavigation} className={`mobile-navigation ${currentTheme.statusStripBg}`}>
         <button id="mobile-nav-new-connection-btn" type="button" onClick={() => onTabChange('new-connection')} aria-current={activeTab === 'new-connection' ? 'page' : undefined} className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold whitespace-nowrap text-center ${activeTab === 'new-connection' ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText}` : `${currentTheme.navContainerBg} ${currentTheme.navInactiveText}`}`}>{t.ncNav}</button>
-        {recharge && (<button
-          id="mobile-nav-recharge-btn"
-          onClick={() => onTabChange('recharge')}
-          aria-current={activeTab === 'recharge' ? 'page' : undefined}
-          className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold whitespace-nowrap text-center transition-colors ${
-            activeTab === 'recharge'
-              ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText}`
-              : `${currentTheme.navContainerBg} ${currentTheme.navInactiveText}`
-          }`}
-        >
-          {t.uiMobileRecharge}
-        </button>)}
-        {recharge && (<button
-          id="mobile-nav-plans-btn"
-          onClick={() => onTabChange('plans')}
-          aria-current={activeTab === 'plans' ? 'page' : undefined}
-          className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold whitespace-nowrap text-center transition-colors ${
-            activeTab === 'plans'
-              ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText}`
-              : `${currentTheme.navContainerBg} ${currentTheme.navInactiveText}`
-          }`}
-        >
-          {t.uiMobilePacks}
-        </button>)}
-        {recharge && (<button
-          id="mobile-nav-connections-btn"
-          onClick={() => onTabChange('connections')}
-          aria-current={activeTab === 'connections' ? 'page' : undefined}
-          className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold whitespace-nowrap text-center transition-colors ${
-            activeTab === 'connections'
-              ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText}`
-              : `${currentTheme.navContainerBg} ${currentTheme.navInactiveText}`
-          }`}
-        >
-          {t.uiMobileBoxes}
-        </button>)}
-
-        <a href="/help" aria-current={activeTab === 'help' ? 'page' : undefined} className="help-navigation-link">{t.uiMobileHelp}</a>
+        <button id="mobile-nav-bookings-btn" type="button" onClick={() => onTabChange('bookings')} aria-current={activeTab === 'bookings' ? 'page' : undefined} className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold ${activeTab === 'bookings' ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText}` : `${currentTheme.navContainerBg} ${currentTheme.navInactiveText}`}`}>{t.ctTitle}</button>
+        <a href="/service-request" aria-current={activeTab === 'help' ? 'page' : undefined} className="help-navigation-link">{currentLang === 'ta' ? 'சேவை கோரிக்கை' : 'Service Request'}</a>
       </nav>
       <div id="mobile-assistance-control" className="mobile-assistance-slot" />
     </header>

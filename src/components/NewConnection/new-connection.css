@@ -743,3 +743,98 @@
  .connection-confirmation-facts>div{grid-template-columns:125px minmax(0,1fr);gap:8px}
 }
 @media(max-width:420px){.connection-confirmation-facts>div{grid-template-columns:1fr;gap:2px}}
+
+.connection-confirmation-header .connection-confirmation-actions{width:100%;justify-content:center;gap:10px;margin-top:4px}
+.connection-confirmation-actions :is(a,button){gap:8px;justify-content:center}
+.connection-confirmation-actions svg{flex-shrink:0}
+@media print{
+ .receipt-print.connection-confirmation,.receipt-print.connection-confirmation *{visibility:visible!important}
+ .receipt-print.connection-confirmation .connection-confirmation-expanded[hidden]{display:flex!important}
+ .receipt-print.connection-confirmation .connection-print-only{display:block!important}
+ .receipt-print.connection-confirmation .connection-no-print{display:none!important}
+ .receipt-print.connection-confirmation{position:absolute!important;inset:0!important;width:100%!important;max-width:none!important;overflow:visible!important;box-shadow:none!important}
+}
+
+/* Important declarations in the base layer outrank the browser/reset hidden rule. */
+@layer base{
+ @media print{
+  .receipt-print.connection-confirmation .connection-confirmation-expanded[hidden]{display:flex!important}
+  .receipt-print.connection-confirmation .connection-print-only{display:block!important}
+  .receipt-print.connection-confirmation .connection-no-print{display:none!important}
+ }
+}
+
+.connection-confirmation-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left}
+.connection-confirmation-back{display:inline-flex;align-items:center;gap:6px;color:var(--color-ink);font-size:14px;text-decoration:underline;text-underline-offset:3px}
+.connection-confirmation-tools{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.connection-confirmation-tools :is(a,button){display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;padding:0;border:1px solid var(--color-rule-strong);border-radius:var(--radius-input);background:var(--color-paper);color:var(--color-ink)}
+.connection-confirmation-tools :is(a,button):hover{border-color:var(--color-accent);background:var(--color-accent-soft);color:var(--color-accent)}
+.connection-confirmation-actions:empty{display:none}
+
+/* Compact customer booking overview. */
+.connection-my-bookings{width:100%;max-width:960px;box-sizing:border-box;margin-inline:auto;gap:12px}
+.connection-bookings-back{display:inline-flex;align-items:center;gap:6px;font-size:13px}
+.connection-bookings-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:4px 0 8px}
+.connection-bookings-heading h1{margin:0;font-size:28px;line-height:1.2}
+.connection-bookings-heading p{margin:6px 0 0;color:var(--color-muted);font-size:14px}
+.connection-my-bookings .connection-bookings-refresh{display:inline-flex;align-items:center;justify-content:center;gap:7px;width:auto;min-height:40px;padding:8px 12px;flex-shrink:0}
+.connection-my-bookings .connection-my-booking{position:relative;gap:12px;padding:18px;margin-block:0;background:var(--color-paper);border-radius:12px}
+.connection-my-booking p,.connection-my-booking h2,.connection-my-booking h3{margin:0}
+.connection-booking-card-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.connection-booking-card-heading h2{font-size:14px;line-height:1.5}
+.connection-booking-card-heading time{font-size:12px;color:var(--color-muted)}
+.connection-booking-badges{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px}
+.connection-booking-badge{padding:4px 9px;border-radius:6px;background:var(--color-accent-soft);color:var(--color-ink);font-size:12px;line-height:1.4;text-transform:capitalize}
+.connection-booking-badge[data-paid="true"]{background:#e8f5eb;color:#216334}
+.connection-booking-product{display:flex;align-items:center;gap:14px;min-width:0}
+.connection-my-booking .connection-package-image{width:88px;height:64px;flex:0 0 88px}
+.connection-booking-product>div:last-child{min-width:0}
+.connection-booking-product .connection-booking-brand{font-size:12px;color:var(--color-muted);margin-bottom:3px}
+.connection-booking-product h3{font-size:16px;line-height:1.4;font-weight:650}
+.connection-booking-product .connection-booking-location{display:flex;align-items:center;gap:4px;margin-top:5px;font-size:12px;color:var(--color-muted)}
+.connection-my-booking .connection-booking-money{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:12px;background:var(--color-accent-soft);border-radius:8px}
+.connection-my-booking .connection-booking-money:has(>div:nth-child(4)){grid-template-columns:repeat(4,minmax(0,1fr))}
+.connection-booking-money dd{font-size:16px;line-height:1.6}
+.connection-booking-schedule{display:flex;align-items:flex-start;gap:7px;font-size:13px;line-height:1.5;color:var(--color-muted)}
+.connection-booking-schedule svg{flex-shrink:0;margin-top:2px}
+.connection-booking-receipt-link{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;font-size:13px;font-weight:600;min-height:32px}
+.connection-my-booking details{font-size:13px}
+.connection-my-booking summary{cursor:pointer;padding-block:4px}
+.connection-my-bookings .connection-booking-cancel{align-self:flex-start;width:auto;min-height:36px;padding:7px 10px;font-size:12px;background:transparent}
+.connection-my-booking form{border-top:1px solid var(--color-rule);padding-top:12px;font-size:13px}
+.connection-my-booking form label{display:block;margin-top:12px}
+.connection-my-booking form textarea{box-sizing:border-box}
+.connection-my-bookings>.connection-controls{justify-content:center;margin-top:20px}
+@media(max-width:540px){
+ .connection-booking-card-heading{flex-direction:column;gap:8px}
+ .connection-booking-badges{justify-content:flex-start}
+ .connection-my-bookings .connection-my-booking{padding:14px}
+ .connection-my-booking .connection-package-image{width:64px;height:54px;flex-basis:64px}
+ .connection-booking-product{gap:10px}
+ .connection-booking-product h3{font-size:14px}
+ .connection-my-booking .connection-booking-money:has(>div:nth-child(4)){grid-template-columns:repeat(2,minmax(0,1fr))}
+ .connection-bookings-heading h1{font-size:24px}
+}
+
+.connection-confirmation-header .connection-confirmation-tick[data-pending="true"]{background:#fff3d6;color:#875b12;box-shadow:0 0 0 10px #fff8e8}
+.connection-confirmation-hero-copy .connection-confirmation-pending-note{color:#875b12;font-size:14px;margin:8px 0 12px}
+
+.connection-my-booking .connection-cancellation-form{display:flex;flex-direction:column;gap:10px;padding-top:14px}
+.connection-my-booking .connection-cancellation-form h3{font-size:14px;font-weight:650}
+.connection-my-booking .connection-cancellation-hint{max-width:none;font-size:12px;color:var(--color-muted);line-height:1.5}
+.connection-my-booking .connection-cancellation-form label{margin:0;gap:6px}
+.connection-my-booking .connection-cancellation-form textarea{min-height:64px;resize:vertical}
+.connection-cancellation-form .connection-controls{gap:8px}
+.connection-cancellation-form .connection-controls button{min-height:38px;font-size:13px}
+
+/* Separate equipment, pricing, pack details and actions within catalog cards. */
+.connection-pack>.connection-price,
+.connection-pack>.connection-pack-muted,
+.connection-pack>.connection-card-actions{border-top:1px solid var(--color-rule);padding-top:14px}
+
+.connection-provider-booking{padding:12px;border:1px solid var(--color-rule);border-radius:8px;background:var(--color-paper-2);text-align:left}
+.connection-provider-booking h3{margin:0 0 10px;font-size:14px;font-weight:650}
+.connection-provider-booking dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0}
+.connection-provider-booking dt{font-size:12px;color:var(--color-muted)}
+.connection-provider-booking dd{margin:4px 0 0;font-size:15px;font-weight:650;overflow-wrap:anywhere;user-select:all}
+@media(max-width:420px){.connection-provider-booking dl{grid-template-columns:1fr}}

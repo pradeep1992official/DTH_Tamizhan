@@ -160,3 +160,31 @@ it('retains an ambiguous refund reservation and safely retries with exactly the 
   f.refund.mockResolvedValue(truth); f.fetchRefund.mockResolvedValue(truth);
   const result = await refundConnection(id, 'approved-admin', value); expect(result.paymentStatus).toBe('refunded'); expect(f.refund.mock.calls[1][3]).toBe(operationId); expect(result.ledger.filter(e => e.type === 'refund')).toHaveLength(1);
 });
+
+it('excludes cancelled bookings from payment review while retaining their payment records', async () => {
+  fixture(id, { provider: 'razorpay', amountDueNow: 100, paymentStatus: 'pending', status: 'received' });
+  fixture(otherId, { provider: 'razorpay', amountDueNow: 100, paymentStatus: 'pending', status: 'cancelled' });
+  expect((await listConnections({ awaiting: 'true' })).orders.map(order => order.id)).toEqual([id]);
+  expect((await listConnections({})).orders).toHaveLength(2);
+  expect(f.records.get(`newConnectionOrders/${otherId}`).paymentStatus).toBe('pending');
+});
+
+it('saves provider references for the owner without changing payment or booking status', async () => {
+  const before = fixture();
+  const input = { status: 'booked', providerCustomerId: '  CUST-001  ', providerBookingId: ' PROV-123 ', idempotencyKey: randomUUID() };
+  const saved = await changeConnectionStatus(id, 'approved-admin', input);
+  expect(saved).toMatchObject({ providerCustomerId: 'CUST-001', providerBookingId: 'PROV-123', status: 'booked', paymentStatus: before.paymentStatus, bookingId: before.bookingId });
+  expect(await changeConnectionStatus(id, 'approved-admin', input)).toEqual(saved);
+  await expect(changeConnectionStatus(id, 'approved-admin', { ...input, providerBookingId: 'OTHER' })).rejects.toMatchObject({ code: 'IDEMPOTENCY_CONFLICT' });
+  expect(await ownedBooking('buyer', id)).toMatchObject({ providerCustomerId: 'CUST-001', providerBookingId: 'PROV-123' });
+  await expect(ownedBooking('other-owner', id)).rejects.toMatchObject({ code: 'BOOKING_NOT_FOUND' });
+  await expect(changeConnectionStatus(id, 'approved-admin', { ...input, providerCustomerId: '   ', idempotencyKey: randomUUID() })).rejects.toThrow();
+});
+
+it('requires both provider IDs when marking a booking as booked and preserves the installation flow', async () => {
+  await expect(changeConnectionStatus(id, 'approved-admin', { status: 'booked', idempotencyKey: randomUUID() })).rejects.toMatchObject({ code: 'PROVIDER_CUSTOMER_ID_REQUIRED' });
+  await expect(changeConnectionStatus(id, 'approved-admin', { status: 'booked', providerCustomerId: 'CUST-1', idempotencyKey: randomUUID() })).rejects.toMatchObject({ code: 'PROVIDER_BOOKING_ID_REQUIRED' });
+  await changeConnectionStatus(id, 'approved-admin', { status: 'booked', providerCustomerId: 'CUST-1', providerBookingId: 'BOOK-1', idempotencyKey: randomUUID() });
+  const scheduled = await changeConnectionStatus(id, 'approved-admin', { status: 'scheduled', schedule: { date: '2026-11-26', slot: 'Morning' }, idempotencyKey: randomUUID() });
+  expect(scheduled).toMatchObject({ providerCustomerId: 'CUST-1', providerBookingId: 'BOOK-1', status: 'scheduled' });
+});

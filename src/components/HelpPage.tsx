@@ -7,7 +7,6 @@ import { fullAddressSchema, pinCodeSchema, savedPinCode, type Ticket } from '../
 import { helpProblems, helpPrefillSchema } from '../lib/help';
 import { serviceBrandsSchema, type ServiceBrand } from '../lib/serviceBrands';
 import { ticketApi } from '../lib/ticketApi';
-import { paymentAuthHeaders } from '../lib/paymentAuth';
 import { ticketAuthHeaders } from '../lib/ticketAppCheck';
 import { auth } from '../lib/firebase';
 import { loadCheckout } from './RazorpayCheckout';
@@ -16,13 +15,14 @@ export function HelpPage({ user, currentLang, onOpenAuth }: { user: UserProfile 
   const location = useLocation(); const parsed = helpPrefillSchema.safeParse(location.state?.ticketPrefill); const prefill = parsed.success ? parsed.data : undefined;
   const navigate = useNavigate(); const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const say = (en: string, ta: string) => currentLang === 'ta' ? ta : en;
-  const initial = prefill?.issueCategory === 'box_issue' ? 'no_signal' : prefill?.issueCategory && Object.hasOwn(helpProblems, prefill.issueCategory) ? prefill.issueCategory : prefill?.description ? 'other' : '';
+  const visibleProblems = Object.keys(helpProblems).filter(key => key !== 'recharge_failed');
+  const initial = prefill?.issueCategory === 'box_issue' ? 'no_signal' : prefill?.issueCategory && visibleProblems.includes(prefill.issueCategory) ? prefill.issueCategory : prefill?.description ? 'other' : '';
   const [problem, setProblem] = useState(initial); const [brandId, setBrandId] = useState(prefill?.brand || '');
   const [description, setDescription] = useState(prefill?.description || '');
   const [fullAddress, setFullAddress] = useState(prefill?.fullAddress || '');
   const [pinCode, setPinCode] = useState(prefill?.pinCode || ''); const [addressAttempted, setAddressAttempted] = useState(false);
   function validateAddress() { setAddressAttempted(true); return fullAddressSchema.safeParse(fullAddress).success && pinCodeSchema.safeParse(pinCode).success; }
-  const [brands, setBrands] = useState<ServiceBrand[]>([]); const [orders, setOrders] = useState<{ orderId: string; packName: string }[]>([]);
+  const [brands, setBrands] = useState<ServiceBrand[]>([]);
   const [ticket, setTicket] = useState<Ticket | null>(null); const [error, setError] = useState(''); const [notice, setNotice] = useState(location.state?.cancelled ? say('Request cancelled.', 'கோரிக்கை ரத்து செய்யப்பட்டது.') : ''); const [busy, setBusy] = useState(false);
   const [subscriberId, setSubscriberId] = useState(prefill?.subscriberId || ''); const [terms, setTerms] = useState(false); const [payment, setPayment] = useState<Record<string, string> | null>(null);
   const [review, setReview] = useState<Record<string, unknown> | null>(null);
@@ -31,7 +31,6 @@ export function HelpPage({ user, currentLang, onOpenAuth }: { user: UserProfile 
   useEffect(() => { let active = true;
     if (user && typeof location.state?.ticketId === 'string') ticketApi(`/${encodeURIComponent(location.state.ticketId)}`).then(data => { if (active && auth?.currentUser?.uid === user.uid) { setTicket(data.ticket); setBrandId(data.ticket.brand); setSubscriberId(data.ticket.subscriberId); setFullAddress(data.ticket.fullAddress || ''); setPinCode(savedPinCode(data.ticket)); } }).catch(() => { if (active) setError('Ticket could not be loaded.'); });
     fetch('/api/service-brands', { cache: 'no-store' }).then(async response => { if (!response.ok) throw new Error(); const data = await response.json(); if (active) setBrands(serviceBrandsSchema.parse(data.brands).filter(brand => brand.enabled)); }).catch(() => { if (active) setError(say('Brands could not be loaded. Please refresh.', 'நிறுவனங்களை ஏற்ற முடியவில்லை. மீண்டும் முயலவும்.')); });
-    if (user) (async () => { try { const response = await fetch('/api/my/history?limit=100', { headers: await paymentAuthHeaders(), cache: 'no-store' }); const data = await response.json(); if (active && response.ok && auth?.currentUser?.uid === user.uid) setOrders(data.orders || []); } catch { /* Linking an order is optional. */ } })();
     return () => { active = false; };
   }, [user?.uid]);
   async function verify(value: Record<string, string>) {
@@ -70,13 +69,12 @@ export function HelpPage({ user, currentLang, onOpenAuth }: { user: UserProfile 
       <fieldset hidden={!!review} disabled={busy || !!review} className="space-y-5">
       <label className="block">{say('Phone', 'தொலைபேசி')}<input name="phone" autoComplete="tel-national" inputMode="tel" pattern="[6-9][0-9]{9}" maxLength={10} required defaultValue={prefill?.phone || user.phoneNumber?.replace(/^\+91/, '')} className="mt-1 block w-full border border-rule rounded-xl p-3" /></label>
       <label className="block">{say('Brand', 'நிறுவனம்')}<select value={brandId} onChange={event => setBrandId(event.target.value)} required={dth} className="mt-1 block w-full border border-rule rounded-xl p-3"><option value="">{say('Select brand', 'நிறுவனத்தைத் தேர்ந்தெடுக்கவும்')}</option>{brands.map(brand => <option key={brand.id} value={brand.id}>{brand.displayName}</option>)}</select></label>
-      <fieldset><legend className="mb-2 font-medium">{say("What's the problem?", 'என்ன பிரச்சனை?')}</legend><div className="flex flex-wrap gap-2">{[...Object.keys(helpProblems), 'other'].map(key => <button key={key} type="button" aria-pressed={problem === key} onClick={() => { setProblem(key); if (key !== 'other') setDescription(''); }} className={`min-h-11 rounded-full border px-3 py-2 text-sm ${problem === key ? 'bg-brand text-white border-brand' : 'border-rule'}`}>{key === 'other' ? say('Something else', 'வேறு பிரச்சனை') : helpProblems[key as keyof typeof helpProblems][currentLang === 'ta' ? 'ta' : 'en']}</button>)}</div></fieldset>
+      <fieldset><legend className="mb-2 font-medium">{say("What's the problem?", 'என்ன பிரச்சனை?')}</legend><div className="flex flex-wrap gap-2">{[...visibleProblems, 'other'].map(key => <button key={key} type="button" aria-pressed={problem === key} onClick={() => { setProblem(key); if (key !== 'other') setDescription(''); }} className={`min-h-11 rounded-full border px-3 py-2 text-sm ${problem === key ? 'bg-brand text-white border-brand' : 'border-rule'}`}>{key === 'other' ? say('Something else', 'வேறு பிரச்சனை') : helpProblems[key as keyof typeof helpProblems][currentLang === 'ta' ? 'ta' : 'en']}</button>)}</div></fieldset>
       {problem !== 'other' && description && <div className="rounded-lg border border-rule p-3 text-sm"><p className="whitespace-pre-wrap">{description}</p><button type="button" className="underline mt-2" onClick={() => setProblem('other')}>{say('Edit details', 'விவரங்களைத் திருத்தவும்')}</button></div>}
       {dth && <label className="block">{brand?.subscriberIdLabel || say('Subscriber ID', 'வாடிக்கையாளர் எண்')}<input inputMode="numeric" pattern="[0-9]+" required minLength={brand?.minLength} maxLength={brand?.maxLength || 25} value={subscriberId} onChange={event => setSubscriberId(event.target.value)} placeholder={brand?.placeholder} className="mt-1 block w-full border border-rule rounded-xl p-3" /></label>}
       {dth && <CustomerDthLookup operator={brandId} subscriberId={subscriberId} user={user} currentLang={currentLang} onOpenAuth={onOpenAuth} />}
       {dth && <HelpAddressFields address={fullAddress} pinCode={pinCode} onAddressChange={setFullAddress} onPinChange={setPinCode} language={currentLang} showErrors={addressAttempted} />}
       {problem === 'other' && <label className="block">{say('Tell us briefly', 'சுருக்கமாகக் கூறுங்கள்')}<textarea name="description" required minLength={5} maxLength={1000} rows={4} value={description} onChange={event => setDescription(event.target.value)} className="mt-1 block w-full border border-rule rounded-xl p-3" /><span className="text-xs text-muted">{description.length}/1000</span></label>}
-      {['recharge_failed', 'payment_deducted', 'refund'].includes(problem) && <label className="block">{say('Recent order (optional)', 'சமீபத்திய ஆர்டர் (விருப்பம்)')}<select name="orderId" key={orders.length} defaultValue={prefill?.orderId} className="mt-1 block w-full border border-rule rounded-xl p-3"><option value="">{say('No linked order', 'ஆர்டர் இல்லை')}</option>{orders.map(order => <option key={order.orderId} value={order.orderId}>{order.orderId} - {order.packName}</option>)}</select></label>}
       <div hidden aria-hidden="true"><input name="website" tabIndex={-1} autoComplete="off" /></div>
       </fieldset>
       {review && <section className="space-y-3" aria-label="Review support request">

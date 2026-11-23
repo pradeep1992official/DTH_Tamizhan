@@ -90,7 +90,7 @@ export function BookingPage({ data, items, lang, user, onOpenAuth }: { data: Cat
     const response = await fetch(`/api/new-connection/orders${path}`, { method: body ? 'POST' : 'GET', headers: await paymentAuthHeaders(), cache: 'no-store', ...(body ? { body: JSON.stringify(body) } : {}) }); const value = await response.json();
     if (!response.ok) { if (value.code === 'PRICE_CHANGED' && value.quote) { setServerQuote(value.quote); setTerms(false); setContact(false); setStep(3); } throw new Error(message(value.code || (response.status === 429 ? 'RATE_LIMITED' : undefined))); } return value;
   }
-  async function checkStatus(id: string) { const result = await request(`/${id}`); setOrder(result.order); if (result.verificationPending) setNotice(t.nbStatusUnavailable); return result; }
+  async function checkStatus(id: string) { const result = await request(`/${id}`); setOrder(result.order); setNotice(result.verificationPending ? t.nbStatusUnavailable : ''); return result; }
   useEffect(() => { let cancelled = false; if (orderId && user) request(`/${orderId}`).then(r => { if (!cancelled) setOrder(r.order); }).catch(() => { if (!cancelled) setNotice(t.nbGenericError); }); return () => { cancelled = true; }; }, [orderId, user?.uid]);
   useEffect(() => {
     if (!order || order.uid !== user?.uid || !order.amountDueNow || !['pending', 'awaiting_admin_confirmation'].includes(order.paymentStatus)) return;
@@ -159,9 +159,7 @@ export function BookingPage({ data, items, lang, user, onOpenAuth }: { data: Cat
 
   if (orderId && !user) return <section className="connection-state"><p>{t.nbGoogleOnly}</p><button onClick={onOpenAuth}>{t.nbGoogle}</button></section>;
   if (order && order.uid === user?.uid) {
-    const recipient = whatsappRecipient(BUSINESS_DETAILS.phone);
-    const whatsapp = recipient ? `https://wa.me/${recipient}?text=${encodeURIComponent([`${t.nbBookingId}: ${order.bookingId}`, `${t.nbName}: ${order.customer.name}`, `${t.ncBrand}: ${order.snapshot.brand}`, `${t.ncPack}: ${order.snapshot.pack}`, `${t.nbPincode}: ${order.customer.pincode}`, `${t.nbDate}: ${order.customer.preferredDate} · ${slotText(order.customer.preferredSlot)}`].join('\n'))}` : '';
-    return <BookingConfirmation expanded={confirmationExpanded} onToggle={() => setConfirmationExpanded(value => !value)} order={order} item={items.find(value => value.pack.id === order.packId)} lang={lang} notice={notice} busy={busy} refundPolicy={settings.refundPolicy} whatsapp={whatsapp} receipt={breakdown({ ...order, balanceAtInstallation: withConnectionLedger(order).balance })}
+    return <BookingConfirmation expanded={confirmationExpanded} onToggle={() => setConfirmationExpanded(value => !value)} order={order} item={items.find(value => value.pack.id === order.packId)} lang={lang} notice={notice} busy={busy} refundPolicy={settings.refundPolicy} receipt={breakdown({ ...order, balanceAtInstallation: withConnectionLedger(order).balance })}
       onCopy={() => { if (!navigator.clipboard) { setNotice(lang === 'en' ? 'Select and copy the booking number above.' : t.nbBookingId); return; } navigator.clipboard.writeText(order.bookingId).then(() => setNotice(lang === 'en' ? 'Booking number copied.' : t.nbBookingId)).catch(() => setNotice(lang === 'en' ? 'Could not copy. Select and copy the booking number above.' : t.nbBookingId)); }}
       onCheck={() => { setBusy(true); checkStatus(order.id).catch(() => setNotice(t.nbStatusUnavailable)).finally(() => setBusy(false)); }} onRetry={retry}
       onRestart={() => { try { sessionStorage.removeItem(storageKey); } catch {} navigate('/new-connection'); }} />;

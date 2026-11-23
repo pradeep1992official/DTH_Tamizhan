@@ -69,7 +69,7 @@ export function AccountPage({ recharge = clientRechargeEnabled(), hasPastRecharg
       <div><h1>{t.uiYourAccount}</h1><p>{recharge ? copy.intro : t.launchAccountIntro}</p></div>
       {user && onSignOut && <button type="button" className="account-signout" onClick={onSignOut}>{t.signOut}</button>}
     </header>
-    {user ? <div className="account-grid"><section className="account-card"><h2>{t.ctTitle}</h2><p>{t.ctIntro}</p><Link to="/account/bookings">{t.ctTitle}</Link></section>
+    {user ? <div className="account-grid">
       <section className="account-card account-profile">
         <div className="account-identity">
           <span className="account-avatar" aria-hidden="true">{Array.from(displayName)[0]?.toLocaleUpperCase()}</span>
@@ -96,8 +96,9 @@ export function AccountPage({ recharge = clientRechargeEnabled(), hasPastRecharg
         <Link className="account-text-link" to="/privacy-policy"><span className="link-label">{copy.privacy}</span> <span className="link-arrow" aria-hidden="true">&rarr;</span></Link>
       </section>
       <div className="account-secondary">
+        <section className="account-card account-bookings"><h2>{t.ctTitle}</h2><p>{t.ctIntro}</p><Link className="account-primary" to="/account/bookings">{t.ctTitle}<span aria-hidden="true">&nbsp;&rarr;</span></Link></section>
         <section className="account-card"><h2>{ta ? 'உள்நுழைவு முறைகள்' : 'Sign-in methods'}</h2><p className="text-sm text-muted mt-2 mb-4">{ta ? 'இதே கணக்கில் மின்னஞ்சல் கடவுச்சொல் அல்லது சரிபார்த்த தொலைபேசி எண்ணைச் சேர்க்கவும்.' : 'Add email/password or a verified phone number to this account, keeping your boxes and history together.'}</p><button type="button" className="account-primary" onClick={onOpenAuth}>{ta ? 'உள்நுழைவு முறைகளை நிர்வகிக்கவும்' : 'Manage sign-in methods'}</button></section>
-        {recharge ? (<section className="account-card"><h2>{ta ? 'உங்கள் ரீசார்ஜ் வரலாறு' : 'Your recharge history'}</h2><p className="text-sm text-muted mt-2 mb-4">{ta ? 'அனைத்து பாக்ஸ்களின் ரீசார்ஜ், கட்டண நிலை மற்றும் ரசீதுகளைப் பார்க்கவும்.' : 'View recharges, payment status and PDF receipts for all your boxes.'}</p><Link className="account-primary" to="/history">{ta ? 'வரலாற்றைப் பார்க்கவும்' : 'View history'}</Link></section>) : hasPastRecharges && <section className="account-card"><h2>{t.launchPast}</h2><Link className="account-text-link" to="/history">{t.launchPast}</Link></section>}
+        {recharge ? (<section className="account-card"><h2>{ta ? 'உங்கள் ரீசார்ஜ் வரலாறு' : 'Your recharge history'}</h2><p className="text-sm text-muted mt-2 mb-4">{ta ? 'அனைத்து பாக்ஸ்களின் ரீசார்ஜ், கட்டண நிலை மற்றும் ரசீதுகளைப் பார்க்கவும்.' : 'View recharges, payment status and PDF receipts for all your boxes.'}</p><Link className="account-primary" to="/history">{ta ? 'வரலாற்றைப் பார்க்கவும்' : 'View history'}</Link></section>) : null}
 {recharge && (        <section className="account-card">
           <div className="account-card-heading"><h2>{copy.boxes}</h2><span className="account-count">{saved.length}</span></div>
           {saved.length ? <ul className="account-boxes">{saved.slice(0, 3).map(connection => <li key={connection.id}>

@@ -1,3 +1,4 @@
+import { ProviderBookingDetails } from './ProviderBookingDetails';
 import { bookingRefundPolicy } from '../../lib/newConnectionPolicy';
 import React from 'react';
 import { Link } from 'react-router-dom';
@@ -9,14 +10,14 @@ import { packDisplayName, packageCardLabel, validityLabel } from '../../lib/newC
 import { confirmationAddress, reviewDate } from '../../lib/newConnectionReview';
 import { connectionStatusLabel } from '../../lib/newConnectionTrackingCopy';
 import { translations } from '../../lib/translations';
-import { Check, Copy } from '../../lib/icons';
+import { Check, Clock, Copy, Ticket, Printer, ArrowLeft } from '../../lib/icons';
 import { PackageImage } from './PackageImage';
 import { currency } from './Shared';
 import type { VisiblePack } from '../../lib/newConnectionBrowse';
 import { PackQualityChip } from './PackChips';
 
-export function BookingConfirmation({ order, item, lang, notice, busy, expanded = false, onToggle, refundPolicy, whatsapp, receipt, onCopy, onCheck, onRetry, onRestart }: {
-  expanded?: boolean; onToggle: () => void; order: NewConnectionOrder; item?: VisiblePack; lang: Language; notice: string; busy: boolean; refundPolicy: string; whatsapp: string;
+export function BookingConfirmation({ order, item, lang, notice, busy, expanded = false, onToggle, refundPolicy, receipt, onCopy, onCheck, onRetry, onRestart }: {
+  expanded?: boolean; onToggle: () => void; order: NewConnectionOrder; item?: VisiblePack; lang: Language; notice: string; busy: boolean; refundPolicy: string;
   receipt: React.ReactNode; onCopy: () => void; onCheck: () => void; onRetry: () => void; onRestart: () => void;
 }) {
   const t = translations[lang];
@@ -25,28 +26,33 @@ export function BookingConfirmation({ order, item, lang, notice, busy, expanded 
   const noPayment = order.amountDueNow === 0;
   const pending = !paid && !noPayment && ['pending', 'awaiting_admin_confirmation'].includes(order.paymentStatus);
   const expired = Date.now() - Date.parse(order.createdAt) >= 24 * 3600000;
-  const confirmed = ['scheduled', 'installed'].includes(order.status);
+  const confirmed = ['booked', 'scheduled', 'installed'].includes(order.status);
   const packageType = packPackageType({ name: order.snapshot.pack });
   const slot = ({ Morning: t.nbMorning, Afternoon: t.nbAfternoon, Evening: t.nbEvening, Any: t.nbAny })[order.customer.preferredSlot];
   const title = ['cancelled', 'refund_initiated', 'refunded'].includes(order.status) ? connectionStatusLabel(order.status, lang) : confirmed || paid ? lang === 'en' ? 'Booking confirmed' : t.nbReceived : t.nbReceived;
   const paymentLabel = order.amountRefunded > 0 ? connectionStatusLabel(order.paymentStatus, lang) : paid ? lang === 'en' ? 'Paid' : t.nbPaid : noPayment ? lang === 'en' ? 'No online payment' : t.nbNoneHint : connectionStatusLabel(order.paymentStatus, lang);
-  return <section className="connection-booking-receipt connection-confirmation">
+  return <section className="connection-booking-receipt connection-confirmation receipt-print">
     <header className="connection-confirmation-header">
-      <span className="connection-confirmation-tick" aria-hidden="true"><Check size={64} /></span>
-      <div className="connection-confirmation-hero-copy"><h1>{title}</h1>{paid && <p className="connection-confirmation-success-note">{lang === 'en' ? 'Payment successful. Our team will confirm your installation appointment.' : t.nbNoTerms}</p>}<p>{t.nbBookingId}</p><div className="connection-confirmation-reference"><strong>{order.bookingId}</strong><button type="button" className="connection-no-print" aria-label={lang === 'en' ? 'Copy booking number' : t.nbBookingId} title={lang === 'en' ? 'Copy booking number' : t.nbBookingId} onClick={onCopy}><Copy size={20} aria-hidden="true" /></button></div></div>
+      <div className="connection-confirmation-toolbar connection-no-print">
+        <Link className="connection-confirmation-back" to="/new-connection"><ArrowLeft size={18} aria-hidden="true" />{t.ncBack}</Link>
+        <nav className="connection-confirmation-tools" aria-label={lang === 'en' ? 'Booking actions' : t.nbReview}>
+          <Link to="/account/bookings" aria-label={lang === 'en' ? 'My Bookings' : t.ctTitle} title={lang === 'en' ? 'My Bookings' : t.ctTitle}><Ticket size={20} aria-hidden="true" /></Link>
+          <button type="button" onClick={() => window.print()} aria-label={t.nbPrint} title={t.nbPrint}><Printer size={20} aria-hidden="true" /></button>
+        </nav>
+      </div>
+      <span className="connection-confirmation-tick" data-pending={pending} aria-hidden="true">{pending ? <Clock size={52} /> : <Check size={64} />}</span>
+      <div className="connection-confirmation-hero-copy"><h1>{title}</h1>{pending && <p className="connection-confirmation-pending-note">{lang === 'en' ? 'Payment confirmation pending' : t.ctVerifying}</p>}{paid && <p className="connection-confirmation-success-note">{lang === 'en' ? 'Payment successful. Our team will confirm your installation appointment.' : t.nbNoTerms}</p>}<p>{t.nbBookingId}</p><div className="connection-confirmation-reference"><strong>{order.bookingId}</strong><button type="button" className="connection-no-print" aria-label={lang === 'en' ? 'Copy booking number' : t.nbBookingId} title={lang === 'en' ? 'Copy booking number' : t.nbBookingId} onClick={onCopy}><Copy size={20} aria-hidden="true" /></button></div></div>
       <button type="button" className="connection-confirmation-toggle connection-no-print" aria-expanded={expanded} aria-controls="connection-confirmation-details" onClick={onToggle}>{lang === 'en' ? expanded ? 'Hide booking details' : 'View booking details' : t.nbReview}</button>
-    </header>
-    {order.provider === 'razorpay' && order.testMode === true && <div className="connection-confirmation-test" role="status">{t.nbTest}</div>}
-    {pending && <p className="connection-feedback">{t.nbPendingHint}</p>}
     <nav className="connection-confirmation-actions connection-no-print" aria-label={lang === 'en' ? 'Booking actions' : t.nbReview}>
-      <Link className="connection-primary" to="/account/bookings">{lang === 'en' ? 'My Bookings' : t.ctTitle}</Link>
-      <button type="button" onClick={() => window.print()}>{t.nbPrint}</button>
-      {whatsapp && <a href={whatsapp} target="_blank" rel="noopener noreferrer">WhatsApp</a>}
-      <Link to="/new-connection">{t.ncBack}</Link>
       {pending && <button type="button" disabled={busy} onClick={onCheck}>{t.nbCheck}</button>}
-      {pending && !expired && order.paymentStatus === 'pending' && !(order.provider === 'youpi' && ['EXPIRED', 'FAILED', 'CANCELLED'].includes(String(order.providerRaw.status))) && <button type="button" disabled={busy} onClick={onRetry}>{t.nbRetry}</button>}
+      {!paid && !noPayment && !expired && order.paymentStatus === 'failed' && !(order.provider === 'youpi' && ['EXPIRED', 'FAILED', 'CANCELLED'].includes(String(order.providerRaw.status))) && <button type="button" disabled={busy} onClick={onRetry}>{t.nbRetry}</button>}
       {expired && !paid && !noPayment && <><p>{t.nbExpired}</p><button type="button" onClick={onRestart}>{t.nbClear}</button></>}
     </nav>
+    </header>
+    {order.provider === 'razorpay' && order.testMode === true && <div className="connection-confirmation-test" role="status">{t.nbTest}</div>}
+    {pending && <p className="connection-feedback" role="status">{t.nbPendingHint}</p>}
+
+    <ProviderBookingDetails order={order} lang={lang} />
     <div id="connection-confirmation-details" className="connection-confirmation-expanded" hidden={!expanded}>
     <div className="connection-confirmation-sections">
       <section className="connection-confirmation-disclosure"><h2>{t.nbPlan}</h2><div className="connection-confirmation-plan"><div className="connection-confirmation-plan-identity"><p>{order.snapshot.brand}</p><h3>{packDisplayName(order.snapshot.pack)}</h3>{item && <p className="connection-confirmation-channel-count">{item.counts.channelCount} {t.ncChannels} &middot; {item.counts.hdChannelCount} HD</p>}</div><div className="connection-confirmation-product"><PackageImage brand={order.snapshot.brand} pack={order.snapshot.pack} packageType={packageType} boxType={order.snapshot.boxType} /></div><div className="connection-pack-chips">{item && <PackQualityChip pack={item.pack} hdCount={item.counts.hdChannelCount} />}{packageType && <span className="connection-pack-chip connection-pack-box">{packageCardLabel(packageType, lang)}</span>}<span className="connection-pack-chip connection-validity-chip">{validityLabel(order.selectedValidityDays, lang, order.selectedValidityMonths)}</span></div></div></section>
@@ -59,7 +65,7 @@ export function BookingConfirmation({ order, item, lang, notice, busy, expanded 
     <section className="connection-confirmation-disclosure connection-confirmation-next"><h2>{lang === 'en' ? 'What happens next' : t.nbNoTerms}</h2><div className="connection-confirmation-detail-body"><ol><li>{lang === 'en' ? 'Confirmation call within 24 to 48 hours to arrange your installation.' : t.nbNoTerms}</li><li>{lang === 'en' ? 'Technician visit on or near your preferred date, subject to availability and confirmation.' : t.nbDate}</li><li>{lang === 'en' ? 'Activation after installation and operator checks.' : t.nbOffer}</li></ol><p>{t.nbRefund}: {bookingRefundPolicy(refundPolicy, lang).split(/(?<=[.!?])\s|\n/)[0]}</p></div></section>
 
     </div>
-    {notice && <p role="status">{notice}</p>}
+    {notice && notice !== t.nbPendingHint && <p role="status">{notice}</p>}
 
   </section>;
 }

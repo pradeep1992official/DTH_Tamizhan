@@ -27,7 +27,7 @@ it('keeps legacy URLs as redirects and all assistant support entry points at /he
   const app = readFileSync('src/App.tsx', 'utf8');
   for (const path of ['/support', '/service-request']) expect(app).toContain(`path="${path}" element={<Navigate to="/help"`);
   expect(readFileSync('src/components/AssistantSupportCard.tsx', 'utf8')).toContain("navigate('/help'");
-  expect(readFileSync('src/components/Header.tsx', 'utf8')).toContain('href="/help"');
+  expect(readFileSync('src/components/Header.tsx', 'utf8')).toContain('href="/service-request"');
 });
 it('renders separate required PIN input and errors immediately below each invalid field', () => {
   const html = renderToStaticMarkup(<HelpAddressFields address="" pinCode="123" onAddressChange={vi.fn()} onPinChange={vi.fn()} language="en" showErrors />);
@@ -37,4 +37,12 @@ it('renders separate required PIN input and errors immediately below each invali
   const validAddress = renderToStaticMarkup(<HelpAddressFields address="12 East Street, Thirukoilur, Tamil Nadu" pinCode="123" onAddressChange={vi.fn()} onPinChange={vi.fn()} language="en" showErrors />);
   expect(validAddress.match(/role="alert"/g)).toHaveLength(1);
   expect(validAddress).toContain('six-digit PIN code');
+});
+
+it('hides recharge failure and recharge order linking from the service form', () => {
+  const html = render({ ticketPrefill: { issueCategory: 'recharge_failed' } });
+  expect(html).not.toContain('Recharge failed');
+  expect(html).not.toContain('Recent order');
+  expect(html).toContain('No signal / box not working');
+  expect(html).toContain('Refund');
 });

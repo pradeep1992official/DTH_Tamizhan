@@ -24,16 +24,16 @@ it('makes the home hero about authorized new connections, with working booking/c
   const en = render(<LaunchHome currentLang="en" />); expect(en).toContain('Authorized dealer'); expect(en).toContain('set-top box'); expect(en).toContain('href="/new-connection"'); expect(en).toContain('href="/account/bookings"'); expect(en).not.toMatch(/href="\/(?:recharge|plans|connections)"/);
   expect(render(<LaunchHome currentLang="ta" />)).toContain('புதிய DTH');
 });
-it('shows a read-only past link only for an account with confirmed historical orders', () => {
+it('keeps past recharges hidden from the account while preserving booking access', () => {
   for (const has of [false, true]) {
     const html = render(<AccountPage recharge={false} hasPastRecharges={has} user={user} currentLang="en" onOpenAuth={() => {}} />);
-    expect(html.includes('href="/history"')).toBe(has); expect(html).not.toContain('href="/recharge"'); expect(html).not.toContain('href="/plans"'); expect(html).not.toContain('href="/connections"'); expect(html).toContain('href="/account/bookings"');
+    expect(html).not.toContain('href="/history"'); expect(html).not.toContain('href="/recharge"'); expect(html).not.toContain('href="/plans"'); expect(html).not.toContain('href="/connections"'); expect(html).toContain('href="/account/bookings"');
   }
   const guest = render(<AccountPage recharge={false} user={null} currentLang="ta" onOpenAuth={() => {}} />); expect(guest).toContain('href="/new-connection"'); expect(guest).not.toContain('href="/history"');
 });
-it('keeps the original recharge navigation and account entries when enabled', () => {
+it('keeps the navbar focused on bookings and service while recharge account entries remain available when enabled', () => {
   setClientRechargeEnabled(true);
-  const html = render(<Header currentLang="en" user={null} onLanguageChange={() => {}} onOpenAuth={() => {}} onUpdateProfile={async () => {}} onSignOut={() => {}} activeTab="recharge" onTabChange={() => {}} currentTheme={getOperatorTheme('sun_direct')} />); expect(html).toContain('id="nav-recharge-btn"'); expect(html).toContain('id="mobile-nav-plans-btn"');
+  const html = render(<Header currentLang="en" user={null} onLanguageChange={() => {}} onOpenAuth={() => {}} onUpdateProfile={async () => {}} onSignOut={() => {}} activeTab="recharge" onTabChange={() => {}} currentTheme={getOperatorTheme('sun_direct')} />); expect(html).not.toContain('id="nav-recharge-btn"'); expect(html).not.toContain('id="mobile-nav-plans-btn"'); expect(html).toContain('id="nav-bookings-btn"'); expect(html).toContain('Service Request'); expect(html).toContain('Profile');
   const account = render(<AccountPage user={user} currentLang="en" onOpenAuth={() => {}} />); expect(account).toContain('href="/recharge"'); expect(account).toContain('href="/history"');
 });
 it('uses accurate launch-specific policy copy and marks missing business decisions in both languages', () => {

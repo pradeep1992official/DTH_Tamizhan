@@ -76,3 +76,44 @@
 .connection-history-author summary{font-size:11px;color:var(--color-muted);cursor:pointer;margin-top:4px}
 @media(max-width:600px){.connection-admin .connection-drawer{padding:0 12px 12px}.connection-drawer .connection-drawer-heading{padding-block:10px}.connection-action-form .catalog-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.connection-drawer .connection-contact-actions a{min-height:40px}.connection-drawer nav.nc-toolbar button{min-height:44px}}
 @media(max-width:380px){.connection-action-form .catalog-fields{grid-template-columns:minmax(0,1fr)}.connection-money-grid{gap:4px}.connection-money-grid>div{padding:6px}.connection-money-grid strong{font-size:14px}.connection-drawer nav.nc-toolbar button{flex-direction:column;gap:3px}}
+
+.connection-drawer .connection-admin-pack-name{display:block;margin-top:4px;font-weight:400;font-size:13px;line-height:1.5;color:var(--color-muted)}
+.connection-drawer nav.nc-toolbar button:disabled{opacity:.5;cursor:not-allowed}
+
+.connection-refund-guidance{grid-column:1/-1;padding:10px 12px;border:1px solid var(--color-rule);border-radius:6px;background:var(--color-paper-2)}
+.connection-refund-guidance p{margin:0;font-size:12px;line-height:1.6}
+.connection-refund-guidance p+p{margin-top:4px}
+
+/* Maintain readable columns instead of squeezing text behind the sticky action. */
+.connection-admin table{min-width:1160px;table-layout:auto}
+.connection-admin :is(th,td){padding-inline:12px}
+.connection-admin :is(th,td):nth-child(2){min-width:110px}
+.connection-admin :is(th,td):nth-child(3){min-width:170px}
+.connection-admin :is(th,td):nth-child(4){min-width:110px}
+.connection-admin :is(th,td):nth-child(7){min-width:140px}
+.connection-admin :is(th,td):nth-child(8){min-width:145px;padding-right:18px}
+.connection-admin td small{display:block}
+.connection-table-status{display:inline-block;padding:4px 7px;border-radius:5px;background:var(--color-accent-soft);font-size:12px;line-height:1.4}
+.connection-table-status[data-paid="true"]{background:#e8f5eb;color:#216334}
+.connection-admin .connection-table-booking-status{margin-top:6px;color:var(--color-muted);font-size:12px}
+
+/* Use compact booking cards when the full table cannot fit. */
+@media(max-width:1100px){
+ .connection-admin .connection-bookings-results{overflow:visible;border:0;border-radius:0}
+ .connection-admin .connection-bookings-results table{display:block;min-width:0;width:100%}
+ .connection-bookings-results thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+ .connection-bookings-results tbody{display:grid;gap:12px}
+ .connection-bookings-results tbody tr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;padding:16px;border:1px solid var(--color-rule);border-radius:10px;background:var(--color-paper)}
+ .connection-admin .connection-bookings-results :is(td,td:last-child){position:static;display:block;width:auto;min-width:0;padding:0;border:0;box-shadow:none;background:transparent;white-space:normal;overflow-wrap:anywhere}
+ .connection-bookings-results td::before{content:attr(data-label);display:block;margin-bottom:5px;color:var(--color-muted);font-size:11px;font-weight:400}
+ .connection-bookings-results td:first-child{grid-column:1/-1;border-bottom:1px solid var(--color-rule);padding-bottom:10px}
+ .connection-bookings-results td:first-child::before,.connection-bookings-results td:last-child::before{display:none}
+ .connection-bookings-results td:last-child{display:flex;align-items:end;justify-content:flex-end}
+ .connection-admin .connection-bookings-results tbody tr:hover td{background:transparent}
+}
+@media(max-width:540px){.connection-bookings-results tbody tr{grid-template-columns:repeat(2,minmax(0,1fr));padding:14px;gap:12px}.connection-bookings-results td:last-child{grid-column:1/-1}.connection-bookings-results td:last-child button{width:100%}}
+
+.connection-provider-booking-hint{grid-column:1/-1;font-size:12px;color:var(--color-muted);line-height:1.6}
+.connection-drawer .connection-provider-booking dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.connection-drawer .connection-provider-booking dt{font-size:12px;color:var(--color-muted)}
+.connection-drawer .connection-provider-booking dd{margin:4px 0 0;font-weight:600;overflow-wrap:anywhere}

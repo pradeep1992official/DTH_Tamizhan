@@ -1,3 +1,4 @@
+import { ProviderBookingDetails } from '../src/components/NewConnection/ProviderBookingDetails';
 import React from 'react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import type { NewConnectionOrder } from '../src/lib/newConnectionOrders';
@@ -27,4 +28,13 @@ it('offers cancellation only before scheduling, submits owner-authenticated requ
   render(); f.values[0] = [order()]; const button = nodes(render()).find(n => n.type === 'button' && text(n) === 'Request cancellation'); button.props.onClick(); f.values[7] = 'Changed plan'; const form = nodes(render()).find(n => n.type === 'form'); await form.props.onSubmit({ preventDefault() {} });
   expect(f.fetch).toHaveBeenCalledWith(expect.stringContaining('/cancellation'), expect.objectContaining({ method: 'POST', headers: { Authorization: 'Bearer buyer' }, body: JSON.stringify({ customerReason: 'Changed plan' }) })); expect(text(render())).toContain('Cancellation requested'); expect(nodes(render()).some(n => n.type === 'button' && text(n) === 'Request cancellation')).toBe(false);
   f.values[0] = [order({ status: 'scheduled' })]; expect(nodes(render()).some(n => n.type === 'button' && text(n) === 'Request cancellation')).toBe(false);
+});
+
+it('shows the saved provider references with clear labels and hides the section until added', () => {
+  expect(ProviderBookingDetails({ order: order(), lang: 'en' })).toBeNull();
+  const details = ProviderBookingDetails({ order: order({ providerCustomerId: 'CUST-001', providerBookingId: 'PROV-123' }), lang: 'en' });
+  expect(text(details)).toContain('Provider customer ID CUST-001');
+  expect(text(details)).toContain('Provider booking ID PROV-123');
+  render(); f.values[0] = [order({ providerCustomerId: 'CUST-001', providerBookingId: 'PROV-123' })];
+  expect(nodes(render()).some(node => node.type === ProviderBookingDetails && node.props.order.providerCustomerId === 'CUST-001')).toBe(true);
 });

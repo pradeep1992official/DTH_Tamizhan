@@ -57,7 +57,7 @@ export async function recordConnectionCollection(id: string, actor: string, inpu
 }
 export async function changeConnectionStatus(id: string, actor: string, input: unknown) {
   validConnectionId(id);
-  const value = z.object({ status: bookingStatusSchema, visibleNote: note, privateNote: note, reason: note, schedule: z.object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(s => !Number.isNaN(Date.parse(s)) && new Date(s).toISOString().slice(0, 10) === s), slot: z.enum(['Morning', 'Afternoon', 'Evening', 'Any']) }).optional(), cancellationResponse: z.enum(['accepted', 'declined']).optional(), idempotencyKey: z.string().uuid() }).strict().parse(input);
+  const value = z.object({ status: bookingStatusSchema, providerCustomerId: z.string().trim().min(1).max(128).optional(), providerBookingId: z.string().trim().min(1).max(128).optional(), visibleNote: note, privateNote: note, reason: note, schedule: z.object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(s => !Number.isNaN(Date.parse(s)) && new Date(s).toISOString().slice(0, 10) === s), slot: z.enum(['Morning', 'Afternoon', 'Evening', 'Any']) }).optional(), cancellationResponse: z.enum(['accepted', 'declined']).optional(), idempotencyKey: z.string().uuid() }).strict().parse(input);
   const db = getAdminFirestore(); const operationId = connectionHash(`status:${id}:${value.idempotencyKey}`); const fingerprint = connectionHash(JSON.stringify(value));
   const result = await db.runTransaction(async tx => {
     const ref = db.doc(`newConnectionOrders/${id}`), secret = db.doc(`server_new_connection_private/${id}`), fence = db.doc('server_runtime/newConnectionOrders'), op = db.doc(`server_new_connection_operations/${operationId}`);
@@ -67,14 +67,16 @@ export async function changeConnectionStatus(id: string, actor: string, input: u
     if (previous.exists) { if (previous.data()?.fingerprint !== fingerprint) throw new BookingError('IDEMPOTENCY_CONFLICT'); return current; }
     if (value.cancellationResponse && current.cancellationRequest?.status !== 'open') throw new BookingError('NO_OPEN_CANCELLATION');
     const decline = value.cancellationResponse === 'declined';
-    const noteOnly = value.status === current.status && !value.cancellationResponse && Boolean(value.privateNote || value.visibleNote) && !value.reason;
+    const noteOnly = value.status === current.status && !value.cancellationResponse && Boolean(value.privateNote || value.visibleNote || value.providerCustomerId || value.providerBookingId) && !value.reason;
     if (decline ? value.status !== current.status : !noteOnly && !connectionTransitions[current.status].includes(value.status)) throw new BookingError('INVALID_TRANSITION');
     if (!decline && !noteOnly && value.status === 'cancelled' && value.reason.trim().length < 5) throw new BookingError('PRIVATE_REASON_REQUIRED', 400);
     if (value.cancellationResponse === 'accepted' && value.status !== 'cancelled') throw new BookingError('INVALID_TRANSITION');
     if (value.status === 'scheduled' && !decline && !noteOnly && !value.schedule) throw new BookingError('SCHEDULE_REQUIRED', 400);
+    if (!decline && value.status === 'booked' && !(value.providerCustomerId || current.providerCustomerId)) throw new BookingError('PROVIDER_CUSTOMER_ID_REQUIRED', 400);
+    if (!decline && value.status === 'booked' && !(value.providerBookingId || current.providerBookingId)) throw new BookingError('PROVIDER_BOOKING_ID_REQUIRED', 400);
     const at = new Date().toISOString();
-    const updated: NewConnectionOrder = { ...current, status: value.status, updatedAt: at, schedule: value.status === 'scheduled' && !decline && !noteOnly ? value.schedule! : current.schedule, installedAt: value.status === 'installed' && !decline && !noteOnly ? at : current.installedAt, cancellationRequest: current.cancellationRequest && (value.cancellationResponse || value.status === 'cancelled') ? { ...current.cancellationRequest, status: value.cancellationResponse || 'accepted' } : current.cancellationRequest, statusHistory: noteOnly && !value.visibleNote ? current.statusHistory : [...current.statusHistory, { status: decline ? 'cancellation_declined' : noteOnly ? 'note_added' : value.status, at, by: actor, note: value.visibleNote }].slice(-100) };
-    tx.set(ref, updated); tx.set(fence, { updatedAt: at }); tx.create(op, { fingerprint, orderId: id, type: 'status', actor, status: updated.status, visibleNote: value.visibleNote, cancellationResponse: value.cancellationResponse || '', at });
+    const updated: NewConnectionOrder = { ...current, ...(value.providerCustomerId ? { providerCustomerId: value.providerCustomerId } : {}), ...(value.providerBookingId ? { providerBookingId: value.providerBookingId } : {}), status: value.status, updatedAt: at, schedule: value.status === 'scheduled' && !decline && !noteOnly ? value.schedule! : current.schedule, installedAt: value.status === 'installed' && !decline && !noteOnly ? at : current.installedAt, cancellationRequest: current.cancellationRequest && (value.cancellationResponse || value.status === 'cancelled') ? { ...current.cancellationRequest, status: value.cancellationResponse || 'accepted' } : current.cancellationRequest, statusHistory: noteOnly && !value.visibleNote ? current.statusHistory : [...current.statusHistory, { status: decline ? 'cancellation_declined' : noteOnly ? 'note_added' : value.status, at, by: actor, note: value.visibleNote }].slice(-100) };
+    tx.set(ref, updated); tx.set(fence, { updatedAt: at }); tx.create(op, { fingerprint, orderId: id, type: 'status', actor, status: updated.status, ...(value.providerCustomerId ? { providerCustomerId: value.providerCustomerId } : {}), ...(value.providerBookingId ? { providerBookingId: value.providerBookingId } : {}), visibleNote: value.visibleNote, cancellationResponse: value.cancellationResponse || '', at });
     appendPrivateNote(tx, id, privateSnapshot.data() || {}, actor, [value.reason, value.privateNote].filter(Boolean).join('\n'), at);
     if (!noteOnly) queueConnectionNotification(tx, updated, decline ? 'cancellation_declined' : value.status, operationId); return updated;
   });
@@ -99,13 +101,16 @@ export async function connectionBrandOptions() {
   const brands = result.results.slice(0, 200).map(r => ({ id: String(r.data().id), name: String(r.data().name) })).sort((a, b) => a.name.localeCompare(b.name));
   return { brands, limited: result.results.length > 200 };
 }
+function paymentReviewFilter() {
+  return and(field('status').equalAny(bookingStatusSchema.options.filter(status => status !== 'cancelled')), field('provider').equalAny(['razorpay', 'youpi']), field('paymentStatus').equalAny(['pending', 'awaiting_admin_confirmation']), field('providerPaymentId').equal(''), field('amountDueNow').greaterThan(0));
+}
 function filteredConnectionQuery(input: ConnectionListInput, uid?: string) {
   let q = getAdminFirestore().pipeline().collection('newConnectionOrders');
   if (uid) q = q.where(field('uid').equal(uid));
   for (const key of ['status', 'paymentStatus', 'provider', 'brandId'] as const) if (input[key]) q = q.where(field(key).equal(input[key]));
   if (input.district) q = q.where(field('customer.district').equal(input.district));
   if (input.cancellation) q = q.where(field('cancellationRequest.status').equal('open'));
-  if (input.awaiting) q = q.where(and(field('provider').equalAny(['razorpay', 'youpi']), field('paymentStatus').equalAny(['pending', 'awaiting_admin_confirmation']), field('providerPaymentId').equal(''), field('amountDueNow').greaterThan(0)));
+  if (input.awaiting) q = q.where(paymentReviewFilter());
   if (input.from) q = q.where(field('createdAt').greaterThanOrEqual(new Date(input.from + 'T00:00:00+05:30').toISOString()));
   if (input.to) q = q.where(field('createdAt').lessThan(new Date(Date.parse(input.to + 'T00:00:00+05:30') + 86400000).toISOString()));
   if (input.search) { const search = input.search.toLowerCase(); q = q.where(or(field('customer.name').toLower().startsWith(search), field('customer.phone').startsWith(search), field('bookingId').toLower().startsWith(search))); }
@@ -132,7 +137,7 @@ export async function exportConnections(input: unknown) {
 export async function connectionCounters() {
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date()); const start = new Date(today + 'T00:00:00+05:30').toISOString(); const month = new Date(today.slice(0, 8) + '01T00:00:00+05:30').toISOString();
   const count = async (expression: ReturnType<ReturnType<typeof field>['equal']>) => Number((await getAdminFirestore().pipeline().collection('newConnectionOrders').where(expression).aggregate(countAll().as('count')).execute()).results[0]?.data().count || 0);
-  const [newToday, awaitingContact, awaitingScheduling, awaitingConfirmation, installedThisMonth] = await Promise.all([count(field('createdAt').greaterThanOrEqual(start)), count(field('status').equal('received')), count(field('status').equal('contacted')), count(and(field('provider').equalAny(['razorpay', 'youpi']), field('amountDueNow').greaterThan(0), field('providerPaymentId').equal(''), field('paymentStatus').equalAny(['pending', 'awaiting_admin_confirmation']))), count(field('installedAt').greaterThanOrEqual(month))]);
+  const [newToday, awaitingContact, awaitingScheduling, awaitingConfirmation, installedThisMonth] = await Promise.all([count(field('createdAt').greaterThanOrEqual(start)), count(field('status').equal('received')), count(field('status').equalAny(['contacted', 'booked'])), count(paymentReviewFilter()), count(field('installedAt').greaterThanOrEqual(month))]);
   // Aggregate on the server: return totals, never download the full order collection.
   const ledger = getAdminFirestore().pipeline().collection('newConnectionOrders').where(and(field('testMode').equal(false), field('updatedAt').greaterThanOrEqual(month))).unnest(field('ledger').as('entry')).where(field('entry.recordedAt').greaterThanOrEqual(month));
   const [payments, refunds, legacy] = await Promise.all([

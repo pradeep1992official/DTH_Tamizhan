@@ -499,3 +499,23 @@ html[lang="ta"] :is(.task-language,.tabular-nums) { unicode-bidi: isolate; }
 .recharge-subscriber { padding-block: 18px 14px; }
 .recharge-subscriber .recharge-help { margin-top: -8px; padding-top: 6px; }
 @media (max-width: 767px) { .recharge-subscriber { padding-block: 14px; } .recharge-subscriber .recharge-help { margin-top: -4px; } }
+
+/* Keep account shortcuts in one stack beside the profile. */
+.account-page{max-width:1000px;padding-block:16px 24px}
+.account-grid{gap:20px;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr)}
+.account-secondary{gap:14px}
+.account-card{padding:20px}
+.account-identity{padding-bottom:16px;margin-bottom:16px}
+.account-profile dl{margin:8px 0 12px}
+.account-profile dl>div{padding-block:10px}
+.account-secondary .account-card>p{font-size:13px;margin:6px 0 12px;line-height:1.6}
+.account-secondary .account-card h2{font-size:16px}
+.account-secondary .account-primary{min-height:40px;padding:8px 14px;font-size:13px}
+.account-secondary .account-text-link{min-height:36px;font-size:13px}
+@media(max-width:767px){.account-grid{grid-template-columns:minmax(0,1fr);gap:14px}.account-card{padding:18px 16px}}
+
+.app-header .profile-menu :is(#dropdown-bookings-btn,.profile-tickets-link){gap:12px;min-height:44px;padding:8px 16px;font-weight:400}
+.profile-menu #dropdown-bookings-btn[aria-current="page"]{background:var(--color-accent-soft);color:var(--color-brand)}
+
+.app-header .mobile-navigation{grid-template-columns:repeat(3,minmax(0,1fr))}
+

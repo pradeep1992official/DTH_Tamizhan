@@ -316,7 +316,8 @@ it('shows a clean confirmation, full saved address, print-only breakdown and cop
   const print = nodes(tree).find(node => node.props.className === 'connection-print-only');
   expect(nodes(print).some(node => node.props.className === 'connection-booking-breakdown')).toBe(true);
   expect(nodes(tree).some(node => node.type === 'button' && text(node) === 'Check payment status')).toBe(false);
-  expect(nodes(tree).find(node => node.type === 'a' && text(node) === 'My Bookings').props.className).toBe('connection-primary');
+  expect(nodes(tree).find(node => node.type === 'a' && node.props['aria-label'] === 'My Bookings').props.to).toBe('/account/bookings');
+  expect(text(tree)).not.toContain('WhatsApp');
   const copy = vi.fn().mockResolvedValue(undefined); vi.stubGlobal('navigator', { clipboard: { writeText: copy } });
   nodes(tree).find(node => node.type === 'button' && node.props['aria-label'] === 'Copy booking number').props.onClick();
   await new Promise(resolve => setTimeout(resolve, 0));
@@ -337,6 +338,10 @@ it('separates payment status, team confirmation and the gateway test banner', as
   expect(text(nodes(BookingConfirmation({ ...props, order: { ...paid, status: 'scheduled' } })).find(node => node.type === 'h1'))).toBe('Booking confirmed');
   const pending = BookingConfirmation({ ...props, order: { ...paid, paymentStatus: 'pending', amountPaid: 0 } });
   expect(nodes(pending).some(node => node.type === 'button' && text(node) === 'Check payment status')).toBe(true);
+  expect(nodes(pending).some(node => node.type === 'button' && text(node) === 'Retry payment')).toBe(false);
+  const duplicateNotice = BookingConfirmation({ ...props, notice: 'If your account was debited, do not pay again. Our team will check the payment.', order: { ...paid, paymentStatus: 'pending', amountPaid: 0 } });
+  expect(text(duplicateNotice).match(/If your account was debited/g)).toHaveLength(1);
+
 });
 
 it('does not render another account booking even if its ID is known', async () => {
@@ -402,4 +407,14 @@ it('keeps the actions before the expanded details and the hero outside the toggl
   expect(hero).toBeLessThan(actions); expect(actions).toBeLessThan(body);
   expect(all[body].props.hidden).toBe(false);
   expect(nodes(all[body]).some(node => node.props.className === 'connection-confirmation-header')).toBe(false);
+});
+
+it('uses the shared printable receipt root and places icon actions inside the hero', async () => {
+  await toReview(); accept(); await submit();
+  const tree = render();
+  expect(nodes(tree).some(node => node.props.className?.split(' ').includes('receipt-print'))).toBe(true);
+  const header = nodes(tree).find(node => node.props.className === 'connection-confirmation-header');
+  const actions = nodes(header).find(node => node.type === 'nav');
+  expect(actions).toBeTruthy();
+  expect(nodes(actions).filter(node => typeof node.type === 'object').length).toBeGreaterThan(0);
 });

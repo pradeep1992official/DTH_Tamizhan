@@ -472,6 +472,7 @@ function MainApp() {
     if (path.startsWith('/new-connection')) return 'new-connection';
     if (path.startsWith('/plans')) return 'plans';
     if (path.startsWith('/connections')) return 'connections';
+    if (path === '/account/bookings') return 'bookings';
     if (path === '/account' || path.startsWith('/account/')) return 'account';
     if (path === '/history') return 'history';
     return 'recharge';
@@ -594,7 +595,7 @@ function MainApp() {
           <Route path="/account/bookings" element={<MyBookings key={user?.uid || 'guest'} user={user} lang={currentLang} onOpenAuth={() => setIsAuthOpen(true)} />} />
           <Route path="/account" element={<AccountPage recharge={recharge} hasPastRecharges={hasPastRecharges} key={user?.uid || 'guest'} user={user} connections={connections} currentLang={currentLang} onOpenAuth={() => setIsAuthOpen(true)} onSignOut={handleSignOut} onUpdateProfile={handleUpdateProfile} />} />
           <Route path="/history" element={<CustomerHistoryPage user={user} currentLang={currentLang} onOpenAuth={() => setIsAuthOpen(true)} />} />
-          <Route path="/help" element={recharge ? <HelpPage key={`${user?.uid || 'guest'}-${location.key}`} user={user} currentLang={currentLang} onOpenAuth={() => setIsAuthOpen(true)} /> : <PolicyPage policy="contact" currentLang={currentLang} />} />
+          <Route path="/help" element={<HelpPage key={`${user?.uid || 'guest'}-${location.key}`} user={user} currentLang={currentLang} onOpenAuth={() => setIsAuthOpen(true)} />} />
           <Route path="/support" element={<Navigate to="/help" replace state={location.state} />} />
           <Route path="/service-request" element={<Navigate to="/help" replace state={location.state} />} />
           <Route path="/my-tickets" element={<SupportTicketsPage key={user?.uid || 'guest'} user={user} list onOpenAuth={() => setIsAuthOpen(true)} />} />
