@@ -14,7 +14,8 @@ import { ErrorPage } from './components/ErrorPages';
 import { pageMetadata } from './lib/pageMetadata';
 import { PolicyPage } from './components/PolicyPage';
 import { PolicyLinks } from './components/TrustContent';
-import { POLICY_ROUTES } from './lib/trustContent';
+import { BUSINESS_DETAILS, POLICY_ROUTES } from './lib/trustContent';
+import { businessDetails } from './lib/policyTranslations';
 import { subscriberError } from './lib/subscriberValidation';
 import { calculateConnectionExpiry, getPackDuration } from './lib/connectionExpiry';
 import React, { useState, useEffect, useRef } from 'react';
@@ -464,7 +465,7 @@ function MainApp() {
   // Determine active tab name for header navigation highlighting
   const getActiveNavTab = () => {
     const path = location.pathname;
-    if (!recharge && path === '/') return 'new-connection';
+    if (path === '/') return 'home';
     if (path === '/help') return 'help';
     if (pageMetadata(path).status !== 200) return 'error';
     if (POLICY_ROUTES.some(route => route.path === path)) return 'policies';
@@ -535,7 +536,7 @@ function MainApp() {
                 onSelectOpId={handleSelectOpId}
                 currentTheme={currentTheme}
               />
-              ) : (rechargeReturnTarget(location.search).startsWith('/history') ? <Navigate to={rechargeReturnTarget(location.search)} replace /> : <LaunchHome currentLang={currentLang} />)
+              ) : (rechargeReturnTarget(location.search).startsWith('/history') ? <Navigate to={rechargeReturnTarget(location.search)} replace /> : <LaunchHome currentLang={currentLang} isSignedIn={!!user} />)
             }
           />
           <Route
@@ -632,16 +633,19 @@ function MainApp() {
       </main>
 
       {/* Footer */}
-      <footer className={`app-footer ${currentTheme.footerBg} ${currentTheme.footerText}`}>
+      <footer id="site-footer" tabIndex={-1} className={`app-footer ${currentTheme.footerBg} ${currentTheme.footerText}`}>
         <div className="app-footer-inner">
           <div className="footer-overview">
-            <div className="footer-brand">
-              <span className="font-sans font-bold text-base tracking-tight">
-                DTH <span style={{ color: currentTheme.primaryColor }}>தமிழன்</span>
-              </span>
-            </div>
+            <Link to="/" className="footer-brand" aria-label={t.uiDTHTamizhanHome}>
+              <span className="brand-logo-mark" aria-hidden="true"><img className="brand-logo-image" src="/dth-tamizhan-logo.png" width="1024" height="1024" alt="" /></span>
+              <span className="footer-brand-title">{t.brandTitle}</span>
+            </Link>
             <p className="footer-tagline">{recharge ? t.brandTagline : t.launchTagline}</p>
-            <p className="footer-tagline">{t.madeWithLove}</p>
+            <div className="footer-support">
+              <a href={`tel:${BUSINESS_DETAILS.phone.replace(/[^+0-9]/g, '')}`}>{currentLang === 'ta' ? 'அழைக்கவும்' : 'Call'} {BUSINESS_DETAILS.phone}</a>
+              <a href={`https://wa.me/${BUSINESS_DETAILS.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+              <p>{businessDetails(currentLang).supportHours}</p>
+            </div>
           </div>
           <div className="footer-link-group">
             <h2>{currentLang === 'ta' ? 'விரைவு இணைப்புகள்' : 'Quick links'}</h2>
@@ -665,7 +669,10 @@ function MainApp() {
             <PolicyLinks currentLang={currentLang} />
           </div>
         </div>
-        <div className="footer-bottom"><p className="footer-disclaimer">{recharge ? t.footerDisclaimer : t.launchFooter}</p></div>
+        <div className="footer-bottom">
+          <p className="footer-copyright">© {new Date().getFullYear()} {BUSINESS_DETAILS.legalName} · {t.brandTitle}</p>
+          <p className="footer-disclaimer">{recharge ? t.footerDisclaimer : t.launchFooter}</p>
+        </div>
       </footer>
 
       {/* Global Modals */}

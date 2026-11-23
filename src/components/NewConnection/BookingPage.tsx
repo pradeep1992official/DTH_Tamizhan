@@ -1,4 +1,4 @@
-import { bookingRefundPolicy } from '../../lib/newConnectionPolicy';
+import { bookingRefundPolicy, NEW_CONNECTION_RENTAL } from '../../lib/newConnectionPolicy';
 import { BookingConfirmation } from './BookingConfirmation';
 import { BookingSummary } from './BookingSummary';
 import { reviewAddress, reviewDate } from '../../lib/newConnectionReview';
@@ -82,7 +82,7 @@ export function BookingPage({ data, items, lang, user, onOpenAuth }: { data: Cat
     <p>{lang === 'en' ? config && quote?.amountDueNow === 0 ? 'You can book without payment. Any remaining amount is shown in your summary.' : 'Contact support to arrange your booking; online checkout cannot continue right now.' : t.nbUnavailable}</p>
     <a href={supportPhone}>{lang === 'en' ? 'Call support' : t.nbPhone}</a> &middot; <a href={supportWhatsApp} target="_blank" rel="noopener noreferrer">WhatsApp</a>
   </div>;
-  const rentalTerms = lang === 'en' ? 'The set-top box is provided on a rental basis.' : '\u0baa\u0bc6\u0b9f\u0bcd\u0b9f\u0bbf \u0bb5\u0bbe\u0b9f\u0b95\u0bc8 \u0b85\u0b9f\u0bbf\u0baa\u0bcd\u0baa\u0b9f\u0bc8\u0baf\u0bbf\u0bb2\u0bcd \u0bb5\u0bb4\u0b99\u0bcd\u0b95\u0baa\u0bcd\u0baa\u0b9f\u0bc1\u0b95\u0bbf\u0bb1\u0ba4\u0bc1.';
+  const rentalTerms = NEW_CONNECTION_RENTAL[lang];
   const message = (code?: string) => ({ RATE_LIMITED: t.nbRateLimited, PRICE_CHANGED: t.nbPriceUpdated, NOT_SERVICEABLE: t.nbNotServiceable, INVALID_DATE: t.nbDateHint, BOOKING_LIMIT: t.nbLimit, DUPLICATE_BOOKING: t.nbDuplicate, FORM_TOO_FAST: t.nbFast, SELECTION_UNAVAILABLE: t.nbUnavailableSelection, PROVIDER_DISABLED: t.nbUnavailable, CHECKOUT_EXPIRED: t.nbExpired, SIGN_IN_REQUIRED: t.nbGoogleOnly, GOOGLE_SIGN_IN_REQUIRED: t.nbGoogleOnly, INVALID_DETAILS: t.nbRequired }[code || ''] ?? t.nbGenericError);
   useEffect(() => { try { sessionStorage.setItem(storageKey, JSON.stringify(draft)); if (user) sessionStorage.removeItem('dth:nc:booking:v1:guest'); } catch {} }, [draft, storageKey]);
   useEffect(() => { let cancelled = false; setConfigError(false); fetch('/api/new-connection/config', { cache: 'no-store' }).then(async response => { if (!response.ok) throw new Error(); return response.json(); }).then(value => { if (!cancelled) { setConfig(value); setProvider(value.settings.advanceMode === 'none' ? 'none' : value.enabledProviders.includes(value.settings.defaultProvider) ? value.settings.defaultProvider : value.enabledProviders[0] || 'none'); } }).catch(() => { if (!cancelled) setConfigError(true); }); return () => { cancelled = true; }; }, [configAttempt]);

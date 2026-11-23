@@ -1,5 +1,10 @@
 import type { Language } from '../types';
 
+export const NEW_CONNECTION_RENTAL = {
+  en: 'The set-top box is provided on a rental basis.',
+  ta: 'பெட்டி வாடகை அடிப்படையில் வழங்கப்படுகிறது.',
+};
+
 export const NEW_CONNECTION_REFUND = {
   en: 'Full refund if installation is not completed within 7 days of booking.',
   ta: '\u0bae\u0bc1\u0ba9\u0bcd\u0baa\u0ba4\u0bbf\u0bb5\u0bc1 \u0b9a\u0bc6\u0baf\u0bcd\u0ba4 7 \u0ba8\u0bbe\u0b9f\u0bcd\u0b95\u0bb3\u0bc1\u0b95\u0bcd\u0b95\u0bc1\u0bb3\u0bcd \u0ba8\u0bbf\u0bb1\u0bc1\u0bb5\u0bb2\u0bcd \u0bae\u0bc1\u0b9f\u0bbf\u0bb5\u0b9f\u0bc8\u0baf\u0bbe\u0bb5\u0bbf\u0b9f\u0bcd\u0b9f\u0bbe\u0bb2\u0bcd \u0bae\u0bc1\u0bb4\u0bc1\u0ba4\u0bcd \u0ba4\u0bca\u0b95\u0bc8\u0baf\u0bc1\u0bae\u0bcd \u0ba4\u0bbf\u0bb0\u0bc1\u0baa\u0bcd\u0baa\u0bbf\u0ba4\u0bcd \u0ba4\u0bb0\u0baa\u0bcd\u0baa\u0b9f\u0bc1\u0bae\u0bcd.',

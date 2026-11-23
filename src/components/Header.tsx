@@ -1,7 +1,8 @@
 import { clientRechargeEnabled } from '../lib/rechargeFeature';
+import { Link } from 'react-router-dom';
+import { BUSINESS_DETAILS } from '../lib/trustContent';
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  Tv,
   User,
   LogOut,
   ShieldCheck,
@@ -44,6 +45,7 @@ export const Header: React.FC<HeaderProps> = ({
   currentTheme,
 }) => {
   const t = translations[currentLang];
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [adminAccess, setAdminAccess] = useState<{ uid: string; status: 'checking' | 'allowed' | 'denied' | 'error' } | null>(null);
   const [adminAccessRetry, setAdminAccessRetry] = useState(0);
@@ -96,6 +98,21 @@ export const Header: React.FC<HeaderProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => { setIsMobileMenuOpen(false); }, [activeTab]);
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+    const close = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsMobileMenuOpen(false);
+        document.getElementById('header-menu-trigger')?.focus();
+      }
+    };
+    document.addEventListener('keydown', close);
+    return () => document.removeEventListener('keydown', close);
+  }, [isMobileMenuOpen]);
+  const firstName = user?.displayName?.trim().split(/\s+/)[0]
+    ?.toLocaleLowerCase(currentLang === 'ta' ? 'ta-IN' : 'en-IN')
+    .replace(/(^|[-'’])\p{L}/gu, letter => letter.toLocaleUpperCase(currentLang === 'ta' ? 'ta-IN' : 'en-IN'));
   const isLight = currentTheme.isLightMode;
 
   return (
@@ -103,49 +120,50 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Main Navigation Bar */}
       <div className="app-header-inner">
         {/* Brand Treatment: Official DTH Tamizhan Logo */}
-        <button
-          type="button"
-          onClick={() => onTabChange(recharge ? 'recharge' : 'new-connection')}
+        <Link
+          to="/"
           className="flex items-center gap-3 text-left group focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current rounded-xl"
           id="brand-logo-btn"
           aria-label={translations[currentLang].uiDTHTamizhanHome}
         >
-          <div
-            className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg transition-colors border ${
-              isLight
-                ? 'bg-paper border-rule shadow-sm'
-                : 'bg-ink border-rule-strong shadow-black/40'
-            }`}
-            style={{ borderColor: `color-mix(in oklab, ${currentTheme.primaryColor} 31%, transparent)` }}
-          >
-            <Tv
-              className="w-5 h-5 transition-transform "
-              style={{ color: currentTheme.primaryColor }}
-            />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className={`font-sans font-bold text-xl tracking-tight ${isLight ? 'text-ink' : 'text-accent-ink'}`}>
-                DTH <span style={{ color: currentTheme.primaryColor }}>தமிழன்</span>
-              </span>
-            </div>
-            <p className={`text-xs hidden sm:block ${isLight ? 'text-ink-2' : 'text-muted'}`}>
-              {recharge ? t.brandTagline : t.launchTagline}
-            </p>
-          </div>
-        </button>
+          <span className="brand-logo-mark" aria-hidden="true">
+            <img className="brand-logo-image" src="/dth-tamizhan-logo.png" width="1024" height="1024" alt="" />
+          </span>
+          <span className="brand-title">{t.brandTitle}</span>
+        </Link>
 
         {/* Center Navigation Links: Dynamic Token Styling */}
-        <nav aria-label={translations[currentLang].uiMainNavigation} className={`desktop-navigation`}>
-          <button id="nav-new-connection-btn" type="button" onClick={() => onTabChange('new-connection')} aria-current={activeTab === 'new-connection' ? 'page' : undefined} className={`px-4 py-1.5 rounded-lg text-xs font-bold ${activeTab === 'new-connection' ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText}` : `${currentTheme.navInactiveText} ${currentTheme.navInactiveHoverBg}`}`}>{t.ncNav}</button>
-          <button id="nav-bookings-btn" type="button" onClick={() => onTabChange('bookings')} aria-current={activeTab === 'bookings' ? 'page' : undefined} className={`px-4 py-1.5 rounded-lg text-xs font-bold ${activeTab === 'bookings' ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText}` : `${currentTheme.navInactiveText} ${currentTheme.navInactiveHoverBg}`}`}>{t.ctTitle}</button>
-          <a href="/service-request" aria-current={activeTab === 'help' ? 'page' : undefined} className="help-navigation-link">{currentLang === 'ta' ? 'சேவை கோரிக்கை' : 'Service Request'}</a>
+        <nav aria-label={t.uiMainNavigation} className="desktop-navigation">
+          <Link to="/" aria-current={activeTab === 'home' ? 'page' : undefined}>{currentLang === 'ta' ? 'முகப்பு' : 'Home'}</Link>
+          <Link to="/new-connection" aria-current={activeTab === 'new-connection' ? 'page' : undefined}>{t.ncNav}</Link>
+          <Link to="/account/bookings" aria-current={activeTab === 'bookings' ? 'page' : undefined}>{t.ctTitle}</Link>
+          <Link to="/service-request" aria-current={activeTab === 'help' ? 'page' : undefined}>{currentLang === 'ta' ? '\u0b9a\u0bc7\u0bb5\u0bc8 \u0b95\u0bcb\u0bb0\u0bbf\u0b95\u0bcd\u0b95\u0bc8' : 'Service Request'}</Link>
         </nav>
 
         {/* Right Action: Unified Profile & Settings Dropdown */}
-        <div className="flex items-center gap-3" ref={dropdownRef} onBlur={event => {
+        <div className="header-actions" ref={dropdownRef} onBlur={event => {
           if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget as Node)) setIsProfileDropdownOpen(false);
         }}>
+          <details className="header-support" onKeyDown={event => {
+            if (event.key === 'Escape') {
+              event.currentTarget.open = false;
+              event.currentTarget.querySelector('summary')?.focus();
+            }
+          }}>
+            <summary>{currentLang === 'ta' ? 'உதவி' : 'Help'} <ChevronDown className="w-3.5 h-3.5" aria-hidden="true" /></summary>
+            <div className="header-support-panel">
+              <strong>{currentLang === 'ta' ? 'வாடிக்கையாளர் உதவி' : 'Customer support'}</strong>
+              <a href={`tel:${BUSINESS_DETAILS.phone.replace(/[^+0-9]/g, '')}`}>{currentLang === 'ta' ? 'அழைக்கவும்' : 'Call'} {BUSINESS_DETAILS.phone}</a>
+              <a href={`https://wa.me/${BUSINESS_DETAILS.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer">WhatsApp {BUSINESS_DETAILS.phone}</a>
+              <p>{BUSINESS_DETAILS.supportHours}</p>
+              <Link to="/contact">{currentLang === 'ta' ? 'தொடர்பு விவரங்கள்' : 'Contact details'}</Link>
+            </div>
+          </details>
+          <div className="header-language" role="group" aria-label={t.uiLanguage}>
+            <button type="button" lang="ta" aria-pressed={currentLang === 'ta'} onClick={() => onLanguageChange('ta')}>தமிழ்</button>
+            <span aria-hidden="true">|</span>
+            <button type="button" lang="en" aria-pressed={currentLang === 'en'} onClick={() => onLanguageChange('en')}>EN</button>
+          </div>
           <div className="relative">
             <button
               id="profile-dropdown-trigger-btn"
@@ -167,7 +185,9 @@ export const Header: React.FC<HeaderProps> = ({
                   : 'bg-ink hover:bg-ink border-accent text-accent-ink'
               }`}
             >
-              {user ? (
+              {user?.photoURL ? (
+                <img className="header-avatar" src={user.photoURL} alt="" referrerPolicy="no-referrer" />
+              ) : user ? (
                 <div
                   className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shadow-inner"
                   style={{ backgroundColor: `color-mix(in oklab, ${currentTheme.primaryColor} 15%, transparent)`, color: currentTheme.primaryColor, border: `1px solid color-mix(in oklab, ${currentTheme.primaryColor} 31%, transparent)` }}
@@ -182,7 +202,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               <div className="text-left">
                 <p className={`text-xs font-bold leading-tight ${isLight ? 'text-ink' : 'text-accent-ink'}`}>
-                  {currentLang === 'ta' ? 'சுயவிவரம்' : 'Profile'}
+                  {firstName ? `${currentLang === 'ta' ? 'வணக்கம்' : 'Hi'}, ${firstName}` : (user?.email || (currentLang === 'ta' ? 'சுயவிவரம்' : 'Profile'))}
                 </p>
 
               </div>
@@ -309,14 +329,22 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             )}
           </div>
+          <button id="header-menu-trigger" type="button" className="header-menu-trigger" aria-expanded={isMobileMenuOpen} aria-controls="header-mobile-navigation" aria-label={currentLang === 'ta' ? 'Navigation menu' : 'Navigation menu'} onClick={() => setIsMobileMenuOpen(open => !open)}><span aria-hidden="true">{isMobileMenuOpen ? '\u2715' : '\u2630'}</span></button>
         </div>
       </div>
 
       {/* Mobile Navigation Tab Bar */}
-      <nav aria-label={translations[currentLang].uiMainNavigation} className={`mobile-navigation ${currentTheme.statusStripBg}`}>
-        <button id="mobile-nav-new-connection-btn" type="button" onClick={() => onTabChange('new-connection')} aria-current={activeTab === 'new-connection' ? 'page' : undefined} className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold whitespace-nowrap text-center ${activeTab === 'new-connection' ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText}` : `${currentTheme.navContainerBg} ${currentTheme.navInactiveText}`}`}>{t.ncNav}</button>
-        <button id="mobile-nav-bookings-btn" type="button" onClick={() => onTabChange('bookings')} aria-current={activeTab === 'bookings' ? 'page' : undefined} className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold ${activeTab === 'bookings' ? `${currentTheme.navActiveBg} ${currentTheme.navActiveText}` : `${currentTheme.navContainerBg} ${currentTheme.navInactiveText}`}`}>{t.ctTitle}</button>
-        <a href="/service-request" aria-current={activeTab === 'help' ? 'page' : undefined} className="help-navigation-link">{currentLang === 'ta' ? 'சேவை கோரிக்கை' : 'Service Request'}</a>
+      <nav id="header-mobile-navigation" aria-label={t.uiMainNavigation} className={`mobile-navigation header-mobile-menu ${isMobileMenuOpen ? 'is-open' : ''}`}>
+        <Link to="/" onClick={() => setIsMobileMenuOpen(false)} aria-current={activeTab === 'home' ? 'page' : undefined}>{currentLang === 'ta' ? 'முகப்பு' : 'Home'}</Link>
+        <button type="button" className="mobile-account-shortcut" onClick={() => { setIsMobileMenuOpen(false); setIsProfileDropdownOpen(true); }}>{firstName ? `Hi, ${firstName}` : t.uiAccount}</button>
+        <div className="header-language mobile-language" role="group" aria-label={t.uiLanguage}>
+          <button type="button" lang="ta" aria-pressed={currentLang === 'ta'} onClick={() => onLanguageChange('ta')}>தமிழ்</button>
+          <span aria-hidden="true">|</span>
+          <button type="button" lang="en" aria-pressed={currentLang === 'en'} onClick={() => onLanguageChange('en')}>EN</button>
+        </div>
+        <Link to="/new-connection" onClick={() => setIsMobileMenuOpen(false)} aria-current={activeTab === 'new-connection' ? 'page' : undefined}>{t.ncNav}</Link>
+        <Link to="/account/bookings" onClick={() => setIsMobileMenuOpen(false)} aria-current={activeTab === 'bookings' ? 'page' : undefined}>{t.ctTitle}</Link>
+        <Link to="/service-request" onClick={() => setIsMobileMenuOpen(false)} aria-current={activeTab === 'help' ? 'page' : undefined}>{currentLang === 'ta' ? '\u0b9a\u0bc7\u0bb5\u0bc8 \u0b95\u0bcb\u0bb0\u0bbf\u0b95\u0bcd\u0b95\u0bc8' : 'Service Request'}</Link>
       </nav>
       <div id="mobile-assistance-control" className="mobile-assistance-slot" />
     </header>

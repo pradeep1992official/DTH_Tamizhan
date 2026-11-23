@@ -10,8 +10,8 @@ import { PackChips } from './PackChips';
 import { PackageImage } from './PackageImage';
 import { CatalogLogo, currency, SampleNote } from './Shared';
 
-interface Props { data: CatalogData; items: VisiblePack[]; lang: Language; selected: PackSelection[]; limit: boolean; onToggle: (item: VisiblePack, validity: number) => void; onRemove: (id: string) => void; onValidity: (id: string, validity: number) => void; onClear: () => void }
-export function CatalogPage({ data, items, lang, selected, limit, onToggle, onRemove, onValidity, onClear }: Props) {
+interface Props { initialBrandId?: string; data: CatalogData; items: VisiblePack[]; lang: Language; selected: PackSelection[]; limit: boolean; onToggle: (item: VisiblePack, validity: number) => void; onRemove: (id: string) => void; onValidity: (id: string, validity: number) => void; onClear: () => void }
+export function CatalogPage({ initialBrandId, data, items, lang, selected, limit, onToggle, onRemove, onValidity, onClear }: Props) {
   const catalogRef = useRef<HTMLDivElement>(null);
   const compareBarRef = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -27,12 +27,15 @@ export function CatalogPage({ data, items, lang, selected, limit, onToggle, onRe
   const [savedBrowse] = useState(() => {
     try { return JSON.parse(sessionStorage.getItem('dth:pack-browse') || '{}') ?? {}; } catch { return {}; }
   });
-  const [brandId, setBrandId] = useState<string>(typeof savedBrowse.brandId === 'string' ? savedBrowse.brandId : '');
+  const linkedBrand = initialBrandId && brands.some(brand => brand.id === initialBrandId) ? initialBrandId : '';
+  const [brandId, setBrandId] = useState<string>(linkedBrand || (typeof savedBrowse.brandId === 'string' ? savedBrowse.brandId : ''));
   const [filters, setFilters] = useState<BrowseFilters>(() => ({
     ...defaultBrowseFilters,
+    ...(!linkedBrand ? {
     ...Object.fromEntries(Object.keys(defaultBrowseFilters).filter(key => key !== 'sort' && typeof savedBrowse.filters?.[key] === 'string').map(key => [key, savedBrowse.filters[key]])),
     sort: ['price', 'channels', 'perChannel'].includes(savedBrowse.filters?.sort) ? savedBrowse.filters.sort : 'price',
     packageType: savedBrowse.filters?.packageType === 'only_box' || savedBrowse.filters?.packageType === 'full_set' ? savedBrowse.filters.packageType : '',
+    } : {}),
   }));
   const [validities, setValidities] = useState<Record<string, number>>({});
   useEffect(() => {

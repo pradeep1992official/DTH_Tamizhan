@@ -1,2 +1,3 @@
 Place static assets such as logos, icons, and hero images here.
+d2h_logo.png: Original logo downloaded from https://www.d2h.com/content/dam/d2h/homepage/logo.png (official d2h website).
 Files placed in this folder are served directly at the root URL (e.g. /sun_direct_hero.png).

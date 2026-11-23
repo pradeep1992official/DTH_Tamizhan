@@ -35,6 +35,35 @@ beforeEach(() => {
   props = { currentLang: 'en', user: { uid: 'delegate', email: 'new@example.com', role: 'customer' }, currentTheme: { isLightMode: true },
     onTabChange: vi.fn(), onOpenAuth: vi.fn(), onSignOut: vi.fn(), onLanguageChange: vi.fn(), onUpdateProfile: vi.fn(), activeTab: 'recharge' };
 });
+describe('header account and utility controls', () => {
+  it('formats uppercase sign-in names without changing account data', () => {
+    props.user.displayName = 'PRADEEP Kumar';
+    const greeting = nodes(render()).find(node => node.type === 'p' && node.props.children === 'Hi, Pradeep');
+    expect(greeting).toBeDefined();
+    expect(props.user.displayName).toBe('PRADEEP Kumar');
+  });
+  it('offers both languages with the selected language exposed', () => {
+    const controls = nodes(render()).filter(node => node.type === 'button' && node.props.lang);
+    expect(controls.filter(node => node.props.lang === 'en').every(node => node.props['aria-pressed'] === true)).toBe(true);
+    const tamil = controls.find(node => node.props.lang === 'ta');
+    expect(tamil.props['aria-pressed']).toBe(false);
+    tamil.props.onClick();
+    expect(props.onLanguageChange).toHaveBeenCalledWith('ta');
+  });
+  it('offers phone and WhatsApp destinations inside the support disclosure', () => {
+    const support = nodes(render()).find(node => node.type === 'details');
+    expect(nodes(support).some(node => node.props.href?.startsWith('tel:'))).toBe(true);
+    expect(nodes(support).some(node => node.props.href?.startsWith('https://wa.me/'))).toBe(true);
+    expect(nodes(support).some(node => node.type === 'p' && node.props.children.includes('10:00 am'))).toBe(true);
+  });
+  it('marks new-connection navigation current in both navigation layouts', () => {
+    props.activeTab = 'new-connection';
+    const links = nodes(render()).filter(node => node.props.to === '/new-connection');
+    expect(links).toHaveLength(2);
+    expect(links.every(node => node.props['aria-current'] === 'page')).toBe(true);
+  });
+});
+
 describe('approved administrator account dropdown', () => {
   it('shows Admin Panel to a server-approved delegate and navigates through the router callback', async () => {
     expect(find('dropdown-admin-portal-btn')).toBeUndefined();
