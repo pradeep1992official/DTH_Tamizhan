@@ -2,7 +2,7 @@ import React from 'react';
 import { beforeEach, afterEach, expect, it, vi } from 'vitest';
 import { seedCatalog } from './fixtures/newConnectionCatalog';
 import { visibleCatalog } from '../src/lib/newConnectionBrowse';
-import { installationDateBounds, newConnectionOrderSchema } from '../src/lib/newConnectionOrders';
+import { installationDateBounds, newConnectionOrderSchema, TN_DISTRICTS } from '../src/lib/newConnectionOrders';
 import { PackageInclusions } from '../src/components/NewConnection/PackageInclusions';
 import { PackChips, PackQualityChip } from '../src/components/NewConnection/PackChips';
 const f = vi.hoisted(() => ({ values: [] as any[], cursor: 0, effects: [] as (() => any)[], fetch: vi.fn(), load: vi.fn(), navigate: vi.fn(), openAuth: vi.fn(), google: true, search: '' }));
@@ -37,7 +37,7 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 async function toReview() {
   render(); f.effects.forEach(effect => effect()); await new Promise(resolve => setTimeout(resolve, 0));
-  await submit(); fill('Mobile number', '9876543210'); fill('Full installation address', '12 Sample Road, Chennai'); fill('Pincode', '600001'); fill('District', 'Chennai'); fill('Preferred installation date', installationDateBounds().min); await submit();
+  await submit(); fill('Mobile number', '9876543210'); fill('Address Line 1', '12 Sample Road, Chennai'); fill('Pincode', '600001'); fill('District', 'Chennai'); fill('Preferred installation date', installationDateBounds().min); await submit();
 }
 it('completes all three none-mode steps without opening a payment gateway, and blocks double submit', async () => {
   await toReview(); expect(text(render())).toContain('Confirm booking'); accept(); const ready = form(); await Promise.all([ready.props.onSubmit({ preventDefault() {} }), ready.props.onSubmit({ preventDefault() {} })]);
@@ -154,4 +154,32 @@ it('shows a loading state and blocks a second Plan submission while advancing', 
   await submit(); await advancing;
   expect(nodes(render()).find(node => node.type === 'li' && node.props['aria-current'] === 'step') && text(nodes(render()).find(node => node.type === 'li' && node.props['aria-current'] === 'step'))).toContain('Your details');
   expect(f.fetch.mock.calls.some(([url]) => String(url).endsWith('/orders'))).toBe(false);
+});
+
+it('orders contact and address fields and fills location from the pincode', async () => {
+  render(); f.effects.forEach(effect => effect()); await new Promise(resolve => setTimeout(resolve, 0)); await submit();
+  const labels = nodes(render()).filter(node => node.type === 'label').map(text);
+  expect(labels.slice(1, 12).map(value => value.trim())).toEqual(['Mobile number', 'Full name', 'Alternate mobile (optional)', 'Email (optional)', 'Pincode', 'City', 'District Choose ' + TN_DISTRICTS.join(' '), 'State Tamil Nadu', 'Address Line 1', 'Address Line 2 (optional)', 'Landmark (optional)']);
+  for (const [label, autocomplete] of [['Mobile number', 'tel'], ['Full name', 'name'], ['Email (optional)', 'email'], ['Address Line 1', 'address-line1'], ['Address Line 2 (optional)', 'address-line2'], ['Pincode', 'postal-code']]) {
+    const field = nodes(render()).find(node => node.type === 'label' && text(node).startsWith(label));
+    expect(nodes(field).find(node => node.type === 'input').props.autoComplete).toBe(autocomplete);
+    if (label.startsWith('Address Line')) expect(field.props.className).toBe('connection-field-wide');
+  }
+  expect(nodes(render()).find(node => node.type === 'textarea').props.placeholder).toBe('e.g. dish on the terrace, call before arriving');
+  const stateLabel = nodes(render()).find(node => node.type === 'label' && text(node).startsWith('State'));
+  expect(nodes(stateLabel).some(node => ['input', 'select', 'textarea'].includes(node.type))).toBe(false);
+  const old = f.fetch.getMockImplementation()!;
+  f.fetch.mockImplementation((url, options) => String(url).includes('postalpincode') ? Promise.resolve({ ok: true, json: async () => [{ Status: 'Success', PostOffice: [{ District: 'Chennai', State: 'Tamil Nadu' }] }] }) : old(url, options));
+  fill('Pincode', '600001'); render(); const cleanups = f.effects.map(effect => effect()); await new Promise(resolve => setTimeout(resolve, 0));
+  expect(f.values[0].customer).toMatchObject({ city: 'Chennai', state: 'Tamil Nadu', district: 'Chennai' });
+  cleanups.forEach(cleanup => typeof cleanup === 'function' && cleanup());
+});
+
+it('keeps navigation under the details form and outside the summary', async () => {
+  render(); f.effects.forEach(effect => effect()); await new Promise(resolve => setTimeout(resolve, 0)); await submit();
+  const tree = render();
+  const main = nodes(tree).find(node => node.props.className === 'connection-booking-main');
+  const summary = nodes(tree).find(node => node.type === 'aside' && node.props.className === 'connection-booking-summary');
+  expect(nodes(main).some(node => node.type === 'button' && node.props.type === 'submit')).toBe(true);
+  expect(nodes(summary).some(node => node.type === 'button' && node.props.type === 'submit')).toBe(false);
 });

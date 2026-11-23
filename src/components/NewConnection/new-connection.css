@@ -531,3 +531,50 @@
   .connection-plan-header .connection-plan-heading>.connection-plan-muted{grid-column:auto;grid-row:auto}
 }
 @media(max-width:600px){.connection-plan-header{grid-template-columns:minmax(0,1fr) 128px;gap:12px}.connection-plan-product .connection-package-image{width:96px;height:96px}.connection-plan-identity h2{font-size:18px}.connection-plan-card .connection-package-inclusions{gap:16px}.connection-plan-selectors{grid-template-columns:1fr}.connection-plan-card .connection-booking-actions .connection-primary{width:100%}}
+
+/* Keep the Details and Review summary consistent with the Plan card. */
+.connection-booking-summary .connection-plan-header{grid-template-columns:minmax(0,1fr) 112px;gap:16px}
+.connection-booking-summary .connection-plan-product{padding:12px}
+.connection-booking-summary .connection-plan-product .connection-package-image{width:88px;height:88px}
+.connection-booking-summary .connection-plan-identity{display:contents}
+.connection-booking-summary .connection-plan-heading{grid-column:1;grid-row:1}
+.connection-booking-summary .connection-plan-product{grid-column:2;grid-row:1}
+.connection-booking-summary .connection-plan-chips-and-validity{grid-column:1/-1;grid-row:2}
+.connection-booking-summary .connection-booking-summary-brand{flex-direction:column;align-items:flex-start;gap:8px}
+.connection-booking-summary .connection-booking-summary-brand>span:not(.connection-logo){font-size:calc(32px - 2pt);font-weight:800;line-height:1.05}
+.connection-booking-summary .connection-booking-summary-brand .connection-logo{width:72px!important;height:36px!important;justify-content:flex-start}
+.connection-booking-summary .connection-booking-summary-brand .connection-logo img{max-width:72px;max-height:36px;object-fit:contain;object-position:left center}
+.connection-booking-summary .connection-plan-muted h2{margin:0;font-size:22px;line-height:1.3;font-weight:650}
+.connection-booking-summary .connection-package-inclusions{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.connection-booking-summary .connection-package-inclusions section>strong{font-size:16px}
+@media(max-width:420px){.connection-booking-summary .connection-plan-price .connection-plan-due{grid-template-columns:minmax(0,1fr) auto;gap:8px}.connection-booking-summary .connection-plan-price-amount>strong{font-size:30px}.connection-booking-summary .connection-plan-validity-row,.connection-booking-summary .connection-plan-validity-text{font-size:20px}}
+
+.connection-details-groups{display:flex;flex-direction:column;gap:24px;min-width:0}
+.connection-booking-form .connection-details-group{min-width:0;margin:0;padding:20px;border:1px solid var(--color-rule);border-radius:12px;background:var(--color-paper)}
+.connection-details-group>legend{padding:0 8px;font-size:18px;font-weight:650;line-height:1.4;color:var(--color-ink)}
+.connection-details-group .connection-field-wide{grid-column:1/-1}
+.connection-details-group>.connection-muted{margin:12px 0 0;font-size:12px;line-height:1.5}
+@media(max-width:600px){.connection-booking-form .connection-details-group{padding:16px}.connection-details-groups{gap:20px}}
+
+.connection-booking-form .connection-booking-fields textarea{display:block;min-height:88px;padding:12px;border:1px solid #9b8b80;border-radius:8px;background:var(--color-paper);color:var(--color-ink);font:inherit;font-size:16px;line-height:1.5;resize:vertical;box-sizing:border-box}
+.connection-booking-form .connection-booking-fields textarea:hover{border-color:#716057}
+.connection-booking-form .connection-booking-fields textarea:focus-visible{border-color:var(--color-accent);outline:2px solid var(--color-accent);outline-offset:2px}
+.connection-booking-form .connection-booking-fields textarea[aria-invalid=true]{border-color:var(--color-error)}
+
+.connection-field-readonly{display:flex;align-items:center;min-height:48px;box-sizing:border-box;padding:11px 0;color:var(--color-ink);font-size:16px;line-height:1.5}
+
+.connection-booking-form .connection-details-group .connection-booking-fields>label{font-size:14px;line-height:1.5;color:var(--color-ink-2)}
+.connection-booking-form .connection-details-group .connection-booking-fields>label.connection-field-wide{grid-column:1/-1;width:100%;min-width:0}
+.connection-booking-form .connection-details-group .connection-booking-fields :is(input,select,textarea){font-size:16px}
+.connection-details-group .connection-booking-fields small,.connection-details-group>.connection-muted{font-size:13px;line-height:1.5}
+.connection-booking-fields textarea::placeholder{color:#6f6259;opacity:1}
+
+.connection-booking-summary .connection-booking-channel-count{font-size:13px;line-height:1.5;color:var(--color-ink-2)}
+.connection-booking-summary .connection-package-inclusions :is(li,p){font-size:13px;line-height:1.6;color:var(--color-ink-2)}
+.connection-booking-summary .connection-plan-price .connection-plan-price-amount>small{font-size:13px;line-height:1.5;color:var(--color-ink-2)}
+.connection-booking-main>.connection-details-actions{margin-top:24px}
+.connection-details-actions>button{min-height:48px;font-size:16px}
+
+/* Let the connectors fill the space up to the final step. */
+.connection-booking-steps{width:100%;max-width:none;box-sizing:border-box}
+@media(min-width:601px){.connection-booking-steps>li:last-child{flex:0 0 auto}}
