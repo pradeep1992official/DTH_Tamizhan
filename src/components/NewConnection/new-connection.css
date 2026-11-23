@@ -508,10 +508,15 @@
 .connection-plan-price .connection-plan-due>dd{display:contents}
 .connection-plan-price .connection-plan-coverage{grid-column:1;grid-row:2;margin:0;min-width:0}
 .connection-plan-price .connection-plan-price-amount{grid-column:2;grid-row:1/3;align-self:center;justify-self:end;margin:0}
+.connection-plan-price .connection-plan-validity-row{grid-column:1;grid-row:3}
+.connection-plan-price:has(.connection-plan-validity-row) .connection-plan-coverage{grid-row:2}
+.connection-plan-price:has(.connection-plan-validity-row) .connection-plan-price-amount{grid-row:1/4}
 .connection-plan-card-body>.connection-plan-price{width:100%;max-width:none;align-self:stretch}
-.connection-plan-chips-and-validity{display:flex;align-items:center;flex-wrap:wrap;gap:12px}
+.connection-plan-chips-and-validity{display:flex;flex-direction:column;align-items:stretch;gap:12px}
+.connection-plan-validity-row{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px;font-size:24px;line-height:1.2;color:var(--color-ink)}
 .connection-plan-chips-and-validity>.connection-pack-chips{flex:1;min-width:180px}
 .connection-plan-validity-text{font-size:24px;font-weight:700;line-height:1.2;color:var(--color-ink);white-space:nowrap}
+.connection-plan-session-note{width:100%;max-width:720px;box-sizing:border-box;margin-inline:auto!important;padding-inline:4px;color:#4d4340;font-size:13px;line-height:1.6}
 .connection-plan-card-body select.connection-plan-validity-text{border:0;border-radius:0;background:transparent;padding:4px;font-size:24px;width:auto;max-width:100%}
 @media(max-width:600px){.connection-plan-header .connection-plan-chips-and-validity{grid-column:1/-1;grid-row:2}}
 .connection-plan-coverage{flex-basis:100%;font-size:14px;line-height:1.5;color:var(--color-ink-2);font-weight:400}
