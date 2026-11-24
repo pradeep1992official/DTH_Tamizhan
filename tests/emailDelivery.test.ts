@@ -49,6 +49,7 @@ it('sends the receipt and attachment with a server-side key and persists accepta
   expect(fetcher).toHaveBeenCalledTimes(1);
   const body = JSON.parse(fetcher.mock.calls[0][1]!.body as string);
   expect(body.to[0].email).toBe('customer@example.com'); expect(body.attachment[0].name).toBe('DTH-Tamizhan-payment-receipt.pdf');
+  expect(body.replyTo).toEqual({ email: 'support@dthtamizhan.in', name: 'DTH Tamizhan Support' });
   expect(Buffer.from(body.attachment[0].content, 'base64').toString()).toContain('%PDF');
   expect(body.headers.idempotencyKey).toBeTruthy(); expect(body.htmlContent).not.toContain('fixture-secret');
   expect((await readEmailOutbox())[0]).toMatchObject({ status: 'accepted', messageId: 'message-1' });

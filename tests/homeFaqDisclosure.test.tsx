@@ -27,3 +27,12 @@ it('shows three FAQs, expands all in place, then collapses with View less', () =
   button().props.onClick();
   expect(nodes(draw()).filter(node => node.type === 'details')).toHaveLength(3);
 });
+it('includes in-site recharge, account-check and tracking answers when recharge is enabled', () => {
+  state.expanded = true;
+  const tree = HomeDetails({ currentLang: 'en', catalog: seedCatalog(), recharge: true });
+  const copy = text(tree);
+  expect(copy).toContain('Tap Recharge now on Home'); expect(copy).toContain('account-check service is unavailable');
+  expect(copy).toContain('Recharge history'); expect(copy).toContain('My tickets');
+  expect(copy).not.toContain('use your operator’s official recharge app');
+  state.expanded = false;
+});

@@ -33,7 +33,10 @@ export async function customerDthLookup(uid: string, input: Pick<DthLookupInput,
       ? Object.fromEntries(allowedFields.filter(field => response.details![field] !== undefined).map(field => [field, response.details![field]])) : null;
     const result: CustomerDthLookupResponse = {
       success: response.success, details, cached: false, checkedAt: new Date().toISOString(),
-      ...(!response.success && { error: response.outcome === 'pending' || response.charged === null ? 'The details check is delayed. Please wait before trying again, or continue manually.' : 'We could not check this account. Confirm the operator and number, or continue manually.' }),
+      ...(!response.success && { error: response.errorCode === 'account_not_found' ? 'No account was found. Check the selected operator and customer/subscriber ID, or continue manually.'
+        : response.errorCode === 'invalid_input' ? 'Check the selected operator and customer/subscriber ID, or continue manually.'
+        : response.errorCode === 'provider_unavailable' ? 'Account verification is unavailable from the lookup provider. This does not mean your customer ID is incorrect. You can continue manually.'
+        : 'The details check is delayed. Please wait before trying again, or continue manually.' }),
     };
     if (cache.size >= 1000) cache.delete(cache.keys().next().value!);
     cache.set(key, { until: Date.now() + (result.success ? 5 * 60_000 : 60_000), result });

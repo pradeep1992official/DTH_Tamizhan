@@ -21,8 +21,8 @@ it('removes desktop/mobile recharge, pack and saved-box navigation in both langu
   }
 });
 it('makes the home hero about new connections, with working booking/catalog links', () => {
-  const en = render(<LaunchHome currentLang="en" />); expect(en).toContain('Your new DTH connection'); expect(en).toContain('Choose your DTH box and pack.'); expect(en).toContain('href="/new-connection"'); expect(en).toContain('href="/account/bookings"'); expect(en).not.toMatch(/href="\/(?:recharge|plans|connections)"/);
-  expect(render(<LaunchHome currentLang="ta" />)).toContain('புதிய DTH');
+  const en = render(<LaunchHome currentLang="en" />); expect(en).toContain('Vanakkam! Let&#x27;s get your TV sorted.'); expect(en).toContain('Need help'); expect(en).toContain('href="/new-connection"'); expect(en).toContain('href="/service-request"'); expect(en).toContain('href="/recharge"');
+  expect(render(<LaunchHome currentLang="ta" />)).toMatch(/[\u0B80-\u0BFF]/);
 });
 it('keeps past recharges hidden from the account while preserving booking access', () => {
   for (const has of [false, true]) {
@@ -31,9 +31,11 @@ it('keeps past recharges hidden from the account while preserving booking access
   }
   const guest = render(<AccountPage recharge={false} user={null} currentLang="ta" onOpenAuth={() => {}} />); expect(guest).toContain('href="/new-connection"'); expect(guest).not.toContain('href="/history"');
 });
-it('keeps the navbar focused on bookings and service while recharge account entries remain available when enabled', () => {
+it('keeps recharge visible while secondary actions remain available from the account', () => {
   setClientRechargeEnabled(true);
-  const html = render(<Header currentLang="en" user={null} onLanguageChange={() => {}} onOpenAuth={() => {}} onUpdateProfile={async () => {}} onSignOut={() => {}} activeTab="recharge" onTabChange={() => {}} currentTheme={getOperatorTheme('sun_direct')} />); expect(html).not.toContain('id="nav-recharge-btn"'); expect(html).not.toContain('id="mobile-nav-plans-btn"'); expect(html).toContain('href="/account/bookings"'); expect(html).toContain('Service Request'); expect(html).toContain('Profile');
+  const html = render(<Header currentLang="en" user={null} onLanguageChange={() => {}} onOpenAuth={() => {}} onUpdateProfile={async () => {}} onSignOut={() => {}} activeTab="recharge" onTabChange={() => {}} currentTheme={getOperatorTheme('sun_direct')} />); expect(html).not.toContain('id="nav-recharge-btn"'); expect(html).not.toContain('id="mobile-nav-plans-btn"'); expect(html).not.toContain('href="/account/bookings"'); expect(html).toContain('Service Request'); expect(html).toContain('Profile');
+  expect(html.match(/href="\/recharge"/g)).toHaveLength(2);
+  for (const path of ['/plans', '/connections', '/history']) expect(html).not.toContain('href="' + path + '"');
   const account = render(<AccountPage user={user} currentLang="en" onOpenAuth={() => {}} />); expect(account).toContain('href="/recharge"'); expect(account).toContain('href="/history"');
 });
 it('publishes current booking and service policies in both languages without launch placeholders', () => {

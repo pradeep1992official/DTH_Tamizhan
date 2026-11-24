@@ -1,4 +1,5 @@
 import { getAuth } from 'firebase-admin/auth';
+import { BUSINESS_DETAILS } from '../../src/lib/trustContent';
 import { getAdminFirestore } from '../middleware/auth';
 import { queryRecords } from '../queries';
 import { downloadServiceReceipt } from './serviceReceipts';
@@ -42,7 +43,7 @@ export async function processTicketNotifications() {
         tx.update(eventRef, { status: 'sending', firstAttemptAt: value.firstAttemptAt || now, leaseUntil: now + 60_000 }); return true;
       });
       if (!claim) continue;
-      const response = await fetch('https://api.brevo.com/v3/smtp/email', { method: 'POST', signal: AbortSignal.timeout(15_000), headers: { 'api-key': process.env.BREVO_API_KEY!, 'Content-Type': 'application/json' }, body: JSON.stringify({ sender: { email: process.env.BREVO_SENDER_EMAIL, name: process.env.BREVO_SENDER_NAME || 'DTH Tamizhan' }, to: [{ email: account.email, name: ticket.name }], ...content, headers: { idempotencyKey: documentKey(`ticket:${event.id}`) }, ...(attachment ? { attachment } : {}) }) });
+      const response = await fetch('https://api.brevo.com/v3/smtp/email', { method: 'POST', signal: AbortSignal.timeout(15_000), headers: { 'api-key': process.env.BREVO_API_KEY!, 'Content-Type': 'application/json' }, body: JSON.stringify({ sender: { email: process.env.BREVO_SENDER_EMAIL, name: process.env.BREVO_SENDER_NAME || 'DTH Tamizhan' }, replyTo: { email: BUSINESS_DETAILS.email, name: 'DTH Tamizhan Support' }, to: [{ email: account.email, name: ticket.name }], ...content, headers: { idempotencyKey: documentKey(`ticket:${event.id}`) }, ...(attachment ? { attachment } : {}) }) });
       const data = await response.json();
       if (!response.ok || !data.messageId) throw new Error('Email not confirmed.');
       await eventRef.update({ processed: true, status: 'accepted', messageId: data.messageId, leaseUntil: 0 }); sent++;

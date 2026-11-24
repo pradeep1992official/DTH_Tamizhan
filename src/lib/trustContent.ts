@@ -2,8 +2,8 @@ import { NEW_CONNECTION_REFUND } from './newConnectionPolicy';
 export const BUSINESS_DETAILS = {
   legalName: 'SMP Enterprises',
   address: 'I, 68/72C, East Street, Thirukoilur - 605757',
-  phone: '+91 8144404504',
-  email: 'professorpradeeps@gmail.com',
+  phone: '+91 9677-156-157',
+  email: 'support@dthtamizhan.in',
   supportHours: 'Monday to Friday, 10:00 am to 6:00 pm IST',
   gstin: '33CDBPP1554Q1Z8',
   grievanceOfficer: 'Lavanya, Grievance Officer',
@@ -14,7 +14,7 @@ export const BUSINESS_DETAILS = {
   resolution: 'Within one month of receiving the complaint, subject to any shorter applicable legal deadline',
   refundReview: 'SMP Enterprises checks the payment status and whether the operator recharge was completed. We communicate the decision or any further information needed through the grievance process; Razorpay does not set a separate merchant eligibility-review deadline',
   refundProcessing: 'After approval, SMP Enterprises must manually submit the refund through Razorpay and confirm the initiation date and refund reference. Approval alone does not start bank processing; Razorpay does not prescribe our internal approval-to-submission deadline',
-  bankCredit: 'Normal Razorpay refunds typically take 3–5 working days for provider processing, followed by a further 5–7 working days for bank credit to the original payment method. Timing depends on the bank and payment method; contact support with the refund reference if the stated period is exceeded',
+  bankCredit: 'Razorpay refunds are returned to the original payment method where supported. Processing and bank-credit time depend on the payment method and bank. After initiation, we provide the refund reference and the payment provider’s estimated timeline. Contact support if that estimate is exceeded; a cancellation request or refund approval alone does not start bank processing',
   reconciliation: 'Report a debit with an unconfirmed payment immediately. Razorpay may check the bank for late authorisation for up to 3 days from payment creation. This is a payment-status reconciliation window, not a promise of recharge completion or bank-refund credit within 3 days',
   feesAndTaxes: 'The amount displayed at checkout is the amount charged; this checkout does not add a separate Razorpay gateway surcharge. Razorpay processing fees and 18% GST on those fees are merchant charges under the merchant agreement, not an automatic 18% tax on the recharge value. Any applicable customer charges or taxes must be disclosed before payment. The payment receipt is not a tax invoice',
   policyDate: '24 November 2026',
@@ -34,6 +34,7 @@ export type PolicySection = { heading: string; paragraphs: string[] };
 const b = BUSINESS_DETAILS;
 export const POLICY_CONTENT: Record<PolicyKey, PolicySection[]> = {
   contact: [
+    {"heading": "Recharge, bookings and service requests", "paragraphs": ["Start a recharge from Recharge or the saved connection on Home. Use Recharge history for payment and recharge updates, My Bookings for new connections, and My tickets for service requests. You can also contact us by phone or WhatsApp using the details on this page.", "For an account-check failure, tell us the selected operator and the lookup reference if one is shown. A lookup-provider failure is not confirmation that the customer ID is incorrect. Never send API keys, passwords or payment credentials to support."]},
     { heading: 'How to ask for help', paragraphs: [
       'For a recharge, payment, cancellation or privacy question, use the support details below.',
       'Share the order reference, operator, amount, date and a short description. Mask unrelated personal or banking details in screenshots. Never share your OTP, UPI PIN, password, full card number or CVV.',
@@ -45,6 +46,7 @@ export const POLICY_CONTENT: Record<PolicyKey, PolicySection[]> = {
     ] },
   ],
   refund: [
+    {"heading": "Booking and service-request refunds", "paragraphs": ["A cancellation request in My Bookings is reviewed by staff; submitting it does not automatically cancel the booking or initiate a refund. Payment verification and booking cancellation are separate. The new-connection installation refund commitment stated in the New-connection installation section continues to apply.", "Where optional paid complaint-registration assistance is offered, its refund terms are shown before payment. The ₹50 assistance fee is refunded in full if we do not place the complaint within 24 hours of verified payment. Complaint registration and the operator resolving the fault are separate. Track service and refund updates in My tickets, and contact support with the ticket and payment references."]},
     { heading: 'New-connection installation', paragraphs: [NEW_CONNECTION_REFUND.en] },
     { heading: 'Before you confirm a recharge', paragraphs: [
       'Check the operator, subscriber ID, selected pack, validity and final amount before paying. A payment confirmation and an operator recharge confirmation are separate events. A pending payment is not proof that a recharge has succeeded.',
@@ -65,6 +67,7 @@ export const POLICY_CONTENT: Record<PolicyKey, PolicySection[]> = {
     ] },
   ],
   privacy: [
+    {"heading": "Account verification, booking and support data", "paragraphs": ["With your permission, we send the selected operator and customer/subscriber ID to Way2API for optional account verification. If a configured fallback provider is used, that provider receives the same lookup inputs. Returned customer details may include name, balance, pack and recharge dates. Availability depends on the provider; the check is separate from payment.", "Customer lookup results are briefly cached to reduce repeated calls and are not automatically saved to your customer account. Provider request records are handled under the provider's own terms. Service requests and bookings use the contact details, installation address, problem description and messages you submit. Relevant information is shared with the DTH provider and installation or support team to fulfil your request."]},
     { heading: 'Who handles your information', paragraphs: [
       `The business operating DTH Tamizhan is ${b.legalName}, located at ${b.address}. Privacy questions and requests can be sent to ${b.email}; unresolved concerns can be escalated to ${b.grievanceEmail}.`,
     ] },
@@ -85,6 +88,8 @@ export const POLICY_CONTENT: Record<PolicyKey, PolicySection[]> = {
     ] },
   ],
   terms: [
+    {"heading": "New connections and service assistance", "paragraphs": ["Our team arranges new-connection bookings with the DTH provider after checking payment and booking details. Provider customer and booking IDs appear in My Bookings once recorded by staff. A preferred installation date is not a confirmed appointment.", "General account, website, recharge and booking support is available through Service Request. Any optional paid complaint-registration assistance and its fee are shown for review before payment. Paying for assistance does not guarantee that the operator has resolved the fault. Track conversations and provider complaint references in My tickets."]},
+    {"heading": "Optional account checks", "paragraphs": ["Check account details is optional and requires permission to check the selected DTH account. Results come from an external lookup provider and may be incomplete, delayed or unavailable. A successful lookup is not a completed recharge or a guarantee of pack availability. Review the operator, customer ID and payable amount before paying; you can continue manually when checking is unavailable."]},
     { heading: 'Business and scope', paragraphs: [
       `DTH Tamizhan is operated by ${b.legalName}. Registered address: ${b.address}. GST information: ${b.gstin}. These terms cover use of the website, DTH recharges, new-connection bookings and support requests in India. ${b.installation}.`,
       'Operator names and logos identify the relevant services. Their appearance does not by itself establish an authorized partnership, endorsement or affiliation.',

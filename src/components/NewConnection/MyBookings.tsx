@@ -3,7 +3,7 @@ import { ArrowLeft, RefreshCw, MapPin, Calendar, Printer } from '../../lib/icons
 import { packDisplayName } from '../../lib/newConnectionDisplay';
 import { PackageImage } from './PackageImage';
 import React, { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import type { Language, UserProfile } from '../../types';
 import { translations } from '../../lib/translations';
 import { paymentAuthHeaders } from '../../lib/paymentAuth';
@@ -14,14 +14,16 @@ import { currency } from './Shared';
 import './new-connection.css';
 
 export function MyBookings({ user, lang, onOpenAuth }: { user: UserProfile | null; lang: Language; onOpenAuth: () => void }) {
+  const selectedOrder = new URLSearchParams(useLocation().search).get('order');
   const t = translations[lang]; const [orders, setOrders] = useState<NewConnectionOrder[]>([]); const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const [cursor, setCursor] = useState(''); const [previous, setPrevious] = useState<string[]>([]); const [next, setNext] = useState<string | null>(null); const [cancel, setCancel] = useState<string | null>(null); const [reason, setReason] = useState(''); const generation = useRef(0);
-  async function load() { const run = ++generation.current; setBusy(true); setError(''); try { const res = await fetch('/api/new-connection/orders' + (cursor ? '?cursor=' + encodeURIComponent(cursor) : ''), { headers: await paymentAuthHeaders() }); if (!res.ok) throw new Error(); const data = await res.json(); if (run === generation.current) { setOrders(data.orders); setNext(data.nextCursor); } } catch { if (run === generation.current) { setOrders([]); setError(t.ctError); } } finally { if (run === generation.current) setBusy(false); } }
+  async function load() { const run = ++generation.current; setBusy(true); setError(''); try { const res = await fetch('/api/new-connection/orders' + (selectedOrder ? '/' + encodeURIComponent(selectedOrder) : cursor ? '?cursor=' + encodeURIComponent(cursor) : ''), { headers: await paymentAuthHeaders() }); if (!res.ok) throw new Error(); const data = await res.json(); if (run === generation.current) { setOrders(selectedOrder ? [data.order] : data.orders); setNext(selectedOrder ? null : data.nextCursor); } } catch { if (run === generation.current) { setOrders([]); setError(t.ctError); } } finally { if (run === generation.current) setBusy(false); } }
   useEffect(() => { setOrders([]); setCursor(''); setPrevious([]); setNext(null); setCancel(null); setReason(''); return () => { generation.current++; }; }, [user?.uid]);
-  useEffect(() => { if (user) void load(); return () => { generation.current++; }; }, [user?.uid, cursor, lang]);
+  useEffect(() => { if (user) void load(); return () => { generation.current++; }; }, [user?.uid, cursor, lang, selectedOrder]);
   const statusLabel = (status: string) => { const label = connectionStatusLabel(status, lang); return lang === 'en' ? label.charAt(0).toUpperCase() + label.slice(1) : label; };
   const slot = (s: string) => lang === 'ta' ? ({ Morning: 'காலை', Afternoon: 'மதியம்', Evening: 'மாலை', Any: 'எந்த நேரமும்' }[s] || s) : s;
   if (!user) return <section className="new-connection-page" aria-labelledby="my-bookings-title"><h1 id="my-bookings-title">{t.ctTitle}</h1><button onClick={onOpenAuth}>{t.ctSignIn}</button></section>;
   return <section className="new-connection-page connection-my-bookings" aria-labelledby="my-bookings-title">
+    {selectedOrder && <Link to="/account/bookings">{t.ctTitle}</Link>}
     <Link className="connection-bookings-back" to="/account"><ArrowLeft size={16} aria-hidden="true" />{t.ctBack}</Link>
     <header className="connection-bookings-heading"><div><h1 id="my-bookings-title">{t.ctTitle}</h1><p>{t.ctIntro}</p></div><button className="connection-bookings-refresh" disabled={busy} onClick={load}><RefreshCw size={16} aria-hidden="true" />{t.ctRetry}</button></header>
     {busy && <p role="status">{t.ctLoad}</p>}{error && <p role="alert">{error}</p>}{!busy && !error && !orders.length && <p>{t.ctEmpty}</p>}

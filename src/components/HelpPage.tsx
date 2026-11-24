@@ -1,3 +1,5 @@
+import { clientRechargeEnabled } from '../lib/rechargeFeature';
+import { paymentAuthHeaders } from '../lib/paymentAuth';
 import { HelpAddressFields } from './HelpAddressFields';
 import { CustomerDthLookup } from './CustomerDthLookup';
 import React, { useEffect, useRef, useState } from 'react';
@@ -15,14 +17,15 @@ export function HelpPage({ user, currentLang, onOpenAuth }: { user: UserProfile 
   const location = useLocation(); const parsed = helpPrefillSchema.safeParse(location.state?.ticketPrefill); const prefill = parsed.success ? parsed.data : undefined;
   const navigate = useNavigate(); const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const say = (en: string, ta: string) => currentLang === 'ta' ? ta : en;
-  const visibleProblems = Object.keys(helpProblems).filter(key => key !== 'recharge_failed');
+  const recharge = clientRechargeEnabled();
+  const visibleProblems = Object.keys(helpProblems).filter(key => recharge || key !== 'recharge_failed');
   const initial = prefill?.issueCategory === 'box_issue' ? 'no_signal' : prefill?.issueCategory && visibleProblems.includes(prefill.issueCategory) ? prefill.issueCategory : prefill?.description ? 'other' : '';
   const [problem, setProblem] = useState(initial); const [brandId, setBrandId] = useState(prefill?.brand || '');
   const [description, setDescription] = useState(prefill?.description || '');
   const [fullAddress, setFullAddress] = useState(prefill?.fullAddress || '');
   const [pinCode, setPinCode] = useState(prefill?.pinCode || ''); const [addressAttempted, setAddressAttempted] = useState(false);
   function validateAddress() { setAddressAttempted(true); return fullAddressSchema.safeParse(fullAddress).success && pinCodeSchema.safeParse(pinCode).success; }
-  const [brands, setBrands] = useState<ServiceBrand[]>([]);
+  const [brands, setBrands] = useState<ServiceBrand[]>([]); const [orders, setOrders] = useState<{ orderId: string; packName: string }[]>([]);
   const [ticket, setTicket] = useState<Ticket | null>(null); const [error, setError] = useState(''); const [notice, setNotice] = useState(location.state?.cancelled ? say('Request cancelled.', 'கோரிக்கை ரத்து செய்யப்பட்டது.') : ''); const [busy, setBusy] = useState(false);
   const [subscriberId, setSubscriberId] = useState(prefill?.subscriberId || ''); const [terms, setTerms] = useState(false); const [payment, setPayment] = useState<Record<string, string> | null>(null);
   const [review, setReview] = useState<Record<string, unknown> | null>(null);
@@ -36,6 +39,7 @@ export function HelpPage({ user, currentLang, onOpenAuth }: { user: UserProfile 
   useEffect(() => { let active = true;
     if (user && typeof location.state?.ticketId === 'string') ticketApi(`/${encodeURIComponent(location.state.ticketId)}`).then(data => { if (active && auth?.currentUser?.uid === user.uid) { setTicket(data.ticket); setBrandId(data.ticket.brand); setSubscriberId(data.ticket.subscriberId); setFullAddress(data.ticket.fullAddress || ''); setPinCode(savedPinCode(data.ticket)); } }).catch(() => { if (active) setError('Ticket could not be loaded.'); });
     fetch('/api/service-brands', { cache: 'no-store' }).then(async response => { if (!response.ok) throw new Error(); const data = await response.json(); if (active) setBrands(serviceBrandsSchema.parse(data.brands).filter(brand => brand.enabled)); }).catch(() => { if (active) setError(say('Brands could not be loaded. Please refresh.', 'நிறுவனங்களை ஏற்ற முடியவில்லை. மீண்டும் முயலவும்.')); });
+    if (user && recharge) void (async () => { try { const response = await fetch('/api/my/history?limit=100', { headers: await paymentAuthHeaders(), cache: 'no-store' }); if (!response.ok) return; const data = await response.json(); if (active && auth?.currentUser?.uid === user.uid) setOrders(data.orders || []); } catch { /* Linking a recharge is optional. */ } })();
     return () => { active = false; };
   }, [user?.uid]);
   async function verify(value: Record<string, string>) {
@@ -81,6 +85,7 @@ export function HelpPage({ user, currentLang, onOpenAuth }: { user: UserProfile 
       {dth && <CustomerDthLookup operator={brandId} subscriberId={subscriberId} user={user} currentLang={currentLang} onOpenAuth={onOpenAuth} />}
       {dth && <HelpAddressFields address={fullAddress} pinCode={pinCode} onAddressChange={setFullAddress} onPinChange={setPinCode} language={currentLang} showErrors={addressAttempted} />}
       {problem === 'other' && <label className="block">{say('Tell us briefly', 'சுருக்கமாகக் கூறுங்கள்')}<textarea name="description" required minLength={5} maxLength={1000} rows={4} value={description} onChange={event => setDescription(event.target.value)} className="mt-1 block w-full border border-rule rounded-xl p-3" /><span className="text-xs text-muted">{description.length}/1000</span></label>}
+      {recharge && ['recharge_failed', 'payment_deducted', 'refund'].includes(problem) && <label className="block">{say('Recent recharge (optional)', 'சமீபத்திய ரீசார்ஜ் (விருப்பம்)')}<select name="orderId" defaultValue={prefill?.orderId} className="mt-1 block w-full border border-rule rounded-xl p-3"><option value="">{say('No linked order', 'இணைக்கப்பட்ட ஆர்டர் இல்லை')}</option>{orders.map(order => <option key={order.orderId} value={order.orderId}>{order.orderId} - {order.packName}</option>)}</select></label>}
       <div hidden aria-hidden="true"><input name="website" tabIndex={-1} autoComplete="off" /></div>
       </fieldset>
       {review && <section className="space-y-3" aria-label="Review support request">

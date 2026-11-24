@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import type { UserProfile } from '../types';
 import type { Ticket } from '../lib/tickets';
 import { ticketApi } from '../lib/ticketApi';
@@ -8,20 +8,22 @@ import { downloadTicketFile } from '../lib/ticketReceipt';
 import { ServiceTicketPaymentButton } from './ServiceTicketPaymentButton';
 import { Download, RefreshCw } from '../lib/icons';
 export function SupportTicketsPage({ user, onOpenAuth }: { user: UserProfile | null; onOpenAuth: () => void; list?: boolean }) {
+  const selectedTicket = new URLSearchParams(useLocation().search).get('ticket');
   const [tickets, setTickets] = useState<Ticket[]>([]); const [cursor, setCursor] = useState<string | null>(null); const [error, setError] = useState(''); const [busy, setBusy] = useState(false); const [refresh, setRefresh] = useState(0);
-  useEffect(() => { let active = true; setTickets([]); setCursor(null); if (user) ticketApi('?limit=25').then(data => { if (active && auth?.currentUser?.uid === user.uid) { setTickets(data.tickets); setCursor(data.nextCursor); } }).catch(() => { if (active) setError('Your tickets could not be loaded.'); }); return () => { active = false; }; }, [user?.uid, refresh]);
+  useEffect(() => { let active = true; setTickets([]); setCursor(null); if (user) ticketApi(selectedTicket ? '/' + encodeURIComponent(selectedTicket) : '?limit=25').then(data => { if (active && auth?.currentUser?.uid === user.uid) { setTickets(selectedTicket ? [data.ticket] : data.tickets); setCursor(selectedTicket ? null : data.nextCursor); } }).catch(() => { if (active) setError('Your tickets could not be loaded.'); }); return () => { active = false; }; }, [user?.uid, refresh, selectedTicket]);
   return <section className="mx-auto max-w-2xl p-4 space-y-4"><header className="flex items-center justify-between gap-3"><div className="flex items-center gap-3"><h1 className="text-2xl font-semibold">My tickets</h1>{user && <button type="button" className="admin-quiet inline-flex items-center justify-center min-h-11 min-w-11 rounded-lg border border-rule" aria-label="Refresh tickets" title="Refresh tickets" onClick={() => setRefresh(value => value + 1)}><RefreshCw className="w-4 h-4" aria-hidden="true" /></button>}</div><Link to="/help">Get Help</Link></header>
-    {!user ? <button className="admin-primary" onClick={onOpenAuth}>Sign in to continue</button> : <>{error && <p role="alert">{error}</p>}{!tickets.length && <p>No tickets yet.</p>}{tickets.map(ticket => <TicketThread key={ticket.id} ticket={ticket} />)}
+    {selectedTicket && <Link to="/my-tickets">View all tickets</Link>}
+    {!user ? <button className="admin-primary" onClick={onOpenAuth}>Sign in to continue</button> : <>{error && <p role="alert">{error}</p>}{!tickets.length && <p>No tickets yet.</p>}{tickets.map(ticket => <TicketThread key={ticket.id} ticket={ticket} initiallyOpen={ticket.id === selectedTicket} />)}
     {cursor && <button className="admin-primary" disabled={busy} onClick={async () => { setBusy(true); try { const data = await ticketApi(`?limit=25&cursor=${encodeURIComponent(cursor)}`); if (auth?.currentUser?.uid === user.uid) { setTickets(old => [...old, ...data.tickets]); setCursor(data.nextCursor); } } catch { setError('More tickets could not be loaded.'); } finally { setBusy(false); } }}>Load more</button>}</>}
   </section>;
 }
-function TicketThread({ ticket }: { ticket: Ticket }) {
+function TicketThread({ ticket, initiallyOpen = false }: { ticket: Ticket; initiallyOpen?: boolean }) {
   const [messages, setMessages] = useState<{ id: string; author: string; message: string }[]>([]);
   const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const statusLabels: Record<Ticket['status'], string> = { open: 'Open', in_progress: 'In progress', pending_payment: 'Awaiting payment', paid: 'Payment received', placed_with_company: 'Complaint registered', resolved: 'Resolved', closed: 'Closed', auto_refunded: 'Refunded', expired: 'Expired' };
   async function load() { try { const data = await ticketApi(`/${ticket.id}/messages`); if (auth?.currentUser?.uid === ticket.uid) setMessages(data.messages); } catch { setError('Replies could not be loaded.'); } }
-  return <details className="customer-ticket" onToggle={event => { if (event.currentTarget.open) void load(); }}>
+  return <details open={initiallyOpen || undefined} className="customer-ticket" onToggle={event => { if (event.currentTarget.open) void load(); }}>
     <summary className="customer-ticket-summary"><strong>{ticket.ticketNo}</strong><span className="customer-ticket-status">{statusLabels[ticket.status]}</span></summary>
     <div className="customer-ticket-body">
     <section><h3 className="customer-ticket-label">Your issue</h3><p className="whitespace-pre-wrap">{ticket.description}</p></section>

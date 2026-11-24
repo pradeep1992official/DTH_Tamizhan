@@ -22,6 +22,7 @@ export interface DthLookupResponse {
   charged: boolean | null;
   reference: string | null;
   error?: string;
+  errorCode?: 'account_not_found' | 'invalid_input' | 'provider_unavailable';
   details: Record<string, string> | null;
   provider?: DthLookupProvider;
   fallbackSafe?: boolean;

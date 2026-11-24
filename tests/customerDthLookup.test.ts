@@ -78,6 +78,16 @@ it('requires consent and preserves separate Dish TV and D2H selections', () => {
   expect(lookupOperatorId('airtel_dth', input.subscriberId)).toBe('airtel_dth');
   expect(lookupOperatorId('unsupported', input.subscriberId)).toBeNull();
 });
+it.each([
+  ['account_not_found', 'No account was found'],
+  ['invalid_input', 'Check the selected operator'],
+  ['provider_unavailable', 'does not mean your customer ID is incorrect'],
+])('explains %s without exposing provider diagnostics', async (errorCode, message) => {
+  f.provider.mockResolvedValue({ success: false, outcome: 'failed', charged: false, details: null, errorCode, error: 'Private provider diagnostics' });
+  const result = await customerDthLookup(`failure-${errorCode}`, input);
+  expect(result.error).toContain(message);
+  expect(JSON.stringify(result)).not.toContain('Private provider diagnostics');
+});
 async function route(method: string, path: string) {
   const app = express(); app.use(express.json()); app.use(dthLookupRouter);
   const server = app.listen(0, '127.0.0.1'); await new Promise<void>(resolve => server.once('listening', resolve));

@@ -1,5 +1,6 @@
 import { clientRechargeEnabled } from '../lib/rechargeFeature';
 import { Link } from 'react-router-dom';
+import { WhatsappLogo } from '@phosphor-icons/react';
 import { BUSINESS_DETAILS } from '../lib/trustContent';
 import React, { useState, useRef, useEffect } from 'react';
 import {
@@ -11,9 +12,10 @@ import {
   UserCheck,
   Sliders,
   Clock,
+  Phone,
   Ticket,
   Calendar,
-  Wrench
+  Layers
 } from '../lib/icons';
 import { Language, UserProfile } from '../types';
 import { AdminNavigationError, verifyAdminNavigationAccess } from '../lib/adminNavigationAccess';
@@ -116,7 +118,7 @@ export const Header: React.FC<HeaderProps> = ({
   const isLight = currentTheme.isLightMode;
 
   return (
-    <header className={`app-header ${currentTheme.headerBg}`}>
+    <header className={`app-header ${currentTheme.headerBg}`} data-recharge={recharge}>
       {/* Main Navigation Bar */}
       <div className="app-header-inner">
         {/* Brand Treatment: Official DTH Tamizhan Logo */}
@@ -135,8 +137,8 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Center Navigation Links: Dynamic Token Styling */}
         <nav aria-label={t.uiMainNavigation} className="desktop-navigation">
           <Link to="/" aria-current={activeTab === 'home' ? 'page' : undefined}>{currentLang === 'ta' ? 'முகப்பு' : 'Home'}</Link>
+          {recharge && <Link to="/recharge" aria-current={activeTab === 'recharge' ? 'page' : undefined}>{t.navRecharge}</Link>}
           <Link to="/new-connection" aria-current={activeTab === 'new-connection' ? 'page' : undefined}>{t.ncNav}</Link>
-          <Link to="/account/bookings" aria-current={activeTab === 'bookings' ? 'page' : undefined}>{t.ctTitle}</Link>
           <Link to="/service-request" aria-current={activeTab === 'help' ? 'page' : undefined}>{currentLang === 'ta' ? '\u0b9a\u0bc7\u0bb5\u0bc8 \u0b95\u0bcb\u0bb0\u0bbf\u0b95\u0bcd\u0b95\u0bc8' : 'Service Request'}</Link>
         </nav>
 
@@ -152,11 +154,14 @@ export const Header: React.FC<HeaderProps> = ({
           }}>
             <summary>{currentLang === 'ta' ? 'உதவி' : 'Help'} <ChevronDown className="w-3.5 h-3.5" aria-hidden="true" /></summary>
             <div className="header-support-panel">
-              <strong>{currentLang === 'ta' ? 'வாடிக்கையாளர் உதவி' : 'Customer support'}</strong>
-              <a href={`tel:${BUSINESS_DETAILS.phone.replace(/[^+0-9]/g, '')}`}>{currentLang === 'ta' ? 'அழைக்கவும்' : 'Call'} {BUSINESS_DETAILS.phone}</a>
-              <a href={`https://wa.me/${BUSINESS_DETAILS.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer">WhatsApp {BUSINESS_DETAILS.phone}</a>
-              <p>{BUSINESS_DETAILS.supportHours}</p>
-              <Link to="/contact">{currentLang === 'ta' ? 'தொடர்பு விவரங்கள்' : 'Contact details'}</Link>
+              <strong>{currentLang === 'ta' ? 'உதவி வேண்டுமா?' : 'Need a hand?'}</strong>
+              <span className="header-support-number">{BUSINESS_DETAILS.phone}</span>
+              <div className="header-support-actions">
+                <a href={`tel:${BUSINESS_DETAILS.phone.replace(/[^+0-9]/g, '')}`}><Phone size={17} aria-hidden="true" />{currentLang === 'ta' ? 'அழைக்கவும்' : 'Call us'}</a>
+                <a href={`https://wa.me/${BUSINESS_DETAILS.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"><WhatsappLogo size={18} aria-hidden="true" />WhatsApp</a>
+              </div>
+              <p className="header-support-hours"><Clock size={15} aria-hidden="true" /><span>{currentLang === 'ta' ? 'திங்கள்–வெள்ளி · காலை 10–மாலை 6 (IST)' : 'Mon–Fri · 10 am–6 pm IST'}</span></p>
+              <Link className="header-support-contact" to="/contact">{currentLang === 'ta' ? 'தொடர்பு விவரங்கள்' : 'Contact details'}<ChevronRight size={15} aria-hidden="true" /></Link>
             </div>
           </details>
           <div className="header-language" role="group" aria-label={t.uiLanguage}>
@@ -237,32 +242,17 @@ export const Header: React.FC<HeaderProps> = ({
                   </p>
                 </div>
 
-                {/* Primary Menu Actions */}
-                <div className="py-1">
+                {/* Account links; recharge tools are grouped separately. */}
+                <div className="profile-menu-group">
+                  <button id="dropdown-account-btn" type="button" onClick={() => { setIsProfileDropdownOpen(false); onTabChange('account'); }} className="w-full px-4 py-2 text-left flex items-center gap-2.5"><User className="w-4 h-4" aria-hidden="true" /><span>{currentLang === 'ta' ? t.uiYourAccount : 'My account'}</span></button>
                   <button id="dropdown-bookings-btn" type="button" onClick={() => { setIsProfileDropdownOpen(false); onTabChange('bookings'); }} aria-current={activeTab === 'bookings' ? 'page' : undefined} className="w-full px-4 py-2 text-left flex items-center gap-2.5"><Calendar className="w-4 h-4" aria-hidden="true" /><span>{t.ctTitle}</span></button>
-                  <a id="dropdown-service-request-link" href="/service-request" className="profile-tickets-link" onClick={() => setIsProfileDropdownOpen(false)}><Wrench className="w-4 h-4" aria-hidden="true" /><span>{currentLang === 'ta' ? 'சேவை கோரிக்கை' : 'Raise service request'}</span></a>
-                  <a href="/my-tickets" className="profile-tickets-link" onClick={() => setIsProfileDropdownOpen(false)}><Ticket className="w-4 h-4" aria-hidden="true" /><span>{currentLang === 'ta' ? 'எனது கோரிக்கைகள்' : 'My tickets'}</span></a>
-                  <button type="button" onClick={() => { setIsProfileDropdownOpen(false); onTabChange('account'); }} className="w-full px-4 py-2 text-left flex items-center gap-2.5">
-                    <User className="w-4 h-4" aria-hidden="true" /><span>{translations[currentLang].uiYourAccount}</span>
-                  </button>
-                  {recharge && (<button type="button" onClick={() => { setIsProfileDropdownOpen(false); onTabChange('history'); }} className="w-full px-4 py-2 text-left flex items-center gap-2.5"><Clock className="w-4 h-4" /><span>{currentLang === 'ta' ? 'ரீசார்ஜ் வரலாறு' : 'Your recharge history'}</span></button>)}
-                  {recharge && (<button
-                    id="dropdown-view-profile-btn"
-                    onClick={() => {
-                      setIsProfileDropdownOpen(false);
-                      if (!user) onOpenAuth();
-                      else onTabChange('connections');
-                    }}
-                    className={`w-full px-4 py-2 text-left flex items-center gap-2.5 transition-colors ${
-                      isLight ? 'hover:bg-paper hover:text-ink' : 'hover:bg-ink hover:text-accent-ink'
-                    }`}
-                  >
-                    <UserCheck className="w-4 h-4 opacity-70" />
-                    <span>{t.viewSavedBoxes}</span>
-                  </button>)}
-
-
+                  <Link to="/my-tickets" className="profile-tickets-link" onClick={() => setIsProfileDropdownOpen(false)}><Ticket className="w-4 h-4" aria-hidden="true" /><span>{currentLang === 'ta' ? 'எனது கோரிக்கைகள்' : 'My tickets'}</span></Link>
                 </div>
+                {recharge && <div className="profile-menu-group profile-recharge-tools">
+                  <button id="dropdown-plans-btn" type="button" onClick={() => { setIsProfileDropdownOpen(false); onTabChange('plans'); }} className="w-full px-4 py-2 text-left flex items-center gap-2.5"><Layers className="w-4 h-4" aria-hidden="true" /><span>{t.navPlans}</span></button>
+                  <button id="dropdown-view-profile-btn" type="button" onClick={() => { setIsProfileDropdownOpen(false); if (!user) onOpenAuth(); else onTabChange('connections'); }} className="w-full px-4 py-2 text-left flex items-center gap-2.5"><UserCheck className="w-4 h-4" aria-hidden="true" /><span>{currentLang === 'ta' ? t.navConnections : 'Saved boxes'}</span></button>
+                  <button id="dropdown-history-btn" type="button" onClick={() => { setIsProfileDropdownOpen(false); onTabChange('history'); }} className="w-full px-4 py-2 text-left flex items-center gap-2.5"><Clock className="w-4 h-4" aria-hidden="true" /><span>{currentLang === 'ta' ? 'ரீசார்ஜ் வரலாறு' : 'Recharge history'}</span></button>
+                </div>}
 
                 </>
                 )}
@@ -342,8 +332,8 @@ export const Header: React.FC<HeaderProps> = ({
           <span aria-hidden="true">|</span>
           <button type="button" lang="en" aria-pressed={currentLang === 'en'} onClick={() => onLanguageChange('en')}>EN</button>
         </div>
+        {recharge && <Link to="/recharge" onClick={() => setIsMobileMenuOpen(false)} aria-current={activeTab === 'recharge' ? 'page' : undefined}>{t.navRecharge}</Link>}
         <Link to="/new-connection" onClick={() => setIsMobileMenuOpen(false)} aria-current={activeTab === 'new-connection' ? 'page' : undefined}>{t.ncNav}</Link>
-        <Link to="/account/bookings" onClick={() => setIsMobileMenuOpen(false)} aria-current={activeTab === 'bookings' ? 'page' : undefined}>{t.ctTitle}</Link>
         <Link to="/service-request" onClick={() => setIsMobileMenuOpen(false)} aria-current={activeTab === 'help' ? 'page' : undefined}>{currentLang === 'ta' ? '\u0b9a\u0bc7\u0bb5\u0bc8 \u0b95\u0bcb\u0bb0\u0bbf\u0b95\u0bcd\u0b95\u0bc8' : 'Service Request'}</Link>
       </nav>
       <div id="mobile-assistance-control" className="mobile-assistance-slot" />

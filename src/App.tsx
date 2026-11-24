@@ -466,7 +466,7 @@ function MainApp() {
   const getActiveNavTab = () => {
     const path = location.pathname;
     if (path === '/') return 'home';
-    if (path === '/help') return 'help';
+    if (path === '/help' || path === '/service-request' || path === '/my-tickets') return 'help';
     if (pageMetadata(path).status !== 200) return 'error';
     if (POLICY_ROUTES.some(route => route.path === path)) return 'policies';
     if (path.startsWith('/admin') || path === '/worker' || path === '/dealer') return 'admin-portal';
@@ -514,31 +514,13 @@ function MainApp() {
       {/* Main Content View Container */}
       <main id="main-content" className="app-main">
         {sessionError && <p role="alert" className="border border-rule rounded-lg p-3 my-3 text-error">{sessionError}</p>}
-        {recharge && user && (Object.values(assistantPages) as string[]).includes(location.pathname) && <React.Suspense fallback={null}><RechargeAssistant key={user.uid} currentLang={currentLang} displayName={user.displayName}
+        {recharge && location.pathname !== '/' && user && (Object.values(assistantPages) as string[]).includes(location.pathname) && <React.Suspense fallback={null}><RechargeAssistant key={user.uid} currentLang={currentLang} displayName={user.displayName}
           onCheckout={(plan, box, operator) => handleInitiatePayment(plan, null, operator, box.smartCardNumber, false)} /></React.Suspense>}
-        {recharge && (location.pathname === '/' || location.pathname === '/recharge') && <aside className="flex flex-wrap items-center justify-between gap-3 border border-rule rounded-xl bg-accent-soft p-4 mb-5"><div><h2 className="text-base font-bold">{t.ncHomeTitle}</h2><p className="text-sm text-muted mt-1">{t.ncHomeText}</p></div><Link to="/new-connection" className="bg-accent text-accent-ink px-4 py-2.5 rounded-lg text-sm font-bold">{t.ncBrowse}</Link></aside>}
+        {recharge && location.pathname === '/recharge' && <aside className="flex flex-wrap items-center justify-between gap-3 border border-rule rounded-xl bg-accent-soft p-4 mb-5"><div><h2 className="text-base font-bold">{t.ncHomeTitle}</h2><p className="text-sm text-muted mt-1">{t.ncHomeText}</p></div><Link to="/new-connection" className="bg-accent text-accent-ink px-4 py-2.5 rounded-lg text-sm font-bold">{t.ncBrowse}</Link></aside>}
         <React.Suspense fallback={<p role="status">{translations[currentLang].loadingCatalog}</p>}>
         <Routes>
           <Route path="/new-connection/*" element={<NewConnectionPages currentLang={currentLang} user={user} onOpenAuth={() => setIsAuthOpen(true)} />} />
-          <Route
-            path="/"
-            element={
-              recharge ? (
-              <RechargeFlow
-                onOpenAuth={() => setIsAuthOpen(true)}
-                currentLang={currentLang}
-                onLanguageChange={handleLanguageChange}
-                user={user}
-                onInitiatePayment={handleInitiatePayment}
-                requestCustomTopUp={requestCustomTopUp}
-                prefillConnection={prefillConn}
-                selectedOpId={selectedOpId}
-                onSelectOpId={handleSelectOpId}
-                currentTheme={currentTheme}
-              />
-              ) : (rechargeReturnTarget(location.search).startsWith('/history') ? <Navigate to={rechargeReturnTarget(location.search)} replace /> : <LaunchHome currentLang={currentLang} isSignedIn={!!user} />)
-            }
-          />
+          <Route path="/" element={rechargeReturnTarget(location.search).startsWith('/history') ? <Navigate to={rechargeReturnTarget(location.search)} replace /> : <LaunchHome currentLang={currentLang} user={user} isSignedIn={!!user} recharge={recharge} connections={connections} onOpenAuth={() => setIsAuthOpen(true)} onRechargeConnection={handleQuickRechargeFromSaved} />} />
           <Route
             path="/recharge"
             element={

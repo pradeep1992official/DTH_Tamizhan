@@ -8,10 +8,25 @@ import { PolicyLinks, SupportDetails } from '../src/components/TrustContent';
 import { PaymentModal } from '../src/components/PaymentModal';
 import { PolicyPage, policyPageTitle } from '../src/components/PolicyPage';
 import { translations } from '../src/lib/translations';
+import { clientRechargeEnabled, setClientRechargeEnabled } from '../src/lib/rechargeFeature';
+import { POLICY_CONTENT_TA } from '../src/lib/policyTranslations';
 import { ReceiptModal } from '../src/components/ReceiptModal';
 import type { RechargeOrder } from '../src/types';
 
 describe('trust and legal routes (QA-07)', () => {
+  it.each(['en', 'ta'] as const)('covers recharge lookup privacy and all three service types in %s', lang => {
+    const previous = clientRechargeEnabled(); setClientRechargeEnabled(true);
+    try {
+      const render = (policy: 'privacy' | 'terms' | 'refund' | 'contact') => renderToStaticMarkup(<MemoryRouter><PolicyPage policy={policy} currentLang={lang} /></MemoryRouter>);
+      expect(render('privacy')).toContain('Way2API');
+      const content = lang === 'en' ? POLICY_CONTENT : POLICY_CONTENT_TA;
+      for (const policy of ['contact', 'terms', 'refund', 'privacy'] as const) {
+        expect(render(policy)).toContain(content[policy][0].heading.replace(/&/g, '&amp;'));
+      }
+      expect(render('refund')).toContain('24'); expect(render('refund')).toContain('₹50');
+      expect(render('privacy')).not.toContain('WAY2API_API_KEY');
+    } finally { setClientRechargeEnabled(previous); }
+  });
   it.each(POLICY_ROUTES)('renders $path as a real public route with a distinct heading and title', route => {
     const html = renderToStaticMarkup(<MemoryRouter initialEntries={[route.path]}><Routes>
       {POLICY_ROUTES.map(item => <Route key={item.key} path={item.path} element={<PolicyPage policy={item.key} currentLang="en" />} />)}
@@ -32,8 +47,8 @@ describe('trust and legal routes (QA-07)', () => {
     expect(BUSINESS_DETAILS.retention).toContain('automatic deletion is not implemented');
     const contact = renderToStaticMarkup(<SupportDetails currentLang="en" full />);
     for (const field of ['legalName', 'address', 'phone', 'email', 'supportHours', 'gstin', 'grievanceOfficer'] as const) expect(contact).toContain(BUSINESS_DETAILS[field]);
-    expect(contact).toContain('href="tel:+918144404504"');
-    expect(contact).toContain('href="mailto:professorpradeeps@gmail.com"');
+    expect(contact).toContain('href="tel:+919677156157"');
+    expect(contact).toContain('href="mailto:support@dthtamizhan.in"');
     expect(contact).toContain('href="mailto:lavanyacommunication09@gmail.com"');
     const tamil = renderToStaticMarkup(<SupportDetails currentLang="ta" full />);
     expect(tamil).toContain('SMP Enterprises'); expect(tamil).toContain(BUSINESS_DETAILS.gstin); expect(tamil).toContain(BUSINESS_DETAILS.grievanceEmail);
@@ -61,7 +76,7 @@ describe('trust and legal routes (QA-07)', () => {
     expect(text).toContain(BUSINESS_DETAILS.refundProcessing);
     expect(text).toContain(BUSINESS_DETAILS.bankCredit);
     expect(text).toContain('required by law');
-    expect(BUSINESS_DETAILS.bankCredit).toContain('3–5 working days'); expect(BUSINESS_DETAILS.bankCredit).toContain('5–7 working days');
+    expect(BUSINESS_DETAILS.bankCredit).toContain('estimated timeline'); expect(BUSINESS_DETAILS.bankCredit).toContain('After initiation');
     expect(BUSINESS_DETAILS.refundProcessing).toContain('manually submit');
     expect(BUSINESS_DETAILS.refundReview).toContain('does not set');
     expect(BUSINESS_DETAILS.reconciliation).toContain('not a promise');

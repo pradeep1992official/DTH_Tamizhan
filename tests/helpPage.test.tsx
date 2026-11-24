@@ -1,3 +1,4 @@
+import { setClientRechargeEnabled } from '../src/lib/rechargeFeature';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
@@ -39,10 +40,14 @@ it('renders separate required PIN input and errors immediately below each invali
   expect(validAddress).toContain('six-digit PIN code');
 });
 
-it('hides recharge failure and recharge order linking from the service form', () => {
+it('shows recharge support only while recharge is enabled', () => {
+  setClientRechargeEnabled(false);
   const html = render({ ticketPrefill: { issueCategory: 'recharge_failed' } });
   expect(html).not.toContain('Recharge failed');
   expect(html).not.toContain('Recent order');
   expect(html).toContain('No signal / box not working');
   expect(html).toContain('Refund');
+  setClientRechargeEnabled(true);
+  expect(render({ ticketPrefill: { issueCategory: 'recharge_failed' } })).toContain('Recharge failed');
+  expect(render({ ticketPrefill: { issueCategory: 'recharge_failed' } })).toContain('Recent recharge (optional)');
 });

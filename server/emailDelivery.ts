@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { BUSINESS_DETAILS } from '../src/lib/trustContent';
 import { readPaymentLedger } from './models/paymentLedger';
 import { getRechargeOrders } from './models/paidRechargeOrders';
 import type { PaymentLedgerEntry } from './models/paymentLedger';
@@ -16,6 +17,7 @@ export interface EmailJob {
   id: string; idempotencyKey: string; recipient: string; name: string; event: ReceiptEvent;
   subject: string; htmlContent: string; textContent: string;
   senderEmail: string; senderName: string;
+  replyTo?: { email: string; name: string };
   pdfData?: ReceiptPdfData;
   attachment?: { name: string; content: string };
   attachmentParts?: number;
@@ -137,7 +139,7 @@ export function emailDeliveryConfig() {
 export async function sendBrevoMessage(recipient: string, name: string, subject: string, textContent: string, idempotencyKey: string) {
   const config = emailDeliveryConfig();
   if (!config.enabled || !config.configured) throw new Error('EMAIL_NOT_CONFIGURED');
-  const response = await fetch('https://api.brevo.com/v3/smtp/email', { method: 'POST', signal: AbortSignal.timeout(15_000), headers: { 'api-key': process.env.BREVO_API_KEY!, 'Content-Type': 'application/json' }, body: JSON.stringify({ sender: { email: process.env.BREVO_SENDER_EMAIL, name: process.env.BREVO_SENDER_NAME || 'DTH Tamizhan' }, to: [{ email: recipient, name }], subject, textContent, headers: { idempotencyKey } }) });
+  const response = await fetch('https://api.brevo.com/v3/smtp/email', { method: 'POST', signal: AbortSignal.timeout(15_000), headers: { 'api-key': process.env.BREVO_API_KEY!, 'Content-Type': 'application/json' }, body: JSON.stringify({ sender: { email: process.env.BREVO_SENDER_EMAIL, name: process.env.BREVO_SENDER_NAME || 'DTH Tamizhan' }, replyTo: { email: BUSINESS_DETAILS.email, name: 'DTH Tamizhan Support' }, to: [{ email: recipient, name }], subject, textContent, headers: { idempotencyKey } }) });
   const data = await response.json().catch(() => null);
   if (!response.ok) {
     // Preserve only a bounded provider code, never response bodies or recipient details.
@@ -175,6 +177,7 @@ export async function retryRejectedEmails() {
     if (job.status !== 'failed') continue;
     job.status = 'pending'; job.idempotencyKey = randomUUID(); job.attempts = 0; job.nextAttemptAt = Date.now();
     job.senderEmail = process.env.BREVO_SENDER_EMAIL || ''; job.senderName = process.env.BREVO_SENDER_NAME || 'DTH Tamizhan';
+    job.replyTo = { email: BUSINESS_DETAILS.email, name: 'DTH Tamizhan Support' };
     delete job.firstAttemptAt; delete job.error; retried++;
   }
   await saveEmailJobs(jobs.filter(job => job.status === 'pending'), lease);
@@ -194,6 +197,7 @@ export function queueReceiptEmails(jobs: EmailJob[], payments: PaymentLedgerEntr
       if (ids.has(id)) continue;
       jobs.push({ id, idempotencyKey: randomUUID(), recipient: payment.customerEmail!, name: payment.customerName,
         senderEmail: process.env.BREVO_SENDER_EMAIL || '', senderName: process.env.BREVO_SENDER_NAME || 'DTH Tamizhan',
+        replyTo: { email: BUSINESS_DETAILS.email, name: 'DTH Tamizhan Support' },
         event, ...receiptEmail(payment, event, order), status: 'pending', attempts: 0, nextAttemptAt: now });
       ids.add(id);
     }
@@ -265,6 +269,7 @@ export async function processReceiptEmails(now = Date.now()) {
           headers: { 'api-key': process.env.BREVO_API_KEY!, 'Content-Type': 'application/json', Accept: 'application/json' },
           signal: AbortSignal.timeout(15000), body: JSON.stringify({
             sender: { email: job.senderEmail, name: job.senderName },
+            ...(job.replyTo && { replyTo: job.replyTo }),
             to: [{ email: job.recipient, name: job.name }], subject: job.subject,
             htmlContent: job.htmlContent, textContent: job.textContent,
             headers: { idempotencyKey: job.idempotencyKey },

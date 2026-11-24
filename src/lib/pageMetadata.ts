@@ -40,8 +40,9 @@ export function pageMetadata(path: string, lang: Language = 'en', recharge = cli
     if (policy) return { ...launch, title: policy[lang] + ' | DTH Tamizhan', description: copy.launchTagline + ' ' + copy.launchDraft };
   }
 
-  path = requestedPath === '/' ? '/recharge' : requestedPath;
+  path = requestedPath;
   const base = { path: requestedPath, status: 200 as const, noindex: false };
+  if (path === '/') return { ...base, title: 'DTH Tamizhan | Home', description: lang === 'ta' ? 'ரீசார்ஜ், புதிய DTH இணைப்பு மற்றும் உதவி.' : 'Recharge your DTH connection, explore new connections and get support.' };
   if (['/new-connection', '/new-connection/compare', '/new-connection/book'].includes(path) || /^\/new-connection\/packs\/[\p{L}\p{N}_-]{1,128}$/u.test(path)) {
     const t = newConnectionCopy[lang];
     return { ...base, noindex: path !== '/new-connection', title: `${path.endsWith('/compare') ? t.ncCompareTitle : path.endsWith('/book') ? t.ncBookTitle : t.ncTitle} | DTH Tamizhan`, description: t.ncIntro };

@@ -43,6 +43,10 @@ async function lookupWay2Dth(input: DthLookupInput): Promise<DthLookupResponse> 
   if (response.status === 202 || data.status === 'PENDING') return { ...base, success: false, outcome: 'pending', details: null,
     error: 'Lookup pending with Way2API. Check the provider dashboard using the reference below; do not immediately retry.' };
   if (!response.ok || !data.success || !data.data?.result) {
+    const errorCode = data.message_code === 'NO_RECORD_FOUND' ? 'account_not_found' : data.message_code === 'INVALID_INPUT' ? 'invalid_input' : 'provider_unavailable';
+    // Log only a bounded, known category; never credentials or subscriber details.
+    const knownCodes = ['INVALID_API_KEY', 'MISSING_API_KEY', 'INSUFFICIENT_BALANCE', 'NO_API_ACCESS', 'NO_RECORD_FOUND', 'INVALID_INPUT', 'RATE_LIMITED', 'SOURCE_UNAVAILABLE'];
+    console.warn('[dth-lookup] Way2API lookup failed', { httpStatus: response.status, code: knownCodes.includes(data.message_code || '') ? data.message_code : 'UNKNOWN_PROVIDER_ERROR' });
     const errors: Record<string, string> = {
       INVALID_API_KEY: 'Way2API rejected the API key or server IP.', MISSING_API_KEY: 'The provider did not accept the API key.',
       INSUFFICIENT_BALANCE: 'Way2API trial credits or wallet balance are insufficient.', NO_API_ACCESS: 'Enable DTH lookup access in your Way2API account.',
@@ -50,7 +54,7 @@ async function lookupWay2Dth(input: DthLookupInput): Promise<DthLookupResponse> 
       RATE_LIMITED: 'Way2API request limit reached. Please wait.', SOURCE_UNAVAILABLE: 'The operator data source is unavailable.',
     };
     const fallbackSafe = data.charged === false && ['MISSING_API_KEY', 'INVALID_API_KEY', 'INSUFFICIENT_BALANCE', 'NO_API_ACCESS', 'RATE_LIMITED', 'REQUEST_FAILED', 'NOT_FOUND', 'INTERNAL_ERROR', 'PROVIDER_UNAVAILABLE'].includes(data.message_code || '');
-    return { ...base, fallbackSafe, success: false, outcome: 'failed', details: null, error: errors[data.message_code || ''] || 'The provider could not verify this DTH account. Check the provider dashboard for details.' };
+    return { ...base, errorCode, fallbackSafe, success: false, outcome: 'failed', details: null, error: errors[data.message_code || ''] || 'The provider could not verify this DTH account. Check the provider dashboard for details.' };
   }
   const details: Record<string, string> = {};
   for (const field of fields) {
