@@ -763,7 +763,7 @@ html[lang="ta"] :is(.task-language,.tabular-nums) { unicode-bidi: isolate; }
 @media(min-width:1360px){
  .app-header[data-recharge="true"] .app-header-inner{display:grid;grid-template-columns:auto minmax(0,1fr) auto;height:auto;min-height:64px;align-items:center;column-gap:12px}
  .app-header[data-recharge="true"] #brand-logo-btn{grid-column:1;grid-row:1;justify-self:start}
- .app-header[data-recharge="true"] .desktop-navigation{position:static;transform:none;grid-column:2;grid-row:1;min-width:0;width:auto;justify-content:center;flex-wrap:nowrap;gap:2px}
+ .app-header[data-recharge="true"] .desktop-navigation{position:static;transform:none;grid-column:2;grid-row:1;min-width:0;width:auto;justify-content:center;flex-wrap:nowrap;gap:8px;padding-left:clamp(24px,4vw,64px);box-sizing:border-box}
  .app-header[data-recharge="true"] .desktop-navigation a{font-size:13px;padding-inline:9px}
  .app-header[data-recharge="true"] .header-actions{grid-column:3;grid-row:1;margin-left:0;gap:8px}
 }
