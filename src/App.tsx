@@ -58,7 +58,7 @@ import { getOperatorTheme, OPERATOR_THEMES } from './lib/theme';
 import { auth, db, isFirebaseConfigured, sanitizePayload } from './lib/firebase';
 import { saveAccountProfile } from './lib/accountProfile';
 import { observeAccountSession, signOutAccount } from './lib/accountSession';
-import { collection, doc, getDocs, setDoc, deleteDoc, query, where, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
+import { collection, doc, onSnapshot, setDoc, deleteDoc, query, where, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import {
   Tv,
 } from './lib/icons';
@@ -121,7 +121,7 @@ function AdminRouteWrapper({
 }
 
 
-function MainApp() {
+export function MainApp() {
   const [recharge, setRecharge] = useState(clientRechargeEnabled);
   useEffect(() => {
     let active = true;
@@ -185,6 +185,7 @@ function MainApp() {
 
   const handleSelectOpId = (opId: DthOperatorId) => {
     const canonicalOpId = canonicalizeDthOperatorId(opId);
+    if (canonicalOpId !== selectedOpId) setPrefillPlanId(null);
     setSelectedOpId(canonicalOpId);
     try {
       localStorage.setItem('dth_selected_operator', canonicalOpId);
@@ -200,7 +201,7 @@ function MainApp() {
   useEffect(() => {
     setConnections(readConnectionCache(localStorage, user?.uid));
     setConnectionOwner(user?.uid || null);
-    setPrefillConn(null);
+    setPrefillConn(null); setPrefillPlanId(null); setConnectionError('');
   }, [user?.uid]);
 
   // Modals
@@ -218,6 +219,8 @@ function MainApp() {
 
   const [lastCompletedOrder, setLastCompletedOrder] = useState<RechargeOrder | null>(null);
   const [prefillConn, setPrefillConn] = useState<DthConnection | null>(null);
+  const [prefillPlanId, setPrefillPlanId] = useState<string | null>(null);
+  const [connectionError, setConnectionError] = useState('');
 
   useEffect(() => {
     try { localStorage.removeItem('dth_tamizhan_user'); } catch {}
@@ -225,7 +228,7 @@ function MainApp() {
     return observeAccountSession(auth, db, profile => {
       setAuthInitializing(false); setSessionError(''); setUser(profile);
       if (!profile) {
-        setConnections([]); setConnectionOwner(null); setPrefillConn(null);
+        setConnections([]); setConnectionOwner(null); setPrefillConn(null); setPrefillPlanId(null); setConnectionError('');
         setIsPaymentOpen(false); setIsReceiptOpen(false); setIsNewDishOpen(false);
         setActivePaymentPlan(null); setActiveSubscriber(null); setActiveOperator(null); setActiveSmartCard('');
         setLastCompletedOrder(null);
@@ -235,13 +238,13 @@ function MainApp() {
 
   // Load saved connections only for the active Firebase-backed account.
   useEffect(() => {
-    let cancelled = false;
+    let cancelled = false; let unsubscribe: (() => void) | undefined;
     if (user && recharge) {
       if (isFirebaseConfigured && db && user.uid) {
         const q = query(collection(db, 'dth_connections'), where('user_id', '==', user.uid));
-        getDocs(q).then((snap) => {
+        unsubscribe = onSnapshot(q, { includeMetadataChanges: true }, (snap) => {
           if (cancelled || auth?.currentUser?.uid !== user.uid) return;
-          if (!snap.empty) {
+          if (!snap.metadata.fromCache && !snap.metadata.hasPendingWrites) {
             const remoteConns: DthConnection[] = [];
             snap.forEach((docSnap: QueryDocumentSnapshot<DocumentData>) => {
               const d = docSnap.data();
@@ -265,23 +268,16 @@ function MainApp() {
                 });
               }
             });
-            if (remoteConns.length > 0) {
-              setConnections((prev) => {
-                const map = new Map<string, DthConnection>();
-                ownedConnections(prev, user.uid).forEach((c) => map.set(`${c.operator}_${c.smartCardNumber}`, c));
-                remoteConns.forEach((c) => map.set(`${c.operator}_${c.smartCardNumber}`, c));
-                return Array.from(map.values());
-              });
-            }
+            setConnections(remoteConns);
           }
-        }).catch((err) => {
+        }, (err) => {
           console.warn('[Firestore] Connections query note:', err);
         });
       }
     } else {
       localStorage.removeItem('dth_tamizhan_user');
     }
-    return () => { cancelled = true; };
+    return () => { cancelled = true; unsubscribe?.(); };
   }, [user?.uid, recharge]);
 
   // Persist Connections
@@ -310,7 +306,7 @@ function MainApp() {
       try { if (user?.uid) localStorage.removeItem(connectionCacheKey(user.uid)); } catch {}
       setConnections([]);
       setConnectionOwner(null);
-      setPrefillConn(null);
+      setPrefillConn(null); setPrefillPlanId(null); setConnectionError('');
       setIsPaymentOpen(false);
       setIsReceiptOpen(false);
       setLastCompletedOrder(null);
@@ -374,26 +370,13 @@ function MainApp() {
         createdAt: new Date().toISOString(),
       };
 
-      setConnections((prev) => {
-        const filtered = prev.filter(
-          (c) => !(c.operator === newConn.operator && c.smartCardNumber === newConn.smartCardNumber)
-        );
-        return [newConn, ...filtered];
-      });
-
-      if (isFirebaseConfigured && db && user?.uid) {
-        try {
-          const cleanDoc = sanitizePayload(newConn);
-          await setDoc(doc(db, 'dth_connections', newConn.id), cleanDoc);
-        } catch (dbErr) {
-          console.warn('[Firestore] Error saving connection:', dbErr);
-        }
-      }
+      await handleAddConnection(newConn);
     }
   };
 
   const handleQuickRechargeFromSaved = (conn: DthConnection) => {
     if (!user || conn.user_id !== user.uid) return;
+    setPrefillPlanId(null);
     setPrefillConn(conn);
     handleSelectOpId(conn.operator);
     navigate('/recharge');
@@ -408,26 +391,31 @@ function MainApp() {
       createdAt: 'createdAt' in conn && conn.createdAt ? conn.createdAt : new Date().toISOString(),
     };
     if (subscriberError(fullConn.operator, fullConn.smartCardNumber)) return;
-    setConnections((prev) => [fullConn, ...prev.filter(c => c.id !== fullConn.id)]);
-    if (isFirebaseConfigured && db && user?.uid) {
-      try {
-        const cleanDoc = sanitizePayload({ ...fullConn, user_id: user.uid });
-        await setDoc(doc(db, 'dth_connections', fullConn.id), cleanDoc);
-      } catch (err) {
-        console.warn('[Firestore] Add connection error:', err);
-      }
+    const uid = user.uid;
+    setConnectionError('');
+    try {
+      if (isFirebaseConfigured && db) await setDoc(doc(db, 'dth_connections', fullConn.id), sanitizePayload(fullConn));
+      if (auth?.currentUser?.uid !== uid) return false;
+      if (!isFirebaseConfigured || !db) setConnections(prev => [fullConn, ...ownedConnections(prev, uid).filter(c => c.id !== fullConn.id)]);
+      return true;
+    } catch {
+      if (auth?.currentUser?.uid === uid) setConnectionError(currentLang === 'ta' ? '\u0b9a\u0bc7\u0bae\u0bbf\u0b95\u0bcd\u0b95 \u0bae\u0bc1\u0b9f\u0bbf\u0baf\u0bb5\u0bbf\u0bb2\u0bcd\u0bb2\u0bc8. \u0bae\u0bc0\u0ba3\u0bcd\u0b9f\u0bc1\u0bae\u0bcd \u0bae\u0bc1\u0baf\u0bb1\u0bcd\u0b9a\u0bbf\u0b95\u0bcd\u0b95\u0bb5\u0bc1\u0bae\u0bcd.' : 'Your connection could not be saved. Please try again.');
+      return false;
     }
   };
 
   const handleDeleteConnection = async (id: string) => {
-    if (!user || !connections.some(conn => conn.id === id && conn.user_id === user.uid)) return;
-    setConnections((prev) => prev.filter((c) => c.id !== id));
-    if (isFirebaseConfigured && db) {
-      try {
-        await deleteDoc(doc(db, 'dth_connections', id));
-      } catch (err) {
-        console.warn('[Firestore] Delete connection error:', err);
-      }
+    if (!user || !connections.some(conn => conn.id === id && conn.user_id === user.uid)) return false;
+    const uid = user.uid;
+    setConnectionError('');
+    try {
+      if (isFirebaseConfigured && db) await deleteDoc(doc(db, 'dth_connections', id));
+      if (auth?.currentUser?.uid !== uid) return false;
+      if (!isFirebaseConfigured || !db) setConnections(prev => ownedConnections(prev, uid).filter(c => c.id !== id));
+      return true;
+    } catch {
+      if (auth?.currentUser?.uid === uid) setConnectionError(currentLang === 'ta' ? '\u0ba8\u0bc0\u0b95\u0bcd\u0b95 \u0bae\u0bc1\u0b9f\u0bbf\u0baf\u0bb5\u0bbf\u0bb2\u0bcd\u0bb2\u0bc8. \u0bae\u0bc0\u0ba3\u0bcd\u0b9f\u0bc1\u0bae\u0bcd \u0bae\u0bc1\u0baf\u0bb1\u0bcd\u0b9a\u0bbf\u0b95\u0bcd\u0b95\u0bb5\u0bc1\u0bae\u0bcd.' : 'Your connection could not be removed. Please try again.');
+      return false;
     }
   };
 
@@ -435,10 +423,11 @@ function MainApp() {
     if (!user || connection.user_id !== user.uid) return;
     setPrefillConn(connection);
     handleSelectOpId(plan.operator);
+    setPrefillPlanId(plan.id);
     navigate('/recharge');
   };
 
-  const handleAddNewConnectionAndApply = (
+  const handleAddNewConnectionAndApply = async (
     plan: BrowsePlan,
     newConnData: { smartCardNumber: string; nickname: string; customerName?: string }
   ) => {
@@ -458,8 +447,9 @@ function MainApp() {
       packName: plan.name,
       createdAt: new Date().toISOString(),
     };
-    handleAddConnection(newConn);
+    if (!await handleAddConnection(newConn)) return false;
     handleApplyPlanFromBrowse(plan, newConn);
+    return true;
   };
 
   // Determine active tab name for header navigation highlighting
@@ -513,6 +503,7 @@ function MainApp() {
 
       {/* Main Content View Container */}
       <main id="main-content" className="app-main">
+        {connectionError && <p role="alert" className="border border-rule rounded-lg p-3 my-3 text-error">{connectionError}</p>}
         {sessionError && <p role="alert" className="border border-rule rounded-lg p-3 my-3 text-error">{sessionError}</p>}
         {recharge && location.pathname !== '/' && user && (Object.values(assistantPages) as string[]).includes(location.pathname) && <React.Suspense fallback={null}><RechargeAssistant key={user.uid} currentLang={currentLang} displayName={user.displayName}
           onCheckout={(plan, box, operator) => handleInitiatePayment(plan, null, operator, box.smartCardNumber, false)} /></React.Suspense>}
@@ -533,6 +524,7 @@ function MainApp() {
                 onInitiatePayment={handleInitiatePayment}
                 requestCustomTopUp={requestCustomTopUp}
                 prefillConnection={prefillConn}
+                initialPlanId={prefillPlanId}
                 selectedOpId={selectedOpId}
                 onSelectOpId={handleSelectOpId}
                 currentTheme={currentTheme}

@@ -3,7 +3,7 @@ import { getAdminFirestore } from '../middleware/auth';
 import { servicePaymentConfig } from './servicePayments';
 import { ticketSchema, type Ticket } from '../../src/lib/tickets';
 import { documentKey } from '../persistence';
-import { queryRecords } from '../queries';
+import { queryRecords, type Filter, type PageOptions } from '../queries';
 import type { Refunds } from 'razorpay/dist/types/refunds';
 
 export async function applyServiceRefund(ticketId: string, refund: Refunds.RazorpayRefund) {
@@ -63,12 +63,31 @@ export async function refundServiceRequest(ticketId: string, reason: string, by:
   }
 }
 export async function processOverdueServiceRefunds(now = Date.now()) {
-  const rows = await queryRecords<Ticket>('tickets', [{ field: 'type', op: 'eq', value: 'service_request' }, { field: 'status', op: 'eq', value: 'paid' }, { field: 'payment.paidAt', op: 'lte', value: new Date(now - 24 * 3_600_000).toISOString() }], { limit: 100 });
-  const cancelled = await queryRecords<Ticket>('tickets', [{ field: 'type', op: 'eq', value: 'service_request' }, { field: 'status', op: 'eq', value: 'paid' }, { field: 'cancelledAt', op: 'gt', value: '' }], { limit: 100 });
-  let attempted = 0;
-  for (const ticket of new Map([...rows, ...cancelled].map(ticket => [ticket.id, ticket])).values()) { try {
-    await refundServiceRequest(ticket.id, ticket.cancelledAt ? 'request cancelled before payment confirmation' : 'not placed within 24h', 'scheduler', !ticket.cancelledAt, now); attempted++;
-  } catch { /* Durable attempts/attention remain for retry and admin review. */ } }
+  const common: Filter[] = [{ field: 'type', op: 'eq', value: 'service_request' }, { field: 'status', op: 'eq', value: 'paid' }];
+  let attempted = 0; const seen = new Set<string>();
+  for (const eligibility of [
+    { field: 'payment.paidAt', op: 'lte', value: new Date(now - 24 * 3_600_000).toISOString() },
+    { field: 'cancelledAt', op: 'gt', value: '' },
+  ] satisfies Filter[]) {
+    let cursor: PageOptions['cursor'];
+    while (true) {
+      const rows = await queryRecords<Ticket>('tickets', [...common, eligibility], { limit: 100, ...(cursor ? { cursor } : {}) });
+      // Capture the stable cursor before processing: successful refunds leave the
+      // paid-result set, while pending/failed refunds must not pin the first page.
+      const last = rows.at(-1);
+      for (const ticket of rows) {
+        if (seen.has(ticket.id)) continue;
+        seen.add(ticket.id);
+        try {
+          await refundServiceRequest(ticket.id, ticket.cancelledAt ? 'request cancelled before payment confirmation' : 'not placed within 24h', 'scheduler', !ticket.cancelledAt, now); attempted++;
+        } catch { /* Durable attempts/attention remain for retry and admin review. */ }
+      }
+      if (rows.length < 100 || !last) break;
+      const next = { time: last.createdAt, id: last.id };
+      if (cursor && cursor.time === next.time && cursor.id === next.id) throw new Error('Refund scan cursor did not advance.');
+      cursor = next;
+    }
+  }
   return attempted;
 }
 export async function reconcileServiceRefundWebhook(refundId: string) {

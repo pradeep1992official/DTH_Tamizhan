@@ -14,7 +14,7 @@ import { ticketSchema } from '../src/lib/tickets';
 const now = Date.parse('2026-11-14T12:00:00Z');
 const ticket = ticketSchema.parse({ id: 'one', ticketNo: 'SRQ-0001', type: 'service_request', uid: 'owner', name: 'Customer', phone: '9876543210', state: 'Tamil Nadu', brand: 'tata_play', subscriberId: '1234567890', issueCategory: 'no_signal', description: 'No signal', status: 'paid', statusHistory: [], companyRefNo: '', adminNotes: '', payment: { required: true, amount: 50, status: 'paid', gatewayOrderId: 'order_1', paymentId: 'pay_1', paidAt: '2026-11-13T10:00:00.000Z', refundId: null, refundedAt: null }, receipt: { number: null, path: null, generatedAt: null }, createdAt: '2026-11-13T10:00:00.000Z', updatedAt: '2026-11-13T10:00:00.000Z' });
 const refund: any = { id: 'rfnd_1', payment_id: 'pay_1', amount: 5000, currency: 'INR', status: 'processed' };
-beforeEach(() => { f.chain = Promise.resolve(); f.records.clear(); f.records.set('tickets/one', structuredClone(ticket)); f.list.mockReset(); f.list.mockResolvedValue({ items: [] }); f.refund.mockReset(); f.fetch.mockReset(); f.fetch.mockResolvedValue({ ok: true, json: async () => refund }); vi.stubGlobal('fetch', f.fetch); });
+beforeEach(() => { f.chain = Promise.resolve(); f.records.clear(); f.records.set('tickets/one', structuredClone(ticket)); f.query.mockReset(); f.query.mockResolvedValue([]); f.list.mockReset(); f.list.mockResolvedValue({ items: [] }); f.refund.mockReset(); f.fetch.mockReset(); f.fetch.mockResolvedValue({ ok: true, json: async () => refund }); vi.stubGlobal('fetch', f.fetch); });
 afterEach(() => vi.unstubAllGlobals());
 it('refunds the full amount once and cannot regress a processed refund', async () => {
   await Promise.all([refundServiceRequest('one', 'not placed within 24h', 'scheduler', true, now), refundServiceRequest('one', 'not placed within 24h', 'scheduler', true, now)]);
@@ -47,4 +47,39 @@ it('retries refunds for late captures on cancelled requests without waiting 24 h
   f.query.mockResolvedValueOnce([]).mockResolvedValueOnce([structuredClone(current)]);
   expect(await processOverdueServiceRefunds(now)).toBe(1);
   expect(f.fetch).toHaveBeenCalledTimes(1); expect(f.records.get('tickets/one').status).toBe('auto_refunded');
+});
+it.each([false, true])('reaches older refunds beyond 100 failing requests (cancelled: %s)', async cancelled => {
+  f.records.clear();
+  for (let i = 1; i <= 102; i++) {
+    const id = `request-${String(i).padStart(3, '0')}`;
+    f.records.set(`tickets/${id}`, { ...structuredClone(ticket), id,
+      ...(cancelled ? { cancelledAt: new Date(now).toISOString() } : {}),
+      payment: { ...ticket.payment, paymentId: `pay_${i}`, ...(cancelled ? { paidAt: new Date(now).toISOString() } : {}) } });
+  }
+  f.query.mockImplementation(async (_collection: string, filters: any[], page: any) => [...f.records]
+    .filter(([key]) => key.startsWith('tickets/')).map(([, value]) => structuredClone(value))
+    .filter(value => filters.every(filter => {
+      const field = filter.field.split('.').reduce((object: any, key: string) => object?.[key], value);
+      return filter.op === 'eq' ? field === filter.value : filter.op === 'lte' ? field <= filter.value : field > filter.value;
+    }))
+    .filter(value => !page.cursor || value.createdAt < page.cursor.time || value.createdAt === page.cursor.time && value.id < page.cursor.id)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id)).slice(0, page.limit));
+  f.list.mockImplementation(async (paymentId: string) => {
+    if (!['pay_1', 'pay_2'].includes(paymentId)) throw new Error('Provider still unavailable');
+    return { items: [{ ...refund, id: `rfnd_${paymentId}`, payment_id: paymentId }] };
+  });
+  expect(await processOverdueServiceRefunds(now)).toBe(2);
+  expect(f.list).toHaveBeenCalledTimes(102);
+  expect(f.records.get('tickets/request-001').status).toBe('auto_refunded');
+  expect(f.records.get('tickets/request-002').status).toBe('auto_refunded');
+  expect(f.records.get('tickets/request-102').status).toBe('paid');
+  expect(f.query).toHaveBeenCalledWith('tickets', expect.any(Array), expect.objectContaining({ cursor: { time: ticket.createdAt, id: 'request-003' } }));
+  expect(f.fetch).not.toHaveBeenCalled();
+});
+it('attempts a pending refund only once when it is both overdue and cancelled', async () => {
+  const current = f.records.get('tickets/one'); current.cancelledAt = new Date(now).toISOString();
+  f.query.mockResolvedValueOnce([structuredClone(current)]).mockResolvedValueOnce([structuredClone(current)]);
+  f.list.mockResolvedValue({ items: [{ ...refund, status: 'pending' }] });
+  expect(await processOverdueServiceRefunds(now)).toBe(1);
+  expect(f.list).toHaveBeenCalledOnce(); expect(f.records.get('tickets/one').status).toBe('paid');
 });

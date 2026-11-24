@@ -30,7 +30,7 @@ interface ApplyPlanModalProps {
   onAddNewConnectionAndApply: (
     plan: BrowsePlan,
     newConnData: { smartCardNumber: string; nickname: string; customerName?: string }
-  ) => void;
+  ) => void | boolean | Promise<void | boolean>;
   currentTheme: OperatorTheme;
   currentLang: Language;
 }
@@ -117,7 +117,7 @@ export const ApplyPlanModal: React.FC<ApplyPlanModalProps> = ({
     onApplyPlanToBox(plan, box);
   };
 
-  const handleCreateAndApply = (e: React.FormEvent) => {
+  const handleCreateAndApply = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanCard = normalizeSubscriberId(smartCardInput);
 
@@ -128,11 +128,14 @@ export const ApplyPlanModal: React.FC<ApplyPlanModalProps> = ({
       return;
     }
     setFormError(null);
-    onAddNewConnectionAndApply(plan, {
+    try {
+    const saved = await onAddNewConnectionAndApply(plan, {
       smartCardNumber: cleanCard,
       nickname: nicknameInput.trim() || `${opMeta.name} ${t.uiSetTopBox}`,
       customerName: customerNameInput.trim() || user?.displayName || t.customer,
     });
+    if (saved === false) throw new Error('SAVE_FAILED');
+    } catch { setFormError(currentLang === 'ta' ? '\u0b9a\u0bc7\u0bae\u0bbf\u0b95\u0bcd\u0b95 \u0bae\u0bc1\u0b9f\u0bbf\u0baf\u0bb5\u0bbf\u0bb2\u0bcd\u0bb2\u0bc8. \u0bae\u0bc0\u0ba3\u0bcd\u0b9f\u0bc1\u0bae\u0bcd \u0bae\u0bc1\u0baf\u0bb1\u0bcd\u0b9a\u0bbf\u0b95\u0bcd\u0b95\u0bb5\u0bc1\u0bae\u0bcd.' : 'Your connection could not be saved. Please try again.'); }
   };
 
   return (

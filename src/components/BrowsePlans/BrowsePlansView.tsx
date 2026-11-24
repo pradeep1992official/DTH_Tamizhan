@@ -33,7 +33,7 @@ interface BrowsePlansViewProps {
   onAddNewConnectionAndApply: (
     plan: BrowsePlan,
     newConnData: { smartCardNumber: string; nickname: string; customerName?: string }
-  ) => void;
+  ) => void | boolean | Promise<void | boolean>;
 }
 
 const DEFAULT_FILTERS: PlanFilters = {
@@ -495,9 +495,10 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
           setSelectedPlanForApply(null);
           onApplyPlanToBox(p, conn);
         }}
-        onAddNewConnectionAndApply={(p, data) => {
-          setSelectedPlanForApply(null);
-          onAddNewConnectionAndApply(p, data);
+        onAddNewConnectionAndApply={async (p, data) => {
+          const saved = await onAddNewConnectionAndApply(p, data);
+          if (saved !== false) setSelectedPlanForApply(null);
+          return saved;
         }}
         currentTheme={currentTheme}
         currentLang={currentLang}

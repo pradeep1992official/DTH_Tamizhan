@@ -72,12 +72,18 @@ export async function startBookingCheckout(uid: string, id: string, now = Date.n
   const claim = await db.runTransaction(async tx => {
     const [currentSnapshot, secretSnapshot] = await Promise.all([tx.get(orderRef), tx.get(secretRef)]); const current = withConnectionLedger(currentSnapshot.data()); const secret = secretSnapshot.data();
     if (gatewayPaymentRecorded(current) || current.paymentStatus !== 'pending') return { done: true };
+    if (current.status !== 'received' || now - Date.parse(current.createdAt) >= 24 * 3600000) throw new BookingError('CHECKOUT_EXPIRED');
     if (secret?.checkout) return { checkout: secret.checkout as Checkout };
     if (current.providerOrderId && current.provider === 'razorpay') return { checkout: { provider: 'razorpay', providerOrderId: current.providerOrderId, keyId: process.env.RAZORPAY_KEY_ID, amount: moneyUnits(current.amountDueNow), currency: 'INR', testMode: true } as Checkout };
     if (secret?.gatewayCreationStarted) return { pending: true };
     tx.set(secretRef, { gatewayCreationStarted: true, gatewayStartedAt: new Date(now).toISOString() }, { merge: true }); return { create: true };
   });
-  if (claim.checkout) return { order, checkout: claim.checkout };
+  if (claim.checkout) {
+    const current = await ownedBooking(uid, id);
+    if (current.status !== 'received') throw new BookingError('CHECKOUT_EXPIRED');
+    if (gatewayPaymentRecorded(current) || current.paymentStatus !== 'pending') return { order: current, checkout: null };
+    return { order: current, checkout: claim.checkout };
+  }
   if (!claim.create) return { order: await ownedBooking(uid, id), checkout: null, pending: true };
   // Never repeat a provider creation after an ambiguous failure. The durable claim
   // remains for webhook recovery/admin investigation; no external calls inside tx.
@@ -88,7 +94,9 @@ export async function startBookingCheckout(uid: string, id: string, now = Date.n
     tx.update(orderRef, { providerOrderId: checkout.providerOrderId, razorpayOrderId: current.provider === 'razorpay' ? checkout.providerOrderId : '', updatedAt: new Date().toISOString() });
     tx.set(secretRef, { checkout }, { merge: true });
   });
-  return { order: await ownedBooking(uid, id), checkout };
+  const current = await ownedBooking(uid, id);
+  if (current.status !== 'received') throw new BookingError('CHECKOUT_EXPIRED');
+  return { order: current, checkout: gatewayPaymentRecorded(current) || current.paymentStatus !== 'pending' ? null : checkout };
 }
 async function applyResult(order: NewConnectionOrder, result: ProviderResult, deliveryId?: string, actor = 'payment_verification', adminNote?: string) {
   const db = getAdminFirestore();
@@ -108,7 +116,7 @@ async function applyResult(order: NewConnectionOrder, result: ProviderResult, de
       if (previous.exists && previous.data()?.orderId !== order.id) throw new BookingError('PAYMENT_REFERENCE_USED');
       tx.set(paymentRef, { orderId: order.id, at });
     }
-    const updated = deriveConnectionLedger(newConnectionOrderSchema.parse({ ...current, ledger: nextState === 'paid' ? [...current.ledger, { id: 'gateway_' + result.paymentId, type: 'payment', amount: current.amountDueNow, method: current.provider, reference: result.paymentId, recordedBy: actor.startsWith('admin:') ? actor.slice(6) : 'system:verified_provider', recordedAt: at, note: '', paymentEntryId: '' }] : current.ledger, providerOrderId: order.providerOrderId, razorpayOrderId: order.provider === 'razorpay' ? order.providerOrderId : '', paymentStatus: nextState, providerPaymentId: nextState === 'paid' ? result.paymentId! : current.providerPaymentId, razorpayPaymentId: order.provider === 'razorpay' && nextState === 'paid' ? result.paymentId! : current.razorpayPaymentId, providerRaw: { ...current.providerRaw, ...result.raw }, updatedAt: at, statusHistory: nextState === current.paymentStatus ? current.statusHistory : [...current.statusHistory, { status: nextState === 'paid' && current.amountDueNow < current.priceBreakdown.total ? 'payment_recorded' : nextState, at, by: actor.startsWith('admin:') ? actor.slice(6) : actor, note: '' }] }));
+    const updated = deriveConnectionLedger(newConnectionOrderSchema.parse({ ...current, ledger: nextState === 'paid' ? [...current.ledger, { id: 'gateway_' + result.paymentId, type: 'payment', amount: current.amountDueNow, method: current.provider, reference: result.paymentId, recordedBy: actor.startsWith('admin:') ? actor.slice(6) : 'system:verified_provider', recordedAt: at, note: '', paymentEntryId: '' }] : current.ledger, providerOrderId: order.providerOrderId, razorpayOrderId: order.provider === 'razorpay' ? order.providerOrderId : '', paymentStatus: nextState, providerPaymentId: nextState === 'paid' ? result.paymentId! : current.providerPaymentId, razorpayPaymentId: order.provider === 'razorpay' && nextState === 'paid' ? result.paymentId! : current.razorpayPaymentId, providerRaw: { ...current.providerRaw, ...result.raw }, updatedAt: at, statusHistory: nextState === current.paymentStatus ? current.statusHistory : [...current.statusHistory, { status: nextState === 'paid' && current.amountDueNow < current.priceBreakdown.total ? 'payment_recorded' : nextState, at, by: actor.startsWith('admin:') ? actor.slice(6) : actor, note: '' }].slice(-100) }));
     tx.set(ref, updated); tx.set(fence, { updatedAt: at });
     if (nextState === 'paid' || (nextState === 'awaiting_admin_confirmation' && current.paymentStatus !== nextState)) queueConnectionNotification(tx, updated, nextState === 'paid' ? 'payment_recorded' : 'payment_needs_confirmation', result.paymentId || 'review');
     if (adminNote && nextState === 'paid') tx.set(db.doc(privatePath(order.id)), { adminNotes: adminNote, bankCheckedBy: actor, bankCheckedAt: at }, { merge: true });

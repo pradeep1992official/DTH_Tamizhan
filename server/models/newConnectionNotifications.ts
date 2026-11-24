@@ -44,7 +44,11 @@ export async function deliverConnectionNotifications(orderId: string, retry = fa
           if (!current || current.status === 'accepted' || current.leaseUntil > now) return false;
           if (!retry && current.attempts >= 2) { tx.update(ref, { status: 'failed', leaseUntil: 0 }); return false; }
           const config = emailDeliveryConfig(); const quota = db.doc(`server_runtime/connection_email_${new Date().toISOString().slice(0, 10)}`); const usage = await tx.get(quota);
-          if ((usage.data()?.count || 0) >= Math.min(config.dailyLimit, 50)) { tx.update(ref, { status: 'failed', errorCode: 'EMAIL_DAILY_LIMIT' }); return false; }
+          if ((usage.data()?.count || 0) >= Math.min(config.dailyLimit, 50)) {
+            // Quota is temporary: keep the job queued without spending an attempt.
+            const tomorrow = new Date(now); tomorrow.setUTCHours(24, 0, 0, 0);
+            tx.update(ref, { status: 'pending', leaseUntil: tomorrow.getTime(), errorCode: 'EMAIL_DAILY_LIMIT' }); return false;
+          }
           tx.set(quota, { count: (usage.data()?.count || 0) + 1 });
           tx.update(ref, { status: 'sending', attempts: (current.attempts || 0) + 1, leaseUntil: now + 60000 }); return true;
         });
@@ -61,6 +65,6 @@ export async function deliverConnectionNotifications(orderId: string, retry = fa
   } catch { console.warn('New connection notification queue unavailable', { orderId }); }
 }
 export async function processConnectionNotifications() {
-  const jobs = await queryRecords<{ orderId: string }>('server_new_connection_notifications', [{ field: 'status', op: 'in', value: ['pending', 'sending'] }], { limit: 25 });
+  const jobs = await queryRecords<{ orderId: string }>('server_new_connection_notifications', [{ field: 'status', op: 'in', value: ['pending', 'sending'] }, { field: 'leaseUntil', op: 'lte', value: Date.now() }], { limit: 25 });
   for (const id of new Set(jobs.map(j => j.orderId))) await deliverConnectionNotifications(id);
 }

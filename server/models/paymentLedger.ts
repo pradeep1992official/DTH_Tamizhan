@@ -19,6 +19,23 @@ export interface PaymentLedgerEntry {
   customerEmail?: string;
 }
 const ledgerFile = () => path.join(process.cwd(), 'data', 'razorpay_payments.json');
+let localWrites: Promise<void> = Promise.resolve();
+function mutateLocalPayment(id: string, testMode: boolean, update: (previous: PaymentLedgerEntry | undefined) => PaymentLedgerEntry) {
+  const operation = localWrites.then(async () => {
+    const entries = await readPaymentLedger();
+    const index = entries.findIndex(entry => entry.id === id && entry.testMode === testMode);
+    const entry = update(index < 0 ? undefined : entries[index]);
+    if (index < 0) entries.unshift(entry); else entries[index] = entry;
+    const file = ledgerFile();
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(`${file}.tmp`, JSON.stringify(entries, null, 2), 'utf8');
+    fs.renameSync(`${file}.tmp`, file);
+    return entry;
+  });
+  // A rejected write must not prevent later operations from acquiring the queue.
+  localWrites = operation.then(() => {}, () => {});
+  return operation;
+}
 export async function readPaymentLedger(): Promise<PaymentLedgerEntry[]> {
   if (usesFirestore()) return readCollection<PaymentLedgerEntry>(collections.payments);
   const file = ledgerFile();
@@ -54,29 +71,11 @@ export async function recordProviderPayment(payment: Payments.RazorpayPayment, o
     if (entry.receiptPending) await import('../emailDelivery').then(module => module.enqueueReceiptEvents(entry)).catch(() => console.warn('[email] Payment receipt remains queued for recovery.'));
     return entry;
   }
-  const entries = await readPaymentLedger();
-  const previous = entries.find(entry => entry.id === payment.id && entry.testMode === testMode);
-  const entry = build(previous);
-  const index = entries.findIndex(item => item.id === entry.id && item.testMode === testMode);
-  if (index >= 0) entries[index] = entry; else entries.unshift(entry);
-  // Write synchronously and replace atomically, so verification retries cannot duplicate records.
-  fs.mkdirSync(path.dirname(ledgerFile()), { recursive: true });
-  const temporary = `${ledgerFile()}.tmp`;
-  fs.writeFileSync(temporary, JSON.stringify(entries, null, 2), 'utf8');
-  fs.renameSync(temporary, ledgerFile());
-  return entry;
+  return mutateLocalPayment(payment.id, testMode, build);
 }
 
 // Shared durable ledger for temporary YouPI checkout; callers own validation.
 export async function mutateYoupiPayment(id: string, update: (previous: PaymentLedgerEntry | undefined) => PaymentLedgerEntry) {
   if (usesFirestore()) return mutateRecord<PaymentLedgerEntry>(collections.payments, paymentKey(id, false), update);
-  // No awaits between read and replacement: concurrent local updates cannot lose entries.
-  const file = ledgerFile();
-  const entries: PaymentLedgerEntry[] = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : [];
-  const index = entries.findIndex(item => item.id === id && !item.testMode);
-  const entry = update(index < 0 ? undefined : entries[index]);
-  if (index < 0) entries.unshift(entry); else entries[index] = entry;
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(`${file}.tmp`, JSON.stringify(entries, null, 2)); fs.renameSync(`${file}.tmp`, file);
-  return entry;
+  return mutateLocalPayment(id, false, update);
 }

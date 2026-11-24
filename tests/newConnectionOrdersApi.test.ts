@@ -6,7 +6,7 @@ import { seedCatalog } from './fixtures/newConnectionCatalog';
 import { advanceQuote, calculateNewConnectionPrice, installationDateBounds, type BookingInput, type NewConnectionOrder } from '../src/lib/newConnectionOrders';
 import { compatibleEquipment, visibleCatalog } from '../src/lib/newConnectionBrowse';
 
-const f = vi.hoisted(() => ({ records: new Map<string, any>(), tail: Promise.resolve(), catalog: null as any, create: vi.fn(), getStatus: vi.fn(), verify: vi.fn(), enabled: true }));
+const f = vi.hoisted(() => ({ records: new Map<string, any>(), tail: Promise.resolve(), catalog: null as any, catalogRead: vi.fn(), create: vi.fn(), getStatus: vi.fn(), verify: vi.fn(), enabled: true }));
 const snapshot = (path: string) => ({ exists: f.records.has(path), data: () => structuredClone(f.records.get(path)) });
 const ref = (path: string) => ({ path, get: async () => snapshot(path), set: async (value: unknown, options?: any) => { f.records.set(path, options?.merge ? { ...f.records.get(path), ...(value as any) } : value); } });
 const db = {
@@ -26,7 +26,7 @@ vi.mock('../server/middleware/auth', () => ({
   isCallerAdminAuthorized: async (req: any) => ({ authorized: req.headers.authorization === 'Bearer approved-admin' }),
 }));
 vi.mock('../server/middleware/rateLimiter', () => ({ newConnectionStatusLimiter: (_req: any, _res: any, next: any) => next(), orderCreateLimiter: (_req: any, _res: any, next: any) => next(), adminLimiter: (_req: any, _res: any, next: any) => next() }));
-vi.mock('../server/models/newConnectionCatalog', () => ({ readNewConnectionCatalog: async () => structuredClone(f.catalog), catalogIdentity: (kind: string, data: any) => `${kind}-${data.slug || `${data.brandId || ''}-${data.name}`}`.replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 120) }));
+vi.mock('../server/models/newConnectionCatalog', () => ({ readNewConnectionCatalog: async () => { await f.catalogRead(); return structuredClone(f.catalog); }, catalogIdentity: (kind: string, data: any) => `${kind}-${data.slug || `${data.brandId || ''}-${data.name}`}`.replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 120) }));
 vi.mock('../server/queries', () => ({ queryRecords: async (_name: string, filters: any[], page?: any) => [...f.records].filter(([key]) => key.startsWith('newConnectionOrders/')).map(([, value]) => structuredClone(value)).filter(value => filters.every(filter => { const v = filter.field.split('.').reduce((a: any, key: string) => a?.[key], value); return filter.op === 'eq' ? v === filter.value : filter.op === 'gt' ? v > filter.value : filter.op === 'in' ? filter.value.includes(v) : true; })).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, page?.limit ?? 10000) }));
 vi.mock('../server/newConnectionPaymentProviders', async original => {
   const actual = await original<typeof import('../server/newConnectionPaymentProviders')>();
@@ -129,6 +129,38 @@ it('recovers Razorpay capture by webhook without browser completion and handles 
   f.getStatus.mockResolvedValue({ state: 'paid', paymentId: 'pay_r1', raw: { status: 'captured' } });
   expect(await handleNewConnectionRazorpayEvent(event)).toBe(true); expect(await handleNewConnectionRazorpayEvent(event)).toBe(true);
   const order = (await bookingStatus('buyer', result.order.id)).order; expect(order.paymentStatus).toBe('paid'); expect(order.statusHistory.filter(h => h.status === 'paid')).toHaveLength(1);
+});
+it('records a captured payment with 100 history entries and deduplicates webhook redelivery', async () => {
+  const { order } = await createBooking('buyer', input('razorpay'));
+  await startBookingCheckout('buyer', order.id);
+  const stored = f.records.get(`newConnectionOrders/${order.id}`);
+  stored.statusHistory = Array.from({ length: 100 }, (_, index) => ({ status: 'note_added', at: order.createdAt, by: 'admin', note: `note ${index}` }));
+  f.getStatus.mockResolvedValue({ state: 'paid', paymentId: 'pay_r1', raw: { status: 'captured' } });
+  const event = { event: 'payment.captured', payload: { payment: { entity: { id: 'pay_r1', order_id: 'order_r1' } } } };
+  expect(await handleNewConnectionRazorpayEvent(event)).toBe(true);
+  expect(await handleNewConnectionRazorpayEvent(event)).toBe(true);
+  const current = (await bookingStatus('buyer', order.id)).order;
+  expect(current.paymentStatus).toBe('paid'); expect(current.amountPaid).toBe(order.amountDueNow);
+  expect(current.ledger.filter(entry => entry.type === 'payment')).toHaveLength(1);
+  expect(current.statusHistory).toHaveLength(100);
+  expect(current.statusHistory[0].note).toBe('note 1'); expect(current.statusHistory.at(-1)?.status).toBe('paid');
+});
+it.each([false, true])('blocks cancellation before the checkout claim with cached checkout %s', async cached => {
+  const { order } = await createBooking('buyer', input('razorpay'));
+  if (cached) await startBookingCheckout('buyer', order.id);
+  f.create.mockClear();
+  f.catalogRead.mockImplementationOnce(() => { f.records.get(`newConnectionOrders/${order.id}`).status = 'cancelled'; });
+  await expect(startBookingCheckout('buyer', order.id)).rejects.toMatchObject({ code: 'CHECKOUT_EXPIRED' });
+  expect(f.create).not.toHaveBeenCalled();
+});
+it('keeps the provider reference for reconciliation but withholds checkout cancelled during creation', async () => {
+  const { order } = await createBooking('buyer', input('razorpay'));
+  f.create.mockImplementationOnce(async () => {
+    f.records.get(`newConnectionOrders/${order.id}`).status = 'cancelled';
+    return { provider: 'razorpay', providerOrderId: 'order_cancelled', amount: 10000, currency: 'INR', testMode: true };
+  });
+  await expect(startBookingCheckout('buyer', order.id)).rejects.toMatchObject({ code: 'CHECKOUT_EXPIRED' });
+  expect(f.records.get(`newConnectionOrders/${order.id}`)).toMatchObject({ status: 'cancelled', providerOrderId: 'order_cancelled' });
 });
 it('holds duplicate/delayed YouPI observations for admins and rejects forged or wrong-amount callbacks', async () => {
   const result = await createBooking('buyer', input('youpi')); const { order } = await startBookingCheckout('buyer', result.order.id);

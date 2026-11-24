@@ -49,6 +49,7 @@ interface RechargeFlowProps {
   onOpenAuth?: () => void;
   onInitiatePayment: (plan: DthPlan | { name: string; price: number; validityDays: number; pack_type?: string; duration_months?: number }, subscriber: SubscriberDetails | null, operator: DthOperator, smartCard: string, saveBox: boolean) => void;
   prefillConnection?: DthConnection | null;
+  initialPlanId?: string | null;
   requestCustomTopUp?: boolean;
   selectedOpId: DthOperatorId;
   onSelectOpId: (opId: DthOperatorId) => void;
@@ -62,6 +63,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
   onOpenAuth,
   onInitiatePayment,
   prefillConnection,
+  initialPlanId,
   requestCustomTopUp = false,
   selectedOpId,
   onSelectOpId,
@@ -243,6 +245,24 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
   const uniqueCatalogIds = new Set(deduplicateBrowsePlans(catalogPlans.map(catalogItemToBrowsePlan)).map(plan => plan.id));
   const operatorCatalog = catalogPlans.filter((p) => uniqueCatalogIds.has(p.id) && isSameDthOperatorGroup(p.operator, selectedOpId));
   const noCatalog = !isCatalogLoading && !catalogError && operatorCatalog.length === 0;
+  const restoredPlan = useRef('');
+  useEffect(() => {
+    if (!initialPlanId) { restoredPlan.current = ''; return; }
+    if (isCatalogLoading || catalogError) return;
+    const key = `${selectedOpId}:${initialPlanId}`;
+    if (restoredPlan.current === key) return;
+    const plan = operatorCatalog.find(item => item.id === initialPlanId);
+    setPlanTab('change_plan'); setCustomAmount('');
+    setCustomSelectedPlan(plan || null);
+    if (plan) {
+      restoredPlan.current = key;
+      setSelectedPackType(plan.pack_type);
+      setCatalogTypeFilter(plan.pack_type); setCatalogDurationFilter(plan.duration_months);
+      if (plan.pack_type === 'HD') setHdDuration(plan.duration_months); else setSdDuration(plan.duration_months);
+    } else {
+      setValidationError(currentLang === 'ta' ? 'இந்த பேக் இப்போது கிடைக்கவில்லை. வேறு பேக்கைத் தேர்ந்தெடுக்கவும்.' : 'That pack is no longer available. Please choose another pack.');
+    }
+  }, [initialPlanId, selectedOpId, isCatalogLoading, catalogError, catalogPlans]);
   const effectivePackType = noCatalog ? 'CUSTOM' : selectedPackType;
   useEffect(() => {
     if (noCatalog) { setCustomSelectedPlan(null); setPlanTab('recommended'); setSelectedPackType('CUSTOM'); }
@@ -275,7 +295,7 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
     ? (effectivePackType === 'HD' ? (recHDPlan || null) : effectivePackType === 'SD' ? (recSDPlan || null) : null)
     : (customSelectedPlan && isSameDthOperatorGroup(customSelectedPlan.operator, selectedOpId)
       ? operatorCatalog.find(plan => plan.id === customSelectedPlan.id) || null
-      : recHDPlan || null);
+      : null);
 
   const payablePrice = effectivePackType === 'CUSTOM'
     ? (validCustomAmount ?? NaN)

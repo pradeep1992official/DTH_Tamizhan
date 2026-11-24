@@ -28,12 +28,12 @@ vi.mock('../server/middleware/auth', () => ({ getAdminFirestore: () => db, getSu
 vi.mock('../server/middleware/rateLimiter', () => ({ orderCreateLimiter: (_q: any, _s: any, next: any) => next(), adminLimiter: (_q: any, _s: any, next: any) => next(), newConnectionStatusLimiter: (_q: any, _s: any, next: any) => next() }));
 vi.mock('../server/emailDelivery', () => ({ sendBrevoMessage: (...args: any[]) => f.send(...args), emailDeliveryConfig: () => ({ enabled: true, configured: true, dailyLimit: 300, testEmails: true }) }));
 vi.mock('../server/models/newConnectionCatalog', () => ({ readNewConnectionCatalog: async () => seedCatalog() }));
-vi.mock('../server/queries', () => ({ queryRecords: async (collection: string, filters: any[] = [], page?: any) => [...f.records].filter(([key]) => key.startsWith(collection + '/')).map(([, v]) => structuredClone(v)).filter(v => filters.every(test => { const value = test.field.split('.').reduce((x: any, k: string) => x?.[k], v); return test.op === 'eq' ? value === test.value : test.op === 'in' ? test.value.includes(value) : true; })).slice(0, page?.limit || 100) }));
+vi.mock('../server/queries', () => ({ queryRecords: async (collection: string, filters: any[] = [], page?: any) => [...f.records].filter(([key]) => key.startsWith(collection + '/')).map(([, v]) => structuredClone(v)).filter(v => filters.every(test => { const value = test.field.split('.').reduce((x: any, k: string) => x?.[k], v); return test.op === 'eq' ? value === test.value : test.op === 'in' ? test.value.includes(value) : test.op === 'lte' ? value <= test.value : true; })).slice(0, page?.limit || 100) }));
 vi.mock('../server/newConnectionPaymentProviders', async original => { const actual = await original<typeof import('../server/newConnectionPaymentProviders')>(); return { ...actual, providerEnabled: () => f.enabled, paymentProvider: (id: string) => id === 'razorpay' ? { supportsRefund: true, createRefund: f.refund, getRefund: f.fetchRefund } : { supportsRefund: false } }; });
 import { newConnectionOrdersRouter } from '../server/routes/newConnectionOrders';
 import { recordConnectionCollection, changeConnectionStatus, requestConnectionCancellation, adminConnection, connectionCsv, listConnections } from '../server/models/newConnectionManagement';
 import { refundConnection, reconcileConnectionRefund } from '../server/models/newConnectionRefunds';
-import { connectionEmail, connectionNotificationErrorCode, deliverConnectionNotifications, queueConnectionNotification } from '../server/models/newConnectionNotifications';
+import { connectionEmail, connectionNotificationErrorCode, deliverConnectionNotifications, processConnectionNotifications, queueConnectionNotification } from '../server/models/newConnectionNotifications';
 import { ownedBooking } from '../server/models/newConnectionOrders';
 
 const id = 'nc_' + 'a'.repeat(48); const otherId = 'nc_' + 'b'.repeat(48);
@@ -134,6 +134,22 @@ it('keeps diagnostic codes without persisting recipient or provider response dat
   expect(connectionNotificationErrorCode(new Error('recipient@example.com PRIVATE SERVER DETAILS'))).toBe('EMAIL_DELIVERY_FAILED');
   const timeout = new Error('private details'); timeout.name = 'TimeoutError';
   expect(connectionNotificationErrorCode(timeout)).toBe('EMAIL_TIMEOUT');
+});
+it('defers quota-blocked notifications and automatically delivers them after the daily reset', async () => {
+  vi.useFakeTimers(); vi.setSystemTime(new Date('2026-11-24T23:59:00Z'));
+  try {
+    await db.runTransaction((tx: any) => queueConnectionNotification(tx, fixture(), 'contacted', 'quota-test'));
+    f.records.set('server_runtime/connection_email_2026-11-24', { count: 50 });
+    await deliverConnectionNotifications(id);
+    const jobs = () => [...f.records].filter(([key]) => key.startsWith('server_new_connection_notifications/')).map(([, value]) => value);
+    expect(jobs()).toHaveLength(1);
+    expect(jobs()[0]).toMatchObject({ status: 'pending', attempts: 0, errorCode: 'EMAIL_DAILY_LIMIT', leaseUntil: Date.parse('2026-11-25T00:00:00Z') });
+    expect((await ownedBooking('buyer', id)).notificationFailed).toBe(false);
+    await processConnectionNotifications(); expect(f.send).not.toHaveBeenCalled();
+    vi.setSystemTime(new Date('2026-11-25T00:00:01Z'));
+    await processConnectionNotifications();
+    expect(f.send).toHaveBeenCalledOnce(); expect(jobs()[0]).toMatchObject({ status: 'accepted', attempts: 1, errorCode: '' });
+  } finally { vi.useRealTimers(); }
 });
 it('exports only public selected fields with formula protection, and emails only explicit public projections', async () => {
   const order = fixture(id, { customer: { ...fixture().customer, name: ' =HYPERLINK("evil")' } }); const admin = await adminConnection(id); expect(JSON.stringify(admin.privateNotes)).toContain('PRIVATE');

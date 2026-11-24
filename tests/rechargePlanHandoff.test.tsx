@@ -1,0 +1,16 @@
+import React from 'react';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+const f=vi.hoisted(()=>({states:[] as any[],refs:[] as any[],effects:[] as any[],pending:[] as any[],i:0,r:0,e:0,catalog:null as any,pay:vi.fn()}));
+vi.mock('react',async original=>({...await original<any>(),useState:(initial:any)=>{const i=f.i++;if(!(i in f.states))f.states[i]=typeof initial==='function'?initial():initial;return[f.states[i],(v:any)=>f.states[i]=typeof v==='function'?v(f.states[i]):v]},useRef:(initial:any)=>f.refs[f.r++]||={current:initial},useEffect:(fn:any,deps:any[])=>{const i=f.e++;if(!f.effects[i]||deps.some((d,j)=>!Object.is(d,f.effects[i][j]))){f.effects[i]=deps;f.pending.push(fn)}}}));
+vi.mock('../src/lib/planCatalogService',async original=>({...await original<any>(),PlanCatalogService:{subscribeToPlans:(callback:any)=>{f.catalog=callback;return()=>{}},getRecommendedPlan:(plans:any[],operator:string,type:string,duration:number)=>plans.find(p=>p.operator===operator&&p.pack_type===type&&p.duration_months===duration)}}));
+import {RechargeFlow} from '../src/components/RechargeFlow';
+import {getOperatorTheme} from '../src/lib/theme';
+const base={operator:'tata_play',amount:300,plan_name:'Test pack',channel_list:[],genre_tags:['tamil'],channel_count:50,hd_channel_count:10};
+const plans=[{...base,id:'default',pack_type:'HD',duration_months:6},{...base,id:'chosen-sd',plan_name:'Chosen SD pack',pack_type:'SD',duration_months:1},{...base,id:'chosen-hd',plan_name:'Chosen HD pack',pack_type:'HD',duration_months:3}];
+const nodes=(t:any):any[]=>Array.isArray(t)?t.flatMap(nodes):React.isValidElement(t)?[t,...nodes((t.props as any).children)]:[];
+function draw(id:string){f.i=0;f.r=0;f.e=0;return nodes(RechargeFlow({currentLang:'en',user:{uid:'owner'} as any,initialPlanId:id,prefillConnection:{operator:'tata_play',smartCardNumber:'1234567890'} as any,selectedOpId:'tata_play',onSelectOpId:()=>{},onInitiatePayment:f.pay,currentTheme:getOperatorTheme('tata_play')}))}
+function settle(id:string){let tree=draw(id);for(let n=0;n<6&&f.pending.length;n++){for(const fn of f.pending.splice(0))fn();tree=draw(id)}return tree}
+beforeEach(()=>{f.states=[];f.refs=[];f.effects=[];f.pending=[];vi.clearAllMocks();vi.stubGlobal('window',{addEventListener:()=>{},removeEventListener:()=>{}});vi.stubGlobal('fetch',vi.fn(async()=>({json:async()=>({success:true,operators:[{id:'tata_play',name:'Tata Play',isEnabled:true}]})})));});
+afterEach(()=>vi.unstubAllGlobals());
+it.each(['chosen-sd','chosen-hd'])('restores %s after async catalogue arrival and pays for that exact plan',async id=>{settle(id);await new Promise(resolve=>setTimeout(resolve,0));f.catalog(plans);const tree=settle(id);const button=tree.find(n=>n.props.id==='proceed-to-pay-btn');expect(button.props.disabled).toBe(false);button.props.onClick();expect(f.pay.mock.calls[0][0]).toMatchObject({id,price:300,duration_months:id==='chosen-sd'?1:3});expect(f.pay.mock.calls[0][3]).toBe('1234567890')});
+it('does not substitute the default plan when the requested plan is missing',()=>{settle('removed-plan');f.catalog(plans);const tree=settle('removed-plan');expect(tree.find(n=>n.props.id==='proceed-to-pay-btn').props.disabled).toBe(true);expect(f.pay).not.toHaveBeenCalled()});

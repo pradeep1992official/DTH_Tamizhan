@@ -24,6 +24,15 @@ function open() { render().find(node => node.props.id === 'add-connection-btn').
 const backdrop = () => render().find(node => node.props.onPointerDown);
 const dialog = () => render().find(node => node.props.role === 'dialog');
 beforeEach(() => { state.values = []; state.refs = []; });
+it('keeps the form and entered details open after a rejected save', async () => {
+  props.onAddConnection.mockResolvedValueOnce(false);
+  open();
+  render().find(node => node.props.id === 'saved-box-id').props.onChange({ target: { value: '41234567890' } });
+  await render().find(node => node.type === 'form').props.onSubmit({ preventDefault() {} });
+  expect(dialog()).toBeDefined();
+  expect(render().find(node => node.props.id === 'saved-box-id').props.value).toBe('41234567890');
+  expect(render().find(node => node.props.role === 'alert').props.children).toContain('could not be saved');
+});
 describe('saved box dialog dismissal', () => {
   it('offers ID correction instead of recharge and never renders a balance', () => {
     props.connections = [{ id: 'box', user_id: 'owner', operator: 'sun_direct', operatorName: 'Sun Direct', nickname: 'Home', smartCardNumber: '412536552222', balance: 150, createdAt: '' }];

@@ -25,7 +25,7 @@ interface SavedConnectionsProps {
   currentLang: Language;
   user: UserProfile | null;
   onQuickRecharge: (conn: DthConnection) => void;
-  onAddConnection: (conn: Omit<DthConnection, 'id' | 'createdAt'> | DthConnection) => void;
+  onAddConnection: (conn: Omit<DthConnection, 'id' | 'createdAt'> | DthConnection) => void | boolean | Promise<void | boolean>;
   onDeleteConnection: (id: string) => void;
   onOpenAuth: () => void;
   currentTheme: OperatorTheme;
@@ -51,6 +51,8 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
   const [nickname, setNickname] = useState('');
   const [customerName, setCustomerName] = useState('');
   const backdropPointerDown = useRef(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const isLight = currentTheme.isLightMode;
 
@@ -59,8 +61,10 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
     onClose: () => setIsAddOpen(false),
   });
 
-  const handleSubmitNew = (e: React.FormEvent) => {
+  const handleSubmitNew = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return;
+    setSaveError('');
     const error = subscriberError(operator, smartCard, false, currentLang);
     setIdError(error);
     if (error) { document.getElementById('saved-box-id')?.focus(); return; }
@@ -75,7 +79,9 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
     const cleanCard = normalizeSubscriberId(smartCard);
     const selectedOperator = operator;
 
-    onAddConnection({
+    setSaving(true);
+    try {
+    const saved = await onAddConnection({
       ...(editing || {}),
       user_id: user?.uid || 'guest_user',
       operator: selectedOperator,
@@ -85,9 +91,11 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
       customerName: customerName.trim() || undefined,
     });
 
+    if (saved === false) throw new Error('SAVE_FAILED');
     setIsAddOpen(false);
     setSmartCard('');
     setEditing(null);
+    } catch { setSaveError(currentLang === 'ta' ? '\u0b9a\u0bc7\u0bae\u0bbf\u0b95\u0bcd\u0b95 \u0bae\u0bc1\u0b9f\u0bbf\u0baf\u0bb5\u0bbf\u0bb2\u0bcd\u0bb2\u0bc8. \u0bae\u0bc0\u0ba3\u0bcd\u0b9f\u0bc1\u0bae\u0bcd \u0bae\u0bc1\u0baf\u0bb1\u0bcd\u0b9a\u0bbf\u0b95\u0bcd\u0b95\u0bb5\u0bc1\u0bae\u0bcd.' : 'Your connection could not be saved. Please try again.'); } finally { setSaving(false); }
   };
 
   return (
@@ -343,9 +351,11 @@ export const SavedConnections: React.FC<SavedConnectionsProps> = ({
                 />
               </div>
 
+              {saveError && <p role="alert" className="text-error">{saveError}</p>}
               <div className="pt-2">
                 <button
                   type="submit"
+                  disabled={saving}
                   className={`w-full py-3 rounded-xl font-bold text-xs transition-colors shadow-md ${currentTheme.ctaButtonClass}`}
                 >
                   {t.saveBoxBtn}
