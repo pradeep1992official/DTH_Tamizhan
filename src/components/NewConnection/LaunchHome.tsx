@@ -30,6 +30,7 @@ export function LaunchHomeContent({ currentLang, catalog, isSignedIn = false }: 
         {packPackageType(cheapest.item.pack) && <span> · {ta ? 'இலவச நிறுவல்' : 'Free installation'}</span>}{online && <span> · {ta ? 'ஆன்லைனில் செலுத்தலாம்' : 'Pay online'}</span>}</p>
           : <Link className="launch-price-cue" to="/new-connection">{ta ? 'பேக்குகள் மற்றும் விலைகளைப் பார்க்கவும்' : 'View current packs and prices'}</Link>}
         <div className="launch-actions flex flex-wrap gap-3"><Link className="bg-accent text-accent-ink px-5 py-3 rounded-xl font-semibold" to="/new-connection">{t.launchCTA}</Link><Link className="border border-rule px-5 py-3 rounded-xl" to="/account/bookings">{isSignedIn ? t.ctTitle : (ta ? 'முன்பதிவுகளைப் பார்க்க உள்நுழையவும்' : 'Sign in to see bookings')}</Link></div>
+        <p className="text-sm leading-relaxed">{t.launchCoverage}</p>
         {brands.length > 0 && <div className="launch-operators"><p id="launch-operators-label">{ta ? 'உங்கள் DTH ஆபரேட்டரைத் தேர்வு செய்யுங்கள்' : 'Choose your DTH operator'}</p><ul aria-labelledby="launch-operators-label" className="launch-operator-logos">{brands.map(brand => {
           const normalized = brand.name.toLowerCase().replace(/[^a-z]/g, '');
           const src = Object.entries(localLogos).find(([key]) => normalized.includes(key))?.[1] || brand.logoUrl;

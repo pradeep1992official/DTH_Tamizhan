@@ -17,11 +17,11 @@ it('removes desktop/mobile recharge, pack and saved-box navigation in both langu
   for (const lang of ['en', 'ta'] as const) {
     const html = render(<Header recharge={false} currentLang={lang} user={null} onLanguageChange={() => {}} onOpenAuth={() => {}} onUpdateProfile={async () => {}} onSignOut={() => {}} activeTab="new-connection" onTabChange={() => {}} currentTheme={getOperatorTheme('sun_direct')} />);
     for (const id of ['nav-recharge-btn', 'nav-plans-btn', 'nav-connections-btn', 'mobile-nav-recharge-btn', 'mobile-nav-plans-btn', 'mobile-nav-connections-btn']) expect(html).not.toContain(`id="${id}"`);
-    expect(html).toContain('nav-new-connection-btn'); expect(html).toContain('mobile-nav-new-connection-btn'); expect(html).not.toMatch(/src="[^"]*(?:sun_logo|tata_logo|airtel_logo)/);
+    expect(html.match(/href="\/new-connection"/g)).toHaveLength(2); expect(html).toContain('header-mobile-navigation'); expect(html).not.toMatch(/src="[^"]*(?:sun_logo|tata_logo|airtel_logo)/);
   }
 });
-it('makes the home hero about authorized new connections, with working booking/catalog links', () => {
-  const en = render(<LaunchHome currentLang="en" />); expect(en).toContain('Authorized dealer'); expect(en).toContain('set-top box'); expect(en).toContain('href="/new-connection"'); expect(en).toContain('href="/account/bookings"'); expect(en).not.toMatch(/href="\/(?:recharge|plans|connections)"/);
+it('makes the home hero about new connections, with working booking/catalog links', () => {
+  const en = render(<LaunchHome currentLang="en" />); expect(en).toContain('Your new DTH connection'); expect(en).toContain('Choose your DTH box and pack.'); expect(en).toContain('href="/new-connection"'); expect(en).toContain('href="/account/bookings"'); expect(en).not.toMatch(/href="\/(?:recharge|plans|connections)"/);
   expect(render(<LaunchHome currentLang="ta" />)).toContain('புதிய DTH');
 });
 it('keeps past recharges hidden from the account while preserving booking access', () => {
@@ -33,11 +33,11 @@ it('keeps past recharges hidden from the account while preserving booking access
 });
 it('keeps the navbar focused on bookings and service while recharge account entries remain available when enabled', () => {
   setClientRechargeEnabled(true);
-  const html = render(<Header currentLang="en" user={null} onLanguageChange={() => {}} onOpenAuth={() => {}} onUpdateProfile={async () => {}} onSignOut={() => {}} activeTab="recharge" onTabChange={() => {}} currentTheme={getOperatorTheme('sun_direct')} />); expect(html).not.toContain('id="nav-recharge-btn"'); expect(html).not.toContain('id="mobile-nav-plans-btn"'); expect(html).toContain('id="nav-bookings-btn"'); expect(html).toContain('Service Request'); expect(html).toContain('Profile');
+  const html = render(<Header currentLang="en" user={null} onLanguageChange={() => {}} onOpenAuth={() => {}} onUpdateProfile={async () => {}} onSignOut={() => {}} activeTab="recharge" onTabChange={() => {}} currentTheme={getOperatorTheme('sun_direct')} />); expect(html).not.toContain('id="nav-recharge-btn"'); expect(html).not.toContain('id="mobile-nav-plans-btn"'); expect(html).toContain('href="/account/bookings"'); expect(html).toContain('Service Request'); expect(html).toContain('Profile');
   const account = render(<AccountPage user={user} currentLang="en" onOpenAuth={() => {}} />); expect(account).toContain('href="/recharge"'); expect(account).toContain('href="/history"');
 });
-it('uses accurate launch-specific policy copy and marks missing business decisions in both languages', () => {
+it('publishes current booking and service policies in both languages without launch placeholders', () => {
   for (const lang of ['en', 'ta'] as const) for (const route of POLICY_ROUTES) {
-    const html = render(<PolicyPage policy={route.key} currentLang={lang} />); expect(html).not.toContain('Installation services are not offered'); expect(html).not.toContain('operator recharge'); expect(html).toContain(lang === 'en' ? 'confirmation' : 'உறுதிப்படுத்தல்');
+    const html = render(<PolicyPage policy={route.key} currentLang={lang} />); expect(html).not.toContain('Installation services are not offered'); expect(html).not.toContain('operator recharge'); expect(html).toContain('24 November 2026'); expect(html).not.toContain('Business input required'); expect(html).not.toContain('Netlify');
   }
 });

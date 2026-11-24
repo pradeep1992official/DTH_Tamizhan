@@ -17,17 +17,17 @@ describe('trust and legal routes (QA-07)', () => {
       {POLICY_ROUTES.map(item => <Route key={item.key} path={item.path} element={<PolicyPage policy={item.key} currentLang="en" />} />)}
     </Routes></MemoryRouter>);
     expect(html).toContain(`<h1 class="text-2xl font-bold">${route.en.replace(/&/g, '&amp;')}</h1>`);
-    expect(html).toContain('23 November 2026');
+    expect(html).toContain('24 November 2026');
     expect(html).not.toContain('Draft');
     expect(html).not.toContain('[FILL IN]');
     expect(policyPageTitle(route.key, 'en')).toBe(`${route.en} | DTH Tamizhan`);
     expect(policyPageTitle(route.key, 'ta')).toContain(route.ta);
   });
   it('publishes confirmed business details and an effective date', () => {
-    expect(BUSINESS_DETAILS.policyDate).toBe('23 November 2026');
+    expect(BUSINESS_DETAILS.policyDate).toBe('24 November 2026');
     expect(BUSINESS_DETAILS.installation).toContain('24\u201348 hours');
     expect(POLICY_CONTENT.terms.flatMap(section => section.paragraphs).join(' ')).toContain('The set-top box is provided on a rental basis');
-    expect(BUSINESS_DETAILS.processors).toContain('Netlify');
+    expect(BUSINESS_DETAILS.processors).toContain('Firebase Hosting');
     expect(BUSINESS_DETAILS.retention).toContain('72 months from the due date');
     expect(BUSINESS_DETAILS.retention).toContain('automatic deletion is not implemented');
     const contact = renderToStaticMarkup(<SupportDetails currentLang="en" full />);
@@ -61,7 +61,7 @@ describe('trust and legal routes (QA-07)', () => {
     expect(text).toContain(BUSINESS_DETAILS.refundProcessing);
     expect(text).toContain(BUSINESS_DETAILS.bankCredit);
     expect(text).toContain('required by law');
-    expect(BUSINESS_DETAILS.bankCredit).toContain('7–10 working days');
+    expect(BUSINESS_DETAILS.bankCredit).toContain('3–5 working days'); expect(BUSINESS_DETAILS.bankCredit).toContain('5–7 working days');
     expect(BUSINESS_DETAILS.refundProcessing).toContain('manually submit');
     expect(BUSINESS_DETAILS.refundReview).toContain('does not set');
     expect(BUSINESS_DETAILS.reconciliation).toContain('not a promise');

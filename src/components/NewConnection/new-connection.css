@@ -412,6 +412,11 @@
 .connection-plan-card .connection-package-inclusions :is(section,ul,p){min-width:0}
 .connection-plan-validity{display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:15px}
 .connection-plan-price{max-width:none;box-sizing:border-box;padding-block:16px;margin:0}
+.connection-booking-refund{padding:12px 14px;margin:0 0 16px;border-left:3px solid var(--color-rule-strong);background:var(--color-paper-2);font-size:14px;line-height:1.6}
+.connection-booking-refund p{margin:0}
+.connection-booking-refund p+p{margin-top:6px}
+.connection-booking-refund a{text-decoration:underline;text-underline-offset:3px}
+.connection-card-coverage{margin:12px 0;font-size:14px;line-height:1.6;color:var(--color-ink-2)}
 .connection-plan-term{font-size:14px;color:var(--color-ink-2)}
 .connection-plan-card .connection-package-inclusions section>strong{font-size:16px;line-height:1.4}
 .connection-plan-price .connection-plan-due{font-size:18px;font-weight:700}

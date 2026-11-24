@@ -33,7 +33,7 @@ vi.mock('../server/newConnectionPaymentProviders', async original => { const act
 import { newConnectionOrdersRouter } from '../server/routes/newConnectionOrders';
 import { recordConnectionCollection, changeConnectionStatus, requestConnectionCancellation, adminConnection, connectionCsv, listConnections } from '../server/models/newConnectionManagement';
 import { refundConnection, reconcileConnectionRefund } from '../server/models/newConnectionRefunds';
-import { connectionEmail, deliverConnectionNotifications, queueConnectionNotification } from '../server/models/newConnectionNotifications';
+import { connectionEmail, connectionNotificationErrorCode, deliverConnectionNotifications, queueConnectionNotification } from '../server/models/newConnectionNotifications';
 import { ownedBooking } from '../server/models/newConnectionOrders';
 
 const id = 'nc_' + 'a'.repeat(48); const otherId = 'nc_' + 'b'.repeat(48);
@@ -124,7 +124,16 @@ it('notification failures retry once and never fail collections; manual retry cl
   f.send.mockRejectedValue(new Error('transport unavailable')); const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
   const order = await recordConnectionCollection(id, 'approved-admin', payment()); expect(order.amountPaid).toBe(100); expect(f.send).toHaveBeenCalledTimes(4); const failed = await ownedBooking('buyer', id); expect(failed.notificationFailed).toBe(true); expect(failed.failedNotificationEvents).toEqual(['payment_recorded']);
   f.send.mockResolvedValue('delivered'); await deliverConnectionNotifications(id, true); expect((await ownedBooking('buyer', id)).notificationFailed).toBe(false);
+  expect((await ownedBooking('buyer', id)).notificationFailureReasons).toEqual([]);
   for (const args of f.send.mock.calls) expect(JSON.stringify(args)).not.toContain('PRIVATE'); warning.mockRestore();
+});
+
+it('keeps diagnostic codes without persisting recipient or provider response data', () => {
+  expect(connectionNotificationErrorCode(new Error('EMAIL_PROVIDER_401_UNAUTHORIZED'))).toBe('EMAIL_PROVIDER_401_UNAUTHORIZED');
+  expect(connectionNotificationErrorCode(new Error('EMAIL_NOT_CONFIGURED'))).toBe('EMAIL_NOT_CONFIGURED');
+  expect(connectionNotificationErrorCode(new Error('recipient@example.com PRIVATE SERVER DETAILS'))).toBe('EMAIL_DELIVERY_FAILED');
+  const timeout = new Error('private details'); timeout.name = 'TimeoutError';
+  expect(connectionNotificationErrorCode(timeout)).toBe('EMAIL_TIMEOUT');
 });
 it('exports only public selected fields with formula protection, and emails only explicit public projections', async () => {
   const order = fixture(id, { customer: { ...fixture().customer, name: ' =HYPERLINK("evil")' } }); const admin = await adminConnection(id); expect(JSON.stringify(admin.privateNotes)).toContain('PRIVATE');

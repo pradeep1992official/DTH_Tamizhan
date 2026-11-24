@@ -16,7 +16,7 @@ export function PolicyPage({ policy, currentLang }: { policy: PolicyKey; current
   const recharge = clientRechargeEnabled();
   return <article className="max-w-3xl mx-auto text-left space-y-6 p-5 sm:p-7 border border-rule rounded-2xl bg-paper text-ink">
     <header className="space-y-3"><h1 className="text-2xl font-bold">{route[currentLang]}</h1>
-      <p className="text-sm text-muted" lang={currentLang}>{recharge ? formatMessage(translations[currentLang].uiPolicyDraft, { date: businessDetails(currentLang).policyDate }) : translations[currentLang].launchDraft}</p>
+      <p className="text-sm text-muted" lang={currentLang}>{recharge ? formatMessage(translations[currentLang].uiPolicyDraft, { date: businessDetails(currentLang).policyDate }) : `${currentLang === 'ta' ? 'கடைசியாகப் புதுப்பிக்கப்பட்டது' : 'Last updated'}: ${BUSINESS_DETAILS.policyDate}`}</p>
     </header>
     {(policy === 'contact' || !recharge) && <SupportDetails currentLang={currentLang} full />}
     <div lang={currentLang} className="space-y-6">{(recharge ? (currentLang === 'ta' ? POLICY_CONTENT_TA : POLICY_CONTENT) : launchPolicies[currentLang])[policy].map(section => <section key={section.heading} className="space-y-2">

@@ -6,6 +6,12 @@ import type { NewConnectionOrder } from '../../src/lib/newConnectionOrders';
 import { connectionStatusLabel } from '../../src/lib/newConnectionTrackingCopy';
 
 const hash = (s: string) => createHash('sha256').update(s).digest('hex');
+export function connectionNotificationErrorCode(error: unknown): string {
+  const code = error instanceof Error ? error.message : '';
+  if (/^(EMAIL_NOT_CONFIGURED|EMAIL_NOT_CONFIRMED|TEST_EMAILS_DISABLED|EMAIL_PROVIDER_[1-5]\d{2}_[A-Z_]{1,40})$/.test(code)) return code;
+  if (error instanceof Error && ['TimeoutError', 'AbortError'].includes(error.name)) return 'EMAIL_TIMEOUT';
+  return 'EMAIL_DELIVERY_FAILED';
+}
 export function connectionEmail(order: NewConnectionOrder, event: string) {
   // Explicit public projection: never accept private records or gateway payloads here.
   const publicNote = event === 'refund_recorded' || event === 'payment_recorded' ? order.ledger.at(-1)?.note || '' : order.statusHistory.at(-1)?.note || '';
@@ -23,8 +29,8 @@ export function queueConnectionNotification(tx: FirebaseFirestore.Transaction, o
   }
 }
 async function refreshFailureFlag(orderId: string) {
-  const failures = await queryRecords<{ event: string }>('server_new_connection_notifications', [{ field: 'orderId', op: 'eq', value: orderId }, { field: 'status', op: 'eq', value: 'failed' }], { limit: 100 });
-  await getAdminFirestore().doc(`newConnectionOrders/${orderId}`).update({ notificationFailed: failures.length > 0, failedNotificationEvents: [...new Set(failures.map(f => f.event))] });
+  const failures = await queryRecords<{ event: string; errorCode?: string }>('server_new_connection_notifications', [{ field: 'orderId', op: 'eq', value: orderId }, { field: 'status', op: 'eq', value: 'failed' }], { limit: 100 });
+  await getAdminFirestore().doc(`newConnectionOrders/${orderId}`).update({ notificationFailed: failures.length > 0, failedNotificationEvents: [...new Set(failures.map(f => f.event))], notificationFailureReasons: [...new Set(failures.map(f => f.errorCode || 'EMAIL_DELIVERY_FAILED'))] });
 }
 export async function deliverConnectionNotifications(orderId: string, retry = false) {
   try {
@@ -38,7 +44,7 @@ export async function deliverConnectionNotifications(orderId: string, retry = fa
           if (!current || current.status === 'accepted' || current.leaseUntil > now) return false;
           if (!retry && current.attempts >= 2) { tx.update(ref, { status: 'failed', leaseUntil: 0 }); return false; }
           const config = emailDeliveryConfig(); const quota = db.doc(`server_runtime/connection_email_${new Date().toISOString().slice(0, 10)}`); const usage = await tx.get(quota);
-          if ((usage.data()?.count || 0) >= Math.min(config.dailyLimit, 50)) { tx.update(ref, { status: 'failed' }); return false; }
+          if ((usage.data()?.count || 0) >= Math.min(config.dailyLimit, 50)) { tx.update(ref, { status: 'failed', errorCode: 'EMAIL_DAILY_LIMIT' }); return false; }
           tx.set(quota, { count: (usage.data()?.count || 0) + 1 });
           tx.update(ref, { status: 'sending', attempts: (current.attempts || 0) + 1, leaseUntil: now + 60000 }); return true;
         });
@@ -47,8 +53,8 @@ export async function deliverConnectionNotifications(orderId: string, retry = fa
           // Keep the same provider idempotency key for automatic/manual retry.
           if (job.testMode && !emailDeliveryConfig().testEmails) throw new Error('TEST_EMAILS_DISABLED');
           const messageId = await sendBrevoMessage(job.recipient, job.name, job.subject, job.text, job.id);
-          await ref.update({ status: 'accepted', messageId, leaseUntil: 0 }); break;
-        } catch { console.warn('New connection notification failed', { orderId, event: job.event }); await ref.update({ status: 'failed', leaseUntil: 0 }); }
+          await ref.update({ status: 'accepted', messageId, leaseUntil: 0, errorCode: '' }); break;
+        } catch (error) { const errorCode = connectionNotificationErrorCode(error); console.warn('New connection notification failed', { orderId, event: job.event, errorCode }); await ref.update({ status: 'failed', leaseUntil: 0, errorCode }); }
       }
     }
     await refreshFailureFlag(orderId);

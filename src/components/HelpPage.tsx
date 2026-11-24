@@ -28,6 +28,11 @@ export function HelpPage({ user, currentLang, onOpenAuth }: { user: UserProfile 
   const [review, setReview] = useState<Record<string, unknown> | null>(null);
   const requestKey = useRef(crypto.randomUUID()); const locked = useRef(false);
   const brand = brands.find(item => item.id === brandId); const dth = helpProblems[problem as keyof typeof helpProblems]?.route === 'dth_service';
+  const serviceFeeNotice = <section aria-label={say('Complaint registration fee', 'புகார் பதிவுக் கட்டணம்')} className="rounded-xl border border-rule p-4 space-y-2" aria-live="polite">
+    <p className="font-semibold">{say('₹50 to register the complaint', 'புகார் பதிவு செய்ய ₹50')}</p>
+    <p className="text-sm">{say('This optional fee pays for DTH Tamizhan to register your complaint with your DTH provider. The DTH provider handles repairs and resolution; the fee does not guarantee a fix or a resolution time.', 'உங்கள் DTH நிறுவனத்திடம் DTH Tamizhan புகார் பதிவு செய்வதற்கான விருப்பக் கட்டணம் இது. பழுது நீக்கம் மற்றும் தீர்வை DTH நிறுவனமே கையாளும்; இந்தக் கட்டணம் தீர்வையோ தீர்வுக்கான நேரத்தையோ உறுதி செய்யாது.')}</p>
+    <p className="text-sm">{say('For free help, contact your DTH provider directly. Full ₹50 refund if we do not place your complaint within 24 hours of verified payment.', 'இலவச உதவிக்கு உங்கள் DTH நிறுவனத்தை நேரடியாக அணுகவும். கட்டணம் உறுதியான 24 மணிநேரத்திற்குள் புகார் பதிவு செய்யாவிட்டால் ₹50 முழுவதும் திருப்பித் தரப்படும்.')}</p>
+  </section>;
   useEffect(() => { let active = true;
     if (user && typeof location.state?.ticketId === 'string') ticketApi(`/${encodeURIComponent(location.state.ticketId)}`).then(data => { if (active && auth?.currentUser?.uid === user.uid) { setTicket(data.ticket); setBrandId(data.ticket.brand); setSubscriberId(data.ticket.subscriberId); setFullAddress(data.ticket.fullAddress || ''); setPinCode(savedPinCode(data.ticket)); } }).catch(() => { if (active) setError('Ticket could not be loaded.'); });
     fetch('/api/service-brands', { cache: 'no-store' }).then(async response => { if (!response.ok) throw new Error(); const data = await response.json(); if (active) setBrands(serviceBrandsSchema.parse(data.brands).filter(brand => brand.enabled)); }).catch(() => { if (active) setError(say('Brands could not be loaded. Please refresh.', 'நிறுவனங்களை ஏற்ற முடியவில்லை. மீண்டும் முயலவும்.')); });
@@ -71,6 +76,7 @@ export function HelpPage({ user, currentLang, onOpenAuth }: { user: UserProfile 
       <label className="block">{say('Brand', 'நிறுவனம்')}<select value={brandId} onChange={event => setBrandId(event.target.value)} required={dth} className="mt-1 block w-full border border-rule rounded-xl p-3"><option value="">{say('Select brand', 'நிறுவனத்தைத் தேர்ந்தெடுக்கவும்')}</option>{brands.map(brand => <option key={brand.id} value={brand.id}>{brand.displayName}</option>)}</select></label>
       <fieldset><legend className="mb-2 font-medium">{say("What's the problem?", 'என்ன பிரச்சனை?')}</legend><div className="flex flex-wrap gap-2">{[...visibleProblems, 'other'].map(key => <button key={key} type="button" aria-pressed={problem === key} onClick={() => { setProblem(key); if (key !== 'other') setDescription(''); }} className={`min-h-11 rounded-full border px-3 py-2 text-sm ${problem === key ? 'bg-brand text-white border-brand' : 'border-rule'}`}>{key === 'other' ? say('Something else', 'வேறு பிரச்சனை') : helpProblems[key as keyof typeof helpProblems][currentLang === 'ta' ? 'ta' : 'en']}</button>)}</div></fieldset>
       {problem !== 'other' && description && <div className="rounded-lg border border-rule p-3 text-sm"><p className="whitespace-pre-wrap">{description}</p><button type="button" className="underline mt-2" onClick={() => setProblem('other')}>{say('Edit details', 'விவரங்களைத் திருத்தவும்')}</button></div>}
+      {dth && serviceFeeNotice}
       {dth && <label className="block">{brand?.subscriberIdLabel || say('Subscriber ID', 'வாடிக்கையாளர் எண்')}<input inputMode="numeric" pattern="[0-9]+" required minLength={brand?.minLength} maxLength={brand?.maxLength || 25} value={subscriberId} onChange={event => setSubscriberId(event.target.value)} placeholder={brand?.placeholder} className="mt-1 block w-full border border-rule rounded-xl p-3" /></label>}
       {dth && <CustomerDthLookup operator={brandId} subscriberId={subscriberId} user={user} currentLang={currentLang} onOpenAuth={onOpenAuth} />}
       {dth && <HelpAddressFields address={fullAddress} pinCode={pinCode} onAddressChange={setFullAddress} onPinChange={setPinCode} language={currentLang} showErrors={addressAttempted} />}
@@ -79,6 +85,7 @@ export function HelpPage({ user, currentLang, onOpenAuth }: { user: UserProfile 
       </fieldset>
       {review && <section className="space-y-3" aria-label="Review support request">
         <h2 className="text-xl font-semibold">{say('Review your support request', 'உங்கள் உதவிக் கோரிக்கையைச் சரிபார்க்கவும்')}</h2>
+        {dth && serviceFeeNotice}
         <dl className="space-y-2">
           <div><dt>Phone</dt><dd>{String(review.phone || '')}</dd></div>
           <div><dt>Brand</dt><dd>{brand?.displayName || 'Not selected'}</dd></div>
@@ -95,6 +102,7 @@ export function HelpPage({ user, currentLang, onOpenAuth }: { user: UserProfile 
     </form> : <section className="rounded-xl border border-rule p-4 space-y-4">
       <h2 className="font-semibold" role="status">{say('Ticket', 'கோரிக்கை')} {ticket.ticketNo}</h2>
       {(ticket.type === 'dth_service' || (ticket.type === 'support' && ticket.helpRoute === 'dth_service')) && !notice ? <>
+        {serviceFeeNotice}
         <HelpAddressFields address={fullAddress} pinCode={pinCode} onAddressChange={setFullAddress} onPinChange={setPinCode} language={currentLang} showErrors={addressAttempted} />
         {!ticket.subscriberId && <><label className="block">{say('Brand', 'நிறுவனம்')}<select value={brandId} onChange={event => setBrandId(event.target.value)} className="block w-full border border-rule rounded p-3"><option value="">{say('Select brand', 'தேர்ந்தெடுக்கவும்')}</option>{brands.map(brand => <option key={brand.id} value={brand.id}>{brand.displayName}</option>)}</select></label><label className="block">{say('Subscriber ID', 'வாடிக்கையாளர் எண்')}<input value={subscriberId} onChange={event => setSubscriberId(event.target.value)} inputMode="numeric" maxLength={25} className="block w-full border border-rule rounded p-3" /></label></>}
         <p className="text-sm font-semibold text-brand">{say('Full ₹50 refund if we do not place your complaint within 24 hours of verified payment.', 'கட்டணம் உறுதியான 24 மணிநேரத்திற்குள் புகார் பதிவு செய்யாவிட்டால் ₹50 முழுவதும் திருப்பித் தரப்படும்.')}</p>

@@ -10,6 +10,8 @@ import { PackageImage } from './PackageImage';
 import { PackageInclusions } from './PackageInclusions';
 import { PackChips } from './PackChips';
 import { CatalogLogo, SampleNote, currency } from './Shared';
+import { NEW_CONNECTION_REFUND } from '../../lib/newConnectionPolicy';
+import { BUSINESS_DETAILS } from '../../lib/trustContent';
 
 export function BookingSummary({ item, option, offer, quote, settings, validSelection, lang, review = false }: {
   item: VisiblePack; option: Pack['pricingOptions'][number]; offer: EquipmentOffer;
@@ -27,6 +29,10 @@ export function BookingSummary({ item, option, offer, quote, settings, validSele
 
       </div><div className="connection-plan-product"><PackageImage brand={item.brand.name} pack={item.pack.name} packageType={packPackageType(item.pack)} boxType={packBoxType(item.pack)} /></div></div>
         {quote && <dl className="connection-booking-breakdown connection-plan-price" aria-live="polite"><div className="connection-plan-due"><dt>{lang === 'en' ? review ? 'Total due now' : 'Total price' : review ? t.nbDue : '\u0bae\u0bca\u0ba4\u0bcd\u0ba4 \u0bb5\u0bbf\u0bb2\u0bc8'}</dt><dd><div className="connection-plan-validity-row"><span>{t.ncValidity} :</span><strong className="connection-plan-validity-text">{validityLabel(option.validityDays, lang, option.validityMonths)}</strong></div><p className="connection-plan-coverage">{lang === 'en' ? `Pack ${validityLabel(option.validityDays, lang, option.validityMonths)} + ${packBoxType(item.pack)} set-top box + installation${packPackageType(item.pack) === 'full_set' ? ' + dish' : ''}` : `${t.ncPack} (${validityLabel(option.validityDays, lang, option.validityMonths)}) + ${packBoxType(item.pack)} ${t.nbOffer} + ${t.ncInstallation}`}</p><div className="connection-plan-price-amount"><strong>{currency(review ? quote.amountDueNow : quote.priceBreakdown.total, lang)}</strong><small>{monthlyComparison(option.price, option.validityDays, lang, option.validityMonths)}</small></div></dd></div></dl>}
+        {quote && <div className="connection-booking-refund">
+          <p><strong>{NEW_CONNECTION_REFUND[lang]}</strong></p>
+          <p>{lang === 'en' ? 'To request your refund, ' : 'பணத்தைத் திரும்பப் பெற, '}<a href={`tel:${BUSINESS_DETAILS.phone.replace(/[^+0-9]/g, '')}`}>{lang === 'en' ? 'call support' : 'உதவிக்குழுவை அழைக்கவும்'}</a>{lang === 'en' ? ' and provide your booking number. Refunds are processed after verification.' : '. உங்கள் முன்பதிவு எண்ணைத் தெரிவிக்கவும். சரிபார்த்த பிறகு பணத்திருப்பு செயல்படுத்தப்படும்.'} <a href="/refund-policy">{t.nbRefund}</a></p>
+        </div>}
         {packPackageType(item.pack) ? <PackageInclusions packageType={packPackageType(item.pack)!} boxType={packBoxType(item.pack)} lang={lang} existingDishNote={lang === 'en' ? 'Dish not included. Your existing dish is required.' : undefined} /> : <p>{offer.name} &middot; {packBoxType(item.pack)}</p>}
         <SampleNote name={item.pack.name} lang={lang} />
         {!packPackageType(item.pack) && <p className="connection-muted">{t.ncEquipmentNote}</p>}{settings.priceDisclaimer && <p className="connection-disclaimer">{settings.priceDisclaimer}</p>}

@@ -84,6 +84,7 @@ export function CatalogPage({ initialBrandId, data, items, lang, selected, limit
           {packageType && <p className="connection-package-includes"><Check size={14} aria-hidden="true" /><span>{packageType === 'only_box' ? (lang === 'en' ? 'Free installation' : '\u0b87\u0bb2\u0bb5\u0b9a \u0ba8\u0bbf\u0bb1\u0bc1\u0bb5\u0bb2\u0bcd') : (lang === 'en' ? 'Dish + free installation' : '\u0b9f\u0bbf\u0bb7\u0bcd + \u0b87\u0bb2\u0bb5\u0b9a \u0ba8\u0bbf\u0bb1\u0bc1\u0bb5\u0bb2\u0bcd')}</span></p>}
           <SampleNote name={pack.name} lang={lang} />
         </div>
+        <p className="connection-card-coverage">{t.launchCoverage}</p>
         <div className="connection-card-actions"><Link to={`/new-connection/packs/${encodeURIComponent(pack.id)}?validity=${chosen.validityDays}`}><span className="link-label">{t.ncView}</span><span className="link-arrow" aria-hidden="true">&rarr;</span></Link><label className="connection-check connection-card-compare" htmlFor={`${filtersId}-compare-${pack.id}`} data-selected={isCompared}><input id={`${filtersId}-compare-${pack.id}`} type="checkbox" aria-label={`${t.ncCompare}: ${packDisplayName(pack.name)}`} checked={isCompared} disabled={comparisonFull && !isCompared} aria-describedby={comparisonFull ? comparisonHintId : undefined} onChange={() => onToggle(item, chosen.validityDays)} />{t.ncCompare}</label><Link className="connection-primary" to={bookingUrl(pack, chosen.validityDays)}>{t.ncSelect}</Link></div>
       </article>;
     })}</div>

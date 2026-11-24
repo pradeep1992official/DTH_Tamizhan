@@ -138,7 +138,14 @@ export async function sendBrevoMessage(recipient: string, name: string, subject:
   const config = emailDeliveryConfig();
   if (!config.enabled || !config.configured) throw new Error('EMAIL_NOT_CONFIGURED');
   const response = await fetch('https://api.brevo.com/v3/smtp/email', { method: 'POST', signal: AbortSignal.timeout(15_000), headers: { 'api-key': process.env.BREVO_API_KEY!, 'Content-Type': 'application/json' }, body: JSON.stringify({ sender: { email: process.env.BREVO_SENDER_EMAIL, name: process.env.BREVO_SENDER_NAME || 'DTH Tamizhan' }, to: [{ email: recipient, name }], subject, textContent, headers: { idempotencyKey } }) });
-  const data = await response.json(); if (!response.ok || !data.messageId) throw new Error('EMAIL_NOT_CONFIRMED'); return String(data.messageId);
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    // Preserve only a bounded provider code, never response bodies or recipient details.
+    const code = typeof data?.code === 'string' && /^[a-z_]{1,40}$/i.test(data.code) ? data.code.toUpperCase() : 'UNKNOWN';
+    throw new Error(`EMAIL_PROVIDER_${response.status}_${code}`);
+  }
+  if (!data?.messageId) throw new Error('EMAIL_NOT_CONFIRMED');
+  return String(data.messageId);
 }
 
 export async function receiptEmailStatus() {
