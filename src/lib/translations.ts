@@ -188,7 +188,7 @@ export const translations = {
     customersTab: 'Customers',
     pendingOrdersTab: 'Pending Orders',
     rechargesTab: 'Recharge History',
-    packsTab: 'Plan Catalog',
+    packsTab: 'Recharge Plans',
     paymentsTab: 'Payments',
     reportsTab: 'Reports & Audits',
     operatorsTab: 'Operator Availability',

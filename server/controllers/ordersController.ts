@@ -56,7 +56,7 @@ export const ordersController = {
     const parsed = UpdateOrderStatusSchema.safeParse(req.body);
     if (!parsed.success) { res.status(400).json({ success: false, error: 'A valid order and recharge status are required.' }); return; }
     try {
-      const order = await updatePaidRechargeStatus(parsed.data.orderId, parsed.data.rechargeStatus, parsed.data.workerNotes);
+      const order = await updatePaidRechargeStatus(parsed.data.orderId, parsed.data.rechargeStatus, parsed.data.workerNotes, parsed.data.operatorRefId);
       await syncCompletedRechargeConnection(order);
       res.json({ success: true, order });
     } catch (error) {

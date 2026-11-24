@@ -31,7 +31,8 @@ export const UpdateOrderStatusSchema = z.object({
   orderId: z.string().min(1, 'Order ID is required'),
   rechargeStatus: z.enum(['pending', 'completed', 'failed']),
   workerNotes: z.string().max(500).optional(),
-});
+  operatorRefId: z.string().trim().min(1).max(100).optional(),
+}).refine(value => value.rechargeStatus !== 'completed' || !!value.operatorRefId, { message: 'Operator confirmation reference is required.', path: ['operatorRefId'] });
 
 export const CatalogPackSchema = z.object({
     id: z.string().min(1),

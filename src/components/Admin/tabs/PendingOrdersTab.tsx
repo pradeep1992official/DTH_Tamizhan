@@ -7,6 +7,7 @@ import { Clock, CheckCircle2 } from '../../../lib/icons';
 import { RechargeOrder, Language } from '../../../types';
 import { OperatorTheme } from '../../../lib/theme';
 import { translations } from '../../../lib/translations';
+import { useAccessibleModal } from '../../../lib/useAccessibleModal';
 
 interface PendingOrdersTabProps {
   orders: RechargeOrder[];
@@ -34,20 +35,24 @@ export const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
   const pendingQueue = pendingPaidRecharges(orders);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
   const [completedOrder, setCompletedOrder] = useState<RechargeOrder | null>(null);
+  const [confirmOrder, setConfirmOrder] = useState<RechargeOrder | null>(null);
+  const [operatorRefId, setOperatorRefId] = useState('');
+  const { modalRef } = useAccessibleModal({ isOpen: !!confirmOrder, onClose: () => { if (!processingIds.size) setConfirmOrder(null); } });
 
   const handleProcessOrder = async (orderId: string) => {
-    if (processingIds.has(orderId)) return;
+    if (processingIds.has(orderId) || !operatorRefId.trim()) return;
     setProcessingIds(ids => new Set(ids).add(orderId));
     try {
       const headers = await getAuthHeaders();
       const res = await fetch('/api/admin/orders/update', {
         method: 'POST', headers,
-        body: JSON.stringify({ orderId, rechargeStatus: 'completed', workerNotes: 'Recharge confirmed successful by admin' }),
+        body: JSON.stringify({ orderId, rechargeStatus: 'completed', operatorRefId: operatorRefId.trim(), workerNotes: 'Recharge confirmed successful by admin' }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Unable to update recharge');
       if (data.order?.orderId === orderId && data.order.rechargeStatus === 'completed') setCompletedOrder(data.order);
       showToast(`Order ${orderId} marked as successfully recharged`);
+      setConfirmOrder(null); setOperatorRefId('');
       onRefresh();
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Error processing order');
@@ -58,6 +63,17 @@ export const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
 
   return (
     <div className="admin-tab pending-orders-tab space-y-4">
+      {confirmOrder && <div className="recharge-confirm-overlay"><section ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="recharge-success-title" aria-describedby="recharge-confirm-help" tabIndex={-1} className="recharge-confirm-dialog">
+        <h2 id="recharge-success-title">Confirm recharge</h2>
+        {confirmOrder.testMode && <p className="recharge-confirm-test">TEST order · No real recharge</p>}
+        <dl className="recharge-confirm-summary"><div><dt>Operator</dt><dd>{confirmOrder.operatorName}</dd></div><div><dt>Amount</dt><dd className="recharge-confirm-amount">Rs. {confirmOrder.amount.toLocaleString('en-IN')}</dd></div><div><dt>Subscriber ID</dt><dd>{confirmOrder.smartCardNumber}</dd></div><div className="recharge-confirm-reference"><dt>Order reference</dt><dd>{confirmOrder.orderId}</dd></div></dl>
+        <form onSubmit={event => { event.preventDefault(); void handleProcessOrder(confirmOrder.orderId); }}>
+          <label htmlFor="recharge-operator-reference">Operator confirmation reference <span>(required)</span></label>
+          <input id="recharge-operator-reference" aria-describedby="recharge-confirm-help" autoFocus required maxLength={100} placeholder="Enter reference from operator" value={operatorRefId} onChange={event => setOperatorRefId(event.target.value)} disabled={processingIds.has(confirmOrder.orderId)} />
+          <p id="recharge-confirm-help">Use the operator’s success reference to mark this order completed.</p>
+          <div className="recharge-confirm-actions"><button type="button" disabled={processingIds.has(confirmOrder.orderId)} onClick={() => setConfirmOrder(null)} className="admin-quiet">Cancel</button><button type="submit" disabled={!operatorRefId.trim() || processingIds.has(confirmOrder.orderId)} className="admin-primary">{processingIds.has(confirmOrder.orderId) ? 'Saving...' : 'Mark completed'}</button></div>
+        </form>
+      </section></div>}
       {completedOrder && <section className="rounded-lg border border-rule p-4 space-y-3" aria-label="Recharge confirmation">
         <div className="flex items-center justify-between gap-3"><p className="text-sm font-semibold">{completedOrder.customerName || completedOrder.smartCardNumber} — {currentLang === 'ta' ? 'ரீசார்ஜ் நிலை சேமிக்கப்பட்டது' : 'Recharge status saved'}</p><button type="button" className="text-sm underline" onClick={() => setCompletedOrder(null)}>{currentLang === 'ta' ? 'மூடவும்' : 'Dismiss'}</button></div>
         <WhatsAppShare href={rechargeWhatsAppLink(completedOrder)} currentLang={currentLang} />
@@ -120,7 +136,7 @@ export const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
                     Pending
                   </span>
                 </div>
-                <button type="button" disabled={processingIds.has(order.orderId)} aria-label={`Mark recharge successful for ${order.smartCardNumber}`} onClick={() => handleProcessOrder(order.orderId)}
+                <button type="button" disabled={processingIds.has(order.orderId)} aria-label={`Mark recharge successful for ${order.smartCardNumber}`} onClick={() => { setOperatorRefId(''); setConfirmOrder(order); }}
                   className="px-3 py-2 rounded-lg font-bold text-accent-ink bg-accent text-sm disabled:opacity-50 disabled:cursor-wait">
                   {processingIds.has(order.orderId) ? 'Saving...' : 'Mark Successful'}
                 </button>

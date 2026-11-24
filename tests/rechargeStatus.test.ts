@@ -4,11 +4,23 @@ vi.mock('node:fs', () => ({ default: { mkdirSync: vi.fn(), writeFileSync: fixtur
 vi.mock('../server/models/store', () => ({ MEMORY_RECHARGE_ORDERS: fixture.orders, RECHARGE_ORDERS_FILE: 'fixture/orders.json', OPERATORS: [{ id: 'airtel_dth', name: 'Airtel Digital TV' }] }));
 vi.mock('../server/models/paymentLedger', () => ({ readPaymentLedger: () => fixture.payments }));
 import { getCustomerRechargeOrders, getRechargeOrders, updatePaidRechargeStatus } from '../server/models/paidRechargeOrders';
+import { UpdateOrderStatusSchema } from '../server/middleware/validation';
 beforeEach(() => {
   vi.clearAllMocks(); fixture.orders.length = 0;
   fixture.payments = [{ id: 'pay_1', orderId: 'order_1', status: 'paid', providerStatus: 'captured', amount: 100,
     currency: 'INR', operator: 'airtel_dth', smartCardNumber: '3015222222', packName: 'Tamil HD',
     paymentMethod: 'upi', createdAt: '2026-11-13T10:00:00Z', testMode: true }];
+});
+it('requires an operator confirmation reference for completion requests', () => {
+  const request = { orderId: 'order_1', rechargeStatus: 'completed' };
+  expect(UpdateOrderStatusSchema.safeParse(request).success).toBe(false);
+  expect(UpdateOrderStatusSchema.safeParse({ ...request, operatorRefId: '   ' }).success).toBe(false);
+  expect(UpdateOrderStatusSchema.parse({ ...request, operatorRefId: ' OP-123 ' }).operatorRefId).toBe('OP-123');
+  expect(UpdateOrderStatusSchema.safeParse({ orderId: 'order_1', rechargeStatus: 'pending' }).success).toBe(true);
+});
+it('persists the operator confirmation reference with the completed order', async () => {
+  expect(await updatePaidRechargeStatus('order_1', 'completed', undefined, 'OP-123')).toMatchObject({ operatorRefId: 'OP-123', rechargeStatus: 'completed' });
+  expect(JSON.parse(fixture.write.mock.calls[0][1])[0].operatorRefId).toBe('OP-123');
 });
 it('persists test completion and removes it from the pending queue without losing the test marker', async () => {
   expect(await updatePaidRechargeStatus('order_1', 'completed')).toMatchObject({ rechargeStatus: 'completed', testMode: true });

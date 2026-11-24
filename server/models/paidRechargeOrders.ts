@@ -54,7 +54,7 @@ export async function getRechargeOrders(): Promise<RechargeOrder[]> {
 
 export const getCustomerRechargeOrders = getRechargeOrders;
 
-export async function updatePaidRechargeStatus(orderId: string, status: RechargeOrder['rechargeStatus'], workerNotes?: string): Promise<RechargeOrder> {
+export async function updatePaidRechargeStatus(orderId: string, status: RechargeOrder['rechargeStatus'], workerNotes?: string, operatorRefId?: string): Promise<RechargeOrder> {
   const payments = usesFirestore() ? await limitedRecords<PaymentLedgerEntry>(collections.payments, [{ field: 'orderId', op: 'eq', value: orderId }], 2) : await readPaymentLedger();
   const saved = usesFirestore() ? (await getAdminFirestore().getAll(...[false, true].map(test => getAdminFirestore().collection(collections.recharges).doc(paymentKey(orderId, test))))).filter(doc => doc.exists).map(doc => doc.data() as RechargeOrder) : await readSavedRechargeOrders();
   const order = mergePaidRechargeOrders(saved, payments).find(item => item.orderId === orderId);
@@ -75,7 +75,7 @@ export async function updatePaidRechargeStatus(orderId: string, status: Recharge
       if (current.rechargeStatus === status) return current;
       if (current.rechargeStatus === 'completed') throw new PaymentError(409, 'This recharge has already been completed.');
       const now = new Date().toISOString();
-      const updated = { ...current, rechargeStatus: status, workerNotes: workerNotes || current.workerNotes, updatedAt: now,
+      const updated = { ...current, rechargeStatus: status, ...(operatorRefId ? { operatorRefId } : {}), workerNotes: workerNotes || current.workerNotes, updatedAt: now,
         ...(status === 'completed' ? { completedAt: now, receiptPending: true } : {}) };
       transaction.set(orderRef, cleanData(updated)); return updated;
     });
@@ -85,7 +85,7 @@ export async function updatePaidRechargeStatus(orderId: string, status: Recharge
   if (order.rechargeStatus === status) return order;
   if (order.rechargeStatus === 'completed') throw new PaymentError(409, 'This recharge has already been completed.');
   const now = new Date().toISOString();
-  const updated = { ...order, rechargeStatus: status, workerNotes: workerNotes || order.workerNotes,
+  const updated = { ...order, rechargeStatus: status, ...(operatorRefId ? { operatorRefId } : {}), workerNotes: workerNotes || order.workerNotes,
     updatedAt: now, ...(status === 'completed' ? { completedAt: now } : {}) };
   const records = [...MEMORY_RECHARGE_ORDERS];
   const index = records.findIndex(item => item.orderId === orderId);

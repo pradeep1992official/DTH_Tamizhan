@@ -33,13 +33,14 @@ export function DthLookupTestPanel({ getAuthHeaders }: { getAuthHeaders: () => P
   }, [getAuthHeaders, refresh]);
   useEffect(() => () => request.current?.abort(), []);
   const reset = () => { setResult(null); setError(''); };
-  const ready = configured && (provider === 'auto' || providers.some(item => item.id === provider && item.ready));
+  const ready = configured === true && providers.some(item => item.ready && (provider === 'auto' || item.id === provider));
   const activeProvider = providers.find(item => item.ready && (provider === 'auto' || provider === item.id));
   const unavailable = providers.filter(item => !item.ready).length;
   return <section className="admin-tab dth-lookup-test space-y-5">
     <p className="lookup-provider-status" role="status">{configured === null ? 'Checking providers…' : activeProvider ? <><strong>{lookupProviderNames[activeProvider.id]} ready</strong>{unavailable > 0 && <span> · {unavailable} {activeProvider.id === 'way2api' ? 'fallbacks' : 'providers'} unavailable</span>}</> : 'No live provider is ready'}</p>
+    {configured !== null && !ready && <p className="rounded-lg border border-rule p-3">Live DTH lookup is unavailable. Configure a provider and check configuration below before entering a subscriber ID.</p>}
     <form className="space-y-4" onSubmit={async event => {
-      event.preventDefault(); if (locked.current) return;
+      event.preventDefault(); if (locked.current || !ready) return;
       locked.current = true; setBusy(true); setError(''); setResult(null);
       const controller = new AbortController(); request.current = controller;
       try {
@@ -52,7 +53,7 @@ export function DthLookupTestPanel({ getAuthHeaders }: { getAuthHeaders: () => P
       } catch (e) { if (!controller.signal.aborted) setError(e instanceof Error && !(e instanceof TypeError) && !(e instanceof SyntaxError) ? e.message : 'No response received. Check Way2API request history before retrying.'); }
       finally { if (!controller.signal.aborted) { locked.current = false; setBusy(false); } }
     }}>
-      <fieldset disabled={busy} className="space-y-4">
+      <fieldset disabled={busy || !ready} className="space-y-4">
         <legend className="sr-only">DTH account details</legend>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block text-sm font-medium">DTH operator<select value={operator} onChange={event => { setOperator(event.target.value as DthLookupInput['operator']); reset(); }} className="block w-full mt-2 border border-rule p-3">{Object.entries(lookupOperators).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
