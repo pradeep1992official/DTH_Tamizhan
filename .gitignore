@@ -1,12 +1,44 @@
+# Dependencies
 node_modules/
+
+# Generated builds and coverage
 build/
 dist/
 coverage/
-.DS_Store
+*.tsbuildinfo
+
+# Local server output and temporary files
+tmp/
+artifacts/
+server.js
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment files and credentials
 .env*
 !.env.example
-data/
+*.pem
+*service-account*.json
 
+# Local runtime and fixture data
+data/
 .local-fixtures/
+
+# Firebase and emulator state
 .firebase/
+firebase-debug.log*
+firestore-debug.log*
+
+# UI snapshots and local review tooling
+.hallmark/
+test-results/
+playwright-report/
+
+# Editor and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
