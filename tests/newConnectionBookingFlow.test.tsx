@@ -259,9 +259,9 @@ it('hides a single payment option and defaults the multiple-option selector to t
   f.values = []; settings.enabledProviders = ['razorpay', 'youpi']; settings.defaultProvider = 'youpi';
   f.fetch.mockImplementation((url, options) => String(url).endsWith('/config') ? Promise.resolve({ ok: true, json: async () => ({ enabledProviders: ['razorpay', 'youpi'], settings }) }) : old(url, options));
   await toReview();
-  const selector = nodes(nodes(render()).find(node => node.props.className === 'connection-review-provider')).find(node => node.type === 'select');
-  expect(selector.props.value).toBe('youpi');
-  expect(nodes(selector).some(node => node.type === 'option' && node.props.value === '' && node.props.disabled)).toBe(true);
+  expect(nodes(render()).some(node => node.props.className === 'connection-review-provider')).toBe(false);
+  expect(text(render())).not.toContain('YouPI');
+
 });
 
 it('keeps the existing confirmation route and renders the verified reference and next steps after payment', async () => {

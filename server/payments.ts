@@ -6,7 +6,7 @@ import { subscriberError, normalizeSubscriberId } from '../src/lib/subscriberVal
 import { validateTopUpAmount } from '../src/lib/topUpAmount';
 
 export const paymentMode = (value = process.env.PAYMENT_MODE): 'sandbox' | 'production' | 'youpi' =>
-  value === 'youpi' ? 'youpi' : value === 'sandbox' ? 'sandbox' : 'production';
+  value === 'sandbox' ? 'sandbox' : 'production';
 
 export const isTestPaymentEnvironment = (mode = paymentMode(), keyId = process.env.RAZORPAY_KEY_ID): boolean =>
   mode === 'sandbox' || (mode !== 'youpi' && keyId?.startsWith('rzp_test_') === true);

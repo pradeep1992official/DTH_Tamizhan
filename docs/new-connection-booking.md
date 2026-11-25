@@ -1,3 +1,5 @@
+> Current support: YouPI checkout and settings have been retired. Razorpay and configured payment-free bookings remain. Any YouPI references below describe historical records or legacy reconciliation only.
+
 # New connection booking and provider integration — Part 3
 
 No deployment, production payment, bank-observer connection or sample-data mutation was performed. Defaults are **no enabled provider**, default provider `none`, and advance mode `none`: an authenticated customer can submit a complete installation request without paying online.

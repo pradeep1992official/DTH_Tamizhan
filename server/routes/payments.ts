@@ -61,7 +61,7 @@ paymentsRouter.get('/api/payments/config', (_req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   const mode = paymentMode();
   const testMode = isTestPaymentEnvironment(mode);
-  res.json({ mode, testMode, provider: mode === 'youpi' ? 'YouPI' : mode === 'sandbox' ? 'Local sandbox simulator' : 'Razorpay' });
+  res.json({ mode, testMode, provider: mode === 'sandbox' ? 'Local sandbox simulator' : 'Razorpay' });
 });
 paymentsRouter.post('/api/payments/session', orderCreateLimiter, validateBody(prepareSchema), async (req, res, next) => {
   try { await checkOperator(req.body.operator); sandboxPlans = await currentQuotePlans(req.body.packId); } catch (error) { next(error); return; }

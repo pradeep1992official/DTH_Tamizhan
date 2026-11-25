@@ -1,3 +1,5 @@
+> Current support: YouPI checkout and settings have been retired. Razorpay and configured payment-free bookings remain. Any YouPI references below describe historical records or legacy reconciliation only.
+
 # New connections — Part 4
 
 Implemented without deployment, live gateway calls, real bookings, bank transfers, outgoing emails or database migrations. No libraries or environment variables added. The Firebase database remains the configured named Enterprise database in `firebase-applet-config.json`.

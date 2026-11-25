@@ -28,12 +28,11 @@ it('refuses live Razorpay keys and leaves authorized-only payments pending', asy
   vi.stubEnv('RAZORPAY_KEY_ID', 'rzp_test_fixture'); f.payments.mockResolvedValue({ items: [{ id: 'pay_test', order_id: 'order_test', amount: 12345, currency: 'INR', status: 'authorized', captured: false }] });
   expect((await provider.getStatus(booking)).state).toBe('pending');
 });
-it('creates a YouPI session with a merchant-owned idempotency key and validates the returned origin', async () => {
-  const provider = new YoupiProvider(); const order = { ...booking, provider: 'youpi' as const, providerOrderId: '' };
-  f.gateway.mockResolvedValue({ paymentId: 'session-1', orderId: booking.id, amountPaise: '12345', currency: 'INR', checkoutUrl: 'https://pay.example.com/checkout/session-1' });
-  expect((await provider.createCheckout(order)).providerOrderId).toBe('session-1'); expect(f.gateway).toHaveBeenCalledWith('payments', expect.objectContaining({ amount: '123.45', idempotencyKey: booking.id }));
-  f.gateway.mockResolvedValue({ paymentId: 'session-1', orderId: booking.id, amountPaise: 12345, currency: 'INR', checkoutUrl: 'https://evil.example/checkout' });
-  await expect(provider.createCheckout(order)).rejects.toThrow('PROVIDER_MISMATCH');
+it('rejects new YouPI checkout even when old enable flags are present', async () => {
+  const provider = new YoupiProvider();
+  expect(providerEnabled('youpi')).toBe(false);
+  await expect(provider.createCheckout({ ...booking, provider: 'youpi' })).rejects.toThrow('PROVIDER_DISABLED');
+  expect(f.gateway).not.toHaveBeenCalled();
 });
 it('never promotes YouPI observations/reconciliation to paid and rejects wrong attribution', async () => {
   const provider = new YoupiProvider(); const order = { ...booking, provider: 'youpi' as const, providerOrderId: 'session-1' };

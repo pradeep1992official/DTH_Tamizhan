@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { razorpayClient, createIdempotentRazorpayRefund, verifyPaymentSignature, verifyRazorpayWebhookSignature } from './razorpay';
-import { youpiGatewayConfig, youpiGatewayRequest } from './youpi';
+import { youpiGatewayRequest } from './youpi';
 import { moneyUnits, type NewConnectionOrder, type NewConnectionProvider } from '../src/lib/newConnectionOrders';
 
 export interface ProviderResult { state: 'pending' | 'paid' | 'awaiting_admin_confirmation'; paymentId?: string; raw: Record<string, string | number | boolean> }
@@ -65,17 +65,7 @@ function validYoupi(value: any, booking: NewConnectionOrder, paymentId: string) 
 }
 export class YoupiProvider implements PaymentProvider {
   readonly id = 'youpi' as const; readonly supportsRefund = false;
-  async createCheckout(booking: NewConnectionOrder): Promise<Checkout> {
-    if (process.env.NC_YOUPI_ENABLED !== 'true') throw new Error('PROVIDER_DISABLED');
-    const config = youpiGatewayConfig(); const origin = new URL(process.env.NC_APP_URL || config.returnUrl);
-    if (origin.username || origin.password || (origin.protocol !== 'https:' && !(process.env.NODE_ENV !== 'production' && origin.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(origin.hostname)))) throw new Error('PROVIDER_DISABLED');
-    const returnUrl = new URL('/new-connection/book', origin); returnUrl.searchParams.set('order', booking.id);
-    const value = await youpiGatewayRequest('payments', { orderId: booking.id, amount: booking.amountDueNow.toFixed(2), currency: 'INR', method: 'UPI', idempotencyKey: booking.id, returnUrl: returnUrl.href, metadata: { purpose: 'new_connection' } });
-    if (typeof value.paymentId !== 'string' || !/^[\w-]{1,128}$/.test(value.paymentId)) throw new Error('PROVIDER_MISMATCH');
-    validYoupi(value, booking, value.paymentId); const url = new URL(value.checkoutUrl);
-    if (url.origin !== config.checkout.origin || url.username || url.password) throw new Error('PROVIDER_MISMATCH');
-    return { provider: this.id, providerOrderId: value.paymentId, checkoutUrl: url.href, currency: 'INR', testMode: false };
-  }
+  async createCheckout(_booking: NewConnectionOrder): Promise<Checkout> { throw new Error('PROVIDER_DISABLED'); }
   async getStatus(booking: NewConnectionOrder): Promise<ProviderResult> {
     if (!booking.providerOrderId) return { state: 'pending', raw: {} };
     const value = await youpiGatewayRequest(`payments/${encodeURIComponent(booking.providerOrderId)}`);
@@ -102,4 +92,4 @@ export class NoPaymentProvider implements PaymentProvider {
   async verifyConfirmation(): Promise<ProviderResult> { return this.getStatus(); }
 }
 export function paymentProvider(id: NewConnectionProvider): PaymentProvider { return id === 'razorpay' ? new RazorpayProvider() : id === 'youpi' ? new YoupiProvider() : new NoPaymentProvider(id); }
-export function providerEnabled(id: NewConnectionProvider) { return Boolean(id === 'none' || (id === 'razorpay' && process.env.NC_RAZORPAY_TEST_ENABLED === 'true' && process.env.RAZORPAY_KEY_ID?.startsWith('rzp_test_') && process.env.RAZORPAY_KEY_SECRET) || (id === 'youpi' && process.env.NC_YOUPI_ENABLED === 'true' && process.env.YOUPI_API_URL && process.env.YOUPI_CHECKOUT_URL && process.env.YOUPI_MERCHANT_ID && process.env.YOUPI_MERCHANT_API_KEY && process.env.YOUPI_WEBHOOK_SECRET && process.env.APP_URL)); }
+export function providerEnabled(id: NewConnectionProvider) { return Boolean(id === 'none' || (id === 'razorpay' && process.env.NC_RAZORPAY_TEST_ENABLED === 'true' && process.env.RAZORPAY_KEY_ID?.startsWith('rzp_test_') && process.env.RAZORPAY_KEY_SECRET)); }

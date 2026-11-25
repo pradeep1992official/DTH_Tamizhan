@@ -61,31 +61,8 @@ function failure(res: import('express').Response, error: unknown) {
   res.status(error instanceof PaymentError ? error.status : 503).json({ error: error instanceof PaymentError ? error.message : 'Unable to check YouPI payment. Do not pay again until the existing payment is checked.' });
 }
 export function registerYoupiRoutes(router: Router, schema: z.ZodObject<any>, checkOperator: (id: string) => Promise<void>, plans: (id: string) => ReturnType<typeof planModel.getAll>) {
-  router.post('/api/payments/youpi', rechargeGuard, orderCreateLimiter, validateBody(schema), async (req, res) => {
-    res.setHeader('Cache-Control', 'no-store');
-    try {
-      if (paymentMode() !== 'youpi') throw new PaymentError(409, 'YouPI checkout is not enabled.');
-      const c = config(); const input = req.body; const uid = res.locals.customer.uid;
-      const error = subscriberError(input.operator, input.smartCardNumber); if (error) throw new PaymentError(400, error);
-      await checkOperator(input.operator);
-      const quote = calculatePayment(input, await plans(input.packId));
-      const id = `youpi_${createHash('sha256').update(`${uid}:${input.idempotencyKey}`).digest('hex')}`;
-      let entry = await mutateYoupiPayment(id, previous => {
-        if (previous) {
-          if (previous.customerUid !== uid || previous.amount !== quote.amountPaise / 100 || previous.operator !== input.operator || previous.smartCardNumber !== input.smartCardNumber || previous.packId !== input.packId) throw new PaymentError(409, 'Checkout key already used for another payment.');
-          return previous;
-        }
-        return { id, orderId: '', provider: 'YouPI', paymentMethod: 'upi', amount: quote.amountPaise / 100, currency: 'INR', status: 'initiated', providerStatus: 'INITIATED', operator: input.operator, smartCardNumber: input.smartCardNumber, packName: quote.packName, packId: input.packId, packValidity: quote.validity, customerUid: uid, customerName: input.customerName || 'Subscriber', customerPhone: input.customerPhone || '', createdAt: new Date().toISOString(), testMode: false, operatorRefId: '' };
-      });
-      if (!entry.checkoutUrl) {
-        const data = await gateway('payments', { orderId: id, amount: (quote.amountPaise / 100).toFixed(2), currency: 'INR', method: 'UPI', idempotencyKey: id, returnUrl: c.returnUrl });
-        const url = new URL(data.checkoutUrl);
-        if (url.origin !== c.checkout.origin || url.username || url.password || !data.paymentId || data.orderId !== id || Number(data.amount) !== entry.amount) throw new PaymentError(502, 'Invalid YouPI checkout response.');
-        entry = await mutateYoupiPayment(id, previous => ({ ...previous!, orderId: data.paymentId, checkoutUrl: url.href }));
-      }
-      res.json({ id: entry.id, checkoutUrl: entry.checkoutUrl, amountPaise: Math.round(entry.amount * 100), status: entry.status });
-    } catch (error) { failure(res, error); }
-  });
+  // Retired checkout: keep historical status/webhook reconciliation separate.
+  router.post('/api/payments/youpi', (_req, res) => { res.status(410).json({ error: 'This payment method is no longer available. Please use Razorpay.' }); });
   router.post('/api/payments/youpi/status', orderCreateLimiter, validateBody(z.object({ id: z.string().regex(/^youpi_[a-f0-9]{64}$/) })), async (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     try {

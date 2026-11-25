@@ -1,4 +1,3 @@
-import { YoupiCheckout } from './YoupiCheckout';
 ﻿import { formatPrice, formatStoredDuration } from '../lib/catalog';
 import { localizeCustomerText, localizeCustomerError } from '../lib/customerMessages';
 import { subscriberLabel } from '../lib/subscriberValidation';
@@ -42,8 +41,8 @@ export function PaymentInstrument({ method, mode, session, expired, seconds, cur
 }
 
 export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, plan, operator, smartCard, currentLang, user }) => {
-  const [mode, setMode] = useState<'sandbox' | 'production' | 'youpi' | null>(null);
-  const { modalRef } = useAccessibleModal({ isOpen: isOpen && mode !== 'production' && mode !== 'youpi', onClose });
+  const [mode, setMode] = useState<'sandbox' | 'production' | null>(null);
+  const { modalRef } = useAccessibleModal({ isOpen: isOpen && mode !== 'production', onClose });
   const [session, setSession] = useState<CheckoutSession | null>(null);
   const [method, setMethod] = useState<'upi' | 'card' | 'netbanking'>('upi');
   const [outcome, setOutcome] = useState<SandboxOutcome>('success');
@@ -83,7 +82,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, pla
       if (idError) throw new Error(idError);
       const config = await request('/api/payments/config');
       if (version !== generation.current) return;
-      const confirmedMode = config.mode === 'youpi' ? 'youpi' : config.mode === 'sandbox' ? 'sandbox' : 'production';
+      const confirmedMode = config.mode === 'sandbox' ? 'sandbox' : 'production';
       setMode(confirmedMode);
       if (confirmedMode !== 'sandbox') return;
       if (fresh) setSession(null);
@@ -132,7 +131,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, pla
   }
 
   if (!isOpen) return null;
-  if (mode === 'youpi') return <YoupiCheckout onClose={onClose} plan={plan} operator={operator} smartCard={smartCard} user={user} />;
   if (mode === 'production') return <RazorpayCheckout key={`${packId}-${plan.price}-${operator.id}-${smartCard}`} onClose={onClose} plan={plan} operator={operator} smartCard={smartCard} currentLang={currentLang} user={user} />;
   const seconds = session ? Math.max(0, Math.ceil((session.expiresAt - now) / 1000)) : 0;
   const expired = !!session && seconds === 0 && session.status === 'ready';

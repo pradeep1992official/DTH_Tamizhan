@@ -1,3 +1,5 @@
+> Current support: YouPI checkout and settings have been retired. Razorpay and configured payment-free bookings remain. Any YouPI references below describe historical records or legacy reconciliation only.
+
 # Part 4 QA, manual checks and go-live
 
 ## Automated verification
