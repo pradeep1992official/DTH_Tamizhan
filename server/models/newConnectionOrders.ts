@@ -42,11 +42,13 @@ export async function createBooking(uid: string, value: unknown, now = Date.now(
     if (quote.amountDueNow === 0 ? input.provider !== 'none' : !['razorpay', 'youpi'].includes(input.provider) || !settings.enabledProviders.includes(input.provider as 'razorpay' | 'youpi') || !providerEnabled(input.provider)) throw new BookingError('PROVIDER_DISABLED');
     if (input.provider === 'razorpay' && quote.amountDueNow < 1) throw new BookingError('INVALID_PAYMENT_AMOUNT', 400);
     const since = new Date(now - 24 * 3600000).toISOString();
-    const [byUser, byPhone] = await Promise.all([queryRecords<NewConnectionOrder>(collection, [{ field: 'uid', op: 'eq', value: uid }, { field: 'createdAt', op: 'gt', value: since }]), queryRecords<NewConnectionOrder>(collection, [{ field: 'customer.phone', op: 'eq', value: input.customer.phone }, { field: 'createdAt', op: 'gt', value: since }])]);
+    // The booking phone is self-reported, not bound to this UID by verification.
+    // It must never consume another account's duplicate protection or quota.
+    const byUser = await queryRecords<NewConnectionOrder>(collection, [{ field: 'uid', op: 'eq', value: uid }, { field: 'createdAt', op: 'gt', value: since }]);
     const unpaid = (o: NewConnectionOrder) => ['pending', 'awaiting_admin_confirmation', 'failed'].includes(o.paymentStatus) && !['cancelled', 'refunded'].includes(o.status);
-    const duplicate = byPhone.find(o => unpaid(o) && o.brandId === input.brandId && o.packId === input.packId && o.customer.pincode === input.customer.pincode);
-    if (duplicate) { if (duplicate.uid !== uid) throw new BookingError('DUPLICATE_BOOKING'); return { order: withConnectionLedger(duplicate), duplicate: true }; }
-    if (byUser.filter(unpaid).length >= 3 || byPhone.filter(unpaid).length >= 3) throw new BookingError('BOOKING_LIMIT', 429);
+    const duplicate = byUser.find(o => unpaid(o) && o.customer.phone === input.customer.phone && o.brandId === input.brandId && o.packId === input.packId && o.customer.pincode === input.customer.pincode);
+    if (duplicate) return { order: withConnectionLedger(duplicate), duplicate: true };
+    if (byUser.filter(unpaid).length >= 3) throw new BookingError('BOOKING_LIMIT', 429);
     const counterRef = db.doc(`server_new_connection_counters/${bounds.today}`); const counter = await tx.get(counterRef); const next = Number(counter.data()?.value ?? 0) + 1;
     if (next >= 36 ** 4) throw new BookingError('BOOKING_LIMIT', 503);
     const at = new Date(now).toISOString(); const order = newConnectionOrderSchema.parse({ ...quote, id, bookingId: `DTH-NC-${bounds.today.replaceAll('-', '').slice(2)}-${next.toString(36).toUpperCase().padStart(4, '0')}`, uid, brandId: input.brandId, packId: input.packId, offerId: input.offerId, selectedValidityDays: input.selectedValidityDays, ...(selected.option.validityMonths ? { selectedValidityMonths: selected.option.validityMonths } : {}), connectionCount: input.connectionCount, snapshot: { brand: selected.item.brand.name, pack: selected.item.pack.name, offer: selected.offer.name, boxType: packBoxType(selected.item.pack) }, customer: input.customer, provider: input.provider, providerOrderId: '', providerPaymentId: '', providerRaw: {}, paymentStatus: 'pending', status: 'received', statusHistory: [{ status: 'received', at, by: uid, note: '' }], consent: { ...input.consent, at }, createdAt: at, updatedAt: at, testMode: input.provider === 'razorpay' });

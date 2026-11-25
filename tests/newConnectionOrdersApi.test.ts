@@ -112,10 +112,26 @@ it('serializes simultaneous requests and creates only one booking/provider check
   expect([...f.records.keys()].filter(k => k.startsWith('newConnectionOrders/'))).toHaveLength(1);
   await expect(createBooking('buyer', { ...payload, customer: { ...payload.customer, name: 'Changed request' } })).rejects.toMatchObject({ code: 'IDEMPOTENCY_CONFLICT' });
 });
-it('returns same-owner duplicates for review, rejects cross-owner duplicates and enforces three unpaid limits', async () => {
+it('returns same-owner duplicates for review and enforces the per-UID three unpaid limit', async () => {
   const a = await createBooking('buyer', input()); const duplicate = await createBooking('buyer', input()); expect(duplicate).toMatchObject({ duplicate: true, order: { id: a.order.id } });
-  await expect(createBooking('other', input())).rejects.toMatchObject({ code: 'DUPLICATE_BOOKING' });
   await createBooking('buyer', input('none', 1)); await createBooking('buyer', input('none', 2)); await expect(createBooking('buyer', input('none', 3))).rejects.toMatchObject({ code: 'BOOKING_LIMIT', status: 429 });
+});
+it('accepts user A after user B submits the same unverified phone and booking details', async () => {
+  const payload = input();
+  const submittedByB = await createBooking('user-b', payload);
+  const acceptedForA = await createBooking('user-a', { ...payload, idempotencyKey: randomUUID() });
+  expect(acceptedForA.duplicate).toBe(false);
+  expect(acceptedForA.order.uid).toBe('user-a');
+  expect(acceptedForA.order.id).not.toBe(submittedByB.order.id);
+  const repeatedByA = await createBooking('user-a', { ...payload, idempotencyKey: randomUUID() });
+  expect(repeatedByA).toMatchObject({ duplicate: true, order: { id: acceptedForA.order.id, uid: 'user-a' } });
+  expect([...f.records.keys()].filter(key => key.startsWith('newConnectionOrders/'))).toHaveLength(2);
+});
+it('does not let user B exhaust user A quota by submitting A phone on three unpaid bookings', async () => {
+  for (let pack = 0; pack < 3; pack++) await createBooking('user-b', input('none', pack));
+  await expect(createBooking('user-b', input('none', 3))).rejects.toMatchObject({ code: 'BOOKING_LIMIT', status: 429 });
+  const acceptedForA = await createBooking('user-a', input('none', 3));
+  expect(acceptedForA).toMatchObject({ duplicate: false, order: { uid: 'user-a', customer: { phone: '9876543210' } } });
 });
 it('preserves an ambiguous gateway creation claim and expires unpaid checkouts after 24 hours', async () => {
   const { order } = await createBooking('buyer', input('razorpay')); f.create.mockRejectedValueOnce(new Error('ambiguous timeout'));
