@@ -1,8 +1,12 @@
 import type { RechargeOrder } from '../../src/types';
 import type { PaymentLedgerEntry } from './paymentLedger';
 
+export function customerOrder({ workerNotes: _notes, ...order }: RechargeOrder) {
+  return order;
+}
+
 export function customerHistory(uid: string, allOrders: RechargeOrder[], ledger: PaymentLedgerEntry[]) {
-  const orders = allOrders.filter(order => order.user_id === uid).map(({ workerNotes: _notes, ...order }) => order);
+  const orders = allOrders.filter(order => order.user_id === uid).map(customerOrder);
   const payments = ledger.filter(payment => payment.customerUid === uid).map(payment => ({
     id: payment.id, orderId: payment.orderId, operator: payment.operator, smartCardNumber: payment.smartCardNumber,
     packName: payment.packName, amount: payment.amount, currency: payment.currency, status: payment.status,

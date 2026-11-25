@@ -8,6 +8,7 @@ import { syncCompletedRechargeConnection } from '../models/savedRechargeConnecti
 import { UpdateOrderStatusSchema } from '../middleware/validation';
 import { PaymentError } from '../payments';
 import { parsePage, paymentPage } from '../models/paymentPages';
+import { customerOrder } from '../models/customerHistory';
 
 export const ordersController = {
   async list(req: Request, res: Response): Promise<void> {
@@ -28,7 +29,7 @@ export const ordersController = {
       const adminWide = adminCheck.authorized && (req.query.isWorker === 'true' || req.query.all === 'true');
       const result = await paymentPage(page, adminWide ? undefined : authCtx.uid);
       const orders = adminWide && req.query.isWorker === 'true' ? result.orders.filter(order => order.rechargeStatus !== 'completed') : result.orders;
-      res.json({ success: true, count: orders.length, orders, nextCursor: result.nextCursor });
+      res.json({ success: true, count: orders.length, orders: adminWide ? orders : orders.map(customerOrder), nextCursor: result.nextCursor });
     } catch { res.status(503).json({ success: false, error: 'Unable to load recorded recharge payments.', orders: [] }); }
   },
 
