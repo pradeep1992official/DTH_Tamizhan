@@ -13,6 +13,7 @@ import json
 from pathlib import Path
 import re
 import sys
+import urllib.parse
 import urllib.request
 from PIL import Image
 
@@ -42,9 +43,20 @@ ALIASES = {
 def key(name):
     return re.sub(r'[^a-z0-9]', '', name.lower())
 
+def require_https(url):
+    if urllib.parse.urlsplit(url).scheme.lower() != 'https':
+        raise ValueError(f'Rejected non-HTTPS logo URL: {url!r}')
+    return url
+
+class HTTPSOnlyRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        require_https(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
 def fetch(url):
-    request = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-    with urllib.request.urlopen(request, timeout=25) as response:
+    request = urllib.request.Request(require_https(url), headers={'User-Agent': 'Mozilla/5.0'})
+    opener = urllib.request.build_opener(HTTPSOnlyRedirectHandler())
+    with opener.open(request, timeout=25) as response:
         return response.read()
 
 class Logos(HTMLParser):
@@ -103,6 +115,7 @@ def main():
             (DEST / filename).write_bytes(data)
             return name, {'path': '/channel-logos/' + filename, 'source': url, 'sourceName': source_name, 'sha256': hashlib.sha256(data).hexdigest()}, None
           except Exception as failure:
+            print(f'Skipping {url!r}: {failure}', file=sys.stderr)
             error = str(failure)
         return name, previous.get(name), error
 
