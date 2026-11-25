@@ -160,7 +160,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <a href={`tel:${BUSINESS_DETAILS.phone.replace(/[^+0-9]/g, '')}`}><Phone size={17} aria-hidden="true" />{currentLang === 'ta' ? 'அழைக்கவும்' : 'Call us'}</a>
                 <a href={`https://wa.me/${BUSINESS_DETAILS.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"><WhatsappLogo size={18} aria-hidden="true" />WhatsApp</a>
               </div>
-              <p className="header-support-hours"><Clock size={15} aria-hidden="true" /><span>{currentLang === 'ta' ? 'திங்கள்–வெள்ளி · காலை 10–மாலை 6 (IST)' : 'Mon–Fri · 10 am–6 pm IST'}</span></p>
+              <p className="header-support-hours"><Clock size={15} aria-hidden="true" /><span>{currentLang === 'ta' ? 'திங்கள்–வெள்ளி · காலை 10:00–மாலை 6:00 (IST)' : 'Mon–Fri · 10:00 am–6:00 pm IST'}</span></p>
               <Link className="header-support-contact" to="/contact">{currentLang === 'ta' ? 'தொடர்பு விவரங்கள்' : 'Contact details'}<ChevronRight size={15} aria-hidden="true" /></Link>
             </div>
           </details>

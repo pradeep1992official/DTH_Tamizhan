@@ -54,7 +54,7 @@ describe('header account and utility controls', () => {
     const support = nodes(render()).find(node => node.type === 'details');
     expect(nodes(support).some(node => node.props.href?.startsWith('tel:'))).toBe(true);
     expect(nodes(support).some(node => node.props.href?.startsWith('https://wa.me/'))).toBe(true);
-    expect(nodes(support).some(node => node.type === 'p' && node.props.children.includes('10:00 am'))).toBe(true);
+    expect(nodes(support).some(node => node.type === 'span' && String(node.props.children).includes('10:00 am'))).toBe(true);
   });
   it('marks new-connection navigation current in both navigation layouts', () => {
     props.activeTab = 'new-connection';

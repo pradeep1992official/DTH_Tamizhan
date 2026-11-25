@@ -5,7 +5,7 @@ import type { NewConnectionOrder } from '../src/lib/newConnectionOrders';
 import { pageMetadata } from '../src/lib/pageMetadata';
 const f = vi.hoisted(() => ({ values: [] as any[], cursor: 0, fetch: vi.fn(), auth: vi.fn() }));
 vi.mock('react', async original => ({ ...await original<any>(), useState: (initial: any) => { const i = f.cursor++; if (!(i in f.values)) f.values[i] = typeof initial === 'function' ? initial() : initial; return [f.values[i], (v: any) => { f.values[i] = typeof v === 'function' ? v(f.values[i]) : v; }]; }, useRef: (initial: any) => { const i = f.cursor++; if (!(i in f.values)) f.values[i] = { current: initial }; return f.values[i]; }, useEffect: () => {} }));
-vi.mock('react-router-dom', () => ({ Link: 'a' }));
+vi.mock('react-router-dom', () => ({ Link: 'a', useLocation: () => ({ search: '' }) }));
 vi.mock('../src/lib/paymentAuth', () => ({ paymentAuthHeaders: async () => ({ Authorization: 'Bearer buyer' }) }));
 import { MyBookings } from '../src/components/NewConnection/MyBookings';
 const user = { uid: 'buyer' } as any;

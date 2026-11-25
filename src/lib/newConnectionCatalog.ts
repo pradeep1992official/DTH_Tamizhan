@@ -17,12 +17,18 @@ export const channelSchema = z.object({ ...common, language: text.default(''), g
 // a stable option key for existing booking/compare URLs, not a calendar duration.
 export const packSchema = z.object({ ...common, brandId: id, boxType: z.enum(['HD', 'Android']).optional(), packageType: z.enum(['full_set', 'only_box']).optional(), type: z.enum(['SD', 'HD', '4K', 'Regional', 'Add-on']), language: text.default(''), region: text.default(''), pricingOptions: z.array(z.object({ validityDays: z.number().int().min(1).max(3650), validityMonths: z.number().int().min(1).max(120).optional(), price: money })).min(1).max(30).refine(a => new Set(a.map(p => p.validityDays)).size === a.length, 'Validity days must be unique'), channelIds: z.array(id).max(2000).transform(a => [...new Set(a)]), highlights: z.array(name).max(30).default([]) });
 export const equipmentSchema = z.object({ ...common, brandId: id, boxType: z.enum(['SD', 'HD', '4K']), hardwarePrice: money, installationCharge: money, includedFirstPackId: z.union([id, z.literal('')]).default(''), warrantyNote: text.default('') });
-export const settingsSchema = z.object({ terms: text.default(''), refundPolicy: text.default(''), serviceablePincodes: z.array(z.string().regex(/^[1-9][0-9]{5}$/)).max(10000).default([]), serviceableDistricts: z.array(name).max(1000).default([]), enabledProviders: z.array(z.enum(['razorpay', 'youpi'])).max(2).transform(a => [...new Set(a)]).default([]), defaultProvider: z.enum(['razorpay', 'youpi', 'none']).default('none'), advanceMode: z.enum(['full', 'partial', 'none']).default('none'), partialAmount: money.default(0), priceDisclaimer: text.default('') }).refine(s => s.advanceMode !== 'partial' || s.partialAmount > 0, 'Partial mode requires a positive partial amount').refine(s => s.defaultProvider === 'none' || s.enabledProviders.includes(s.defaultProvider), 'Default provider must be enabled').transform(s => {
-  // Payment requirements are explicit settings. Removing a gateway must not
-  // waive an advance, including when the normalized result is parsed again.
+export const settingsSchema = z.preprocess(value => {
+  if (value && typeof value === 'object' && !Array.isArray(value) && !('enabledProviders' in value)) {
+    const input = value as Record<string, unknown>;
+    if (input.advanceMode === 'full') return { ...input, advanceMode: 'none' };
+  }
+  return value;
+}, z.object({ terms: text.default(''), refundPolicy: text.default(''), serviceablePincodes: z.array(z.string().regex(/^[1-9][0-9]{5}$/)).max(10000).default([]), serviceableDistricts: z.array(name).max(1000).default([]), enabledProviders: z.array(z.enum(['razorpay', 'youpi'])).max(2).transform(a => [...new Set(a)]).default([]), defaultProvider: z.enum(['razorpay', 'youpi', 'none']).default('none'), advanceMode: z.enum(['full', 'partial', 'none']).default('none'), partialAmount: money.default(0), priceDisclaimer: text.default('') }).refine(s => s.advanceMode !== 'partial' || s.partialAmount > 0, 'Partial mode requires a positive partial amount').refine(s => s.defaultProvider === 'none' || s.enabledProviders.includes(s.defaultProvider), 'Default provider must be enabled').transform(s => {
+  // Payment-free booking is the safe fallback when no gateway remains enabled.
+  // Normalize legacy advance settings as well as values parsed again.
   const enabledProviders = s.enabledProviders.filter(p => p === 'razorpay');
   return { ...s, enabledProviders, defaultProvider: s.defaultProvider === 'youpi' ? enabledProviders[0] || 'none' as const : s.defaultProvider } as typeof s;
-});
+}));
 export const catalogSchemas = { brands: brandSchema, channels: channelSchema, packs: packSchema, equipment: equipmentSchema };
 export type Brand = z.infer<typeof brandSchema> & { id: string };
 export type Channel = z.infer<typeof channelSchema> & { id: string };

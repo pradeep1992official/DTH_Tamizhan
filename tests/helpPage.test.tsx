@@ -28,7 +28,7 @@ it('keeps legacy URLs as redirects and all assistant support entry points at /he
   const app = readFileSync('src/App.tsx', 'utf8');
   for (const path of ['/support', '/service-request']) expect(app).toContain(`path="${path}" element={<Navigate to="/help"`);
   expect(readFileSync('src/components/AssistantSupportCard.tsx', 'utf8')).toContain("navigate('/help'");
-  expect(readFileSync('src/components/Header.tsx', 'utf8')).toContain('href="/service-request"');
+  expect(readFileSync('src/components/Header.tsx', 'utf8')).toContain('to="/service-request"');
 });
 it('renders separate required PIN input and errors immediately below each invalid field', () => {
   const html = renderToStaticMarkup(<HelpAddressFields address="" pinCode="123" onAddressChange={vi.fn()} onPinChange={vi.fn()} language="en" showErrors />);
