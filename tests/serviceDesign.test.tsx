@@ -10,13 +10,14 @@ import type { BrowsePlan } from '../src/types';
 import { translations } from '../src/lib/translations';
 
 describe('service design and truthful content', () => {
-  it.each(['en', 'ta'] as const)('supports homepage selection without Compare and preserves channel content in %s', currentLang => {
-    const plan: BrowsePlan = { id: 'fixture', operator: 'sun_direct', name: 'Fixture', type: 'HD', duration_months: 6, price: 1399, monthly_equivalent_rate: 233.17, channel_counts_unavailable: true, channels: [], genre_tags: [], is_recommended: false };
-    const html = renderToStaticMarkup(<PlanCard plan={plan} currentTheme={getOperatorTheme('sun_direct')} currentLang={currentLang} showCompare={false} isSelected onSelectPlan={vi.fn()}><button>{translations[currentLang].viewChannels}</button></PlanCard>);
+  it.each(['en', 'ta'] as const)('supports homepage selection with a channel-list file link in %s', currentLang => {
+    const plan: BrowsePlan = { id: 'fixture', operator: 'sun_direct', name: 'Fixture', type: 'HD', duration_months: 6, price: 1399, monthly_equivalent_rate: 233.17, channel_counts_unavailable: true, channels: [], genre_tags: [], is_recommended: false, channel_list_url: '/channel-flyers/fixture.pdf' };
+    const html = renderToStaticMarkup(<PlanCard plan={plan} currentTheme={getOperatorTheme('sun_direct')} currentLang={currentLang} showCompare={false} isSelected onSelectPlan={vi.fn()} />);
     expect(html).not.toContain('type="checkbox"');
     expect(html).toContain('aria-pressed="true"');
     expect(html).toContain(translations[currentLang].selectedAction);
-    expect(html).toContain(translations[currentLang].viewChannels);
+    expect(html).not.toContain(translations[currentLang].viewChannels);
+    expect(html).toContain('href="/channel-flyers/fixture.pdf"');
     expect(html).toContain('data-quality="HD"');
     expect(html).toContain('sun_logo.png');
   });

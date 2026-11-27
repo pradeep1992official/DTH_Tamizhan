@@ -29,6 +29,7 @@ interface BrowsePlansViewProps {
   user: UserProfile | null;
   connections: DthConnection[];
   onOpenAuth: () => void;
+  onChoosePlan?: (plan: BrowsePlan) => void;
   onApplyPlanToBox: (plan: BrowsePlan, connection: DthConnection) => void;
   onAddNewConnectionAndApply: (
     plan: BrowsePlan,
@@ -53,6 +54,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
   user,
   connections,
   onOpenAuth,
+  onChoosePlan,
   onApplyPlanToBox,
   onAddNewConnectionAndApply,
 }) => {
@@ -76,6 +78,10 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
 
   // Apply Plan state
   const [selectedPlanForApply, setSelectedPlanForApply] = useState<BrowsePlan | null>(null);
+  const choosePlan = (plan: BrowsePlan) => {
+    if (onChoosePlan) onChoosePlan(plan);
+    else setSelectedPlanForApply(plan);
+  };
 
   // Mobile sidebar toggle
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState<boolean>(false);
@@ -191,12 +197,13 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
           <p className={`text-sm leading-relaxed ${isLight ? 'text-ink-2' : 'text-muted'}`}>
             {t.browsePacksSubtitle}
           </p>
+          {!user && <p className="text-sm text-muted">{currentLang === 'ta' ? 'பேக்குகளைப் பார்க்க உள்நுழைவு தேவையில்லை. ஒரு பேக்கைத் தேர்ந்தெடுத்து ரீசார்ஜைத் தொடருங்கள்.' : 'No sign-in needed to browse. Choose a pack to continue to Recharge.'}</p>}
         </div>
       </div>
 
       <PlanSuggestions catalogOperators={!isLoading && !fetchError ? [...new Set(allPlans.map(plan => plan.operator))] : undefined} user={user} currentLang={currentLang} onOpenAuth={onOpenAuth} onSelect={id => {
         const plan = allPlans.find(item => item.id === id);
-        if (plan) setSelectedPlanForApply(plan);
+          if (plan) choosePlan(plan);
         else fetchLivePlans();
       }} />
 
@@ -413,7 +420,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
                         isSelectedForCompare={isSelectedForCompare}
                         onToggleCompare={handleToggleCompare}
                         canAddToCompare={selectedForCompare.length < 3}
-                        onSelectPlan={(p) => setSelectedPlanForApply(p)}
+                          onSelectPlan={choosePlan}
                       />
                     );
                   })}
@@ -477,7 +484,7 @@ export const BrowsePlansView: React.FC<BrowsePlansViewProps> = ({
         onRemovePlan={handleRemoveCompare}
         onSelectPlan={(p) => {
           setIsCompareModalOpen(false);
-          setSelectedPlanForApply(p);
+          choosePlan(p);
         }}
         currentTheme={currentTheme}
         currentLang={currentLang}

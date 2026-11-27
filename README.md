@@ -11,7 +11,7 @@ The application is built with React 19, TypeScript, Vite, Express, Firebase Auth
 - Saved set-top boxes with per-account storage.
 - English/Tamil localization.
 - Google, email/password, passwordless email-link and optional Firebase phone OTP sign-in.
-- Recharge assistant with optional Gemini-backed ranking and a local catalog fallback.
+- Recharge assistant with structured conversation state, deterministic catalog comparison and optional Gemini language understanding.
 - Razorpay sandbox/production checkout and server-side payment verification.
 - Manual recharge fulfillment: captured payment, pending order, operator-side recharge, administrator confirmation.
 - Customer recharge history and PDF/HTML receipt downloads.
@@ -21,6 +21,12 @@ The application is built with React 19, TypeScript, Vite, Express, Firebase Auth
 - Administrator directory, approvals, revocation, reports and operator settings.
 
 Recharge fulfillment is manual unless a separate provider integration is added. A successful payment does not itself recharge a subscriber; an administrator must confirm completion after completing the recharge through the operator/distributor process.
+
+When recharge is enabled, guests can open **Browse Packs** from desktop/mobile navigation or the homepage without signing in or entering a subscriber ID. Selecting a catalog pack carries its operator and ID into `/recharge?operator=…&plan=…`; the public selection survives refresh/sign-in while account-owned subscriber details are cleared on account changes. Subscriber validation, authenticated payment and explicit payment confirmation remain required. New Connection remains a separate catalog and booking flow.
+
+The assistant reconstructs its goal and filters from up to 12 customer messages rather than trusting client-supplied state or requiring one server instance. It retains operator, subscriber, duration, quality and total/monthly budget, recognizes common Tamil and Tanglish phrases, and asks for missing details. Optional AI extracts constrained language intent; catalog prices, availability and owned order status always come from backend reads. Above-budget suggestions are explicitly labeled, and alternative durations/qualities require another customer choice. Comparisons and support guidance never initiate payments or submit requests; existing confirmation buttons remain required. Regression cases are covered in `assistantConversation`, `assistantUnderstanding`, `rechargeAssistant` and `customerAssistantControls` tests.
+
+Channel-list flyers are attached through **Admin → Packs → Add/Edit pack → Channel-list file**. Upload a public PDF, JPG, PNG or WebP up to 5 MB, then save the pack. Uploads use the existing Firebase Storage bucket through an admin-authorized server endpoint; browser Storage writes remain denied. Reuse the resulting channel-list link on the other duration variants of the same pack. Alternatively, put files in `public/channel-flyers/` and enter `/channel-flyers/filename.pdf` in the channel-list link field (bundled files require deployment). Configured links take precedence over the existing default flyers. This attaches the supplied file; it does not infer or generate an official channel lineup.
 
 ## Requirements
 

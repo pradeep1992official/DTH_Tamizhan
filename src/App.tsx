@@ -132,6 +132,7 @@ export function MainApp() {
   const navigate = useNavigate();
   const location = useLocation();
   const requestCustomTopUp = new URLSearchParams(location.search).get('topup') === '1';
+  const requestedPublicPlan = location.pathname === '/recharge' ? new URLSearchParams(location.search).get('plan') : null;
   useEffect(() => {
     const operator = new URLSearchParams(location.search).get('operator');
     if (['sun_direct', 'tata_play', 'airtel_dth', 'dish_tv', 'd2h'].includes(operator || '')) handleSelectOpId(operator as DthOperatorId);
@@ -201,7 +202,8 @@ export function MainApp() {
   useEffect(() => {
     setConnections(readConnectionCache(localStorage, user?.uid));
     setConnectionOwner(user?.uid || null);
-    setPrefillConn(null); setPrefillPlanId(null); setConnectionError('');
+    // Clear account-owned details while preserving a public catalog selection.
+    setPrefillConn(null); setPrefillPlanId(requestedPublicPlan); setConnectionError('');
   }, [user?.uid]);
 
   // Modals
@@ -220,6 +222,12 @@ export function MainApp() {
   const [lastCompletedOrder, setLastCompletedOrder] = useState<RechargeOrder | null>(null);
   const [prefillConn, setPrefillConn] = useState<DthConnection | null>(null);
   const [prefillPlanId, setPrefillPlanId] = useState<string | null>(null);
+  useEffect(() => {
+    if (location.pathname === '/recharge') {
+      const plan = new URLSearchParams(location.search).get('plan');
+      if (plan) setPrefillPlanId(plan);
+    }
+  }, [location.pathname, location.search, user?.uid]);
   const [connectionError, setConnectionError] = useState('');
 
   useEffect(() => {
@@ -228,7 +236,7 @@ export function MainApp() {
     return observeAccountSession(auth, db, profile => {
       setAuthInitializing(false); setSessionError(''); setUser(profile);
       if (!profile) {
-        setConnections([]); setConnectionOwner(null); setPrefillConn(null); setPrefillPlanId(null); setConnectionError('');
+        setConnections([]); setConnectionOwner(null); setPrefillConn(null); setConnectionError('');
         setIsPaymentOpen(false); setIsReceiptOpen(false); setIsNewDishOpen(false);
         setActivePaymentPlan(null); setActiveSubscriber(null); setActiveOperator(null); setActiveSmartCard('');
         setLastCompletedOrder(null);
@@ -426,6 +434,12 @@ export function MainApp() {
     setPrefillPlanId(plan.id);
     navigate('/recharge');
   };
+  const handleChooseBrowsePlan = (plan: BrowsePlan) => {
+    setPrefillConn(null);
+    handleSelectOpId(plan.operator);
+    setPrefillPlanId(plan.id);
+    navigate('/recharge?' + new URLSearchParams({ operator: plan.operator, plan: plan.id }));
+  };
 
   const handleAddNewConnectionAndApply = async (
     plan: BrowsePlan,
@@ -543,6 +557,7 @@ export function MainApp() {
                 connections={connections}
                 onOpenAuth={() => setIsAuthOpen(true)}
                 onApplyPlanToBox={handleApplyPlanFromBrowse}
+                onChoosePlan={handleChooseBrowsePlan}
                 onAddNewConnectionAndApply={handleAddNewConnectionAndApply}
               />
               ) : <Navigate to={rechargeReturnTarget(location.search)} replace />

@@ -25,6 +25,7 @@ interface Reply {
   action?: AssistantAction;
   state: string;
   source?: string;
+  suggestions?: string[];
   intent?: { months: number | null; quality: string | null };
   boxes?: { id: string; nickname: string; operatorName: string; lastFour: string }[];
   box?: DthConnection;
@@ -231,6 +232,10 @@ export function RechargeAssistant({ currentLang, displayName, onCheckout }: {
           <button type="button" className="recharge-chat-suggestion" disabled={busy} onClick={() => void send(messages)}>{text('Retry request', 'மீண்டும் முயற்சிக்கவும்')}</button>
         </div>}
         {reply?.state === 'history' && <a className="recharge-chat-suggestion" href="/history" onClick={() => setOpen(false)}>{text('View my recharge history', 'என் ரீசார்ஜ் வரலாற்றைப் பார்க்கவும்')} <ArrowRight size={18} /></a>}
+        {reply?.state === 'support_help' && <a className="recharge-chat-suggestion" href="/help" onClick={() => setOpen(false)}>{text('Get Help', 'உதவி பெறுங்கள்')} <ArrowRight size={18} /></a>}
+        {reply?.suggestions?.length ? <div className="recharge-chat-choice-grid">{reply.suggestions.map(suggestion => <button type="button" key={suggestion} className="recharge-chat-suggestion" disabled={busy || messages.length >= 12} onClick={() => {
+          const next = [...messages, suggestion]; setMessages(next); void send(next);
+        }}>{suggestion}</button>)}</div> : null}
       {reply?.operators && <div className="recharge-chat-choice-grid">{reply.operators.map(operator => <button type="button" key={operator.id} disabled={busy || messages.length >= 12} className="recharge-chat-suggestion" onClick={() => {
         const next = [...messages, operator.name]; setMessages(next); void send(next, undefined, operator.id);
       }}>{operator.name}</button>)}</div>}

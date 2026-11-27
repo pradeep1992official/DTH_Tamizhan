@@ -18,6 +18,7 @@ it('removes desktop/mobile recharge, pack and saved-box navigation in both langu
     const html = render(<Header recharge={false} currentLang={lang} user={null} onLanguageChange={() => {}} onOpenAuth={() => {}} onUpdateProfile={async () => {}} onSignOut={() => {}} activeTab="new-connection" onTabChange={() => {}} currentTheme={getOperatorTheme('sun_direct')} />);
     for (const id of ['nav-recharge-btn', 'nav-plans-btn', 'nav-connections-btn', 'mobile-nav-recharge-btn', 'mobile-nav-plans-btn', 'mobile-nav-connections-btn']) expect(html).not.toContain(`id="${id}"`);
     expect(html.match(/href="\/new-connection"/g)).toHaveLength(2); expect(html).toContain('header-mobile-navigation'); expect(html).not.toMatch(/src="[^"]*(?:sun_logo|tata_logo|airtel_logo)/);
+    expect(html).not.toContain('href="/plans"');
   }
 });
 it('makes the home hero about new connections, with working booking/catalog links', () => {
@@ -31,12 +32,21 @@ it('keeps past recharges hidden from the account while preserving booking access
   }
   const guest = render(<AccountPage recharge={false} user={null} currentLang="ta" onOpenAuth={() => {}} />); expect(guest).toContain('href="/new-connection"'); expect(guest).not.toContain('href="/history"');
 });
-it('keeps recharge visible while secondary actions remain available from the account', () => {
+it('exposes Browse Packs beside Recharge for guests on desktop and mobile', () => {
   setClientRechargeEnabled(true);
   const html = render(<Header currentLang="en" user={null} onLanguageChange={() => {}} onOpenAuth={() => {}} onUpdateProfile={async () => {}} onSignOut={() => {}} activeTab="recharge" onTabChange={() => {}} currentTheme={getOperatorTheme('sun_direct')} />); expect(html).not.toContain('id="nav-recharge-btn"'); expect(html).not.toContain('id="mobile-nav-plans-btn"'); expect(html).not.toContain('href="/account/bookings"'); expect(html).toContain('Service Request'); expect(html).toContain('Profile');
   expect(html.match(/href="\/recharge"/g)).toHaveLength(2);
-  for (const path of ['/plans', '/connections', '/history']) expect(html).not.toContain('href="' + path + '"');
+  expect(html.match(/href="\/plans"/g)).toHaveLength(2); expect(html).toContain('Browse Packs');
+  for (const path of ['/connections', '/history']) expect(html).not.toContain('href="' + path + '"');
   const account = render(<AccountPage user={user} currentLang="en" onOpenAuth={() => {}} />); expect(account).toContain('href="/recharge"'); expect(account).toContain('href="/history"');
+});
+it('offers a public homepage link to recharge packs in both languages', () => {
+  for (const lang of ['en', 'ta'] as const) {
+    const html = render(<LaunchHome recharge currentLang={lang} user={null} />);
+    expect(html).toContain('href="/plans"');
+    expect(html).toContain(lang === 'en' ? 'Browse recharge packs' : 'ரீசார்ஜ் பேக்குகளைப் பாருங்கள்');
+    expect(html).toContain('href="/new-connection"');
+  }
 });
 it('publishes current booking and service policies in both languages without launch placeholders', () => {
   for (const lang of ['en', 'ta'] as const) for (const route of POLICY_ROUTES) {

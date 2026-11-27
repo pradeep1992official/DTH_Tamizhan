@@ -27,3 +27,18 @@ it('keeps the selected pack through Escape dismissal and reopening without trigg
   tree = render(); nodes(tree).find(node => node.props.className === 'recharge-chat-launcher').props.onClick();
   expect(text(render())).toContain('Tamil HD'); expect(h.state[7]).toBe('pack-1');
 });
+it('shows catalog clarification choices without offering payment or submitting an order', () => {
+  render(); h.state[0] = true;
+  h.state[4] = { state: 'choose_catalog_duration', language: 'en', text: 'How many months?', suggestions: ['1 months', '6 months'] };
+  const tree = render();
+  expect(nodes(tree).filter(node => node.type === 'button').map(node => text(node))).toContain('6 months');
+  expect(nodes(tree).filter(node => node.type === 'button').some(node => /^Pay\s/.test(text(node)))).toBe(false);
+  expect(checkout).not.toHaveBeenCalled();
+});
+it('offers an explicit support link without submitting a request or opening checkout', () => {
+  render(); h.state[0] = true;
+  h.state[4] = { state: 'support_help', language: 'en', text: 'Review a support request. Nothing submitted.' };
+  const tree = render();
+  expect(nodes(tree).find(node => node.type === 'a' && node.props.href === '/help')).toBeDefined();
+  expect(checkout).not.toHaveBeenCalled();
+});

@@ -19,7 +19,7 @@ export const toolsRegistry = Object.freeze({
   draft_refund_request: { description: 'Create an unsent refund request draft. Requires the user-provided order ID and reason. Ownership and eligibility are checked by the server; never promise approval or submit.', schema: refundDraftArgs },
   get_recharge_status: { description: 'Look up the signed-in user?s recharge status by order ID. Never invent a status.', schema: rechargeStatusArgs },
   get_my_history: { description: 'Read the signed-in user?s most recent recharges; limit must be 1 to 20. No UID argument.', schema: historyArgs },
-  navigate: { description: 'Open a public site page when the user asks to visit it.', schema: navigateArgs },
+  navigate: { description: 'Open a public site page only when the user explicitly asks to open or visit it. Never use navigation instead of answering a pack comparison, cheapest-pack, payment-status or recharge-field question.', schema: navigateArgs },
   get_plans: { description: 'Find catalog plans for an operator at or below max_price in rupees (total pack price). Ask for missing operator or budget.', schema: plansArgs },
 } as const);
 export const toolDefinitions = Object.entries(toolsRegistry).map(([name, tool]) => ({

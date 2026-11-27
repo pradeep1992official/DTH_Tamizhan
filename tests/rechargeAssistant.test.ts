@@ -3,7 +3,9 @@ const toolTurn = vi.hoisted(() => vi.fn());
 vi.mock('../server/utils/assistantTurn', () => ({ assistantToolTurn: toolTurn }));
 vi.mock('../server/middleware/aiRateLimiter', () => ({ allowAiRequest: async () => true }));
 import { beforeEach, expect, it, vi } from 'vitest';
-const f = vi.hoisted(() => ({ account: { uid: 'owner' } as any, extract: vi.fn(), boxes: [] as any[], plans: [] as any[], storageError: null as any, boxReads: 0 }));
+const f = vi.hoisted(() => ({ account: { uid: 'owner' } as any, extract: vi.fn(), understand: vi.fn(), history: vi.fn(), boxes: [] as any[], plans: [] as any[], storageError: null as any, boxReads: 0 }));
+vi.mock('../server/utils/assistantUnderstanding', () => ({ understandAssistantRequest: f.understand }));
+vi.mock('../server/models/assistantHistory', () => ({ assistantHistory: f.history }));
 vi.mock('../server/middleware/auth', () => ({ verifyAuthToken: async () => f.account,
   getAdminFirestore: () => ({ collection: () => ({ where: (_field: string, _op: string, uid: string) => {
     expect(uid).toBe('owner'); return { get: async () => { f.boxReads++; if (f.storageError) throw f.storageError; return { docs: f.boxes.map(box => ({ id: box.id, data: () => box })) }; } };
@@ -15,11 +17,14 @@ vi.mock('../server/utils/rechargeIntent', async importOriginal => {
   return { ...actual, extractRechargeIntent: f.extract };
 });
 import { prepareAssistantRecharge, clearAssistantReadCache } from '../server/controllers/rechargeAssistant';
-import { parseRechargeCommand } from '../server/utils/rechargeIntent';
+import { isStandardRechargeMessage, parseRechargeCommand } from '../server/utils/rechargeIntent';
+import { resolveAssistantConversation } from '../src/lib/assistantConversation';
 beforeEach(() => {
   toolTurn.mockReset(); toolTurn.mockResolvedValue(null);
   clearAssistantReadCache();
   f.boxReads = 0;
+  f.understand.mockReset(); f.understand.mockRejectedValue(new Error('Optional AI unavailable'));
+  f.history.mockReset(); f.history.mockResolvedValue([]);
   f.storageError = null;
   f.account = { uid: 'owner' };
   f.boxes = [{ id: 'hall', user_id: 'owner', nickname: 'Hall Box', operator: 'airtel_dth', smartCardNumber: '3012345678' }];
@@ -79,9 +84,10 @@ it('does not replace unavailable plans with a different duration', async () => {
   f.plans[0].duration_months = 3;
   expect((await request()).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'no_plans', plans: [] }));
 });
-it('supports the example command without provider credentials and labels the fallback', async () => {
+it('handles the example command directly without trying AI or reporting an AI outage', async () => {
   f.extract.mockRejectedValue(new Error('Disabled'));
-  expect((await request()).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'awaiting_payment', source: 'command' }));
+  expect((await request()).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'awaiting_payment', source: 'context' }));
+  expect(f.extract).not.toHaveBeenCalled(); expect(toolTurn).not.toHaveBeenCalled();
   expect(parseRechargeCommand(['Recharge 18 months HD for hall box']).months).toBeNull();
   expect(parseRechargeCommand(['Recharge 6 months HD for hall box', '3 months SD'])).toMatchObject({ boxName: 'hall', packName: null, months: 3, quality: 'SD' });
 });
@@ -89,25 +95,25 @@ it('matches the exact named pack without offering Plus as a match', async () => 
   f.plans = [{ ...f.plans[0], plan_name: 'Tamil Super Star HD Pack', duration_months: 1, amount: 279 },
     { ...f.plans[0], id: 'plus', plan_name: 'Tamil Super Star Plus HD Pack (29 HD)', duration_months: 1, amount: 309 }];
   f.extract.mockResolvedValue({ boxName: null, packName: 'Tamil Super Star HD', months: 1, quality: 'HD' });
-  expect((await request()).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'awaiting_payment', plans: [expect.objectContaining({ id: 'hd6', amount: 279 })] }));
+  expect((await request({ messages: ['Recharge Tamil Super Star HD for 1 month'] })).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'awaiting_payment', plans: [expect.objectContaining({ id: 'hd6', amount: 279 })] }));
 });
 it('labels alternatives when the requested name is unavailable', async () => {
   f.extract.mockResolvedValue({ boxName: 'hall', packName: 'Unavailable HD', months: 6, quality: 'HD' });
-  expect((await request()).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'alternatives' }));
+  expect((await request({ messages: ['Recharge Unavailable HD for 6 months in hall box'] })).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'alternatives' }));
 });
 it('automatically uses one saved box but never overrides an explicit different name', async () => {
   f.extract.mockResolvedValue({ boxName: null, packName: null, months: 6, quality: 'HD' });
-  expect((await request()).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'awaiting_payment' }));
+  expect((await request({ messages: ['Recharge HD for 6 months'] })).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'awaiting_payment' }));
   f.extract.mockResolvedValue({ boxName: 'bedroom', packName: null, months: 6, quality: 'HD' });
-  expect((await request()).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'choose_box' }));
+  expect((await request({ messages: ['Recharge 6 months HD for bedroom box'] })).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'choose_box' }));
 });
 it('extracts exact named packs and the available-box phrasing without AI', async () => {
   const message = 'Recharge Tamil Super Star HD for 1 month in the available box';
-  expect(parseRechargeCommand([message])).toMatchObject({ boxName: null, packName: 'Tamil Super Star HD', months: 1, quality: 'HD' });
+  expect(parseRechargeCommand([message])).toMatchObject({ boxName: null, packName: 'tamil super star hd', months: 1, quality: 'HD' });
   f.extract.mockRejectedValue(new Error('Disabled'));
   f.plans = [{ ...f.plans[0], plan_name: 'Tamil Super Star HD Pack', duration_months: 1 },
     { ...f.plans[0], id: 'plus', plan_name: 'Tamil Super Star Plus HD Pack', duration_months: 1 }];
-  expect((await request({ messages: [message] })).json).toHaveBeenCalledWith(expect.objectContaining({ source: 'command', state: 'awaiting_payment', plans: [expect.objectContaining({ id: 'hd6' })] }));
+  expect((await request({ messages: [message] })).json).toHaveBeenCalledWith(expect.objectContaining({ source: 'context', state: 'awaiting_payment', plans: [expect.objectContaining({ id: 'hd6' })] }));
 });
 it('asks for the operator for a new subscriber instead of substituting the saved hall box', async () => {
   f.extract.mockRejectedValue(new Error('Disabled'));
@@ -203,11 +209,11 @@ it('recognizes hyphenated duration in the standard recharge fallback', () => {
   expect(parseRechargeCommand(['Recharge my hall box for 6-month HD pack'])).toMatchObject({ months: 6, quality: 'HD' });
 });
 
-it('does not silently drop budgets or treat an explicit recharge as catalog-only', async () => {
+it('reports over-budget options explicitly and does not treat a recharge as catalog-only', async () => {
   const { assistantCatalogFallback } = await import('../server/utils/assistantCatalog');
-  for (const message of ['Airtel HD packs under 500', 'Recharge my hall box for 6-month HD pack', 'Airtel or Sun Direct HD packs']) {
-    expect(await assistantCatalogFallback(message, 'en')).toBeNull();
-  }
+  expect(await assistantCatalogFallback('Airtel HD packs under 500', 'en')).toMatchObject({ notice: 'over_budget' });
+  expect(await assistantCatalogFallback('Recharge my hall box for 6-month HD pack', 'en')).toBeNull();
+  expect(await assistantCatalogFallback('Airtel or Sun Direct HD packs', 'en')).toMatchObject({ state: 'choose_catalog_operator' });
 });
 
 it('matches the screenshot Superstar Plus request to Super Star Plus with its HD-count suffix', async () => {
@@ -246,3 +252,199 @@ it('still asks for the operator when a new ID is supplied without one', async ()
   f.extract.mockRejectedValue(new Error('unavailable'));
   expect((await request({ messages: ['Recharge a new customer ID', '3012586589'], connectionId: 'hall' })).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'choose_operator' }));
 });
+it('keeps the screenshot conversation in recharge flow even when the general AI would navigate away', async () => {
+  toolTurn.mockResolvedValue({ success: true, state: 'tool_action', text: 'Opening Recharge page?', action: { type: 'navigate', page: 'recharge' } });
+  f.extract.mockRejectedValue(new Error('unavailable'));
+  const messages = ['Recharge a new customer ID'];
+  expect((await request({ messages })).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'enter_subscriber' }));
+  messages.push('3012586589');
+  expect((await request({ messages, connectionId: 'hall' })).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'choose_operator', subscriberLastFour: '6589' }));
+  expect(f.extract).not.toHaveBeenCalled();
+  for (const followup of ['you recharge', 'ok']) {
+    messages.push(followup);
+    expect((await request({ messages })).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'choose_operator' }));
+  }
+  messages.push('Airtel Digital TV');
+  expect((await request({ messages, operatorId: 'airtel_dth' })).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'price' }));
+  messages.push('279');
+  expect((await request({ messages })).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'awaiting_topup_payment', topUpAmount: 279,
+    box: expect.objectContaining({ smartCardNumber: '3012586589', operator: 'airtel_dth', user_id: 'owner' }) }));
+  expect(toolTurn).not.toHaveBeenCalled();
+  expect(f.extract).not.toHaveBeenCalled();
+  expect(f.boxReads).toBe(0);
+});
+it('handles a bare subscriber ID without letting the general AI navigate or guess recharge preferences', async () => {
+  toolTurn.mockResolvedValue({ success: true, state: 'text', text: 'Opening Recharge page?' });
+  expect((await request({ messages: ['3012586589'] })).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'choose_operator',
+    intent: expect.objectContaining({ company: null, months: null, quality: null }) }));
+  expect(toolTurn).not.toHaveBeenCalled();
+  expect(f.extract).not.toHaveBeenCalled();
+});
+
+it('guides a new subscriber through operator, quality and duration without any model calls', async () => {
+  toolTurn.mockRejectedValue(new Error('AI must not be needed'));
+  f.extract.mockRejectedValue(new Error('AI must not be needed'));
+  const messages = ['Recharge a new customer ID'];
+  for (const [answer, state] of [['3012586589', 'choose_operator'], ['Airtel Digital TV', 'price'], ['HD', 'preferences'], ['6 months', 'awaiting_payment']]) {
+    messages.push(answer);
+    expect((await request({ messages })).json).toHaveBeenCalledWith(expect.objectContaining({ state, source: 'context' }));
+  }
+  expect(f.extract).not.toHaveBeenCalled();
+  expect(toolTurn).not.toHaveBeenCalled();
+});
+
+it('uses AI extraction for unclear recharge wording, then continues with deterministic replies', async () => {
+  f.extract.mockResolvedValue({ boxName: 'hall', packName: null, months: null, quality: null });
+  const messages = ['Recharge the television I watch in the lounge'];
+  expect((await request({ messages })).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'price', source: 'ai' }));
+  messages.push('279');
+  expect((await request({ messages })).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'awaiting_topup_payment', source: 'context', topUpAmount: 279 }));
+  expect(f.extract).toHaveBeenCalledTimes(1);
+  expect(toolTurn).not.toHaveBeenCalled();
+});
+
+it('keeps AI replies available for general questions without starting a recharge', async () => {
+  const answer = { success: true, state: 'text', text: 'You can contact support using the Help menu.' };
+  toolTurn.mockResolvedValue(answer);
+  expect((await request({ messages: ['How can I contact support?'] })).json).toHaveBeenCalledWith(answer);
+  expect((await request({ messages: ['How can I contact support?'], connectionId: 'hall' })).json).toHaveBeenCalledWith(answer);
+  expect((await request({ messages: ['Recharge a new customer ID', 'How can I contact support?'] })).json).toHaveBeenCalledWith(answer);
+  expect(toolTurn).toHaveBeenCalledTimes(3);
+  expect(f.extract).not.toHaveBeenCalled();
+  expect(f.boxReads).toBe(0);
+});
+
+it('asks for the operator for the screenshot cheapest-pack question, then answers from the one-month catalog', async () => {
+  toolTurn.mockResolvedValue({ success: true, state: 'tool_action', action: { type: 'navigate', page: 'plans' }, text: 'Opening Plans page?' });
+  f.plans = [
+    { ...f.plans[0], id: 'costly', duration_months: 1, amount: 399 },
+    { ...f.plans[0], id: 'cheapest', plan_name: 'Tamil Basic SD', duration_months: 1, pack_type: 'SD', amount: 199 },
+    { ...f.plans[0], id: 'other-duration', duration_months: 6, amount: 99 },
+    { ...f.plans[0], id: 'invalid', duration_months: 1, amount: -1 },
+  ];
+  const messages = ['which is cheapest pack for 1 month?'];
+  expect((await request({ messages })).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'choose_catalog_operator', source: 'catalog',
+    operators: [{ id: 'airtel_dth', name: 'Airtel Digital TV' }] }));
+  messages.push('Airtel Digital TV');
+  const response = await request({ messages, operatorId: 'airtel_dth' });
+  expect(response.json).toHaveBeenCalledWith(expect.objectContaining({ source: 'catalog', state: 'tool_action',
+    action: { type: 'show_plans', plans: [expect.objectContaining({ id: 'cheapest', amount: 199, duration: 1, operator: 'airtel_dth' })] } }));
+  expect(toolTurn).not.toHaveBeenCalled();
+  expect(f.extract).not.toHaveBeenCalled();
+  expect(f.boxReads).toBe(0);
+});
+
+it('respects HD and operator filters when selecting the cheapest pack directly', async () => {
+  f.plans = [
+    { ...f.plans[0], id: 'hd', duration_months: 1, amount: 299 },
+    { ...f.plans[0], id: 'sd', duration_months: 1, pack_type: 'SD', amount: 199 },
+    { ...f.plans[0], id: 'foreign', operator: 'sun_direct', duration_months: 1, amount: 99 },
+  ];
+  expect((await request({ messages: ['Which is the cheapest Airtel HD pack for 1 month?'] })).json).toHaveBeenCalledWith(expect.objectContaining({
+    action: { type: 'show_plans', plans: [expect.objectContaining({ id: 'hd', amount: 299 })] } }));
+  expect(toolTurn).not.toHaveBeenCalled();
+});
+
+it('does not substitute a different duration when no one-month packs are available', async () => {
+  expect((await request({ messages: ['cheapest Airtel pack for 1 month'] })).json).toHaveBeenCalledWith(expect.objectContaining({ action: { type: 'show_plans', plans: [] }, suggestions: ['6 months'] }));
+  expect(toolTurn).not.toHaveBeenCalled();
+});
+
+it('still allows an explicit request to open Plans after a cheapest-pack question', async () => {
+  const answer = { success: true, state: 'tool_action', action: { type: 'navigate', page: 'plans' }, text: 'Opening Plans page.' };
+  toolTurn.mockResolvedValue(answer);
+  expect((await request({ messages: ['which is cheapest pack for 1 month?', 'Open Plans page'] })).json).toHaveBeenCalledWith(answer);
+  expect(toolTurn).toHaveBeenCalledTimes(1);
+});
+
+it('remembers catalog filters across workers and applies budget and quality corrections without AI', async () => {
+  f.plans = [{ ...f.plans[0], id: 'hd', duration_months: 1, amount: 299 },
+    { ...f.plans[0], id: 'sd', duration_months: 1, pack_type: 'SD', amount: 199 }];
+  const messages = ['cheapest pack for one month under 350', 'Airtel', 'HD'];
+  clearAssistantReadCache();
+  expect((await request({ messages })).json).toHaveBeenCalledWith(expect.objectContaining({
+    conversation: expect.objectContaining({ goal: 'compare', operator: 'airtel_dth', months: 1, quality: 'HD', budget: 350 }),
+    action: { type: 'show_plans', plans: [expect.objectContaining({ id: 'hd', amount: 299 })] } }));
+  messages.push('budget 200', 'SD instead'); clearAssistantReadCache();
+  expect((await request({ messages })).json).toHaveBeenCalledWith(expect.objectContaining({
+    conversation: expect.objectContaining({ quality: 'SD', budget: 200 }), action: { type: 'show_plans', plans: [expect.objectContaining({ id: 'sd', amount: 199 })] } }));
+  expect(toolTurn).not.toHaveBeenCalled(); expect(f.extract).not.toHaveBeenCalled(); expect(f.understand).not.toHaveBeenCalled();
+});
+
+it.each(['oru month ku cheap pack', 'ஒரு மாதத்திற்கு குறைந்த விலை பேக்'])('answers the localized catalog request %s without guessing prices', async question => {
+  f.plans = [{ ...f.plans[0], duration_months: 1, amount: 279 }];
+  expect((await request({ messages: [question] })).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'choose_catalog_operator' }));
+  expect((await request({ messages: [question, 'Airtel'] })).json).toHaveBeenCalledWith(expect.objectContaining({
+    action: { type: 'show_plans', plans: [expect.objectContaining({ amount: 279, duration: 1 })] } }));
+  expect(toolTurn).not.toHaveBeenCalled(); expect(f.understand).not.toHaveBeenCalled();
+});
+
+it('checks monthly budgets without changing the displayed total pack price', async () => {
+  expect((await request({ messages: ['Compare Airtel HD packs under 300 per month', 'for 6 months'] })).json).toHaveBeenCalledWith(expect.objectContaining({
+    text: expect.stringContaining('displayed prices cover the full pack duration'),
+    action: { type: 'show_plans', plans: [expect.objectContaining({ amount: 1396, duration: 6 })] } }));
+});
+it('asks for missing filters when optional understanding fails rather than opening checkout', async () => {
+  const messages = ['something economical that lasts a quarter'];
+  expect((await request({ messages })).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'choose_catalog_operator' }));
+  messages.push('Airtel');
+  expect((await request({ messages })).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'choose_catalog_duration' }));
+  expect(f.extract).not.toHaveBeenCalled(); expect(f.boxReads).toBe(0);
+});
+
+it('treats a recharge budget as a constraint, never as a top-up instruction', async () => {
+  f.extract.mockResolvedValue({ boxName: 'hall', months: 6, quality: 'HD', amount: 500, priceMode: 'direct' });
+  const messages = ['Recharge my hall box HD for 6 months under Rs 500'];
+  expect(parseRechargeCommand(messages).amount).toBeNull();
+  expect((await request({ messages })).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'no_plans',
+    conversation: expect.objectContaining({ budget: 500 }), plans: [] }));
+});
+
+it('asks only for the order ID, then reads the authenticated owners recorded status', async () => {
+  const order = { orderId: 'order_recorded', status: 'pending', amount: 279, packName: 'Tamil HD', createdAt: '2026-11-27T10:00:00Z', testMode: false };
+  f.history.mockResolvedValue([order]);
+  const messages = ['check my payment'];
+  expect((await request({ messages })).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'enter_order' }));
+  messages.push('order_recorded');
+  expect((await request({ messages })).json).toHaveBeenCalledWith(expect.objectContaining({ action: { type: 'show_recharge_status', order } }));
+  expect(f.history).toHaveBeenCalledWith('owner', 1, 'order_recorded');
+  expect(toolTurn).not.toHaveBeenCalled(); expect(f.boxReads).toBe(0);
+});
+
+it('gives a support recovery path when AI is unavailable without preparing a recharge', async () => {
+  expect((await request({ messages: ['my payment failed, get support'] })).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'support_help' }));
+  expect(f.extract).not.toHaveBeenCalled(); expect(f.boxReads).toBe(0);
+});
+it('asks which task an unclear request means rather than defaulting to a recharge during an AI outage', async () => {
+  expect((await request({ messages: ['Can you do something for me?'] })).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'clarify_goal',
+    suggestions: expect.arrayContaining(['Compare packs', 'Check payment status']) }));
+  expect(f.extract).not.toHaveBeenCalled(); expect(f.boxReads).toBe(0);
+});
+
+it('uses optional AI only to interpret a flexible comparison, and keeps later explicit corrections', async () => {
+  f.plans = [{ ...f.plans[0], id: 'quarter', duration_months: 3, amount: 600 }];
+  f.understand.mockImplementation(async (_uid, _messages, current) => ({ ...current, goal: 'compare', months: 3, cheapest: true }));
+  const messages = ['something economical that lasts a quarter'];
+  expect((await request({ messages })).json).toHaveBeenCalledWith(expect.objectContaining({ state: 'choose_catalog_operator' }));
+  messages.push('Airtel'); clearAssistantReadCache();
+  expect((await request({ messages })).json).toHaveBeenCalledWith(expect.objectContaining({
+    action: { type: 'show_plans', plans: [expect.objectContaining({ id: 'quarter', amount: 600, duration: 3 })] } }));
+  expect(f.understand).toHaveBeenLastCalledWith('owner', messages, expect.objectContaining({ operator: 'airtel_dth' }));
+  expect(toolTurn).not.toHaveBeenCalled(); expect(f.extract).not.toHaveBeenCalled();
+});
+
+it('rejects forged client conversation state instead of trusting identity or budget claims', async () => {
+  expect((await request({ messages: ['cheapest Airtel pack'], conversation: { ...resolveAssistantConversation([]), uid: 'victim' } })).status).toHaveBeenCalledWith(400);
+  expect(f.understand).not.toHaveBeenCalled(); expect(toolTurn).not.toHaveBeenCalled();
+});
+
+it.each(['3012586589', '279', 'HD', '6 months', '6m', 'HD - Airtel - 6m', 'Airtel Digital TV', 'ok', 'Recharge 6 months HD for hall box', 'Recharge my hall TV for 279 rupees'])(
+  'recognizes the guided recharge input %s', message => {
+    expect(isStandardRechargeMessage(message)).toBe(true);
+  },
+);
+it.each(['How can I contact support?', 'Recharge the television I watch in the lounge', 'என் வரவேற்பறை பாக்ஸை ரீசார்ஜ் செய்யவும்'])(
+  'leaves flexible wording available for AI: %s', message => {
+    expect(isStandardRechargeMessage(message)).toBe(false);
+  },
+);

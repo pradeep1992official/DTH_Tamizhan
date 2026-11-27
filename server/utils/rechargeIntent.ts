@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import { verifiedFreeKey, reserveFreeRequest, FREE_RECOMMENDATION_MODEL } from './freeTierAi';
+import { normalizeAssistantMessage } from '../../src/lib/assistantConversation';
 
 export const rechargeIntentSchema = z.object({
   boxName: z.string().trim().max(80).nullable(),
@@ -13,6 +14,22 @@ export const rechargeIntentSchema = z.object({
   priceMode: z.enum(['direct', 'derived']).nullable().describe('direct when customer provides a price, derived when price must come from an operator catalog. Preserve across follow-ups; switch only when explicitly requested. Clear amount when switching to derived.'),
 });
 export type RechargeIntent = z.infer<typeof rechargeIntentSchema>;
+
+// Recognize the fields and wording handled by the guided flow. Anything left
+// over can still use AI language extraction rather than guessing its meaning.
+export function isStandardRechargeMessage(message: string): boolean {
+  const command = parseRechargeCommand([message]);
+  let remaining = normalizeAssistantMessage(message);
+  for (const value of [command.boxName, command.packName]) {
+    if (value) remaining = remaining.replace(value.toLowerCase(), ' ');
+  }
+  remaining = remaining.replace(/\b(?:sun\s*direct|tata\s*play|airtel(?:\s*digital\s*tv)?|dish\s*tv|d2h)\b/g, ' ')
+    .replace(/\b\d+[ -]*(?:months?|m)\b/g, ' ')
+    .replace(/\b\d+(?:\.\d+)?\b/g, ' ')
+    .replace(/\b(?:recharge|top|up|my|the|for|in|a|an|please|box|boxes|setup|set|settop|tv|saved|available|only|new|another|different|customer|subscriber|id|number|hd|sd|months?|m|rs|inr|rupees|pack|use|select|make|it|instead|derive|calculate|change|to|yes|ok|okay|you)\b/g, ' ')
+    .replace(/[^\p{L}\p{N}]/gu, '');
+  return remaining.length === 0;
+}
 
 export async function extractRechargeIntent(uid: string, messages: string[]): Promise<RechargeIntent> {
   const key = await verifiedFreeKey();
@@ -28,15 +45,18 @@ export async function extractRechargeIntent(uid: string, messages: string[]): Pr
 
 // Predictable commands still work when the optional provider is unavailable.
 export function parseRechargeCommand(messages: string[]): RechargeIntent {
+  messages = messages.map(normalizeAssistantMessage);
   const text = messages.join(' ').toLowerCase();
   const months = [...text.matchAll(/\b(\d+)[ -]*(?:months?|m)\b/g)].at(-1)?.[1];
   const quality = [...text.matchAll(/\b(hd|sd)\b/g)].at(-1)?.[1]?.toUpperCase();
   const boxName = messages.map(message => message.toLowerCase().match(/\b(?:my|for|in)\s+((?!\d+\s*months?\b)[\p{L}\p{N} _-]{1,60}?)(?:\s+(?:setup\s+|set[ -]?top\s+)?box\b|\s+for\s+(?:₹|rs|\d)|$)/u)?.[1]?.trim()).filter(Boolean).at(-1) || null;
-  const packName = messages.map(message => message.match(/\brecharge\s+(.+?)\s+(?:for\s+)?\d+\s*months?\b/i)?.[1]?.trim()).filter(Boolean).at(-1) || null;
+  const packName = messages.map(message => message.match(/\brecharge\s+(.+?)\s+(?:for\s+)?\d+\s*months?\b/i)?.[1]?.trim())
+    .filter(name => name && !/\bbox\b/i.test(name)).at(-1) || null;
   let amount: number | null = null;
   for (const message of messages) {
     if (/\b(?:instead|derive|calculate|change.*pack)\b/i.test(message)) amount = null;
-    const match = [...message.toLowerCase().matchAll(/(?:₹|\brs\.?\s*|\binr\s*)(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s*(?:rupees|rs\b|ரூபாய்|pack\b)|\bfor\s+(\d+(?:\.\d+)?)(?![\d.])\s*$/g)].at(-1);
+    const priceText = message.replace(/\b(?:under|below|budget|up to|upto|maximum|max)\s*(?:is\s*)?(?:₹|rs\.?|inr)?\s*\d+(?:\.\d+)?(?:\s*rupees)?/g, ' ');
+    const match = [...priceText.toLowerCase().matchAll(/(?:₹|\brs\.?\s*|\binr\s*)(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s*(?:rupees|rs\b|ரூபாய்|pack\b)|\bfor\s+(\d+(?:\.\d+)?)(?![\d.])\s*$/g)].at(-1);
     if (match) amount = Number(match[1] || match[2] || match[3]);
     else if (/^\s*\d{1,5}(?:\.\d+)?\s*$/.test(message)) amount = Number(message.trim());
   }

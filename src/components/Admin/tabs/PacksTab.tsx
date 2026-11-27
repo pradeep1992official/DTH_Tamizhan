@@ -12,7 +12,9 @@ import {
   Check,
   X,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  Upload,
+  FileCheck2
 } from '../../../lib/icons';
 import { PlanCatalogItem, DthOperatorId, Language, UserProfile, canonicalizeDthOperatorId, isSameDthOperatorGroup } from '../../../types';
 import { OperatorTheme } from '../../../lib/theme';
@@ -20,6 +22,8 @@ import { PlanCatalogService } from '../../../lib/planCatalogService';
 const ExcelPlanImportExportModal = React.lazy(() => import('../../ExcelPlanImportExportModal').then(module => ({ default: module.ExcelPlanImportExportModal })));
 import { translations } from '../../../lib/translations';
 import { useAccessibleModal } from '../../../lib/useAccessibleModal';
+import { auth } from '../../../lib/firebase';
+import { safeChannelListUrl } from '../../../lib/channelFlyers';
 
 type CatalogSortKey = 'plan_name' | 'operator' | 'pack_type' | 'duration_months' | 'amount' | 'is_recommended';
 
@@ -63,6 +67,9 @@ export const PacksTab: React.FC<PacksTabProps> = ({
   const [selectedPackOp, setSelectedPackOp] = useState<DthOperatorId | 'all'>('all');
   const [editingPack, setEditingPack] = useState<PlanCatalogItem | null>(null);
   const [isPackModalOpen, setIsPackModalOpen] = useState(false);
+  const [channelListUploading, setChannelListUploading] = useState(false);
+  const [channelListFileName, setChannelListFileName] = useState('');
+  const [channelListError, setChannelListError] = useState('');
   const [packToDelete, setPackToDelete] = useState<PlanCatalogItem | null>(null);
   const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
   const [excelModalTab, setExcelModalTab] = useState<'import' | 'export'>('import');
@@ -70,7 +77,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
   // Accessible Modal Hooks for Focus Trapping & Escape-to-close
   const { modalRef: packModalRef } = useAccessibleModal({
     isOpen: isPackModalOpen,
-    onClose: () => setIsPackModalOpen(false),
+    onClose: () => { if (!channelListUploading) setIsPackModalOpen(false); },
   });
 
   const { modalRef: deleteModalRef } = useAccessibleModal({
@@ -87,6 +94,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
     amount: number | string;
     is_recommended: boolean;
     channel_list: string[];
+    channel_list_url: string;
     channel_count: number | string;
     hd_channel_count: number | string;
     channel_counts_unavailable?: boolean;
@@ -100,6 +108,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
     hd_channel_count: '',
     is_recommended: true,
     channel_list: ['Sun TV HD', 'KTV HD', 'Sun Music HD', 'Star Vijay HD', 'Zee Tamil HD'],
+    channel_list_url: '',
   });
 
   const [channelInput, setChannelInput] = useState('');
@@ -131,6 +140,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
   });
 
   const handleOpenAdd = () => {
+    setChannelListFileName(''); setChannelListError('');
     setEditingPack(null);
     setFormData({
       operator: selectedPackOp === 'all' ? 'sun_direct' : selectedPackOp,
@@ -142,11 +152,13 @@ export const PacksTab: React.FC<PacksTabProps> = ({
     hd_channel_count: '',
       is_recommended: true,
       channel_list: ['Sun TV HD', 'KTV HD', 'Star Vijay HD', 'Zee Tamil HD'],
+      channel_list_url: '',
     });
     setIsPackModalOpen(true);
   };
 
   const handleOpenEdit = (plan: PlanCatalogItem) => {
+    setChannelListFileName(''); setChannelListError('');
     setEditingPack(plan);
     setFormData({
       id: plan.id,
@@ -160,12 +172,18 @@ export const PacksTab: React.FC<PacksTabProps> = ({
       channel_counts_unavailable: plan.channel_counts_unavailable,
       is_recommended: plan.is_recommended,
       channel_list: [...plan.channel_list],
+      channel_list_url: plan.channel_list_url || '',
     });
     setIsPackModalOpen(true);
   };
 
   const handleSavePack = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (channelListUploading) return;
+    if (formData.channel_list_url.trim() && !safeChannelListUrl(formData.channel_list_url)) {
+      setChannelListError('Enter a valid channel-list link, or choose a file to upload.');
+      showToast('Enter a valid channel-list link, or choose a file to upload.'); return;
+    }
     if (!formData.plan_name.trim() || !formData.amount) {
       showToast('Please provide a pack name and amount.');
       return;
@@ -176,6 +194,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
 
     try {
       const saved = await PlanCatalogService.savePlan({
+        ...editingPack,
         id: planId,
         operator: formData.operator,
         pack_type: formData.pack_type,
@@ -188,6 +207,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
         channel_count: formData.channel_counts_unavailable ? undefined : formData.channel_count === '' ? NaN : Number(formData.channel_count),
         hd_channel_count: formData.channel_counts_unavailable ? undefined : formData.hd_channel_count === '' ? NaN : Number(formData.hd_channel_count),
         channel_list: formData.channel_list,
+        channel_list_url: formData.channel_list_url.trim(),
         channels: formData.channel_list,
         genre_tags: ['tamil', 'entertainment'],
         description: `${formData.pack_type} pack for ${formData.duration_months} Month(s)`,
@@ -199,6 +219,33 @@ export const PacksTab: React.FC<PacksTabProps> = ({
     } catch (err: any) {
       showToast(`Failed to save pack: ${err.message || err}`);
     }
+  };
+
+  const handleChannelListUpload = async (file: File) => {
+    setChannelListError('');
+    setChannelListUploading(true);
+    try {
+      if (!['application/pdf', 'image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) throw new Error('Choose a PDF, JPG, PNG or WebP up to 5 MB.');
+      const account = auth?.currentUser;
+      if (!account || account.uid !== user?.uid) throw new Error('Please sign in again as an administrator.');
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader(); reader.onerror = () => reject(new Error('Could not read the channel-list file.'));
+        reader.onload = () => resolve(String(reader.result).split(',')[1]); reader.readAsDataURL(file);
+      });
+      const token = await account.getIdToken();
+      if (auth?.currentUser?.uid !== account.uid) throw new Error('Your account changed. Please reopen the pack.');
+      const response = await fetch('/api/admin/catalog/channel-list', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ base64, contentType: file.type }) });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || 'Channel-list upload failed.');
+      if (auth?.currentUser?.uid !== account.uid) throw new Error('Your account changed. Please reopen the pack.');
+      setFormData(previous => ({ ...previous, channel_list_url: result.url }));
+      setChannelListFileName(file.name || 'Channel list');
+      showToast('Channel list uploaded. Save the pack to show its link.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not upload the file. Please try again.';
+      setChannelListError(message); showToast(message);
+    }
+    finally { setChannelListUploading(false); }
   };
 
   const handleDeletePack = async (planId: string) => {
@@ -415,7 +462,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
         <div
           className="fixed inset-0 z-50 bg-ink/70  flex items-center justify-center p-4  "
           onClick={(e) => {
-            if (e.target === e.currentTarget) setIsPackModalOpen(false);
+            if (e.target === e.currentTarget && !channelListUploading) setIsPackModalOpen(false);
           }}
         >
           <div
@@ -432,6 +479,7 @@ export const PacksTab: React.FC<PacksTabProps> = ({
               <button
                 type="button"
                 onClick={() => setIsPackModalOpen(false)}
+                disabled={channelListUploading}
                 aria-label={t.close}
                 className="p-1.5 rounded-lg hover:bg-paper-2"
               >
@@ -540,6 +588,44 @@ export const PacksTab: React.FC<PacksTabProps> = ({
                 <label className="font-medium">HD channels<input type="number" min="0" required value={formData.hd_channel_count} onChange={event => setFormData({ ...formData, hd_channel_count: event.target.value })} className="w-full rounded-xl px-3 py-2 border bg-ink/20" /></label>
               </div>
               }
+              <section aria-labelledby={`${packFieldId}-channel-title`} className="rounded-xl border border-rule bg-paper-2 p-4 space-y-3">
+                <div>
+                  <h4 id={`${packFieldId}-channel-title`} className="font-semibold text-ink">Channel list <span className="text-xs font-normal text-muted">· Optional</span></h4>
+                  <p className="text-sm text-muted mt-1">Add your operator’s channel list so customers can see what’s included.</p>
+                </div>
+                {safeChannelListUrl(formData.channel_list_url) && <div className="flex items-start gap-3 rounded-lg border border-rule bg-paper p-3 min-w-0">
+                  <FileCheck2 className="w-5 h-5 shrink-0 text-accent mt-0.5" aria-hidden="true" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-ink break-words">{channelListFileName || 'Channel list attached'}</p>
+                    <a className="text-sm text-accent underline underline-offset-4" href={safeChannelListUrl(formData.channel_list_url)!} target="_blank" rel="noopener noreferrer">Preview channel list ↗</a>
+                  </div>
+                  <button type="button" disabled={channelListUploading} className="text-sm text-error underline underline-offset-4 shrink-0" onClick={() => {
+                    setFormData(previous => ({ ...previous, channel_list_url: '' })); setChannelListFileName(''); setChannelListError('');
+                  }}>Remove</button>
+                </div>}
+                <label htmlFor={`${packFieldId}-channel-file`} aria-disabled={channelListUploading}
+                  className={`relative flex cursor-pointer items-center justify-center gap-3 rounded-xl border border-dashed border-rule focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent ${channelListUploading ? 'opacity-60 cursor-wait' : 'hover:bg-accent-soft'} ${safeChannelListUrl(formData.channel_list_url) ? 'px-4 py-3 bg-paper' : 'px-4 py-6 bg-paper'}`}>
+                  <input id={`${packFieldId}-channel-file`} className="sr-only" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" disabled={channelListUploading}
+                    aria-label={formData.channel_list_url ? 'Replace channel-list file' : 'Upload channel-list file'} aria-describedby={`${packFieldId}-channel-formats`}
+                    onChange={event => { const file = event.target.files?.[0]; if (file) void handleChannelListUpload(file); event.target.value = ''; }} />
+                  <Upload className="w-5 h-5 text-accent shrink-0" aria-hidden="true" />
+                  <span className="text-center"><span className="block font-semibold text-sm text-accent">{channelListUploading ? 'Uploading file…' : safeChannelListUrl(formData.channel_list_url) ? 'Replace file' : 'Choose a file'}</span>
+                    <span id={`${packFieldId}-channel-formats`} className="block text-xs text-muted mt-1">PDF, JPG, PNG or WebP · Max 5 MB</span></span>
+                </label>
+                {channelListUploading && <p role="status" className="text-sm text-muted">Please wait while your file uploads.</p>}
+                {channelListError && <p role="alert" className="text-sm text-error">{channelListError}</p>}
+                <p className="text-xs text-muted">Save the pack to apply your changes.</p>
+                <details className="border-t border-rule pt-3" open={channelListError.startsWith('Enter a valid') ? true : undefined}>
+                  <summary className="cursor-pointer text-sm text-ink">Already have a file link?</summary>
+                  <div className="space-y-2 mt-3">
+                    <label className="text-sm font-medium block" htmlFor={`${packFieldId}-channel-url`}>Paste the channel-list link</label>
+                    <input id={`${packFieldId}-channel-url`} type="text" inputMode="url" value={formData.channel_list_url} disabled={channelListUploading}
+                      onChange={event => { setFormData({ ...formData, channel_list_url: event.target.value }); setChannelListFileName(''); setChannelListError(''); }} placeholder="https://example.com/channel-list.pdf"
+                      aria-invalid={channelListError.startsWith('Enter a valid') || undefined} className="w-full rounded-xl px-3 py-2 border border-rule bg-paper" />
+                    <p className="text-xs text-muted">You can use the same link for this pack’s other durations.</p>
+                  </div>
+                </details>
+              </section>
               {/* Channels List Editor */}
               <div className="space-y-2">
                 <label htmlFor={`${packFieldId}-channel`} className="font-medium block text-ink ">Channel Highlights</label>
@@ -589,12 +675,14 @@ export const PacksTab: React.FC<PacksTabProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsPackModalOpen(false)}
+                  disabled={channelListUploading}
                   className="px-4 py-2 rounded-xl font-medium bg-paper-3 hover:bg-paper-3"
                 >
                   {t.cancel}
                 </button>
                 <button
                   type="submit"
+                  disabled={channelListUploading}
                   className="px-4 py-2 rounded-xl font-bold text-accent-ink shadow"
                   style={{ backgroundColor: currentTheme.primaryColor }}
                 >

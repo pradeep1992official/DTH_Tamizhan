@@ -132,7 +132,6 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
 
   // Change Plan tab state
   const [customSelectedPlan, setCustomSelectedPlan] = useState<PlanCatalogItem | null>(null);
-  const [expandedPlanChannels, setExpandedPlanChannels] = useState<Record<string, boolean>>({});
 
   // Custom amount support
   const [customAmount, setCustomAmount] = useState('');
@@ -368,13 +367,6 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
         saveConnection
       );
     }
-  };
-
-  const toggleChannelExpand = (planId: string) => {
-    setExpandedPlanChannels((prev) => ({
-      ...prev,
-      [planId]: !prev[planId],
-    }));
   };
 
   const isLight = currentTheme.isLightMode;
@@ -1082,17 +1074,10 @@ export const RechargeFlow: React.FC<RechargeFlowProps> = ({
                         <CatalogColumnHeadings currentLang={currentLang} />
                         {plans.map(plan => {
                           const isSelected = activePlan?.id === plan.id && effectivePackType !== 'CUSTOM';
-                          const isExpanded = !!expandedPlanChannels[plan.id];
                           return <PlanCard key={plan.id} plan={catalogItemToBrowsePlan(plan)} currentLang={currentLang} currentTheme={currentTheme}
                             showCompare={false} isSelected={isSelected}
                             onSelectPlan={() => { setCustomSelectedPlan(plan); setSelectedPackType(plan.pack_type); setCustomAmount(''); }}>
                             {plan.is_recommended && <span className="bouquet-recommended">{t.recommendedBadge}</span>}
-                            {plan.channel_list.length > 0 && <div className="catalog-channel-details">
-                              <button type="button" aria-expanded={isExpanded} aria-controls={`pack-channels-${plan.id}`} onClick={() => toggleChannelExpand(plan.id)}>
-                                {t.viewChannels}{isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                              </button>
-                              {isExpanded && <div id={`pack-channels-${plan.id}`} className="all-packs-channel-list">{plan.channel_list.map((channel, i) => <span key={i}>{channel}</span>)}</div>}
-                            </div>}
                           </PlanCard>;
                         })}
                       </div>}

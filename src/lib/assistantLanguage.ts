@@ -8,7 +8,7 @@ export function detectAssistantLanguage(messages: string[], fallback: AssistantL
     if (/\b(?:in english|english[- ]la|english please)\b/i.test(message)) return 'en';
     if (/\b(?:in tamil|tamil[- ]la|tamil please)\b/i.test(message)) return 'ta';
     if (/[\u0B80-\u0BFF]/u.test(message)) return 'ta';
-    if (/\b(?:vanakkam|enakku|enaku|ennoda|enoda|enna|epdi|eppadi|eppo|enga|irukku|irukka|iruku|iruka|illa|illai|venum|vendum|venam|pannunga|panunga|pannu|pannala|aagala|aaguma|achu|aachu|kudunga|kodunga|kaatunga|kaattu|sollunga|sollu|paakanum|parkanum|seiyanum|seyyanum|nanri|nandri|neenga|unga|ungal|thiruppi|varala|varuma|panam|paisa|mudinjudha|mudinjatha|panniten|pannitten)\b/i.test(message)) return 'tanglish';
+    if (/\b(?:oru|rendu|maasam|masam|vanakkam|enakku|enaku|ennoda|enoda|enna|epdi|eppadi|eppo|enga|irukku|irukka|iruku|iruka|illa|illai|venum|vendum|venam|pannunga|panunga|pannu|pannala|aagala|aaguma|achu|aachu|kudunga|kodunga|kaatunga|kaattu|sollunga|sollu|paakanum|parkanum|seiyanum|seyyanum|nanri|nandri|neenga|unga|ungal|thiruppi|varala|varuma|panam|paisa|mudinjudha|mudinjatha|panniten|pannitten)\b/i.test(message)) return 'tanglish';
     const meaningful = message.replace(/\b(?:hd|sd|inr|rs|months?|sun|direct|airtel|digital|tv|tata|play|dish|d2h|order[_\w-]*|pay[_\w-]*)\b|[\d\s\W_]+/gi, '');
     if (meaningful.length >= 3) return 'en';
   }

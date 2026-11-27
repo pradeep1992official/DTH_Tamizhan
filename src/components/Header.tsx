@@ -138,6 +138,7 @@ export const Header: React.FC<HeaderProps> = ({
         <nav aria-label={t.uiMainNavigation} className="desktop-navigation">
           <Link to="/" aria-current={activeTab === 'home' ? 'page' : undefined}>{currentLang === 'ta' ? 'முகப்பு' : 'Home'}</Link>
           {recharge && <Link to="/recharge" aria-current={activeTab === 'recharge' ? 'page' : undefined}>{t.navRecharge}</Link>}
+          {recharge && <Link to="/plans" aria-current={activeTab === 'plans' ? 'page' : undefined}>{t.navPlans}</Link>}
           <Link to="/new-connection" aria-current={activeTab === 'new-connection' ? 'page' : undefined}>{t.ncNav}</Link>
           <Link to="/service-request" aria-current={activeTab === 'help' ? 'page' : undefined}>{currentLang === 'ta' ? '\u0b9a\u0bc7\u0bb5\u0bc8 \u0b95\u0bcb\u0bb0\u0bbf\u0b95\u0bcd\u0b95\u0bc8' : 'Service Request'}</Link>
         </nav>
@@ -333,6 +334,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button type="button" lang="en" aria-pressed={currentLang === 'en'} onClick={() => onLanguageChange('en')}>EN</button>
         </div>
         {recharge && <Link to="/recharge" onClick={() => setIsMobileMenuOpen(false)} aria-current={activeTab === 'recharge' ? 'page' : undefined}>{t.navRecharge}</Link>}
+        {recharge && <Link to="/plans" onClick={() => setIsMobileMenuOpen(false)} aria-current={activeTab === 'plans' ? 'page' : undefined}>{t.navPlans}</Link>}
         <Link to="/new-connection" onClick={() => setIsMobileMenuOpen(false)} aria-current={activeTab === 'new-connection' ? 'page' : undefined}>{t.ncNav}</Link>
         <Link to="/service-request" onClick={() => setIsMobileMenuOpen(false)} aria-current={activeTab === 'help' ? 'page' : undefined}>{currentLang === 'ta' ? '\u0b9a\u0bc7\u0bb5\u0bc8 \u0b95\u0bcb\u0bb0\u0bbf\u0b95\u0bcd\u0b95\u0bc8' : 'Service Request'}</Link>
       </nav>

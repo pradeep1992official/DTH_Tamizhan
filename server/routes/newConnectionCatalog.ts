@@ -56,3 +56,24 @@ newConnectionCatalogRouter.post('/api/admin/catalog/logo', async (req, res) => {
     res.json({ success: true, url: `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${token}` });
   } catch (error) { res.status(400).json({ success: false, error: message(error) }); }
 });
+
+// Public operator flyers only. Canonical admin authorization above protects
+// uploads; browser Storage writes and private receipt paths remain untouched.
+newConnectionCatalogRouter.post('/api/admin/catalog/channel-list', async (req, res) => {
+  try {
+    const { contentType, base64 } = z.object({ contentType: z.enum(['application/pdf', 'image/png', 'image/jpeg', 'image/webp']),
+      base64: z.string().min(1).max(7000000) }).strict().parse(req.body);
+    const bytes = Buffer.from(base64, 'base64');
+    const valid = contentType === 'application/pdf' ? bytes.toString('ascii', 0, 5) === '%PDF-' :
+      contentType === 'image/png' ? bytes.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10])) :
+      contentType === 'image/jpeg' ? bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255 :
+      bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WEBP';
+    if (!valid || bytes.length > 5 * 1024 * 1024) throw new Error('Upload a PDF, PNG, JPEG or WebP channel list up to 5 MB');
+    const extension = { 'application/pdf': 'pdf', 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' }[contentType];
+    const bucket = getStorage().bucket(config.storageBucket); const id = randomUUID();
+    const path = `catalog-channel-lists/${id}.${extension}`; const token = randomUUID();
+    await bucket.file(path).save(bytes, { resumable: false, contentType, metadata: { cacheControl: 'public,max-age=86400',
+      contentDisposition: `attachment; filename="channel-list-${id}.${extension}"`, metadata: { firebaseStorageDownloadTokens: token } } });
+    res.json({ success: true, url: `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${token}` });
+  } catch (error) { res.status(400).json({ success: false, error: message(error) }); }
+});
