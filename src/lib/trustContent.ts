@@ -1,6 +1,6 @@
+import { refundPolicy } from './refundPolicy';
 import { termsPolicy } from './termsPolicy';
 import { privacyPolicy } from './privacyPolicy';
-import { NEW_CONNECTION_REFUND } from './newConnectionPolicy';
 export const BUSINESS_DETAILS = {
   legalName: 'SMP Enterprises',
   address: 'I, 68/72C, East Street, Thirukoilur - 605757',
@@ -47,27 +47,7 @@ export const POLICY_CONTENT: Record<PolicyKey, PolicySection[]> = {
       `Acknowledgement: ${b.acknowledgement}. Resolution: ${b.resolution}. These are our grievance commitments; Razorpay handles complaints submitted directly to it under its own policy. Your statutory complaint and consumer-forum rights are unaffected.`,
     ] },
   ],
-  refund: [
-    {"heading": "Booking and service-request refunds", "paragraphs": ["A cancellation request in My Bookings is reviewed by staff; submitting it does not automatically cancel the booking or initiate a refund. Payment verification and booking cancellation are separate. The new-connection installation refund commitment stated in the New-connection installation section continues to apply.", "Where optional paid complaint-registration assistance is offered, its refund terms are shown before payment. The ₹50 assistance fee is refunded in full if we do not place the complaint within 24 hours of verified payment. Complaint registration and the operator resolving the fault are separate. Track service and refund updates in My tickets, and contact support with the ticket and payment references."]},
-    { heading: 'New-connection installation', paragraphs: [NEW_CONNECTION_REFUND.en] },
-    { heading: 'Before you confirm a recharge', paragraphs: [
-      'Check the operator, subscriber ID, selected pack, validity and final amount before paying. A payment confirmation and an operator recharge confirmation are separate events. A pending payment is not proof that a recharge has succeeded.',
-      `Any fees, taxes or non-refundable components must be shown before confirmation: ${b.feesAndTaxes}.`,
-    ] },
-    { heading: 'Cancellation requests', paragraphs: [
-      'You may ask support to cancel a request. Whether it can be stopped depends on whether it has already been submitted to or accepted by the operator. We cannot promise cancellation after submission.',
-      'A recharge already credited to the intended subscriber account may not be reversible. If you entered the wrong ID, contact support promptly so available options can be checked. This policy does not exclude refunds or remedies required by law, including remedies for a service error.',
-    ] },
-    { heading: 'Failed, duplicate or pending payments', paragraphs: [
-      'Contact support if money was debited but the recharge failed, a payment was duplicated, or the outcome is unclear. Provide the order and payment references. The transaction must be checked with the payment provider and operator before its final status is confirmed.',
-      'A duplicate payment is reviewed separately from the first payment. Do not assume that an unclear or pending transaction has failed, and do not keep retrying payment while it is being checked.',
-      `Pending-status review: ${b.reconciliation}. Refund eligibility review: ${b.refundReview}.`,
-    ] },
-    { heading: 'Approved refunds', paragraphs: [
-      'Where a refund is due, support will confirm the amount and reference. Refunds should return through the original payment method where supported. If that method is unavailable, support must explain the documented alternative; do not send a further payment or share a UPI PIN to receive a refund.',
-      `Refund initiation after approval: ${b.refundProcessing}. Expected credit after initiation: ${b.bankCredit}. Bank and provider processing can affect when a credit appears. Any applicable statutory requirement takes priority over this policy.`,
-    ] },
-  ],
+  refund: refundPolicy('en', b),
   privacy: privacyPolicy('en', b),
   terms: termsPolicy('en', b),
 };

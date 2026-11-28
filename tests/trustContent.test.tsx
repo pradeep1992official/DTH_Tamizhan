@@ -89,9 +89,13 @@ describe('trust and legal routes (QA-07)', () => {
   });
   it('distinguishes merchant review from provider credit estimates and preserves statutory remedies', () => {
     const text = JSON.stringify(POLICY_CONTENT.refund);
-    expect(text).toContain(BUSINESS_DETAILS.refundReview);
-    expect(text).toContain(BUSINESS_DETAILS.refundProcessing);
-    expect(text).toContain(BUSINESS_DETAILS.bankCredit);
+    expect(text).toContain('checking the payment and recharge status');
+    expect(text).toContain('We are responsible for submitting the refund');
+    expect(text).toContain('Approval alone does not start bank processing');
+    expect(text).toContain('estimated timeline');
+    expect(text).toContain('wrong subscriber ID');
+    expect(text).toContain('our team used them incorrectly');
+    expect(text).toContain('reversal depends on what the DTH provider can do');
     expect(text).toContain('required by law');
     expect(BUSINESS_DETAILS.bankCredit).toContain('estimated timeline'); expect(BUSINESS_DETAILS.bankCredit).toContain('After initiation');
     expect(BUSINESS_DETAILS.refundProcessing).toContain('manually submit');
