@@ -1,3 +1,4 @@
+import { ConsentNotice } from './ConsentNotice';
 import { clientRechargeEnabled } from '../lib/rechargeFeature';
 import { paymentAuthHeaders } from '../lib/paymentAuth';
 import { HelpAddressFields } from './HelpAddressFields';
@@ -112,6 +113,7 @@ export function HelpPage({ user, currentLang, onOpenAuth }: { user: UserProfile 
         {!ticket.subscriberId && <><label className="block">{say('Brand', 'நிறுவனம்')}<select value={brandId} onChange={event => setBrandId(event.target.value)} className="block w-full border border-rule rounded p-3"><option value="">{say('Select brand', 'தேர்ந்தெடுக்கவும்')}</option>{brands.map(brand => <option key={brand.id} value={brand.id}>{brand.displayName}</option>)}</select></label><label className="block">{say('Subscriber ID', 'வாடிக்கையாளர் எண்')}<input value={subscriberId} onChange={event => setSubscriberId(event.target.value)} inputMode="numeric" maxLength={25} className="block w-full border border-rule rounded p-3" /></label></>}
         <p className="text-sm font-semibold text-brand">{say('Full ₹50 refund if we do not place your complaint within 24 hours of verified payment.', 'கட்டணம் உறுதியான 24 மணிநேரத்திற்குள் புகார் பதிவு செய்யாவிட்டால் ₹50 முழுவதும் திருப்பித் தரப்படும்.')}</p>
         <label className="flex gap-2 text-sm"><input type="checkbox" checked={terms} onChange={event => setTerms(event.target.checked)} />{say('I accept the fee and refund terms.', 'கட்டணம் மற்றும் பணத்திருப்பல் விதிகளை ஏற்கிறேன்.')}</label>
+        <ConsentNotice currentLang={currentLang} />
         <button className="admin-primary w-full min-h-12" disabled={busy || !terms || !brand || !subscriberId || !!payment} onClick={async () => {
           if (locked.current || !validateAddress()) return; locked.current = true; setBusy(true); setError('');
           try { await loadCheckout(); const data = await ticketApi(`/${ticket.id}/upgrade`, { acceptedTerms: true, brand: brandId, subscriberId, fullAddress, pinCode });

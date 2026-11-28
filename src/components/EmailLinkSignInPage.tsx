@@ -1,3 +1,4 @@
+import { ConsentNotice } from './ConsentNotice';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { isSignInWithEmailLink } from 'firebase/auth';
@@ -66,6 +67,7 @@ export function EmailLinkSignInPage({ currentLang, user, onOpenAuth }: { current
           {flow === 'link' && user && <p className="signin-message">{text('This email will be linked to', 'இந்த மின்னஞ்சல் இணைக்கப்படும் கணக்கு')}: {user.displayName || user.email || user.phoneNumber}</p>}
           {!hint && <p className="text-sm text-muted">{text('Opening on another device? Enter the same email address you used to request the link.', 'வேறு சாதனத்தில் திறந்தீர்களா? இணைப்பைக் கோரிய அதே மின்னஞ்சலை உள்ளிடவும்.')}</p>}
           {flow === 'signin' && user?.email && user.email.toLowerCase() !== email.trim().toLowerCase() && <p className="signin-message">{text('Continuing will switch from your currently signed-in account.', 'தொடர்வது தற்போது உள்நுழைந்துள்ள கணக்கை மாற்றும்.')}</p>}
+          <ConsentNotice currentLang={currentLang} />
           <form className="signin-form" onSubmit={event => void complete(event)}><label>{text('Email address', 'மின்னஞ்சல் முகவரி')}<input type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} required disabled={busy} /></label><button type="submit" className="signin-primary" disabled={busy} aria-busy={busy}>{busy ? text('Signing in…', 'உள்நுழைகிறது…') : flow === 'link' ? text('Confirm & link email', 'உறுதிசெய்து மின்னஞ்சலை இணைக்கவும்') : text('Confirm & sign in', 'உறுதிசெய்து உள்நுழையவும்')}</button></form>
         </>}
         {error && <button type="button" className="signin-text" onClick={onOpenAuth}>{text('Request a new link', 'புதிய இணைப்பைக் கோரவும்')}</button>}

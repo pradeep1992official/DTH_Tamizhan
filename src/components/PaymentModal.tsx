@@ -1,3 +1,4 @@
+import { ConsentNotice } from './ConsentNotice';
 ﻿import { formatPrice, formatStoredDuration } from '../lib/catalog';
 import { localizeCustomerText, localizeCustomerError } from '../lib/customerMessages';
 import { subscriberLabel } from '../lib/subscriberValidation';
@@ -159,6 +160,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, pla
           <div className="grid grid-cols-3 gap-2 p-1.5 rounded-lg border border-rule bg-paper-2" role="group" aria-label={translations[currentLang].uiPaymentMethod}>
             {(['upi', 'card', 'netbanking'] as const).map(value => <button key={value} type="button" onClick={() => setMethod(value)} aria-pressed={method === value} className={`py-2 px-2 rounded-xl text-sm font-bold ${method === value ? 'bg-accent text-accent-ink' : 'text-muted'}`}>{value === 'upi' ? 'UPI' : value === 'card' ? translations[currentLang].uiDebitCreditCard : translations[currentLang].uiNetBanking}</button>)}
           </div>
+          <ConsentNotice currentLang={currentLang} />
           <PaymentInstrument method={method} mode={mode} session={session} expired={expired} seconds={seconds} currentLang={currentLang} />
           {expired && <div role="status" className="space-y-3"><p>{translations[currentLang].uiSessionExpiredGenerateANewQR}</p><button type="button" disabled={busy} onClick={() => void prepare(true)} className="dialog-primary w-full py-3 rounded-lg">{mode === 'sandbox' ? translations[currentLang].uiGenerateANewMockQR : translations[currentLang].uiGenerateANewQR}</button></div>}
           <p className="text-sm">{translations[currentLang].instantActivation}</p>

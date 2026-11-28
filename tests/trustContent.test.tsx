@@ -95,9 +95,10 @@ describe('trust and legal routes (QA-07)', () => {
       expect(html).toContain(route.ta);
     }
   });
-  it.each(['en', 'ta'] as const)('omits policy links and business/support placeholders from checkout in %s', currentLang => {
+  it.each(['en', 'ta'] as const)('shows consent links without business/support placeholders in checkout in %s', currentLang => {
     const html = renderToStaticMarkup(<PaymentModal isOpen onClose={() => {}} currentLang={currentLang} currentTheme={{} as any} user={null} plan={{ name: 'Fixture', price: 200, validityDays: 30 }} subscriber={null} operator={{ id: 'sun_direct', name: 'Sun Direct' } as any} smartCard="41289456123" saveBox={false} onPaymentSuccess={() => {}} />);
-    for (const route of POLICY_ROUTES) expect(html).not.toContain(`href="${route.path}"`);
+    for (const path of ['/terms', '/privacy-policy']) expect(html).toContain(`href="${path}"`);
+    for (const path of ['/contact', '/refund-policy']) expect(html).not.toContain(`href="${path}"`);
     expect(html).not.toContain('[FILL IN]');
     expect(html).not.toContain(businessDetails(currentLang).phone);
     expect(html).not.toContain(businessDetails(currentLang).email);

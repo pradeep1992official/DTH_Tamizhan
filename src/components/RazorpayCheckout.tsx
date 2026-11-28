@@ -1,3 +1,4 @@
+import { ConsentNotice } from './ConsentNotice';
 import { PaymentEnvironmentBanner } from './PaymentEnvironmentBanner';
 import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -141,6 +142,7 @@ export function RazorpayCheckout({ onClose, plan, operator, smartCard, currentLa
           }}>{downloading ? label('Preparing receipt…', 'ரசீது தயாராகிறது…') : label('Download payment receipt', 'கட்டண ரசீதைப் பதிவிறக்கவும்')}</button></> : <p className="rzp-receipt-hint">{label('Your receipt will be available once your payment is confirmed.', 'கட்டணம் உறுதியானதும் ரசீது கிடைக்கும்.')}</p>}
         </div>}
         {!verified && <>
+          {!result && <ConsentNotice currentLang={currentLang} />}
           <button type="button" className="rzp-pay" disabled={busy} aria-busy={busy} onClick={() => result ? void verify(result) : void pay()}>
             {busy ? <RefreshCw size={19} className="rzp-spinner" /> : <Lock size={18} />}
             <span>{busy ? result ? label('Confirming your payment…', 'கட்டணம் சரிபார்க்கப்படுகிறது…') : label('Opening secure checkout…', 'பாதுகாப்பான கட்டணப் பக்கம் திறக்கப்படுகிறது…') : result ? label('Check payment status', 'கட்டண நிலையைச் சரிபார்க்கவும்') : `${label('Pay', 'செலுத்தவும்')} ${formatPrice(order.current ? order.current.amount / 100 : plan.price, currentLang)}`}</span>

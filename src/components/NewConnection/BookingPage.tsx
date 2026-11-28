@@ -1,3 +1,4 @@
+import { ConsentNotice } from '../ConsentNotice';
 import { bookingRefundPolicy, NEW_CONNECTION_RENTAL } from '../../lib/newConnectionPolicy';
 import { BookingConfirmation } from './BookingConfirmation';
 import { BookingSummary } from './BookingSummary';
@@ -220,6 +221,7 @@ export function BookingPage({ data, items, lang, user, onOpenAuth }: { data: Cat
         {quote && quote.amountDueNow > 0 && config && config.enabledProviders.length > 1 && <label className="connection-review-provider">{t.nbProvider}<select required value={provider} onChange={e => setProvider(e.target.value as NewConnectionProvider)}><option value="" disabled>{t.nbChoose}</option>{config.enabledProviders.map(p => <option key={p} value={p}>{'Razorpay (TEST)'}</option>)}</select></label>}
         {provider === 'razorpay' && <p className="connection-feedback">{t.nbTest}</p>}
         <details className="connection-review-terms"><summary>{t.nbTerms}</summary><p className="connection-policy">{settings.terms || t.nbNoTerms}</p><p className="connection-policy">{rentalTerms}</p><h3>{t.nbRefund}</h3><p className="connection-policy connection-review-refund">{bookingRefundPolicy(settings.refundPolicy, lang)}</p></details>
+        <ConsentNotice currentLang={lang} />
         <label className="connection-check"><input required type="checkbox" aria-invalid={Boolean(errors.terms)} aria-describedby={errors.terms ? 'booking-terms-error' : undefined} checked={terms && contact} onChange={e => { setTerms(e.target.checked); setContact(e.target.checked); setErrors(current => { const { terms: ignored, ...rest } = current; return rest; }); }} /> <span>{t.nbAcceptTerms} {t.nbAcceptContact}</span></label>
         {errors.terms && <p id="booking-terms-error" role="alert" className="connection-field-error">{errors.terms}</p>}
       </div>}
