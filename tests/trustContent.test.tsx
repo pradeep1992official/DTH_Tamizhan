@@ -49,7 +49,7 @@ describe('trust and legal routes (QA-07)', () => {
     for (const field of ['legalName', 'address', 'phone', 'email', 'supportHours', 'gstin', 'grievanceOfficer'] as const) expect(contact).toContain(BUSINESS_DETAILS[field]);
     expect(contact).toContain('href="tel:+919677156157"');
     expect(contact).toContain('href="mailto:support@dthtamizhan.in"');
-    expect(contact).toContain('href="mailto:lavanyacommunication09@gmail.com"');
+    expect(contact).toContain('href="mailto:professorpradeeps@gmail.com"');
     const tamil = renderToStaticMarkup(<SupportDetails currentLang="ta" full />);
     expect(tamil).toContain('SMP Enterprises'); expect(tamil).toContain(BUSINESS_DETAILS.gstin); expect(tamil).toContain(BUSINESS_DETAILS.grievanceEmail);
   });

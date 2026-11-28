@@ -158,7 +158,7 @@ Configure webhooks and payment reconciliation before relying on unattended live-
 
 ## Brevo receipt email
 
-Brevo can deliver payment receipts and recharge confirmations with PDF attachments.
+Brevo delivers customer payment receipts and recharge confirmations with PDF attachments. It also sends an admin alert for each confirmed recharge payment to `orders@dthtamizhan.in`, including order details and an admin link when `APP_URL` is set. Admin alerts do not require a customer email and are deduplicated by payment ID. Set `ADMIN_ORDER_ALERTS_ENABLED=false` to disable recharge admin alerts. New connection booking/payment alerts also go to `orders@dthtamizhan.in` using the same Brevo configuration. Alerts are queued when the booking is saved or recharge payment is confirmed; delivery depends on the email worker, provider availability, and sending allowance. All messages consume the configured sending allowance.
 
 ```dotenv
 BREVO_ENABLED=true

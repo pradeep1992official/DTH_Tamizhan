@@ -21,7 +21,7 @@ export function PolicyPage({ policy, currentLang }: { policy: PolicyKey; current
     {(policy === 'contact' || !recharge) && <SupportDetails currentLang={currentLang} full />}
     <div lang={currentLang} className="space-y-6">{(recharge ? (currentLang === 'ta' ? POLICY_CONTENT_TA : POLICY_CONTENT) : launchPolicies[currentLang])[policy].map(section => <section key={section.heading} className="space-y-2">
       <h2 className="text-lg font-semibold">{section.heading}</h2>
-      {section.paragraphs.map(paragraph => <p key={paragraph} className="text-sm leading-relaxed">{paragraph}</p>)}
+      {section.paragraphs.map(paragraph => <p key={paragraph} className={`text-sm leading-relaxed${policy === 'privacy' ? ' text-justify [overflow-wrap:anywhere]' : ''}`}>{paragraph}</p>)}
     </section>)}</div>
     <PolicyLinks currentLang={currentLang} />
   </article>;

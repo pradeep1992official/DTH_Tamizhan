@@ -10,11 +10,13 @@ import { receiptEmail, type ReceiptEvent } from './receiptEmail';
 import { receiptPdf, receiptDataFromText, type ReceiptPdfData } from './receiptPdf';
 import { acquireStorageLease, collections, documentKey, readCollection, setRecord, usesFirestore, cleanData, type StorageLease } from './persistence';
 import { getAdminFirestore } from './middleware/auth';
+import { ORDER_ALERT_EMAIL } from './orderAlertConfig';
+import { adminOrderEmail } from './adminOrderEmail';
 import { limitedRecords } from './queries';
 import { countAll } from '@google-cloud/firestore/pipelines';
 
 export interface EmailJob {
-  id: string; idempotencyKey: string; recipient: string; name: string; event: ReceiptEvent;
+  id: string; idempotencyKey: string; recipient: string; name: string; event: ReceiptEvent | 'admin_payment';
   subject: string; htmlContent: string; textContent: string;
   senderEmail: string; senderName: string;
   replyTo?: { email: string; name: string };
@@ -66,6 +68,7 @@ export async function enqueueReceiptEvents(payment: PaymentLedgerEntry, order?: 
   if (!config.enabled || !config.configured) return;
   let jobs = queueReceiptEmails([], [payment], order ? [order] : [], now);
   if (order) jobs = jobs.filter(job => job.event === 'recharge');
+  else jobs = queueAdminPaymentEmails(jobs, [payment], now);
   if (usesFirestore()) {
     const db = getAdminFirestore();
     for (const job of jobs) {
@@ -205,6 +208,23 @@ export function queueReceiptEmails(jobs: EmailJob[], payments: PaymentLedgerEntr
   return jobs;
 }
 
+export function queueAdminPaymentEmails(jobs: EmailJob[], payments: PaymentLedgerEntry[], now = Date.now()) {
+  if (process.env.ADMIN_ORDER_ALERTS_ENABLED === 'false') return jobs;
+  const ids = new Set(jobs.map(job => job.id));
+  for (const payment of payments) {
+    if (payment.status !== 'paid' || payment.providerStatus !== 'captured' ||
+      (payment.testMode && !emailDeliveryConfig().testEmails)) continue;
+    const id = `${payment.testMode ? 'test' : 'live'}:${payment.id}:admin_payment`;
+    if (ids.has(id)) continue;
+    jobs.push({ id, idempotencyKey: randomUUID(), recipient: ORDER_ALERT_EMAIL, name: 'DTH Tamizhan orders',
+      event: 'admin_payment', ...adminOrderEmail(payment),
+      senderEmail: process.env.BREVO_SENDER_EMAIL || '', senderName: process.env.BREVO_SENDER_NAME || 'DTH Tamizhan',
+      status: 'pending', attempts: 0, nextAttemptAt: now });
+    ids.add(id);
+  }
+  return jobs;
+}
+
 let processing = false;
 export async function processReceiptEmails(now = Date.now()) {
   const config = emailDeliveryConfig();
@@ -216,7 +236,8 @@ export async function processReceiptEmails(now = Date.now()) {
     // One bounded due-job query when idle, no lock writes or ledger scans.
     if (!usesFirestore()) {
       const existing = await readEmailOutbox();
-      const jobs = queueReceiptEmails(existing, await readPaymentLedger(), await getRechargeOrders(), now);
+      const payments = await readPaymentLedger();
+      const jobs = queueAdminPaymentEmails(queueReceiptEmails(existing, payments, await getRechargeOrders(), now), payments, now);
       await saveEmailJobs(jobs);
     }
     if (!(await dueEmailJobs(now)).length) return;
@@ -257,7 +278,7 @@ export async function processReceiptEmails(now = Date.now()) {
         }
         job.attachment = { name: job.attachmentName!, content };
       }
-      if (!job.attachment && job.attempts === 0) {
+      if (job.event !== 'admin_payment' && !job.attachment && job.attempts === 0) {
         const pdf = await receiptPdf(job.pdfData || receiptDataFromText(job.textContent));
         job.attachment = { name: `DTH-Tamizhan-${job.event}-receipt.pdf`, content: pdf.toString('base64') };
         await saveEmailJobs([job], lease);
@@ -274,7 +295,7 @@ export async function processReceiptEmails(now = Date.now()) {
             htmlContent: job.htmlContent, textContent: job.textContent,
             headers: { idempotencyKey: job.idempotencyKey },
             // Preserve the original payload for any pre-upgrade request already attempted.
-            attachment: [job.attachment || { name: `${job.event}-receipt.html`, content: Buffer.from(job.htmlContent).toString('base64') }],
+            ...(job.event !== 'admin_payment' && { attachment: [job.attachment || { name: `${job.event}-receipt.html`, content: Buffer.from(job.htmlContent).toString('base64') }] }),
           }) });
         const result = await response.json().catch(() => ({})) as { messageId?: string; code?: string };
         if (response.ok && result.messageId) {

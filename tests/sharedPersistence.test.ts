@@ -37,6 +37,7 @@ import { readOperators, saveOperator } from '../server/models/sharedStore';
 const payment = { id: 'pay_shared', order_id: 'order_shared', amount: 139600, currency: 'INR', method: 'upi', status: 'captured', created_at: 1700000000 } as any;
 const order = { notes: { dth_operator: 'airtel_dth', dth_subscriber: '3015222222', dth_plan: 'Tamil HD', dth_customer_uid: 'customer', dth_customer_email: 'customer@example.com' } } as any;
 beforeEach(() => {
+  vi.stubEnv('ADMIN_ORDER_ALERTS_ENABLED', 'false');
   planModel.clearCache();
   state.docs.clear(); state.fail = false; state.serial = Promise.resolve();
   vi.stubEnv('PERSISTENCE_DRIVER', 'firestore'); vi.stubEnv('RAZORPAY_KEY_ID', 'rzp_live_fixture');
@@ -115,4 +116,18 @@ it('excludes catalog bookkeeping without hiding real packs that need administrat
   state.docs.set('plan_catalog/catalog_state', { id: 'catalog_state', updatedAt: '2026-11-13' });
   state.docs.set('plan_catalog/real-pack', { id: 'real-pack', plan_name: 'Pack requiring review', amount: 0 });
   expect((await planModel.getAll()).map(plan => plan.id)).toEqual(['real-pack']);
+});
+
+it('durably queues customer and admin emails once for a captured payment', async () => {
+  vi.stubEnv('ADMIN_ORDER_ALERTS_ENABLED', 'true');
+  await recordProviderPayment(payment, order);
+  await recordProviderPayment(payment, order);
+  const jobs = await readEmailOutbox();
+  expect(jobs).toHaveLength(2);
+  expect(jobs.find(job => job.event === 'admin_payment')).toMatchObject({ recipient: 'orders@dthtamizhan.in', status: 'pending' });
+  const fetcher = vi.fn(async () => new Response(JSON.stringify({ messageId: 'accepted' }), { status: 201 }));
+  vi.stubGlobal('fetch', fetcher);
+  await processReceiptEmails(); await processReceiptEmails();
+  expect(fetcher).toHaveBeenCalledTimes(2);
+  expect((await readEmailOutbox()).every(job => job.status === 'accepted')).toBe(true);
 });

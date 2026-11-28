@@ -14,6 +14,7 @@ const payment = { id: 'pay_fixture', orderId: 'order_fixture', status: 'paid', p
   smartCardNumber: '3015222222', operator: 'airtel_dth', packName: 'Tamil HD', packValidity: '6 months', createdAt: '2026-11-13T05:00:00Z', testMode: false } as any;
 const now = Date.now();
 beforeEach(() => {
+  vi.stubEnv('ADMIN_ORDER_ALERTS_ENABLED', 'false');
   vi.unstubAllGlobals(); fixture.files.clear(); fixture.payments = [{ ...payment }]; fixture.orders = [];
   vi.stubEnv('BREVO_ENABLED', 'true'); vi.stubEnv('BREVO_API_KEY', 'fixture-secret'); vi.stubEnv('BREVO_SENDER_EMAIL', 'sender@example.com');
   vi.stubEnv('BREVO_SEND_TEST_EMAILS', 'false'); vi.stubEnv('BREVO_DAILY_LIMIT', '300');
@@ -92,4 +93,28 @@ it('cancels an unsent email if the recorded payment has since been refunded', as
   await processReceiptEmails(now); fixture.payments[0].status = 'refunded'; fixture.payments[0].providerStatus = 'refunded';
   await processReceiptEmails(now + 30000);
   expect(fetcher).toHaveBeenCalledTimes(1); expect((await readEmailOutbox())[0].status).toBe('cancelled');
+});
+
+it('delivers one admin alert without a customer email and does not resend on repeated scans', async () => {
+  vi.stubEnv('ADMIN_ORDER_ALERTS_ENABLED', 'true');
+  vi.stubEnv('APP_URL', 'https://example.com');
+  fixture.payments[0].customerEmail = undefined;
+  const fetcher = vi.fn<typeof fetch>(async () => new Response(JSON.stringify({ messageId: 'admin-accepted' }), { status: 201 }));
+  vi.stubGlobal('fetch', fetcher);
+  await processReceiptEmails(now); await processReceiptEmails(now + 30000);
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  const body = JSON.parse(fetcher.mock.calls[0][1]!.body as string);
+  expect(body.to[0].email).toBe('orders@dthtamizhan.in');
+  expect(body.subject).toContain('New paid recharge order');
+  expect(body.textContent).toContain('https://example.com/admin/pending');
+  expect(body.textContent).toContain(payment.smartCardNumber);
+  expect(body.htmlContent).not.toContain('Customer <script>');
+  expect(body.attachment).toBeUndefined();
+});
+it('does not alert the admin for unconfirmed or test payments', async () => {
+  vi.stubEnv('ADMIN_ORDER_ALERTS_ENABLED', 'true');
+  fixture.payments = [{ ...payment, providerStatus: 'authorized' }, { ...payment, id: 'test', testMode: true }];
+  const fetcher = vi.fn(); vi.stubGlobal('fetch', fetcher);
+  await processReceiptEmails(now);
+  expect(fetcher).not.toHaveBeenCalled();
 });

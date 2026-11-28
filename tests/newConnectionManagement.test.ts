@@ -213,3 +213,16 @@ it('requires both provider IDs when marking a booking as booked and preserves th
   const scheduled = await changeConnectionStatus(id, 'approved-admin', { status: 'scheduled', schedule: { date: '2026-11-26', slot: 'Morning' }, idempotencyKey: randomUUID() });
   expect(scheduled).toMatchObject({ providerCustomerId: 'CUST-1', providerBookingId: 'BOOK-1', status: 'scheduled' });
 });
+
+it('sends booking and payment admin alerts to the orders mailbox while retaining customer recipients', async () => {
+  const booking = fixture();
+  for (const event of ['booking_received', 'payment_recorded', 'payment_needs_confirmation']) {
+    await db.runTransaction((tx: any) => queueConnectionNotification(tx, booking, event, 'orders-mailbox-' + event));
+  }
+  const jobs = [...f.records.entries()].filter(([key]) => key.startsWith('server_new_connection_notifications/')).map(([, job]) => job);
+  expect(jobs.filter(job => job.audience === 'admin')).toHaveLength(3);
+  expect(jobs.filter(job => job.audience === 'admin').every(job => job.recipient === 'orders@dthtamizhan.in')).toBe(true);
+  expect(jobs.filter(job => job.audience === 'customer').every(job => job.recipient === booking.customer.email)).toBe(true);
+  await deliverConnectionNotifications(booking.id);
+  expect(f.send.mock.calls.filter(call => call[0] === 'orders@dthtamizhan.in')).toHaveLength(3);
+});

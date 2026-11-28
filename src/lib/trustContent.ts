@@ -1,3 +1,4 @@
+import { privacyPolicy } from './privacyPolicy';
 import { NEW_CONNECTION_REFUND } from './newConnectionPolicy';
 export const BUSINESS_DETAILS = {
   legalName: 'SMP Enterprises',
@@ -6,14 +7,14 @@ export const BUSINESS_DETAILS = {
   email: 'support@dthtamizhan.in',
   supportHours: 'Monday to Friday, 10:00 am to 6:00 pm IST',
   gstin: '33CDBPP1554Q1Z8',
-  grievanceOfficer: 'Lavanya, Grievance Officer',
-  grievanceEmail: 'lavanyacommunication09@gmail.com',
+  grievanceOfficer: 'Pradeep, Grievance Officer',
+  grievanceEmail: 'professorpradeeps@gmail.com',
   grievanceAddress: '68/72C, East Street, Thirukoilur - 605757',
   // Merchant grievance commitments follow consumer rules, not Razorpay's own complaint SLA.
   acknowledgement: 'Within 48 hours of receiving the complaint, with a copy of the recorded complaint',
   resolution: 'Within one month of receiving the complaint, subject to any shorter applicable legal deadline',
-  refundReview: 'SMP Enterprises checks the payment status and whether the operator recharge was completed. We communicate the decision or any further information needed through the grievance process; Razorpay does not set a separate merchant eligibility-review deadline',
-  refundProcessing: 'After approval, SMP Enterprises must manually submit the refund through Razorpay and confirm the initiation date and refund reference. Approval alone does not start bank processing; Razorpay does not prescribe our internal approval-to-submission deadline',
+  refundReview: 'We check the payment status and whether the operator recharge was completed. We communicate the decision or any further information needed through the grievance process; Razorpay does not set a separate merchant eligibility-review deadline',
+  refundProcessing: 'After approval, we must manually submit the refund through Razorpay and confirm the initiation date and refund reference. Approval alone does not start bank processing; Razorpay does not prescribe our internal approval-to-submission deadline',
   bankCredit: 'Razorpay refunds are returned to the original payment method where supported. Processing and bank-credit time depend on the payment method and bank. After initiation, we provide the refund reference and the payment provider’s estimated timeline. Contact support if that estimate is exceeded; a cancellation request or refund approval alone does not start bank processing',
   reconciliation: 'Report a debit with an unconfirmed payment immediately. Razorpay may check the bank for late authorisation for up to 3 days from payment creation. This is a payment-status reconciliation window, not a promise of recharge completion or bank-refund credit within 3 days',
   feesAndTaxes: 'The amount displayed at checkout is the amount charged; this checkout does not add a separate Razorpay gateway surcharge. Razorpay processing fees and 18% GST on those fees are merchant charges under the merchant agreement, not an automatic 18% tax on the recharge value. Any applicable customer charges or taxes must be disclosed before payment. The payment receipt is not a tax invoice',
@@ -42,7 +43,7 @@ export const POLICY_CONTENT: Record<PolicyKey, PolicySection[]> = {
     ] },
     { heading: 'Complaints and escalation', paragraphs: [
       `If support has not resolved your issue, contact ${b.grievanceOfficer} at ${b.grievanceEmail}. Postal contact: ${b.grievanceAddress}. Include your earlier support reference.`,
-      `Acknowledgement: ${b.acknowledgement}. Resolution: ${b.resolution}. These are SMP Enterprises grievance commitments; Razorpay handles complaints submitted directly to it under its own policy. Your statutory complaint and consumer-forum rights are unaffected.`,
+      `Acknowledgement: ${b.acknowledgement}. Resolution: ${b.resolution}. These are our grievance commitments; Razorpay handles complaints submitted directly to it under its own policy. Your statutory complaint and consumer-forum rights are unaffected.`,
     ] },
   ],
   refund: [
@@ -66,27 +67,7 @@ export const POLICY_CONTENT: Record<PolicyKey, PolicySection[]> = {
       `Refund initiation after approval: ${b.refundProcessing}. Expected credit after initiation: ${b.bankCredit}. Bank and provider processing can affect when a credit appears. Any applicable statutory requirement takes priority over this policy.`,
     ] },
   ],
-  privacy: [
-    {"heading": "Account verification, booking and support data", "paragraphs": ["With your permission, we send the selected operator and customer/subscriber ID to Way2API for optional account verification. If a configured fallback provider is used, that provider receives the same lookup inputs. Returned customer details may include name, balance, pack and recharge dates. Availability depends on the provider; the check is separate from payment.", "Customer lookup results are briefly cached to reduce repeated calls and are not automatically saved to your customer account. Provider request records are handled under the provider's own terms. Service requests and bookings use the contact details, installation address, problem description and messages you submit. Relevant information is shared with the DTH provider and installation or support team to fulfil your request."]},
-    { heading: 'Who handles your information', paragraphs: [
-      `The business operating DTH Tamizhan is ${b.legalName}, located at ${b.address}. Privacy questions and requests can be sent to ${b.email}; unresolved concerns can be escalated to ${b.grievanceEmail}.`,
-    ] },
-    { heading: 'Information used by the service', paragraphs: [
-      'Account information can include your Google/Firebase user ID, name, email, profile image and any phone number you provide. Saved-box and recharge details can include your DTH operator, subscriber ID, box nickname, selected pack, amount, transaction references and status. Support correspondence may contain information you choose to send.',
-      'The app uses browser storage for items such as profile/session-related display data, language, selected operator and saved-box information. Clearing browser storage removes local copies; it does not automatically delete server records or sign you out of every service.',
-      'Network requests can disclose IP address, browser/device information and technical logs to hosting and service providers. The site uses Google/Firebase for authentication and Google-hosted fonts. Provider details and processing locations are described below.',
-      'This checkout does not collect card numbers, CVVs or UPI PINs. Razorpay handles payment credentials through its hosted checkout under its own privacy notice.',
-    ] },
-    { heading: 'Purpose, sharing and retention', paragraphs: [
-      'Information is used to provide sign-in, manage saved boxes, handle recharge requests, investigate payment status, respond to support requests, prevent misuse and keep records required by law. Operators and payment providers need the information required for a requested transaction. Hosting/authentication providers process information for their relevant service.',
-      `Processor list and processing locations: ${b.processors}. Any additional analytics, marketing, advertising or data-sharing use must be disclosed before it is enabled.`,
-      `Retention: ${b.retention}.`,
-    ] },
-    { heading: 'Your choices and requests', paragraphs: [
-      'Contact support to ask about access, correction, deletion, consent withdrawal or a privacy complaint, as applicable under Indian law. Some verification may be needed to protect your account. We will explain if a legal retention requirement limits a deletion request. Do not send passwords or payment credentials as identity proof.',
-      'Using optional features is your choice. Optional features do not establish separate marketing consent. We update this policy and its effective date when our service or providers change.',
-    ] },
-  ],
+  privacy: privacyPolicy('en', b),
   terms: [
     {"heading": "New connections and service assistance", "paragraphs": ["Our team arranges new-connection bookings with the DTH provider after checking payment and booking details. Provider customer and booking IDs appear in My Bookings once recorded by staff. A preferred installation date is not a confirmed appointment.", "General account, website, recharge and booking support is available through Service Request. Any optional paid complaint-registration assistance and its fee are shown for review before payment. Paying for assistance does not guarantee that the operator has resolved the fault. Track conversations and provider complaint references in My tickets."]},
     {"heading": "Optional account checks", "paragraphs": ["Check account details is optional and requires permission to check the selected DTH account. Results come from an external lookup provider and may be incomplete, delayed or unavailable. A successful lookup is not a completed recharge or a guarantee of pack availability. Review the operator, customer ID and payable amount before paying; you can continue manually when checking is unavailable."]},

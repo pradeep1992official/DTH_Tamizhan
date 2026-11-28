@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
-import { getAdminFirestore, getSuperAdminEmail } from '../middleware/auth';
+import { getAdminFirestore } from '../middleware/auth';
+import { ORDER_ALERT_EMAIL } from '../orderAlertConfig';
 import { sendBrevoMessage, emailDeliveryConfig } from '../emailDelivery';
 import { queryRecords } from '../queries';
 import type { NewConnectionOrder } from '../../src/lib/newConnectionOrders';
@@ -25,7 +26,7 @@ export function queueConnectionNotification(tx: FirebaseFirestore.Transaction, o
   const content = connectionEmail(order, event); const at = new Date().toISOString();
   for (const audience of [admin && 'admin', customer && order.customer.email && 'customer'].filter(Boolean) as string[]) {
     const id = hash(`${order.id}:${event}:${operation}:${audience}`);
-    tx.create(getAdminFirestore().doc(`server_new_connection_notifications/${id}`), { id, orderId: order.id, createdAt: at, event, audience, testMode: order.testMode, recipient: audience === 'admin' ? getSuperAdminEmail() : order.customer.email, name: audience === 'admin' ? 'DTH Tamizhan admin' : order.customer.name, ...content, attempts: 0, status: 'pending', leaseUntil: 0 });
+    tx.create(getAdminFirestore().doc(`server_new_connection_notifications/${id}`), { id, orderId: order.id, createdAt: at, event, audience, testMode: order.testMode, recipient: audience === 'admin' ? ORDER_ALERT_EMAIL : order.customer.email, name: audience === 'admin' ? 'DTH Tamizhan orders' : order.customer.name, ...content, attempts: 0, status: 'pending', leaseUntil: 0 });
   }
 }
 async function refreshFailureFlag(orderId: string) {
