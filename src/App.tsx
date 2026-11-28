@@ -13,12 +13,13 @@ import { EmailLinkSignInPage } from './components/EmailLinkSignInPage';
 import { ErrorPage } from './components/ErrorPages';
 import { pageMetadata } from './lib/pageMetadata';
 import { PolicyPage } from './components/PolicyPage';
-import { PolicyLinks } from './components/TrustContent';
+import { LegalFooterLinks } from './components/LegalFooterLinks';
 import { BUSINESS_DETAILS, POLICY_ROUTES } from './lib/trustContent';
 import { businessDetails } from './lib/policyTranslations';
 import { subscriberError } from './lib/subscriberValidation';
 import { calculateConnectionExpiry, getPackDuration } from './lib/connectionExpiry';
 import React, { useState, useEffect, useRef } from 'react';
+import { WhatsappLogo } from '@phosphor-icons/react';
 import {
   BrowserRouter,
   Routes,
@@ -632,7 +633,7 @@ export function MainApp() {
             <p className="footer-tagline">{recharge ? t.brandTagline : t.launchTagline}</p>
             <div className="footer-support">
               <a href={`tel:${BUSINESS_DETAILS.phone.replace(/[^+0-9]/g, '')}`}>{currentLang === 'ta' ? 'அழைக்கவும்' : 'Call'} {BUSINESS_DETAILS.phone}</a>
-              <a href={`https://wa.me/${BUSINESS_DETAILS.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+              <a className="inline-flex items-center gap-2" href={`https://wa.me/${BUSINESS_DETAILS.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"><WhatsappLogo size={19} aria-hidden="true" />WhatsApp</a>
               <p>{businessDetails(currentLang).supportHours}</p>
             </div>
           </div>
@@ -655,7 +656,7 @@ export function MainApp() {
           </div>
           <div className="footer-link-group">
             <h2>{currentLang === 'ta' ? 'கொள்கைகள்' : 'Policies'}</h2>
-            <PolicyLinks currentLang={currentLang} />
+            <LegalFooterLinks currentLang={currentLang} />
           </div>
         </div>
         <div className="footer-bottom">

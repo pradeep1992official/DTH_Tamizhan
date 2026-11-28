@@ -34,7 +34,7 @@ export function refundPolicy(lang: 'en' | 'ta', business: RefundContact): Policy
       'ஒப்புதல் மட்டும் வங்கிச் செயலாக்கத்தைத் தொடங்காது. பணத்திருப்பலை நாங்கள் சமர்ப்பித்த பிறகு, கட்டண நிறுவனம் தெரிவிக்கும் எதிர்பார்க்கப்படும் காலத்தைப் பகிர்வோம். அது கடந்தும் பணம் வராவிட்டால் எங்களைத் தொடர்புகொள்ளவும். சோதனைக் கட்டணங்களில் உண்மையான பணம் பெறப்படுவதில்லை; திருப்பித் தர உண்மையான பணமும் இல்லை. பணத்திருப்பல் பெற மேலும் பணம் அனுப்பவோ UPI PIN அல்லது OTP பகிரவோ வேண்டாம்.',
     ] },
     { heading: 'உதவி பெறுவது எப்படி?', paragraphs: [
-      `ஆர்டர் எண் அல்லது கோரிக்கை எண், கட்டண எண் மற்றும் சிக்கலின் விவரத்துடன் ${business.email} முகவரிக்கு எழுதவும். தீர்க்கப்படாத புகார்களுக்கு ${business.grievanceOfficer} அவர்களை ${business.grievanceEmail} மூலம் தொடர்புகொள்ளவும். இந்தக் கொள்கை சட்டப்படி உங்களுக்கு உள்ள பணத்திருப்பல் அல்லது பிற தீர்வுகளுக்கான உரிமைகளை நீக்குவதில்லை.`,
+      'தொடர்பு மற்றும் குறைதீர்ப்பு விவரங்கள் பக்கத்தின் மூலம் ஆர்டர் எண் அல்லது கோரிக்கை எண், கட்டண எண் மற்றும் சிக்கலின் விவரத்துடன் எங்களை அணுகவும். தீர்க்கப்படாத புகார்களுக்கு அங்குள்ள குறைதீர்ப்பு அதிகாரியைத் தொடர்புகொள்ளவும். இந்தக் கொள்கை சட்டப்படி உங்களுக்கு உள்ள பணத்திருப்பல் அல்லது பிற தீர்வுகளுக்கான உரிமைகளை நீக்குவதில்லை.',
     ] },
   ];
   return [
@@ -67,7 +67,7 @@ export function refundPolicy(lang: 'en' | 'ta', business: RefundContact): Policy
       'Approval alone does not start bank processing. After we submit the refund, we share the payment provider’s estimated timeline. Contact us if that estimate is exceeded. Test payments collect no real money, so there is no real money to return. You never need to send another payment or share a UPI PIN or OTP to receive a refund.',
     ] },
     { heading: 'How to get help', paragraphs: [
-      `Email ${business.email} with your order or ticket number, payment reference and a description of the issue. For unresolved complaints, contact ${business.grievanceOfficer} at ${business.grievanceEmail}. This policy does not remove refunds or other remedies required by law.`,
+      'Use the Contact & Grievance Details page to get in touch with your order or ticket number, payment reference and a description of the issue. For unresolved complaints, contact the grievance officer listed there. This policy does not remove refunds or other remedies required by law.',
     ] },
   ];
 }

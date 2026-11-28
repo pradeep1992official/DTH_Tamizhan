@@ -1,3 +1,4 @@
+import { LegalFooterLinks } from './LegalFooterLinks';
 import { clientRechargeEnabled } from '../lib/rechargeFeature';
 import { useRef, useState } from 'react';
 import type { Language } from '../types';
@@ -45,6 +46,7 @@ export function SignalLostPage({ recharge = clientRechargeEnabled(), currentLang
         </div>
       </div>
 {recharge && (      <nav className="signal-pack-links" aria-label={text('Browse packs by operator', 'ஆபரேட்டர் வாரியாக பேக்குகள்')}><span>{text('Back to your favourites', 'உங்களுக்குப் பிடித்த பேக்குகள்')}</span><div>{[['sun_direct', 'Sun Direct'], ['tata_play', 'Tata Play'], ['airtel_dth', 'Airtel Digital TV'], ['dish_tv', 'Dish TV & D2H']].map(([id, name]) => <a key={id} href={`/plans?operator=${id}`}>{name}<span aria-hidden="true">→</span></a>)}</div></nav>)}
+      <footer style={{ marginTop: '24px' }}><LegalFooterLinks currentLang={currentLang} /></footer>
     </section>
   </>;
 }

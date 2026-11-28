@@ -14,6 +14,23 @@ import { ReceiptModal } from '../src/components/ReceiptModal';
 import type { RechargeOrder } from '../src/types';
 
 describe('trust and legal routes (QA-07)', () => {
+  it.each(['en', 'ta'] as const)('shows contact details only on the contact policy in %s, with recharge enabled or disabled', lang => {
+    const previous = clientRechargeEnabled();
+    try {
+      for (const enabled of [true, false]) {
+        setClientRechargeEnabled(enabled);
+        const render = (policy: 'contact' | 'privacy' | 'terms' | 'refund') => renderToStaticMarkup(<MemoryRouter><PolicyPage policy={policy} currentLang={lang} /></MemoryRouter>);
+        const details = businessDetails(lang);
+        const contact = render('contact');
+        for (const value of [details.phone, details.email, details.address, details.grievanceOfficer, details.grievanceEmail]) expect(contact).toContain(value);
+        for (const policy of ['privacy', 'terms', 'refund'] as const) {
+          const html = render(policy);
+          for (const value of [details.phone, details.email, details.address, details.grievanceOfficer, details.grievanceEmail, 'orders@dthtamizhan.in']) expect(html).not.toContain(value);
+          expect(html).toContain('href="/contact"');
+        }
+      }
+    } finally { setClientRechargeEnabled(previous); }
+  });
   it.each(['en', 'ta'] as const)('keeps policy punctuation and Tamil characters intact in %s', lang => {
     const policies = lang === 'en' ? POLICY_CONTENT : POLICY_CONTENT_TA;
     for (const sections of Object.values(policies)) {

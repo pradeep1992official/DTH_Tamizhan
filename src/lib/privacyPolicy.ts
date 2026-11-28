@@ -13,7 +13,7 @@ export function privacyPolicy(lang: 'en' | 'ta', business: PrivacyContact): Poli
     ] },
     { heading: 'யார் இந்தத் தகவல்களைப் பெறுகிறார்கள்?', paragraphs: [
       'எங்கள் அனுமதி பெற்ற நிர்வாகிகள் மற்றும் உதவிக் குழுவினர் ஆர்டர்களையும் கோரிக்கைகளையும் கையாளத் தேவையான விவரங்களைப் பார்க்கலாம். இணைப்பு அல்லது புகாரை ஏற்பாடு செய்யத் தேவையான விவரங்கள் சம்பந்தப்பட்ட DTH நிறுவனத்துடனும் நிறுவல் குழுவுடனும் பகிரப்படும்.',
-      'Google/Firebase இணையதளம், உள்நுழைவு மற்றும் தகவல் சேமிப்பை வழங்குகிறது. Razorpay கட்டணங்களைக் கையாளுகிறது. Brevo ரசீதுகள் மற்றும் ஆர்டர் அறிவிப்புகளை மின்னஞ்சலில் அனுப்புகிறது. ஆர்டர் விவரங்கள் orders@dthtamizhan.in என்ற எங்கள் குழுவின் மின்னஞ்சலுக்கும் அனுப்பப்படும்; அந்தப் பெட்டி Zoho Mail-ல் உள்ளது.',
+      'Google/Firebase இணையதளம், உள்நுழைவு மற்றும் தகவல் சேமிப்பை வழங்குகிறது. Razorpay கட்டணங்களைக் கையாளுகிறது. Brevo ரசீதுகள் மற்றும் ஆர்டர் அறிவிப்புகளை மின்னஞ்சலில் அனுப்புகிறது. ஆர்டர் விவரங்கள் எங்கள் குழுவின் மின்னஞ்சல் பெட்டிக்கும் அனுப்பப்படும்; அந்தப் பெட்டி Zoho Mail-ல் உள்ளது.',
       'இணையதள எழுத்துருக்களை Google வழங்குகிறது. இணையதளம் மற்றும் சேவை வழங்குநர்களுக்கு உங்கள் இணைய முகவரி (IP), உலாவி அல்லது சாதன விவரங்கள் மற்றும் பிழைப் பதிவுகள் கிடைக்கலாம். வழங்குநர்களின் அமைப்பைப் பொறுத்து இந்தியாவிலும் பிற நாடுகளிலும் தகவல்கள் கையாளப்படலாம்.',
     ] },
     { heading: 'கட்டண ரகசிய விவரங்கள்', paragraphs: [
@@ -31,8 +31,8 @@ export function privacyPolicy(lang: 'en' | 'ta', business: PrivacyContact): Poli
       'வழக்கு அல்லது விசாரணை தொடர்பான பதிவுகளை இறுதி முடிவுக்குப் பிறகு ஓராண்டு அல்லது சட்டப்படி தேவையான காலம், இவற்றில் பிந்தையது வரை வைத்திருக்கலாம். பிற சட்டத் தேவைகளாலும் காலம் நீளலாம். தேவையற்ற பதிவுகளை ஆய்வு செய்து நீக்குகிறோம் அல்லது அடையாள விவரங்களை அகற்றுகிறோம்; தானியங்கி நீக்கம் இல்லை.',
     ] },
     { heading: 'உங்கள் விருப்பங்கள் மற்றும் தொடர்பு', paragraphs: [
-      `உங்கள் தகவல்களைப் பார்க்க, திருத்த, நீக்க அல்லது அனுமதியைத் திரும்பப் பெற ${business.email} முகவரிக்கு எழுதலாம். இந்தியச் சட்டத்தின்படி பொருந்தும் கோரிக்கைகளைக் கையாளுகிறோம். கணக்கு உங்களுடையது என்பதைச் சரிபார்க்கலாம். வைத்திருக்க வேண்டிய பதிவுகளையும் அவற்றை நீக்க முடியாத காரணத்தையும் விளக்குவோம்.`,
-      `DTH Tamizhan-ஐ நடத்துவது ${business.legalName}. முகவரி: ${business.address}. தீர்க்கப்படாத தனியுரிமைப் புகார்களுக்கு ${business.grievanceOfficer} அவர்களை ${business.grievanceEmail} மூலம் தொடர்புகொள்ளவும். சேவைகள் அல்லது வழங்குநர்கள் மாறும்போது இந்தக் கொள்கையையும் தேதியையும் புதுப்பிப்போம்.`,
+      'உங்கள் தகவல்களைப் பார்க்க, திருத்த, நீக்க அல்லது அனுமதியைத் திரும்பப் பெற, தொடர்பு மற்றும் குறைதீர்ப்பு விவரங்கள் பக்கத்தின் மூலம் எங்களை அணுகலாம். இந்தியச் சட்டத்தின்படி பொருந்தும் கோரிக்கைகளைக் கையாளுகிறோம். கணக்கு உங்களுடையது என்பதைச் சரிபார்க்கலாம். வைத்திருக்க வேண்டிய பதிவுகளையும் அவற்றை நீக்க முடியாத காரணத்தையும் விளக்குவோம்.',
+      `DTH Tamizhan-ஐ நடத்துவது ${business.legalName}. வணிக விவரங்களையும் தீர்க்கப்படாத தனியுரிமைப் புகார்களுக்கான குறைதீர்ப்பு அதிகாரியின் விவரங்களையும் தொடர்பு மற்றும் குறைதீர்ப்பு விவரங்கள் பக்கத்தில் காணலாம். சேவைகள் அல்லது வழங்குநர்கள் மாறும்போது இந்தக் கொள்கையையும் தேதியையும் புதுப்பிப்போம்.`,
     ] },
   ];
   return [
@@ -45,7 +45,7 @@ export function privacyPolicy(lang: 'en' | 'ta', business: PrivacyContact): Poli
     ] },
     { heading: 'Who receives it', paragraphs: [
       'Our authorised admins and support team can access the details needed to handle orders and requests. We share relevant details with your DTH provider and installation team to arrange the service or raise a complaint.',
-      'Google/Firebase runs our website, sign-in and data storage. Razorpay handles payments. Brevo sends receipts and order emails. Order details are also emailed to our team at orders@dthtamizhan.in, whose inbox is hosted by Zoho Mail.',
+      'Google/Firebase runs our website, sign-in and data storage. Razorpay handles payments. Brevo sends receipts and order emails. Order details are also emailed to our operations inbox, hosted by Zoho Mail.',
       'Google also provides website fonts. Our website and service providers may receive your internet address (IP), browser or device details and error logs. Depending on the provider, information may be handled in India or other countries.',
     ] },
     { heading: 'Your payment details', paragraphs: [
@@ -63,8 +63,8 @@ export function privacyPolicy(lang: 'en' | 'ta', business: PrivacyContact): Poli
       'Records involved in a legal case or investigation may be kept until one year after the final decision, or the required legal period, whichever is later. Other legal requirements may also extend this time. We review records before removing them or removing identifying details; deletion is not automatic.',
     ] },
     { heading: 'Your choices and privacy contact', paragraphs: [
-      `Email ${business.email} to ask to see, correct or delete your information, withdraw consent or raise a privacy concern, where applicable under Indian law. We may need to check that the account is yours. If we must keep some records, we will explain which ones and why.`,
-      `DTH Tamizhan is operated by ${business.legalName}, at ${business.address}. For unresolved privacy complaints, contact ${business.grievanceOfficer} at ${business.grievanceEmail}. We update this policy and its date when our services or providers change.`,
+      'Use the Contact & Grievance Details page to ask to see, correct or delete your information, withdraw consent or raise a privacy concern, where applicable under Indian law. We may need to check that the account is yours. If we must keep some records, we will explain which ones and why.',
+      `DTH Tamizhan is operated by ${business.legalName}. Our business details and grievance officer’s contact for unresolved privacy complaints are on the Contact & Grievance Details page. We update this policy and its date when our services or providers change.`,
     ] },
   ];
 }

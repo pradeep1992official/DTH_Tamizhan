@@ -32,7 +32,7 @@ export function termsPolicy(lang: 'en' | 'ta', business: TermsBusiness, recharge
     ] }] : []),
 
     { heading: 'புகார்களும் உங்கள் உரிமைகளும்', paragraphs: [
-      `ஆர்டர் அல்லது சேவை தொடர்பான சிக்கல்களுக்கு ${business.email} முகவரிக்கு எழுதவும். தீர்க்கப்படாத புகார்களுக்கு ${business.grievanceOfficer} அவர்களை ${business.grievanceEmail} மூலம் தொடர்புகொள்ளவும்.`,
+      'ஆர்டர் அல்லது சேவை தொடர்பான சிக்கல்களுக்கு தொடர்பு மற்றும் குறைதீர்ப்பு விவரங்கள் பக்கத்தின் மூலம் எங்களை அணுகவும். தீர்க்கப்படாத புகார்களுக்கு அங்குள்ள குறைதீர்ப்பு அதிகாரியைத் தொடர்புகொள்ளவும்.',
       'இந்தியச் சட்டம் பொருந்தும். பொருந்தும் நுகர்வோர் சட்டங்களின்படி உங்களுக்கு உள்ள உரிமைகளை இந்த விதிமுறைகள் கட்டுப்படுத்துவதில்லை.',
     ] },
   ];
@@ -64,7 +64,7 @@ export function termsPolicy(lang: 'en' | 'ta', business: TermsBusiness, recharge
     ] }] : []),
 
     { heading: 'Problems and your rights', paragraphs: [
-      `For order or service issues, email ${business.email}. For unresolved complaints, contact ${business.grievanceOfficer} at ${business.grievanceEmail}.`,
+      'For order or service issues, use the Contact & Grievance Details page. For unresolved complaints, contact the grievance officer listed there.',
       'Indian law applies. These terms do not limit your rights under applicable consumer laws.',
     ] },
   ];

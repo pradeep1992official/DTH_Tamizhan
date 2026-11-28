@@ -1,3 +1,4 @@
+import { LegalFooterLinks } from './LegalFooterLinks';
 import { clientRechargeEnabled } from '../lib/rechargeFeature';
 import { translations } from '../lib/translations';
 import type { Language } from '../types';
@@ -42,7 +43,7 @@ export function ServerSignalPage({ recharge = clientRechargeEnabled(), currentLa
           <div><span className="server-error-status-dot" /><span>{text('SERVICE STATUS', 'சேவை நிலை')}</span><strong>{text('Temporarily unavailable', 'தற்காலிகமாகக் கிடைக்கவில்லை')}</strong></div>
         </div>
         <aside className="server-error-payment"><div className="server-error-payment-icon" aria-hidden="true">!</div><div><h2>{text('Just made a payment?', 'இப்போது பணம் செலுத்தினீர்களா?')}</h2><p>{text('If money was debited, check your payment history before paying again.', 'பணம் பிடிக்கப்பட்டிருந்தால், மீண்டும் பணம் செலுத்தும் முன் கட்டண வரலாற்றைச் சரிபார்க்கவும்.')}</p><a href="/history">{text('Check payment history', 'கட்டண வரலாற்றைப் பார்க்கவும்')}<span aria-hidden="true"> →</span></a></div></aside>
-        <footer className="server-error-footer"><span>{text('No need to adjust your dish. This is a website error.', 'உங்கள் டிஷைச் சரிசெய்ய வேண்டாம். இது இணையதளப் பிழை.')}</span><a href="/contact">{text('Contact support', 'உதவியை அணுகவும்')}<span aria-hidden="true"> →</span></a></footer>
+        <footer className="server-error-footer" style={{ flexWrap: 'wrap', gap: '16px' }}><span>{text('No need to adjust your dish. This is a website error.', 'உங்கள் டிஷைச் சரிசெய்ய வேண்டாம். இது இணையதளப் பிழை.')}</span><LegalFooterLinks currentLang={currentLang} /></footer>
       </div>
     </section>
   </>;

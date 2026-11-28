@@ -26,7 +26,7 @@ export const BUSINESS_DETAILS = {
 } as const;
 
 export const POLICY_ROUTES = [
-  { path: '/contact', key: 'contact', en: 'Contact / Support', ta: 'தொடர்பு / உதவி' },
+  { path: '/contact', key: 'contact', en: 'Contact & Grievance Details', ta: 'தொடர்பு மற்றும் குறைதீர்ப்பு விவரங்கள்' },
   { path: '/refund-policy', key: 'refund', en: 'Refund & Cancellation Policy', ta: 'பணத்திருப்பல் மற்றும் ரத்துசெய்தல் கொள்கை' },
   { path: '/privacy-policy', key: 'privacy', en: 'Privacy Policy', ta: 'தனியுரிமைக் கொள்கை' },
   { path: '/terms', key: 'terms', en: 'Terms of Use', ta: 'பயன்பாட்டு விதிமுறைகள்' },
