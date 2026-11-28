@@ -14,6 +14,23 @@ import { ReceiptModal } from '../src/components/ReceiptModal';
 import type { RechargeOrder } from '../src/types';
 
 describe('trust and legal routes (QA-07)', () => {
+  it.each(['en', 'ta'] as const)('keeps policy punctuation and Tamil characters intact in %s', lang => {
+    const policies = lang === 'en' ? POLICY_CONTENT : POLICY_CONTENT_TA;
+    for (const sections of Object.values(policies)) {
+      for (const section of sections) {
+        for (const text of [section.heading, ...section.paragraphs]) {
+          expect(text).not.toMatch(/\?{2,}|[a-z]\?[a-z]|\d\?\d|\?50|\uFFFD/i);
+        }
+        if (lang === 'ta') expect(section.heading).toMatch(/[\u0B80-\u0BFF]/);
+      }
+    }
+    if (lang === 'en') {
+      const terms = policies.terms.flatMap(section => section.paragraphs).join(' ');
+      expect(terms).toContain('provider’s rules');
+      expect(terms).toContain('24–48 hours');
+      expect(terms).toContain('₹50');
+    }
+  });
   it.each(['en', 'ta'] as const)('covers recharge lookup privacy and all three service types in %s', lang => {
     const previous = clientRechargeEnabled(); setClientRechargeEnabled(true);
     try {

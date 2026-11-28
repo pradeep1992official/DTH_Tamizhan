@@ -1,3 +1,4 @@
+import { termsPolicy } from './termsPolicy';
 import { privacyPolicy } from './privacyPolicy';
 import { NEW_CONNECTION_REFUND } from './newConnectionPolicy';
 export const BUSINESS_DETAILS = {
@@ -68,28 +69,5 @@ export const POLICY_CONTENT: Record<PolicyKey, PolicySection[]> = {
     ] },
   ],
   privacy: privacyPolicy('en', b),
-  terms: [
-    {"heading": "New connections and service assistance", "paragraphs": ["Our team arranges new-connection bookings with the DTH provider after checking payment and booking details. Provider customer and booking IDs appear in My Bookings once recorded by staff. A preferred installation date is not a confirmed appointment.", "General account, website, recharge and booking support is available through Service Request. Any optional paid complaint-registration assistance and its fee are shown for review before payment. Paying for assistance does not guarantee that the operator has resolved the fault. Track conversations and provider complaint references in My tickets."]},
-    {"heading": "Optional account checks", "paragraphs": ["Check account details is optional and requires permission to check the selected DTH account. Results come from an external lookup provider and may be incomplete, delayed or unavailable. A successful lookup is not a completed recharge or a guarantee of pack availability. Review the operator, customer ID and payable amount before paying; you can continue manually when checking is unavailable."]},
-    { heading: 'Business and scope', paragraphs: [
-      `DTH Tamizhan is operated by ${b.legalName}. Registered address: ${b.address}. GST information: ${b.gstin}. These terms cover use of the website, DTH recharges, new-connection bookings and support requests in India. ${b.installation}.`,
-      'Operator names and logos identify the relevant services. Their appearance does not by itself establish an authorized partnership, endorsement or affiliation.',
-    ] },
-    { heading: 'Your request and the final amount', paragraphs: [
-      'Use accurate subscriber and contact details and review the selected operator, pack, validity and final payable amount. Do not use another person’s account or make a recharge without their authority. Keep your sign-in credentials private and do not use the site for fraud or interference.',
-      `Prices are shown as Rs. Applicable charges, tax treatment and invoice details: ${b.feesAndTaxes}. A catalog listing is not a guarantee of operator acceptance or a promise that an incorrect listing will be supplied. Errors must be explained and resolved without removing your statutory rights.`,
-    ] },
-    { heading: 'Payment and recharge status', paragraphs: [
-      'A request is not a completed recharge merely because you clicked a button, saw a redirect or were debited. Payment needs provider confirmation, and the recharge needs operator confirmation. Operator or payment-provider processing can delay the outcome; activation is not guaranteed to be instant.',
-      'A clearly marked test/sandbox session simulates an outcome only. It does not take a real payment, dispatch a recharge or establish that an operator account was credited. The payment environment is identified on the recharge and checkout screens. Test payments do not collect real money or dispatch real recharges.',
-    ] },
-    { heading: 'Refunds, privacy and service issues', paragraphs: [
-      'Read the Refund & Cancellation Policy for failed, duplicate and pending transactions and cancellation requests. Read the Privacy Policy for information handling and contact support if you have questions before using the service.',
-      'Service availability, channel line-ups and operator policies can change. If a service cannot be supplied or an error occurs, support must explain the available remedy. These terms do not exclude rights or liability that cannot lawfully be excluded.',
-    ] },
-    { heading: 'Complaints and applicable law', paragraphs: [
-      `Support: ${b.email}; escalation: ${b.grievanceOfficer}, ${b.grievanceEmail}. We encourage you to include the order reference and explain the remedy requested.`,
-      'Applicable Indian law governs these terms. Your right to approach a competent consumer forum, regulator or court is preserved; these terms do not force an exclusive dispute forum. Material changes should be made available with an updated effective date and should not retrospectively remove rights for an existing transaction.',
-    ] },
-  ],
+  terms: termsPolicy('en', b),
 };
